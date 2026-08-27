@@ -52,6 +52,7 @@ const BrandProfileSettings = lazy(() => import("./pages/settings/BrandProfile"))
 const ApiKeysSettings = lazy(() => import("./pages/settings/ApiKeys"));
 const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
 const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
+const InvariantSweeps = lazy(() => import("./pages/admin/InvariantSweeps"));
 const DataSources = lazy(() => import("./pages/admin/DataSources"));
 const Methodology = lazy(() => import("./pages/Methodology"));
 const VsComparePage = lazy(() => import("./pages/vs/VsComparePage"));
@@ -277,6 +278,11 @@ const App = () => {
                 <Route path="/admin/accuracy" element={
                   <ProtectedRoute requireAdmin>
                     <AccuracyDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/invariant-sweeps" element={
+                  <ProtectedRoute requireAdmin>
+                    <InvariantSweeps />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/data-sources" element={

@@ -102,6 +102,40 @@ function isValidScenarioSet(scenarios: unknown): scenarios is {
   return isScenarioTriple(s.pessimistic) && isScenarioTriple(s.base) && isScenarioTriple(s.optimistic);
 }
 
+/**
+ * GTM-audit item #18 (2026-08-27, Q19): records a summary of this run so
+ * an admin page (/admin/invariant-sweeps) can show run history at a
+ * glance instead of requiring someone to open GitHub Actions logs.
+ * Written via the same Management API connection as the rest of this
+ * script (full database privileges, not subject to PostgREST/RLS) --
+ * best-effort: a failure here must never fail the sweep itself, since the
+ * sweep's own exit code is what actually gates CI/alerting.
+ */
+async function recordSweepRun(summary: {
+  scanned: number;
+  violationIds: string[];
+  malformedCount: number;
+  appliedCount: number;
+}): Promise<void> {
+  try {
+    const idsJson = JSON.stringify(summary.violationIds).replace(/'/g, "''");
+    await runSql(`
+      INSERT INTO public.financial_invariant_sweep_runs
+        (mode, scanned_count, violation_count, malformed_count, applied_count, violation_ids)
+      VALUES (
+        '${APPLY ? "apply" : "report-only"}',
+        ${summary.scanned},
+        ${summary.violationIds.length},
+        ${summary.malformedCount},
+        ${summary.appliedCount},
+        '${idsJson}'::jsonb
+      );
+    `);
+  } catch (err) {
+    console.warn(`(non-fatal) failed to record sweep run summary: ${String(err)}`);
+  }
+}
+
 async function main() {
   console.log(`Financial-invariants sweep -- mode: ${APPLY ? "APPLY (will write flags)" : "REPORT-ONLY (no writes)"}`);
 
@@ -149,11 +183,13 @@ async function main() {
     console.log(malformed.length > 0
       ? "\nPASS (with skipped rows): no financial-invariant violations found among the analyses that could be checked."
       : "\nPASS: no financial-invariant violations found.");
+    await recordSweepRun({ scanned: rows.length, violationIds: [], malformedCount: malformed.length, appliedCount: 0 });
     Deno.exit(0);
   }
 
   if (!APPLY) {
     console.log("\nReport-only mode -- no rows written. Re-run with --apply to flag these for review.");
+    await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
     Deno.exit(1); // non-zero so a scheduled job alerts on any violation found
   }
 
@@ -163,6 +199,7 @@ async function main() {
 
   if (toFlag.length === 0) {
     console.log("\nAll violating rows are already flagged (report_integrity='BLOCK'). Nothing to apply.");
+    await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
     Deno.exit(1);
     return;
   }
@@ -185,6 +222,7 @@ async function main() {
     WHERE id IN (${idList});
   `);
   console.log("Done.");
+  await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: toFlag.length });
   Deno.exit(1); // still non-zero: violations existed, even though now flagged
 }
 
