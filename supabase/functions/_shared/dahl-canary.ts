@@ -73,6 +73,37 @@ async function stableBucket(key: string): Promise<number> {
   return n % 100;
 }
 
+/**
+ * Third gate, independent of canary mode/percent: which Dahl task aliases
+ * are actually cleared to serve real traffic right now.
+ *
+ * 2026-08-27 smoke test (docs/DAHL_CANARY_ROLLOUT.md, run 33119952790):
+ * `general` hard-timed-out at 120s and `long_reasoning` took 92s against a
+ * 60s production budget -- both a real, measured failure, not a hypothetical
+ * one. `fast_reasoning` passed cleanly at 6.4s. Until `general`/
+ * `long_reasoning` get their own passing smoke-test evidence, this allowlist
+ * keeps them out of the request path entirely, REGARDLESS of what alias any
+ * individual caller in llm-call.ts's 13 call sites requests (only one call
+ * site -- analyze-business.ts -- passes an explicit alias today; the other
+ * 12 fall through to dahlDefaultAlias(), which defaults to 'general' -- the
+ * exact alias proven to time out). Fails closed: an alias not in this list
+ * is never eligible, never "eligible by default".
+ *
+ * DAHL_CLEARED_ALIASES lets ops widen this without a code deploy once a
+ * given alias earns its own passing evidence (comma-separated, e.g.
+ * "fast_reasoning,long_reasoning"). Unset/empty falls back to the
+ * fast_reasoning-only default below, not to "everything allowed".
+ */
+function clearedAliases(): Set<string> {
+  const raw = Deno.env.get('DAHL_CLEARED_ALIASES');
+  if (!raw || raw.trim().length === 0) return new Set(['fast_reasoning']);
+  return new Set(raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0));
+}
+
+export function isDahlAliasCleared(alias: string): boolean {
+  return clearedAliases().has(alias);
+}
+
 export interface DahlEligibilityInput {
   userId?: string | null;
   requestId?: string | null;

@@ -152,3 +152,29 @@ this next, not something changed in code by this doc.
 bar above (3 consecutive passes, spread across at least 2 days) — today's
 run counts as attempt 1 of that count, and it's a fail, so the count
 resets on the next run regardless of outcome.
+
+## Alias-scoping gate (added 2026-08-27, in code)
+
+The result above means `general`/`long_reasoning` cannot be trusted with
+real request traffic yet, but of the 13 call sites that pass through
+`aiCall()` (`llm-call.ts`), only one (`analyze-business/index.ts`)
+explicitly requests `fast_reasoning` — the other 12 fall through to
+`dahlDefaultAlias()`, which defaults to `general`, the exact alias that
+timed out. Enabling the two rollout-mode gates alone (`DAHL_ENABLED` +
+`DAHL_CANARY_MODE`) would have silently routed most real traffic to the
+unproven alias.
+
+`dahl-canary.ts` now exports a third, independent gate —
+`isDahlAliasCleared(alias)` — checked in `aiCall()` alongside
+`isDahlEnabled()`/`isDahlEligible()`. It defaults closed to
+`{'fast_reasoning'}` regardless of `DAHL_CANARY_MODE`/`DAHL_CANARY_PERCENT`;
+a request whose alias isn't cleared skips Dahl entirely and goes straight
+to the legacy chain, even when the other two gates pass. Widen it via
+`DAHL_CLEARED_ALIASES` (comma-separated) only once an alias has its own
+passing smoke-test evidence — not as a blanket unlock.
+
+This decouples two previously-conflated decisions: "is Dahl eligible for
+this user/request" (rollout percentage) and "is this specific alias safe
+to serve" (per-alias smoke-test evidence). The rollout stages above still
+apply on top of this — clearing `fast_reasoning` here does not by itself
+advance `DAHL_CANARY_MODE` past `off`.

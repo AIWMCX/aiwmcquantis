@@ -7,10 +7,10 @@
  * No network access needed or requested -- pure logic + Web Crypto hashing.
  */
 import { assert, assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
-import { isDahlEligible, canaryMode } from "./dahl-canary.ts";
+import { isDahlEligible, canaryMode, isDahlAliasCleared } from "./dahl-canary.ts";
 
 function resetEnv() {
-  for (const k of ["DAHL_CANARY_MODE", "DAHL_CANARY_ADMIN_USER_IDS", "DAHL_CANARY_PERCENT"]) {
+  for (const k of ["DAHL_CANARY_MODE", "DAHL_CANARY_ADMIN_USER_IDS", "DAHL_CANARY_PERCENT", "DAHL_CLEARED_ALIASES"]) {
     Deno.env.delete(k);
   }
 }
@@ -115,4 +115,30 @@ Deno.test("percent config outside [0, 100], non-integer, or non-numeric all fail
   // A genuinely valid boundary value still works normally.
   Deno.env.set("DAHL_CANARY_PERCENT", "100");
   assertEquals(await isDahlEligible({ userId: "x" }), true);
+});
+
+Deno.test("isDahlAliasCleared: defaults to fast_reasoning-only when unset (2026-08-27 smoke test evidence)", () => {
+  resetEnv();
+  assertEquals(isDahlAliasCleared("fast_reasoning"), true);
+  assertEquals(isDahlAliasCleared("general"), false);
+  assertEquals(isDahlAliasCleared("long_reasoning"), false);
+});
+
+Deno.test("isDahlAliasCleared: empty/whitespace-only config falls back to the safe default, not 'everything allowed'", () => {
+  resetEnv();
+  Deno.env.set("DAHL_CLEARED_ALIASES", "");
+  assertEquals(isDahlAliasCleared("fast_reasoning"), true);
+  assertEquals(isDahlAliasCleared("general"), false);
+
+  Deno.env.set("DAHL_CLEARED_ALIASES", "   ");
+  assertEquals(isDahlAliasCleared("fast_reasoning"), true);
+  assertEquals(isDahlAliasCleared("general"), false);
+});
+
+Deno.test("isDahlAliasCleared: ops can widen the allowlist explicitly once an alias earns passing evidence", () => {
+  resetEnv();
+  Deno.env.set("DAHL_CLEARED_ALIASES", "fast_reasoning, long_reasoning");
+  assertEquals(isDahlAliasCleared("fast_reasoning"), true);
+  assertEquals(isDahlAliasCleared("long_reasoning"), true);
+  assertEquals(isDahlAliasCleared("general"), false);
 });
