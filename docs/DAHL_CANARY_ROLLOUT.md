@@ -114,8 +114,41 @@ Confirmed live, not assumed:
   column (added 2026-08-25). Zero Dahl activity of any kind in the 3
   days since the fix shipped.
 
-**Verdict: still at Stage 0. The fix is real and shipped, but has never
-been exercised even once since — there is no data yet to evaluate,
-because nothing has generated any.** The next concrete action is simply
-running the smoke test workflow to get the first real post-fix data
-point (Stage 1), not re-enabling the canary directly.
+**Verdict: still at Stage 0.** The fix is real and shipped, but had
+never been exercised once since it merged. The next concrete action
+was simply running the smoke test workflow to get the first real
+post-fix data point (Stage 1) — see below.
+
+## First post-fix run (2026-08-27, run 33119952790) — FAIL
+
+Triggered manually the same day this doc was written, specifically to
+get a real data point instead of continuing to reason from silence.
+Result: **failure** — 0 of 3 Stage 1 "consecutive pass" count. Full
+JSON-mode probe output, per alias, against the exact production request
+shape (`response_format: json_object`, same token budget as
+`analyze-business`'s real call):
+
+| Alias | Model | Result | Detail |
+|---|---|---|---|
+| `general` | — | **FAIL — transport timeout** | Hard timeout at 120s wall time; no response of any kind. |
+| `long_reasoning` | moonshotai/Kimi-K2.6 | **FAIL — too slow** | JSON.parse succeeded (valid JSON!), but took 92,040ms against production's 60,000ms budget. Would time out for a real user despite the content itself being fine. |
+| `fast_reasoning` | deepseek-ai/DeepSeek-V4-Flash-0731 | **PASS** | Valid, parseable JSON in 6,391ms — well inside budget. |
+
+**This is not a re-run of the original 2026-08-24 incident** — that
+incident was a transport-success-but-unparseable-JSON failure; today's
+`long_reasoning` result shows the JSON-repair/parsing work is doing its
+job (the content DID parse). What this run surfaces instead is a
+narrower, different problem: **`general` and `long_reasoning` are not
+currently production-safe with this exact request shape** — one times
+out entirely, the other is too slow — while `fast_reasoning` is clean.
+
+**Implication for the rollout plan above:** if/when this clears Stage 1,
+Stage 2 (`admin_only`) should very likely be scoped to route only to
+the `fast_reasoning` alias initially, not `general` or `long_reasoning`,
+given today's evidence — that's a scoping decision for whoever advances
+this next, not something changed in code by this doc.
+
+**Next step:** re-run the smoke test on a different day per the Stage 1
+bar above (3 consecutive passes, spread across at least 2 days) — today's
+run counts as attempt 1 of that count, and it's a fail, so the count
+resets on the next run regardless of outcome.
