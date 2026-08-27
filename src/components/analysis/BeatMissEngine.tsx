@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
 import { buildCitation, formatCitationCompact } from '@/lib/benchmark-citations';
 import { checkFreshness, getFreshnessIcon, getFreshnessLabel } from '@/lib/benchmark-freshness';
+import type { ServerBenchmarkRecord } from './BenchmarkCitations';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { cn } from '@/lib/utils';
 
@@ -21,18 +22,74 @@ interface BeatMissRow {
 }
 
 /**
+ * GTM-audit item #16 (2026-08-27, Q11): confirmed via a real-code
+ * investigation agent that this component's benchmark citations were never
+ * reconciled with the rest of the report. Every other surface (PDF export,
+ * BenchmarkCitations.tsx, RVCE's internal fallback) reads from
+ * `result.metadata.benchmarks[]` -- the server's real ~97,500-row Benchmark
+ * Master match, computed once at analysis time. This component instead used
+ * `BENCHMARK_DATABASE`, a 120-row hand-typed static array where every single
+ * row is stamped `source: 'kerry_dataset'` / a fixed placeholder sample size
+ * of 1000, regardless of actual industry or metric. The same report could
+ * show a gross-margin p50 of, say, 78% here and a genuinely different p50
+ * from the real dataset in the PDF's Benchmark Citations table for what a
+ * user reads as the same fact -- the exact class of bug this session's
+ * other fixes (RVCE range membership, RVCE fallback honesty) addressed.
+ *
+ * Fix: prefer the real server record for any metric it covers (same
+ * precedence rule BenchmarkCitations.tsx already established for P0-5,
+ * 2026-07-12: "server wins, static/client is fallback only"). The static
+ * array remains a fallback ONLY for metrics the server benchmark set
+ * doesn't cover (currently just break-even timeline), and those rows stay
+ * marked (est.) so the distinction is visible, not silently blended in.
+ */
+const SERVER_METRIC_MAP: Record<string, string> = {
+  avg_ticket_size: 'arpu',
+  cac: 'cac',
+  churn_rate: 'churn_monthly',
+  gross_margin: 'gross_margin',
+};
+
+/** Server benchmark percentages arrive as fractions (0.56 = 56%); this component's values are percent-numbers (56). */
+const PERCENT_SERVER_METRICS = new Set(['gross_margin', 'churn_monthly']);
+
+interface ServerBand {
+  p25: number;
+  p50: number;
+  p75: number;
+  source: string;
+  sampleSize: number;
+}
+
+export function resolveServerBand(
+  serverBenchmarks: ServerBenchmarkRecord[] | undefined,
+  serverMetricKey: string
+): ServerBand | null {
+  const rec = serverBenchmarks?.find(r => r.metric === serverMetricKey);
+  if (!rec || rec.match_type === 'none' || rec.p25 === null || rec.median === null || rec.p75 === null) return null;
+  const scale = PERCENT_SERVER_METRICS.has(serverMetricKey) ? 100 : 1;
+  return {
+    p25: rec.p25 * scale,
+    p50: rec.median * scale,
+    p75: rec.p75 * scale,
+    source: rec.source ?? 'AIWMC Quantis Benchmark Master',
+    sampleSize: rec.sample_size,
+  };
+}
+
+/**
  * CodeRabbit catch (PR #94, second pass): same-index percentile division
  * (p25/p25, p50/p50, p75/p75) is STILL not the true joint distribution of
  * LTV:CAC -- it assumes LTV and CAC move together within a percentile band,
  * which is an unverified assumption, not real paired-observation data.
  * CodeRabbit's own recommendation: "if that data is unavailable, label
  * these values as estimates and do not use them as percentile-band
- * thresholds." So the LTV:CAC row no longer derives its BEAT/MISS verdict
- * from any percentile arithmetic at all -- it uses this widely-cited SaaS
- * industry heuristic instead (David Skok / Bessemer "SaaS Metrics 2.0":
- * 3:1 is the minimum healthy ratio, 5:1+ is considered excellent). The
- * p25/p50/p75 figures are still shown for context but are marked as
- * estimates (isEstimatedBand) and play no role in the verdict.
+ * thresholds." So the LTV:CAC row only falls back to this widely-cited SaaS
+ * industry heuristic (David Skok / Bessemer "SaaS Metrics 2.0": 3:1 is the
+ * minimum healthy ratio, 5:1+ is considered excellent) when no real
+ * server-side ltv_cac_ratio record exists -- see resolveServerBand() above,
+ * which DOES carry a real (non-derived) p25/p50/p75 for this exact metric
+ * from the 97,500-row dataset when a direct/similar match was found.
  */
 const LTV_CAC_HEURISTIC = { healthyMin: 3, excellent: 5 } as const;
 
@@ -84,6 +141,7 @@ interface BeatMissEngineProps {
 export function BeatMissEngine({ result }: BeatMissEngineProps) {
   const rows = useMemo<BeatMissRow[]>(() => {
     const industry = result.metadata.industry_detected || 'service_business';
+    const serverBenchmarks = (result.metadata as any)?.benchmarks as ServerBenchmarkRecord[] | undefined;
     const price = result.financial_analysis?.inputs?.price_per_unit ?? 0;
     const cac = result.financial_analysis?.unit_economics?.cac ?? 0;
     const churn = (result.financial_analysis?.inputs?.churn_rate ?? 0) * 100;
@@ -101,15 +159,36 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
     ];
 
     return items.map(item => {
+      const serverMetricKey = item.param === 'ltv' ? 'ltv_cac_ratio' : SERVER_METRIC_MAP[item.param];
+      const serverBand = serverMetricKey ? resolveServerBand(serverBenchmarks, serverMetricKey) : null;
+
+      if (serverBand) {
+        const { verdict, deltaPct } = classify(item.value, serverBand.p25, serverBand.p50, serverBand.p75, item.higherBetter);
+        return {
+          label: item.label,
+          userValue: item.value,
+          p25: Math.round(serverBand.p25 * 10) / 10,
+          p50: Math.round(serverBand.p50 * 10) / 10,
+          p75: Math.round(serverBand.p75 * 10) / 10,
+          unit: item.unit,
+          verdict,
+          deltaPct,
+          source: `${serverBand.source} · n=${serverBand.sampleSize.toLocaleString()}`,
+          isEstimatedBand: false,
+        };
+      }
+
+      // No real server-side match for this metric -- fall back to the
+      // static reference array, clearly marked as an estimate. For LTV:CAC
+      // specifically this also means no real joint percentile data exists,
+      // so the verdict itself falls back to the industry heuristic (see
+      // classifyLtvCacRatio() doc comment above) rather than same-index
+      // percentile arithmetic.
       const bm = findBenchmark(industry, item.param);
       const p25 = bm?.p25 ?? 0;
       const p50 = bm?.p50 ?? 0;
       const p75 = bm?.p75 ?? 0;
 
-      // LTV:CAC has no paired-observation dataset, so there's no true joint
-      // p25/p50/p75 to display or classify against -- shown here as a
-      // same-index-percentile ESTIMATE (informational only; see
-      // classifyLtvCacRatio() above for why the verdict never uses it).
       let effectiveP25 = p25;
       let effectiveP50 = p50;
       let effectiveP75 = p75;
@@ -141,7 +220,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
         verdict,
         deltaPct,
         source: sourceText,
-        isEstimatedBand: item.param === 'ltv',
+        isEstimatedBand: true,
       };
     });
   }, [result]);
@@ -222,7 +301,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
 
       <p className="text-[10px] text-[var(--q-text-disabled)] italic">
         ▲ BEAT = outside the favorable side of the shown p25–p75 band · ▼ MISS = outside the unfavorable side · ● IN-LINE = inside the band
-        {rows.some(r => r.isEstimatedBand) && ' · (est.) = no paired dataset; band shown for context only, not used for the verdict'}
+        {rows.some(r => r.isEstimatedBand) && ' · (est.) = no matching benchmark in the report\'s own dataset; static reference shown for context only, not used for the verdict'}
       </p>
     </div>
   );
