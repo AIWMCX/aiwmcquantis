@@ -16,6 +16,19 @@ interface ChangeEntry {
 
 const CHANGELOG: ChangeEntry[] = [
   {
+    date: 'August 27, 2026',
+    version: '2.6.0',
+    title: 'Benchmark reconciliation + export safeguards',
+    type: 'fix',
+    changes: [
+      'Fixed a case where the "Beat/Miss" industry comparison card could cite a different benchmark number than the same report\'s PDF and validation panels for the same metric. All three now always agree, sourced from the same real benchmark dataset — no more silently disagreeing "facts" in one report.',
+      'Fixed a case where external validation could show a confident "Validated" badge with zero real outside data behind it. It now clearly shows "Estimated" instead whenever there was nothing real to validate against.',
+      'Exporting a report that failed an internal consistency check now requires an explicit confirmation before download, instead of silently allowing a normal-looking export.',
+      'Published a formal security-disclosure policy (security.txt) so security researchers have a documented, direct way to report issues.',
+      'The financial-integrity check introduced on August 25 now runs automatically on a recurring schedule against every analysis, not just as a one-time sweep.',
+    ],
+  },
+  {
     date: 'August 25, 2026',
     version: '2.5.0',
     title: 'Financial-integrity gate + validation badge fix',
