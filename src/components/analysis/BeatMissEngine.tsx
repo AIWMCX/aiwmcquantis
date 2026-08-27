@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
 import { buildCitation, formatCitationCompact } from '@/lib/benchmark-citations';
 import { checkFreshness, getFreshnessIcon, getFreshnessLabel } from '@/lib/benchmark-freshness';
-import type { ServerBenchmarkRecord } from './BenchmarkCitations';
-import type { BusinessAnalysisResult } from '@/types/analysis';
+import type { BusinessAnalysisResult, ServerBenchmarkRecord } from '@/types/analysis';
 import { cn } from '@/lib/utils';
 
 type Verdict = 'BEAT' | 'IN-LINE' | 'MISS';
@@ -141,7 +140,7 @@ interface BeatMissEngineProps {
 export function BeatMissEngine({ result }: BeatMissEngineProps) {
   const rows = useMemo<BeatMissRow[]>(() => {
     const industry = result.metadata.industry_detected || 'service_business';
-    const serverBenchmarks = (result.metadata as any)?.benchmarks as ServerBenchmarkRecord[] | undefined;
+    const serverBenchmarks = result.metadata.benchmarks;
     const price = result.financial_analysis?.inputs?.price_per_unit ?? 0;
     const cac = result.financial_analysis?.unit_economics?.cac ?? 0;
     const churn = (result.financial_analysis?.inputs?.churn_rate ?? 0) * 100;
@@ -301,7 +300,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
 
       <p className="text-[10px] text-[var(--q-text-disabled)] italic">
         ▲ BEAT = outside the favorable side of the shown p25–p75 band · ▼ MISS = outside the unfavorable side · ● IN-LINE = inside the band
-        {rows.some(r => r.isEstimatedBand) && ' · (est.) = no matching benchmark in the report\'s own dataset; static reference shown for context only, not used for the verdict'}
+        {rows.some(r => r.isEstimatedBand) && ' · (est.) = no matching benchmark in the report\'s own dataset; comparison uses a static reference estimate, not the report\'s own data'}
       </p>
     </div>
   );

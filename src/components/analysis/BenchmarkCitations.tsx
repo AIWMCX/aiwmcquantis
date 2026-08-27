@@ -19,23 +19,19 @@ import {
   type BenchmarkMetric,
   type BenchmarkResult,
 } from '@/services/benchmark-lookup';
+import type { ServerBenchmarkRecord } from '@/types/analysis';
+
+// CodeRabbit catch (PR #100): this type now lives in @/types/analysis so
+// `BusinessAnalysisResult.metadata.benchmarks` can be declared with it
+// directly, instead of every consumer reading it via an `any` cast.
+// Re-exported here since this was its original home and other files
+// already import it from this module.
+export type { ServerBenchmarkRecord };
 
 export interface CitedMetric {
   label: string;
   metric: BenchmarkMetric;
   userValue?: number;
-}
-
-/** Shape of supabase/functions/analyze-business/benchmark-records.ts's BenchmarkRecord. */
-export interface ServerBenchmarkRecord {
-  metric: string;
-  value: number | null;
-  p25: number | null;
-  median: number | null;
-  p75: number | null;
-  sample_size: number;
-  source: string | null;
-  match_type: 'direct' | 'similar' | 'none' | string;
 }
 
 interface BenchmarkCitationsProps {

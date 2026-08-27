@@ -417,7 +417,28 @@ export interface BusinessAnalysisResult {
     generated_at: string;
     model: string;
     version: string;
+    /**
+     * The server's real Benchmark Master match (~97,500-row dataset),
+     * computed once at analysis time. CodeRabbit catch (PR #100): this
+     * field existed and was already read via an `any` cast in several
+     * places (usePdfExport.ts, BeatMissEngine.tsx) -- declaring it here
+     * means a future rename/omission fails typecheck instead of silently
+     * falling back to a static estimate.
+     */
+    benchmarks?: ServerBenchmarkRecord[];
   };
+}
+
+/** Shape of supabase/functions/analyze-business/benchmark-records.ts's BenchmarkRecord. */
+export interface ServerBenchmarkRecord {
+  metric: string;
+  value: number | null;
+  p25: number | null;
+  median: number | null;
+  p75: number | null;
+  sample_size: number;
+  source: string | null;
+  match_type: 'direct' | 'similar' | 'none' | string;
 }
 
 // API Response wrapper
