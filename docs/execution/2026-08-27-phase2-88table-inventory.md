@@ -146,6 +146,63 @@ Combined with `analyses`' own team-sharing policy (already verified),
 **all 4 team-owned tables in the database are individually confirmed
 correct** — this charter item is fully closed, not sampled.
 
+## Batch review: remaining ~45 non-priority tables
+
+Pulled every policy for every table not already covered above (all
+priority-list, team-owned, and public-reference tables excluded from
+this query) in one batch: `activation_events`, `admin_notifications`,
+`ai_calls`, `analysis_complete_events`, `analysis_jobs`,
+`analysis_outcome_schedule`, `analysis_outcomes`, `analysis_snapshots`,
+`anonymous_usage`, `autoposter_analytics_weekly`,
+`autoposter_oauth_state`, `autoposter_post_analytics`,
+`autoposter_post_platforms`, `autoposter_posts`,
+`autoposter_publishing_logs`, `branding_settings`,
+`content_studio_generations`, `doc_performance_signals`,
+`doc_templates`, `document_versions`, `documents`, `email_engagement`,
+`email_send_log`, `email_sequence_log`, `email_sequences`,
+`entitlement_denials`, `financial_invariant_sweep_runs`,
+`gsc_verification`, `industry_benchmarks`, `promo_redemptions`,
+`qoc_audit`, `qoc_audit_envelopes`, `rate_limits`,
+`referral_conversions`, `referral_rewards`, `scenario_runs`,
+`scenario_sets`, `scenario_versions`, `scenarios`,
+`self_learned_priors`, `service_job_assemblies`,
+`service_job_outcomes`, `service_job_trades`, `service_jobs`,
+`subscription_audit_log`, `teams`, `tier_qa_runs`,
+`user_brand_profiles`, `user_engagement`, `user_notifications`,
+`user_realism_feedback`, `user_roles`.
+
+**Consistent pattern across all of them**: owner-scoped via
+`auth.uid() = user_id` (or `owner_id`/`created_by` where applicable),
+admin-gated via `has_role(auth.uid(), 'admin')` (sometimes OR'd with
+`content_admin`), `service_role` bypass via `is_service_role()` or an
+explicit `service_role`-only grant, explicit `anon`-deny on most, and a
+handful of genuinely public catalog reads correctly scoped to an
+`active = true`/`is_active = true` condition (`service_job_assemblies`,
+`service_job_trades`, `doc_templates`) rather than exposing the whole
+table. No new wide-open or unscoped mutation policy found (consistent
+with the exhaustive schema-wide checks above, which already ruled this
+out structurally).
+
+Two items checked individually rather than assumed safe:
+
+- **`self_learned_priors`** — `SELECT` granted to `authenticated` with
+  `qual='true'`, no ownership scoping at all. Checked its columns: `id,
+  industry, business_model, metric_priors, sample_size, quality_score,
+  data_window_days, last_updated_at, created_at` — **no `user_id`
+  column, no PII** — this is aggregate ML calibration data, same
+  category as the benchmark-master tables. Correctly public-to-
+  authenticated-users by design, not an oversight.
+- **`qoc_audit`**'s service-role policy uses an inline
+  `(auth.jwt() ->> 'role') = 'service_role'` check instead of the
+  standard `is_service_role()` helper used everywhere else. Compared
+  against `is_service_role()`'s actual definition (`request.jwt.claim.role
+  = 'service_role' OR current session role = 'service_role'`) — the
+  inline check is a **subset** of that (JWT-claim path only, missing the
+  session-role fallback), meaning it can only be *more* restrictive,
+  never more permissive. Not a vulnerability, just a style
+  inconsistency worth normalizing in a future cleanup pass, not this
+  security-focused one.
+
 ## Not yet done (honest gap, not claimed complete)
 
 - Per-table intended-access classification (2.2) as a structured
