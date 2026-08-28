@@ -123,6 +123,29 @@ the *correct* one (that's the remaining per-table depth review below),
 but it rules out the specific structural gap ("policy exists but forgot
 to scope it") across the entire table set at once.
 
+## Exhaustive check: all team-owned tables (2.8)
+
+Only 4 tables in the entire schema have a `team_id` column: `analyses`
+(checked above), `commercial_analyses`, `team_invitations`,
+`team_members` — this is the complete set, not a sample.
+
+- `commercial_analyses` — **clean**. RLS is disabled on this table, but
+  it holds **zero** table-level grant to `anon` or `authenticated` at
+  all (`has_table_privilege` false for both on every operation) — RLS
+  status is moot when there's no grant to bypass it with; same
+  safe "no client path exists" pattern as the fully internal Phase-1
+  tables.
+- `team_invitations`/`team_members` — **clean**. Explicit `anon`-deny;
+  all authenticated access gated through `is_team_admin(auth.uid(),
+  team_id)` or `is_team_member(auth.uid(), team_id)`; `team_members`
+  INSERT correctly requires either being a team admin OR having a real,
+  unexpired, unaccepted invitation matched by email; `service_role`
+  bypass on `team_invitations` via `is_service_role()`.
+
+Combined with `analyses`' own team-sharing policy (already verified),
+**all 4 team-owned tables in the database are individually confirmed
+correct** — this charter item is fully closed, not sampled.
+
 ## Not yet done (honest gap, not claimed complete)
 
 - Per-table intended-access classification (2.2) as a structured
