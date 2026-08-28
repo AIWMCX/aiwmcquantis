@@ -114,13 +114,28 @@ GROUP BY ... HAVING client_grants IS NOT NULL;
    operations.
 6. leads/outreach — `leads` itself was Phase 1's scope (service-only,
    correct); no separate "outreach" table found in this inventory.
-7. reports/exports — `export_jobs`, `shared_reports`,
-   `document_exports`, `document_downloads` all present, grants already
-   look reduced/correct at a glance; not individually re-audited in
-   depth.
-8. usage/entitlements — `usage_counters`, `usage_tracking`,
-   `plan_entitlements`, `idea_generation_usage`, `quote_gen_usage` present;
-   `plan_entitlements` checked (finding 1), others not yet in depth.
+7. reports/exports — `export_jobs`, `shared_reports` covered in Phase 1.
+   `document_exports`/`document_downloads` **checked, clean but a
+   softer pattern**: owner-scoped policies target role `{public}` (not
+   `{authenticated}`) with no explicit `anon`-deny policy — safety
+   relies on `auth.uid()` returning `NULL` for unauthenticated requests
+   (so `user_id = auth.uid()` never matches), rather than an explicit
+   `false` denial like `api_keys`/`profiles`/`subscriptions`/`analyses`
+   use. Functionally equivalent as long as `auth.uid()` can't be forged
+   by `anon` (it can't — it reads the JWT's own `sub` claim, which the
+   anon key has none of), but worth flagging as a less-defensive style
+   inconsistency, not a vulnerability. `document_exports` additionally
+   has an owner-scoped UPDATE with an explicit `WITH CHECK` (no
+   ownership-transfer gap).
+8. usage/entitlements — `plan_entitlements` checked (finding 1).
+   `usage_tracking` and `idea_generation_usage` **checked, clean**:
+   explicit `anon`-deny on `usage_tracking` (two near-duplicate deny
+   policies, redundant not buggy), owner-scoped SELECT/INSERT/UPDATE via
+   `auth.uid() = user_id`, `service_role` bypass via `is_service_role()`
+   on `usage_tracking` and a plain `true`-to-`service_role`-only policy
+   on `idea_generation_usage` (role-restricted, not `{public}`, so
+   safe despite the bare `true` qual). `usage_counters`/`quote_gen_usage`
+   already covered in Phase 1.
 
 ### Finding: `is_team_member()` correctly reflects live membership
 
