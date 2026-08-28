@@ -64,6 +64,34 @@ GROUP BY ... HAVING client_grants IS NOT NULL;
    specific verbs). Consistent with what Phase 1 already closed plus
    pre-existing correctly-scoped tables.
 
+## Additional findings — sensitive non-priority-list tables
+
+Checked `autoposter_credentials`, `stripe_webhook_events`,
+`security_logs`, `api_request_logs` (secrets/audit-adjacent, not on the
+charter's named priority list but sensitive by nature):
+
+- `stripe_webhook_events`, `security_logs`, `api_request_logs` — **all
+  clean**. Explicit `anon`-deny, `service_role`-only or owner-scoped
+  access, `security_logs` additionally denies `authenticated` entirely
+  (write-only audit trail, no client read path at all — correct for an
+  audit log).
+- `autoposter_credentials` — **minor finding, not critical.** An
+  `admin_all` policy grants full CRUD to any user holding `admin` OR
+  `content_admin` role, with no scoping to "credentials this admin
+  manages" — any content_admin can see every connected social account
+  across the whole system, not just ones they set up. Checked the
+  table's actual columns before rating severity: it stores
+  `access_token_secret_id`/`refresh_token_secret_id` as **vault
+  reference UUIDs**, not raw token values — the real OAuth secret
+  requires separate, presumably service-role-only, vault decryption.
+  So the exposure is account metadata (platform, page/account ID,
+  active status, last-tested time) and a reference id, not the
+  credential itself. Recorded as a candidate for the exceptions
+  register or a narrower policy (e.g. scope non-admin `content_admin`
+  to read-only, or to accounts they created) — **not fixed in this
+  pass**, per the charter's "no scope creep per batch" discipline;
+  flag for a dedicated small PR if the founder wants it tightened.
+
 ## Not yet done (honest gap, not claimed complete)
 
 - Per-table intended-access classification (2.2) as a structured
