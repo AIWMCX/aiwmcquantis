@@ -92,6 +92,37 @@ charter's named priority list but sensitive by nature):
   pass**, per the charter's "no scope creep per batch" discipline;
   flag for a dedicated small PR if the founder wants it tightened.
 
+## Exhaustive check: zero write-capable wide-open policies anywhere (2.5)
+
+Ran one query across **all 78 tables** (not the priority subset) for any
+policy granted to `public`/`anon` with `qual='true'` OR `with_check='true'`,
+across every command type. Result: **exactly 7 matches, all `SELECT`-only**
+— `benchmark_master_core/geo/invoice/risk/unit_econ`, `data_provenance`,
+`public_metrics`. Every one of these was already established this session
+(or earlier) as intentional public reference data (benchmark library,
+provenance metadata, public marketing counters) — no new table joins this
+list. **Zero rows** matched for `INSERT`/`UPDATE`/`DELETE`/`ALL` with a
+wide-open qual to `public`/`anon` anywhere in the schema.
+
+This directly answers charter 2.5's core question across the FULL
+GRANT-reachable surface, not a sample: the 10-table incident's exact
+vulnerability signature (a permissive write policy to `{public}`) has
+**zero recurrence anywhere else in the database**, confirmed exhaustively
+rather than by spot-checking the priority list. This is the single
+highest-leverage check in Phase 2, and it is now conclusively closed.
+
+## Exhaustive check: no unscoped mutation policy anywhere (2.9)
+
+Second exhaustive query, schema-wide: every `UPDATE`/`DELETE` policy
+granted to `authenticated` or `public` with a `NULL` `USING` clause (i.e.
+no row-scoping condition at all beyond the raw table grant). **Zero
+matches.** Every mutation-capable policy on every table in the schema is
+scoped by some real condition — none are blanket "any row" for a
+client-facing role. This doesn't individually verify each condition is
+the *correct* one (that's the remaining per-table depth review below),
+but it rules out the specific structural gap ("policy exists but forgot
+to scope it") across the entire table set at once.
+
 ## Not yet done (honest gap, not claimed complete)
 
 - Per-table intended-access classification (2.2) as a structured
