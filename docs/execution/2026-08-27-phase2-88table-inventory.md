@@ -83,15 +83,35 @@ GROUP BY ... HAVING client_grants IS NOT NULL;
 
 ## Priority order per charter 2.4 — status
 
-1. `api_keys` — not yet individually re-audited this session (RLS
-   enabled, forced, 7 policies; not inspected in detail).
+1. `api_keys` — **Checked, clean.** Explicit `anon`-deny (`false`) on
+   every command; owner-scoped SELECT/UPDATE/DELETE via `auth.uid() =
+   user_id`; INSERT gated on `verify_plus_subscription()` /
+   `verify_pro_subscription()` (two policies, one per paid tier, both
+   still owner-scoped); `service_role` bypass via `is_service_role()`.
+   UPDATE has `with_check=null` but Postgres inherits the `USING` clause
+   as the check when `WITH CHECK` is omitted — re-verified this is real
+   Postgres behavior (not an oversight), so ownership reassignment
+   (`user_id` to someone else) is still correctly blocked: the new row
+   would fail `auth.uid() = user_id` on the post-update value.
 2. `invoices` — audited in Phase 1 (owner-scoped, correct).
-3. `subscriptions` — RLS enabled, forced, 7 policies; not yet individually
-   re-audited.
-4. `analyses` — RLS enabled, forced, 12 policies; not yet individually
-   re-audited.
-5. `profiles` — RLS enabled, forced, 9 policies; not yet individually
-   re-audited.
+3. `subscriptions` — **Checked, clean.** `anon` denied on every command;
+   `authenticated` SELECT-only, owner-scoped; all mutation gated behind
+   `is_service_role()` (billing writes are server/webhook-only by
+   design, which is correct — a client should never directly write its
+   own subscription state). Two near-duplicate anon-SELECT-deny policies
+   found (redundant, not a bug).
+4. `analyses` — **Checked, clean.** `anon` denied on every command;
+   owner-scoped via `auth.uid() = user_id` for SELECT/INSERT/DELETE;
+   UPDATE has an explicit `WITH CHECK` re-stating the same condition
+   (belt-and-suspenders, not relying on inheritance here); team-sharing
+   SELECT via `is_team_member()`, verified against `team_members`'
+   actual schema (finding below) rather than assumed correct; INSERT/
+   UPDATE/DELETE additionally gated on `NOT is_in_readonly_window()` (a
+   business-logic freeze window, layered on top of the security check,
+   not a bypass of it).
+5. `profiles` — **Checked, clean.** Identical shape to `api_keys`: explicit
+   `anon`-deny per command, `auth.uid() = id` owner-scoping on all four
+   operations.
 6. leads/outreach — `leads` itself was Phase 1's scope (service-only,
    correct); no separate "outreach" table found in this inventory.
 7. reports/exports — `export_jobs`, `shared_reports`,
@@ -101,6 +121,19 @@ GROUP BY ... HAVING client_grants IS NOT NULL;
 8. usage/entitlements — `usage_counters`, `usage_tracking`,
    `plan_entitlements`, `idea_generation_usage`, `quote_gen_usage` present;
    `plan_entitlements` checked (finding 1), others not yet in depth.
+
+### Finding: `is_team_member()` correctly reflects live membership
+
+`analyses`' team-sharing policy calls `public.is_team_member(auth.uid(),
+team_id)`, defined as `SELECT EXISTS (SELECT 1 FROM team_members WHERE
+user_id=_user_id AND team_id=_team_id)`. Checked `team_members`' actual
+columns (`id, team_id, user_id, role, invited_by, joined_at`) — there is
+**no status/revoked flag**, meaning membership is a pure row-presence
+model: removing someone from a team deletes their row, which
+immediately flips this `EXISTS` check to false. Charter 2.8's "revoked
+membership behavior" concern is satisfied by the data model itself, not
+by an application-level check that could be forgotten — confirmed via
+live schema inspection, not assumed.
 
 **This is a first installment, not Phase 2's completion.** The charter
 itself estimates 1-3 days for this phase; this pass produced the
