@@ -89,3 +89,95 @@ describe('enforceNarrativeIntegrity', () => {
     expect(summary).toContain('profitable');
   });
 });
+
+/**
+ * CONFLICT-FIXTURE COVERAGE — charter 5.13 (2026-08-29, Phase 5
+ * re-validation, docs/execution/2026-08-27-phase5-revalidation.md).
+ * 5.13 asks for fixtures covering six classes of narrative/engine
+ * conflict: wrong totals, wrong units, wrong currency, wrong period,
+ * reversed verdict, and stale benchmark cohorts. The describe block
+ * above already covers "wrong totals" (the SubBase corpus case). This
+ * block covers the other five — but not by pretending detection exists
+ * where it doesn't.
+ *
+ * enforceNarrativeIntegrity()'s actual mechanism, read directly from
+ * ai-safety-guardrails.ts: DOLLAR_PATTERN = /\$[\d,]+(?:\.\d{1,2})?/g
+ * extracts ONLY literal `$`-prefixed tokens, ignores any value <= $100,
+ * and checks the remaining raw NUMBER against an anchor SET by value
+ * alone — with no awareness of what the number is labeled as, what
+ * period it describes, what currency symbol precedes it, or whether the
+ * surrounding prose's qualitative claim (profitable/unprofitable, good/
+ * bad) matches calc.isProfitable. Three of the five classes below are
+ * therefore genuinely undetectable by the current implementation, by
+ * construction — not a test-writing gap, an implementation gap. Per
+ * AI_SAFETY_ARCHITECTURE.md's own "Engine vs. Narrator Conflict
+ * Resolution" section, this is already disclosed as a real, currently-
+ * open gap. These tests turn that prose disclosure into an explicit,
+ * checked-in assertion of CURRENT behavior — a canary that will force a
+ * conscious test update (not a silent pass) the day someone extends
+ * enforceNarrativeIntegrity() to actually cover these classes, rather
+ * than letting "we said this was a known gap" quietly go stale.
+ */
+describe('enforceNarrativeIntegrity — conflict-fixture coverage (charter 5.13)', () => {
+  it('WRONG UNITS: catches an order-of-magnitude error ($675 cited for a real $67,500 startup investment)', () => {
+    // A real detection case: $675 is > $100 (not skipped) and is not
+    // within 10% of any anchor in baseCalc (nearest candidates are
+    // $500 and $1,000, both well outside the 10% band around $675).
+    const text = `With a lean startup investment of $675, this business reaches breakeven quickly.`;
+    const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(true);
+    expect(result.executiveSummary).not.toContain('$675');
+  });
+
+  it('WRONG CURRENCY (known limitation): a non-$-prefixed figure is invisible to the check, even when wildly wrong', () => {
+    // Real MRR is $2,235. Citing it as "€225,000" is both the wrong
+    // currency AND off by two orders of magnitude -- but DOLLAR_PATTERN
+    // only matches a literal "$" prefix, so this string is never
+    // extracted at all. This is a genuine, currently-open detection
+    // gap, not a test oversight -- documented in AI_SAFETY_ARCHITECTURE.md.
+    const text = `Monthly recurring revenue stands at €225,000, reflecting strong early traction.`;
+    const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(false);
+    expect(result.executiveSummary).toBe(text);
+  });
+
+  it('WRONG PERIOD (known limitation): a dollar figure matching the wrong anchor by value passes, even though its label describes a different concept/period', () => {
+    // $15,000 is baseCalc's breakEvenRevenue (a one-time/cumulative
+    // threshold), not its MRR ($2,235, a recurring monthly figure).
+    // The check only verifies "is this number within 10% of ANY anchor
+    // in the set" -- it has no concept of which anchor a number is
+    // supposed to correspond to, so mislabeling the break-even figure
+    // as monthly revenue passes silently.
+    const text = `This business already generates $15,000 in monthly revenue, well ahead of plan.`;
+    const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(false);
+    expect(result.executiveSummary).toBe(text);
+  });
+
+  it('REVERSED VERDICT (known limitation): a qualitative claim contradicting calc.isProfitable is never checked', () => {
+    // baseCalc.isProfitable is false (net loss of $31,916/mo). Nothing
+    // in enforceNarrativeIntegrity() reads isProfitable at all -- the
+    // function's entire scope is dollar-figure reconciliation, so a
+    // purely qualitative contradiction (with no unanchored dollar
+    // figure in the sentence) is structurally outside what it checks.
+    // This is the EXACT example AI_SAFETY_ARCHITECTURE.md itself names
+    // as a currently-open gap ("prose calling the business 'highly
+    // profitable' while net_margin_percent is negative").
+    const text = `This is a highly profitable business with excellent unit economics and strong near-term upside.`;
+    const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(false);
+    expect(result.executiveSummary).toBe(text);
+  });
+
+  it('STALE BENCHMARK COHORT (known limitation): a claim about dataset vintage is entirely outside this function\'s scope', () => {
+    // NarrativeIntegrityCalc (the only context enforceNarrativeIntegrity
+    // receives) has no dataset_version/cohort field at all -- there is
+    // nothing in this function's signature it COULD check a benchmark-
+    // vintage claim against, even in principle. A narrative citing a
+    // stale or wrong benchmark cohort passes through unconditionally.
+    const text = `Based on our 2023 industry benchmark dataset, this concept shows strong market alignment.`;
+    const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(false);
+    expect(result.executiveSummary).toBe(text);
+  });
+});
