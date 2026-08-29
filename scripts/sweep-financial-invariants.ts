@@ -107,16 +107,25 @@ function isValidScenarioSet(scenarios: unknown): scenarios is {
  * an admin page (/admin/invariant-sweeps) can show run history at a
  * glance instead of requiring someone to open GitHub Actions logs.
  * Written via the same Management API connection as the rest of this
- * script (full database privileges, not subject to PostgREST/RLS) --
- * best-effort: a failure here must never fail the sweep itself, since the
- * sweep's own exit code is what actually gates CI/alerting.
+ * script (full database privileges, not subject to PostgREST/RLS).
+ *
+ * GTM-audit item #22 (2026-08-27, Phase 5 re-validation, charter 5.6):
+ * this used to swallow a write failure with only a non-fatal
+ * console.warn -- meaning a genuinely broken persistence path (RLS
+ * misconfigured, table dropped, connection issue) could produce an
+ * unbroken string of green CI runs on the invariant check itself while
+ * silently writing NOTHING to the table the admin dashboard reads, and
+ * nobody would ever be told. Returns success/failure instead so the
+ * caller can make the sweep's exit code reflect it -- a persistence
+ * failure is itself the kind of thing a scheduled health check exists
+ * to catch, not something to catch AND then hide.
  */
 async function recordSweepRun(summary: {
   scanned: number;
   violationIds: string[];
   malformedCount: number;
   appliedCount: number;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     const idsJson = JSON.stringify(summary.violationIds).replace(/'/g, "''");
     await runSql(`
@@ -131,8 +140,14 @@ async function recordSweepRun(summary: {
         '${idsJson}'::jsonb
       );
     `);
+    return true;
   } catch (err) {
-    console.warn(`(non-fatal) failed to record sweep run summary: ${String(err)}`);
+    console.error(
+      `PERSISTENCE FAILURE: could not write this run's summary to financial_invariant_sweep_runs. ` +
+      `The invariant check below may have PASSED, but the admin dashboard at /admin/invariant-sweeps ` +
+      `will NOT show this run -- treat this as a real alert, not a warning to ignore. Error: ${String(err)}`
+    );
+    return false;
   }
 }
 
@@ -183,13 +198,19 @@ async function main() {
     console.log(malformed.length > 0
       ? "\nPASS (with skipped rows): no financial-invariant violations found among the analyses that could be checked."
       : "\nPASS: no financial-invariant violations found.");
-    await recordSweepRun({ scanned: rows.length, violationIds: [], malformedCount: malformed.length, appliedCount: 0 });
-    Deno.exit(0);
+    const persisted = await recordSweepRun({ scanned: rows.length, violationIds: [], malformedCount: malformed.length, appliedCount: 0 });
+    // A clean invariant check does not mean a clean run: if the result
+    // never made it into financial_invariant_sweep_runs, the admin
+    // dashboard silently falls behind and nobody is told unless this
+    // job itself goes red. Charter 5.6 requires alerting on persistence
+    // failure specifically -- exit 0 here would hide exactly that.
+    Deno.exit(persisted ? 0 : 1);
   }
 
   if (!APPLY) {
     console.log("\nReport-only mode -- no rows written. Re-run with --apply to flag these for review.");
-    await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
+    const persisted = await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
+    if (!persisted) console.error("Additionally: this run's summary was NOT persisted (see PERSISTENCE FAILURE above).");
     Deno.exit(1); // non-zero so a scheduled job alerts on any violation found
   }
 
@@ -199,7 +220,8 @@ async function main() {
 
   if (toFlag.length === 0) {
     console.log("\nAll violating rows are already flagged (report_integrity='BLOCK'). Nothing to apply.");
-    await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
+    const persisted = await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
+    if (!persisted) console.error("Additionally: this run's summary was NOT persisted (see PERSISTENCE FAILURE above).");
     Deno.exit(1);
     return;
   }
@@ -222,7 +244,8 @@ async function main() {
     WHERE id IN (${idList});
   `);
   console.log("Done.");
-  await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: toFlag.length });
+  const persisted = await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: toFlag.length });
+  if (!persisted) console.error("Additionally: this run's summary was NOT persisted (see PERSISTENCE FAILURE above).");
   Deno.exit(1); // still non-zero: violations existed, even though now flagged
 }
 
