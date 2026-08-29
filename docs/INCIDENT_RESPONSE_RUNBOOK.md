@@ -224,11 +224,19 @@ SELECT count(*) FROM pg_stat_activity;
 
 GTM-audit item #19 (2026-08-27, Q20): "If a customer catches a math
 contradiction and emails support, is there a fast, honest response path,
-or blind escalation?" This section is that path — it did not exist
-before this entry. This is the ONE scenario in this runbook that starts
-from a support inbox, not a monitoring alert, so triage looks different:
-you're verifying a specific claim about a specific analysis, not scanning
-for a system-wide symptom.
+or blind escalation?" This section is that path. This is the ONE
+scenario in this runbook that starts from a support inbox, not a
+monitoring alert, so triage looks different: you're verifying a
+specific claim about a specific analysis, not scanning for a
+system-wide symptom.
+
+**Revised 2026-08-29 (Phase 5 re-validation against the ordered
+execution checklist's charter 5.14-5.20):** the original version of
+this section had the right instincts (never silently correct history,
+always reproduce first) but was missing a defined intake path,
+structured intake fields, and severity-specific response targets. This
+revision closes those gaps directly rather than leaving them as prose
+aspirations.
 
 ### Symptoms
 - A customer replies to a report, or emails support, saying two numbers
@@ -237,13 +245,56 @@ for a system-wide symptom.
 - This is distinct from "I disagree with the assumptions" — the claim
   here is an internal contradiction, not a modeling disagreement.
 
-### Immediate Actions (target: acknowledge within 4 hours)
+### Intake path
 
-1. **Acknowledge the report immediately**, before investigating. A
-   customer who caught a real bug should never wait in silence — see
-   the August 25 and August 27 changelog entries
+`support@aiwmcquantis.com` is already the live, product-wide support
+address (footer, error boundary, and SEO/structured-data schema all
+point here — this is not a new inbox to create). For a math/accuracy
+report specifically, tag the thread with a `[Financial Accuracy]`
+subject-line prefix the moment it's identified as this category, so it
+sorts distinctly from general support in a shared inbox even without a
+formal ticketing system.
+
+Collect (or ask the customer for, if not already in the message) before
+starting triage:
+
+- **Analysis ID** and/or **report/export ID** — the specific record,
+  not "my analyses in general."
+- **Page or metric** — which number, on which screen or export, is in
+  question.
+- **Expected value** — what the customer believes it should say.
+- **Observed value** — what it actually says.
+- **Permission to inspect** — implicit once they've reported a specific
+  analysis ID, but if the report came in vaguely ("my numbers look
+  wrong"), ask for the specific analysis before proceeding — never
+  guess which of a customer's analyses they mean.
+
+### Severity
+
+Specific to this category — distinct from the general SEV-1..4 scale
+above, because "material dollar error" and "cosmetic glitch" need
+different response speeds than that table encodes.
+
+| Level | Definition | Target |
+|-------|-----------|--------|
+| **S0** | Active, currently-reproducible error affecting **multiple customers** (e.g. a systemic engine/reconciliation bug, not one analysis) | Acknowledge within **1 hour**; disable the affected output path (export, specific report type, or the whole analysis flow if scope is unclear) until root-caused |
+| **S1** | A **material** error in one customer's decision-relevant figures (verdict, payback, profit/loss magnitude) | Acknowledge within **4 business hours** |
+| **S2** | An **isolated display/export discrepancy** that doesn't change the underlying decision (e.g. a formatting/rounding inconsistency between two views of the same correct number) | Acknowledge within **1 business day** |
+| **S3** | A **question or misunderstanding** — the numbers are internally consistent; the customer disagrees with an assumption or doesn't understand a label | Acknowledge within **2 business days** |
+
+Triage lands on a tier the moment the report comes in, before full
+investigation — refine down (S1→S2) if investigation shows it's less
+severe than it looked, never sit on it un-tiered while you investigate.
+
+### Immediate Actions
+
+1. **Acknowledge within the target above**, before investigating in
+   depth. A customer who caught a real bug should never wait in
+   silence — see the August 25 and August 27 changelog entries
    (`src/pages/Changelog.tsx`) for the tone/precedent: direct,
-   specific, no defensiveness.
+   specific, no defensiveness. If the initial tier is S0, disable the
+   affected output path in this same step, not after investigation
+   confirms it — an S0 report is disable-first-by-definition.
 
 2. **Pull the specific analysis and check `report_integrity`:**
    ```sql
@@ -266,36 +317,55 @@ for a system-wide symptom.
    customer pointed at actually disagree (not a legitimate reason they
    differ, e.g. one is pre-tax and the other post-tax). Check
    `/admin/invariant-sweeps` for whether this analysis already appears
-   in a recent sweep's violation list.
+   in a recent sweep's violation list. Preserve the report as it existed
+   at the time reported (the engine/formula-registry version it was
+   generated under) — reproduce against a sanitized copy of the actual
+   inputs, not a fresh re-run, so root-causing isn't confused by an
+   unrelated engine change that happened in between.
 
 4. **If confirmed as a real, new-class bug:**
-   - Escalate to engineering the same day — this is not a queue item.
+   - Escalate to engineering the same day — this is not a queue item,
+     regardless of tier.
    - Flag the specific row the same way the original 5 historical rows
      were flagged (additive `jsonb_set`, `report_integrity='BLOCK'`,
      numbers untouched) so it can't silently ship to anyone else who
-     views it.
-   - Query for how many OTHER analyses share the same root cause before
-     responding to the customer with a final answer — "just this one"
-     vs. "this affects N reports" changes what you're able to promise.
+     views it. Never edit or overwrite a historical numeric result
+     directly — the flag is additive, the original stays intact for
+     audit.
+   - **Query for how many OTHER analyses share the same root cause.**
+     This is what actually decides the severity tier (re-tier up to S0
+     if the answer is "more than this one customer"), not the
+     customer's own perceived urgency. If other customers are affected,
+     proactively reach out to each of them with the same acknowledgment/
+     explanation — do not wait for them to notice and report it
+     separately. The original reporter finding out you fixed it for
+     others without telling them is its own trust failure.
    - Fix the root cause, add it to `checkFinancialInvariants()` or the
      relevant reconciliation rule so the sweep catches it retroactively
      going forward, and add a regression test reproducing the exact
      customer-reported figures (see
      `src/__tests__/financial-invariants.test.ts` for the precedent —
      it reproduces the original CashMatch AI incident's exact numbers).
+   - Add a changelog entry (`src/pages/Changelog.tsx`) once fixed and
+     deployed — every confirmed defect gets both a regression test AND
+     a changelog entry; the test protects the code, the changelog entry
+     is the honest public record that it happened and was fixed.
 
 5. **Close the loop with the customer**, not just internally: confirm
-   what was found, what was fixed, and offer to re-run their analysis.
-   Silence after the initial acknowledgment is worse than a slow first
-   response.
+   what was found, what was fixed, whether their specific historical
+   report needs to be regenerated to reflect the correction (say so
+   explicitly either way — "your existing report is fine, no action
+   needed" or "please re-run to get the corrected figures"), and offer
+   to re-run their analysis. Silence after the initial acknowledgment is
+   worse than a slow first response.
 
 ### Escalation
 
-Any confirmed math-integrity bug (not a modeling-assumption disagreement)
-is at minimum a SEV-3 by the table above, and SEV-2 if it's plausible
-other live analyses share the same root cause — treat "how many other
-reports does this affect" as the severity-deciding question, not the
-customer's own perceived urgency.
+An S0 or S1 finding escalates to engineering the same day regardless of
+when it was first triaged. An S0 additionally requires disabling the
+affected output path immediately (step 1) — do not wait for root-cause
+confirmation to protect other customers from seeing the same wrong
+number.
 
 ---
 
