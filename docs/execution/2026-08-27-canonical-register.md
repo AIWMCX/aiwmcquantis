@@ -64,7 +64,11 @@ One concrete carry-forward finding to fold in: `increment_quote_gen_usage()` / `
 
 ## Phase 3 — Eight policy-less RLS tables
 
-Status: **Not started** in this register's format (prior session narrative claims "confirmed intentional," but 3.1-3.7's call-site search, client-denial proof, and server-job proof were not each independently re-verified and logged here).
+Status: **Done.** Full call-site search (3.1-3.2), client-denial proof (3.4), server-job proof (3.5), classification (3.6), and regression tests (3.7) all completed and live-verified against production — see `docs/execution/2026-08-27-phase3-policyless-tables.md` for the complete evidence table.
+
+Key results: `golden_test_vectors`/`accuracy_runs` → `run-accuracy-harness` (service-role); `rvce_observations` → `rvce-validate`'s `adminClient` only (confirmed the file's separate anon-keyed `userClient` never touches it); `self_learning_runs` → `self-learning-update` (service-role); `pending_plan_grants` → a `SECURITY DEFINER` trigger on `auth.users` INSERT, with **zero** application-code caller at all, by design. `metric_formula_registry`/`dataset_releases`/`calibration_metrics` have **zero callers of any kind** — dormant schema shipped ahead of an unbuilt formula-registry/dataset-versioning/calibration feature (flagged for a founder decision: keep reserved or drop, not a security action).
+
+Live black-box proof: `rvce_observations` holds 697 real rows; `service_role` sees all 697; `anon`/`authenticated` see exactly 0 (a genuine denial, not an empty-table coincidence). `INSERT` denial (`42501`) directly tested on 3 representative callers. New pgTAP suite (`p3_policyless_tables_regression.test.sql`, 20 assertions) live-verified passing before commit. No policy change recommended for any of the 8.
 
 ## Phase 4 — Minor Supabase hardening
 
