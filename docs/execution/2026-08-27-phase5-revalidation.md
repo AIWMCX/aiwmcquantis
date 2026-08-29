@@ -1,0 +1,64 @@
+# Phase 5 — Product Accuracy: re-validation against the charter's evidence bar
+
+Prior sessions reported Q19/Q6-Q8/Q20 as "shipped." Per the ordered
+execution checklist's own framing — "these counts remain reported, not
+independently accepted, until the evidence gates below pass" — this
+re-checks each item against its specific numbered sub-requirement (5.1-
+5.20), not just "does something exist." **Result: none of the three
+items fully clears its own bar.** What exists is real and non-trivial,
+but each has concrete, specific gaps against the charter's literal
+wording, found by reading the actual current code/schema/tests, not by
+re-reading the prior session's summary of itself.
+
+## Q19 — Invariant-sweep history (`src/pages/admin/InvariantSweeps.tsx`, `scripts/sweep-financial-invariants.ts`, migration `20260827100000`)
+
+| Item | Requirement | Status | Evidence |
+|---|---|---|---|
+| 5.1 | DB results table over coupling to GH Actions API | **Met** | `financial_invariant_sweep_runs` table exists, dashboard reads it directly |
+| 5.2 | Run record: run ID, engine/version SHA, environment, started/finished timestamps, vectors evaluated, violations found/blocked, status, sanitized failure summary | **Partial** | Actual columns (read from the migration): `id, run_at, mode, scanned_count, violation_count, malformed_count, applied_count, violation_ids, created_at`. Missing: engine/version SHA, environment, a started+finished timestamp pair (only one `run_at`), an explicit `status` column, and a sanitized failure-summary text field (only a raw ID array) |
+| 5.3 | Write once per sweep, **including failed/interrupted runs** | **Gap** | `recordSweepRun()` is only called from specific code paths inside `main()` — if the initial `SELECT` query itself throws (network error, auth failure, malformed SQL), the script crashes before ever calling `recordSweepRun()`. An interrupted run produces **zero rows**, not a row marked failed. Read the full script to confirm this, not inferred |
+| 5.4 | Last run, recent trend, violation counts, **affected invariant categories**, link/reference to the detailed run | **Partial** | Dashboard shows a 50-row history table (a "trend" of sorts) and violation counts, but there is no breakdown by *which* invariant was violated (operating>gross vs. gross>revenue) and no drill-down/detail link per run — `violation_ids` is stored but never rendered or linked anywhere in the UI |
+| 5.5 | Server-side authorization, not just hidden navigation | **Met** | `financial_invariant_sweep_runs` has RLS enabled with an admin-only SELECT policy (`has_role(auth.uid(),'admin')`) — confirmed via the migration text, this is real row-level enforcement, not a client-side route guard alone |
+| 5.6 | Alert on failed sweep, new violation, **missing daily run**, or **persistence failure** | **Gap** | Failed-sweep/new-violation alerting works (non-zero exit → GitHub Actions job failure → existing notification channel). But: (a) nothing checks whether the scheduled workflow actually fired in the last 24-25 hours — a silently-disabled or failing-to-trigger cron would go unnoticed; (b) `recordSweepRun()` wraps its own `INSERT` in a try/catch that only `console.warn`s on failure and is explicitly documented as "non-fatal" — a persistence failure during an otherwise-clean PASS run would print a warning line nobody reads on a green build and **never fail the job or alert anyone** |
+| 5.7 | Verify with seeded pass, violation, and interrupted-run fixtures | **Gap** | Grepped every test file for `sweep-financial-invariants` or `recordSweepRun` — zero matches. The underlying `checkFinancialInvariants()` logic has real test coverage elsewhere (`financial-invariants.test.ts`, `financial-invariants-property.test.ts`), but the sweep script/dashboard pipeline itself (the actual thing 5.7 asks about) has none |
+
+**Q19 verdict: 2 of 7 sub-items fully met, 5 with real, specific gaps.**
+
+## Q6/Q8 — Engine-vs-narrator authority policy (`docs/AI_SAFETY_ARCHITECTURE.md`)
+
+| Item | Requirement | Status | Evidence |
+|---|---|---|---|
+| 5.8 | One canonical policy: engine owns calculations/verdict, narrator explains but never overwrites | **Met** | Doc states plainly and correctly (confirmed against `analyze-business/index.ts`): every structured `financial_analysis.*` field and the investment verdict derive from `calc`, by construction — no code path displays an AI-generated number as a report figure |
+| 5.9 | Conflict behavior: block or omit, never silently select the AI value | **Partial** | True for exactly one field: `executive_summary`'s dollar-figure citations (wholesale replacement on mismatch). The doc itself states plainly that every other narrative field (`risks`, `competitive_advantages`, `market_plan`, most of `launch_steps`) has **zero** consistency checking — a contradictory claim there renders as-is, with no block/omit behavior at all |
+| 5.10 | Defined ownership for ambiguous fields: qualitative risks, benchmark interpretation, market commentary, recommendations, confidence labels | **Gap** | The doc *names* these fields as an open gap but does not actually assign ownership or a policy for them — it stops at "this is a real, currently-open gap," not "here is the rule for how these fields are governed until the code changes" |
+| 5.11 | Every narrative number references an authoritative structured field | **Gap** | Only enforced for `executive_summary`'s dollar figures. No requirement (enforced or documented as a rule) exists for numbers appearing anywhere else in the narrative |
+| 5.12 | UI/exports/API/PDF execution-status agreement | **Not independently re-verified this pass** | The doc asserts UI (`AccuracyTransparentResults.tsx`) and PDF (`usePdfExport.ts`) degraded-mode labeling are consistent "both from the August 25 session," but this pass did not re-open those two files nor check for a separate customer-facing API surface to confirm three-way (or four-way) parity independently — carried forward as an assumption, not re-verified, and flagged as such rather than silently accepted |
+| 5.13 | Conflict fixtures: wrong totals, wrong units, wrong currency, wrong period, reversed verdict, stale benchmark cohorts | **Gap — 1 of 6** | `narrative-integrity.test.ts` has 7 tests, all exercising the "wrong totals" case (the SubBase CAC $100-vs-$9,396 mismatch) plus edge-case defensiveness (empty/malformed input, sentinel handling). Zero tests for wrong units, wrong currency, wrong period, reversed verdict, or stale benchmark cohorts — and "reversed verdict" is the exact scenario the doc's own §"Everywhere else" paragraph names as an example of what currently slips through uncaught |
+
+**Q6/Q8 verdict: 1 of 6 fully met, 1 not re-verified, 4 with real gaps** — though credit where due: this doc is unusually honest about its own limitations (it discloses several of these gaps itself rather than claiming completeness), which is exactly the behavior this charter asks for. The gap is between "the doc honestly says this isn't done" and "the charter's sub-item requires it to be done" — documentation of a gap is not the same as closing it.
+
+## Q20 — Customer math-error response path (`docs/INCIDENT_RESPONSE_RUNBOOK.md`, "Customer-Reported Math/Data Discrepancy")
+
+| Item | Requirement | Status | Evidence |
+|---|---|---|---|
+| 5.14 | Dedicated intake path (e.g. support@ with a "Financial accuracy" category) | **Gap** | The section says "a customer replies to a report, or emails support" — no dedicated address, category, or tag system is defined or confirmed to exist. This is a solo-founder operation without a formal ticketing system as far as this session found |
+| 5.15 | Structured intake: analysis ID, report ID, page/metric, expected value, observed value, permission to inspect | **Gap** | Not present as an intake checklist anywhere in the section — the runbook describes triage steps once a report arrives, not what to collect upfront |
+| 5.16 | Bespoke severity scale: S0 (active cross-customer) / S1 (material) / S2 (isolated) / S3 (question) | **Divergence, not a gap exactly** | The runbook reuses the document's *existing* general SEV-1..4 incident scale ("at minimum SEV-3... SEV-2 if other reports affected") rather than defining the specific S0-S3 math-error scale the charter asks for. Arguably a reasonable design choice (one severity taxonomy, not two parallel ones) — but it does not literally satisfy 5.16 as worded, and should be a conscious decision, not an accidental substitution |
+| 5.17 | Tiered response targets (S0: 1hr + disable output, S1: 4hrs, S2: 1 day, S3: 2 days) | **Gap** | The doc has exactly one target for every case: "acknowledge within 4 hours," regardless of severity. No tier disables output for the worst case, no faster tier exists for an active cross-customer error |
+| 5.18 | Preserve report/engine version, reproduce with sanitized data, never silently correct history | **Met** | Explicit: reproduce first (step 3), flag additively via `jsonb_set` with `report_integrity='BLOCK'`, "numbers untouched" — matches the pattern already used for the original 5 historical rows |
+| 5.19 | Communication: acknowledge, state impact honestly, workaround, notify when fixed, explain whether prior reports need regeneration | **Partial** | Acknowledge (step 1) and close-the-loop/offer-re-run (step 5) are explicit. "Query how many OTHER analyses share the root cause" exists but is framed as a *severity-deciding* input, not as a trigger for proactively notifying those *other* affected customers — only the original reporter is guaranteed a communication loop |
+| 5.20 | Convert every confirmed defect into a regression test **and** an incident/changelog entry | **Partial** | Regression test is explicit and points to real precedent (`financial-invariants.test.ts`). A changelog entry is not itself a mandated step in this section (the changelog is referenced elsewhere only for *tone* precedent, not as a required action here) |
+
+**Q20 verdict: 1 of 7 fully met, 2 partial, 1 divergent-by-design, 3 with real gaps.**
+
+## Overall Phase 5 status
+
+**None of Q19/Q6-Q8/Q20 clears the charter's evidence bar as currently written.** This is not a claim that the existing work is worthless — the core mechanisms (a real results table with RLS, a real engine-authority guarantee for structured numbers, a real incident-response entry point with the correct "never silently correct history" instinct) are genuinely there and correctly built. What's missing is breadth: alerting on the failure modes that matter most (silent persistence failure, a cron that stops firing), test coverage matching the full list of conflict classes the charter names, and the structured intake/tiered-response mechanics that turn a good instinct into a repeatable process.
+
+This document does not fix any of the above — per the charter's own "one narrow change at a time" rule, closing these out is separate, scoped work. Recommended order, smallest/highest-leverage first:
+
+1. Fix Q19 5.3/5.6's persistence-failure gap (make `recordSweepRun()` failure actually fail the job) — smallest change, closes the most dangerous silent-failure mode.
+2. Add a "missing daily run" check (a second scheduled job that queries `MAX(run_at)` and alerts if stale) — Q19 5.6's other half.
+3. Extend `narrative-integrity.test.ts` with the 5 missing conflict-fixture classes (Q6/Q8 5.13) — pure test-writing, no production code change, lowest risk.
+4. Q20's structured intake fields and tiered response targets — a runbook/doc edit, no code.
+5. Q19 5.2's fuller run-record schema and 5.4's category breakdown/drill-down — the largest of these, a real schema + UI change.

@@ -79,7 +79,13 @@ Live black-box proof: `rvce_observations` holds 697 real rows; `service_role` se
 
 ## Phase 5 — Product Accuracy (Q19/Q6-Q8/Q20)
 
-Status: **Reported Done in a prior session** (dashboard, policy doc, support runbook section all shipped and deploy-verified). Per this charter's evidence bar, re-validate against 5.1-5.20's specific sub-items (alerting on failed/missing sweep — 5.6; conflict fixtures for wrong totals/units/currency/period/verdict/cohort — 5.13) before counting this phase Done. **Not re-audited in this register yet.**
+Status: **Re-validated 2026-08-27 against the full 5.1-5.20 sub-item list — none of the three fully clears the bar.** Full findings: `docs/execution/2026-08-27-phase5-revalidation.md`.
+
+- **Q19** (invariant-sweep dashboard): 2/7 met. Real gaps: a crashed/interrupted sweep produces zero rows, not a failed-run record (5.3); persistence failures are swallowed with only a non-fatal `console.warn` (5.6); no "missing daily run" alert (5.6); no invariant-category breakdown or per-run drill-down (5.4); zero test coverage of the sweep script itself, only the underlying invariant-check logic (5.7).
+- **Q6/Q8** (engine-vs-narrator policy doc): 1/6 met, 1 not re-verified. The doc is unusually honest about its own gaps (narrative fields outside `executive_summary` have zero consistency checking, disclosed in its own text) — but disclosing a gap isn't closing it. Conflict-fixture test coverage (5.13) is 1 of 6 required classes (wrong totals only; zero coverage for wrong units/currency/period, reversed verdict, stale cohorts).
+- **Q20** (customer math-error runbook): 1/7 met, 2 partial, 1 by-design divergence (reuses the general SEV scale instead of a bespoke S0-S3), 3 real gaps (no dedicated intake path/category, no structured intake checklist, single flat 4-hour target not tiered by severity).
+
+Recommended fix order (smallest/highest-leverage first) is in the re-validation doc. **Not yet fixed** — this pass is diagnosis, not remediation, per the charter's own one-narrow-change-at-a-time rule.
 
 ## Phase 6-9
 
