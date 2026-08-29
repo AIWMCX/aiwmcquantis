@@ -75,7 +75,7 @@ Live black-box proof: `rvce_observations` holds 697 real rows; `service_role` se
 ## Phase 4 — Minor Supabase hardening
 
 - 4.1-4.5 (leaked-password protection): **Blocked** — requires manual Supabase Dashboard action, no tool access this session.
-- 4.6-4.9 (pg_net namespace): **Blocked on a founder decision** — question posed in a prior session ("do it anyway, or leave it?"), not yet answered. Per 4.9's own rule ("otherwise document the accepted exception; do not change production for cosmetic hygiene"), defaulting to **documented exception, deferred** until answered.
+- 4.6-4.9 (pg_net namespace): **Investigated and documented, 2026-08-27** — see `docs/execution/2026-08-27-phase4-hardening.md`. Full live dependency inventory: extension currently attributed to `public` schema; exactly 5 real `pg_cron` jobs call `net.http_post()` (autoposter-publish-due, check-lifecycle-emails-hourly, process-subscription-downgrades-hourly, send-weekly-insights-mondays, warm-functions-every-5min), zero application-function callers. Technical assessment: the move is very likely safe (pg_net owns its own `net` schema independent of the extension's namespace attribution, so cron jobs are unaffected), but **cannot be rehearsed on Preview in this session** (no working Supabase/Docker stack) — per the charter's own 4.8-before-4.9 sequencing, this is correctly resolved as a **documented, deferred exception**, not a production change made without rehearsal. Two live secrets were visible during the inventory query and deliberately not written into any doc or commit.
 
 ## Phase 5 — Product Accuracy (Q19/Q6-Q8/Q20)
 
