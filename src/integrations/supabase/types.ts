@@ -3174,6 +3174,117 @@ export type Database = {
         }
         Relationships: []
       }
+      paid_engagements: {
+        Row: {
+          analysis_id: string | null
+          completed_at: string | null
+          consultant_notes: string | null
+          contact_email: string | null
+          contact_name: string
+          created_at: string
+          created_by: string | null
+          decision_question: string | null
+          engaged_at: string
+          engagement_type: string
+          id: string
+          price_usd: number | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          completed_at?: string | null
+          consultant_notes?: string | null
+          contact_email?: string | null
+          contact_name: string
+          created_at?: string
+          created_by?: string | null
+          decision_question?: string | null
+          engaged_at?: string
+          engagement_type: string
+          id?: string
+          price_usd?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          completed_at?: string | null
+          consultant_notes?: string | null
+          contact_email?: string | null
+          contact_name?: string
+          created_at?: string
+          created_by?: string | null
+          decision_question?: string | null
+          engaged_at?: string
+          engagement_type?: string
+          id?: string
+          price_usd?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paid_engagements_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paid_engagements_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paid_engagements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "clean_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paid_engagements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "external_commercial_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paid_engagements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_cohorts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "paid_engagements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "clean_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paid_engagements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "external_commercial_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paid_engagements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_cohorts"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       pending_plan_grants: {
         Row: {
           created_at: string

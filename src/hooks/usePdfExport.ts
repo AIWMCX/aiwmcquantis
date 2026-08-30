@@ -841,7 +841,22 @@ const pageNumFooter = () =>
 // (e.g. an unregistered font-family/style combination), which it already
 // has once. Not part of the hook's intended public API otherwise; callers
 // should use usePdfExport()'s generatePdf().
-export const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = []) => {
+// Phase 7 (Paid Decision Workflow Validation, 2026-08-30): a paid founder/
+// consultant engagement hands the same trusted verdict + numbers to a named
+// decision-maker, framed around a specific decision question and with
+// consultant notes attached. Rather than building a parallel document
+// template (the existing report is already the closest thing to a decision
+// memo -- verdict, benchmark citations, branding), this reuses the real
+// report and adds one optional page. All fields optional; omitting this
+// param produces byte-identical output to before, so the free/self-serve
+// export path is unaffected.
+export interface EngagementMemoContext {
+  preparedFor?: string;
+  decisionQuestion?: string;
+  consultantNotes?: string;
+}
+
+export const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = [], engagementContext?: EngagementMemoContext) => {
   // Sanitize data to ensure all fields have safe defaults
   const result = prepareSafeResult(rawResult);
 
@@ -947,6 +962,55 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
   const brandedLogoText = { ...styles.logoText, color: brandedColors.primary };
   const brandedHeaderLogo = { ...styles.pageHeaderLogo, color: brandedColors.primary };
   const brandedIndustryBadgeText = { ...styles.industryBadgeText, color: brandedColors.primary };
+
+  const hasEngagementContext = !!(
+    engagementContext &&
+    (engagementContext.preparedFor || engagementContext.decisionQuestion || engagementContext.consultantNotes)
+  );
+  const engagementMemoPage = hasEngagementContext
+    ? React.createElement(
+        Page,
+        { size: 'A4', style: styles.page },
+        React.createElement(
+          View,
+          { style: { borderWidth: 2, borderColor: brandedColors.primary, borderRadius: 6, padding: 20, marginTop: 40 } },
+          React.createElement(Text, { style: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: brandedColors.primary, marginBottom: 14 } }, 'DECISION MEMO'),
+          engagementContext?.preparedFor
+            ? React.createElement(Text, { style: { fontSize: 10, color: styles.paragraph.color, marginBottom: 10 } },
+                `Prepared for: ${engagementContext.preparedFor}`)
+            : null,
+          engagementContext?.decisionQuestion
+            ? React.createElement(
+                View,
+                { style: { marginBottom: 14 } },
+                React.createElement(Text, { style: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: styles.paragraph.color, marginBottom: 4 } }, 'Decision under review'),
+                React.createElement(Text, { style: { fontSize: 10, lineHeight: 1.6, color: styles.paragraph.color } }, engagementContext.decisionQuestion)
+              )
+            : null,
+          engagementContext?.consultantNotes
+            ? React.createElement(
+                View,
+                null,
+                React.createElement(Text, { style: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: styles.paragraph.color, marginBottom: 4 } }, 'Reviewer notes'),
+                React.createElement(Text, { style: { fontSize: 10, lineHeight: 1.6, color: styles.paragraph.color } }, engagementContext.consultantNotes)
+              )
+            : null,
+          React.createElement(
+            View,
+            { style: { marginTop: 20, borderTopWidth: 1, borderTopColor: brandedColors.primary, paddingTop: 10 } },
+            React.createElement(Text, { style: { fontSize: 8, color: styles.paragraph.color } },
+              'The numbers and verdict that follow are produced by the same deterministic engine and AI-safety checks as every Quantis report — this memo adds decision framing on top, it does not alter the underlying calculation.')
+          )
+        ),
+        React.createElement(
+          View,
+          { style: styles.pageFooter },
+          React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
+          React.createElement(Text, null, ''),
+          React.createElement(Text, null, 'Decision Memo')
+        )
+      )
+    : null;
 
   return React.createElement(
     Document,
@@ -1063,6 +1127,8 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
         React.createElement(Text, { style: styles.copyright }, `${footerText} | All Rights Reserved | ${currentYear}`)
       )
     ),
+    // Decision Memo (Phase 7, optional — only when engagementContext is provided)
+    engagementMemoPage,
     // Accuracy Notice
     React.createElement(
       Page,
@@ -1844,7 +1910,7 @@ export function usePdfExport() {
     fetchBrandingSettings().then(setBranding);
   }, []);
 
-  const generatePdf = useCallback(async (result: BusinessAnalysisResult, customBranding?: BrandingConfig) => {
+  const generatePdf = useCallback(async (result: BusinessAnalysisResult, customBranding?: BrandingConfig, engagementContext?: EngagementMemoContext) => {
     setIsGenerating(true);
     let exportJobId: string | null = null;
 
@@ -1944,7 +2010,7 @@ export function usePdfExport() {
       }));
 
       // Generate PDF blob using @react-pdf/renderer with timeout
-      const doc = createExecutiveReport(result, activeBranding, benchmarkRows);
+      const doc = createExecutiveReport(result, activeBranding, benchmarkRows, engagementContext);
       
       const blobPromise = pdf(doc).toBlob();
       const timeoutPromise = new Promise<never>((_, reject) => 

@@ -63,6 +63,7 @@ const ScenarioWorkspace = lazy(() => import("./pages/ScenarioWorkspace"));
 const Status = lazy(() => import("./pages/Status"));
 const StateOfQuantis = lazy(() => import("./pages/StateOfQuantis"));
 const FeedbackBaseline = lazy(() => import("./pages/admin/FeedbackBaseline"));
+const PaidEngagements = lazy(() => import("./pages/admin/PaidEngagements"));
 const Security = lazy(() => import("./pages/Security"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
@@ -291,6 +292,11 @@ const App = () => {
                 <Route path="/admin/feedback-baseline" element={
                   <ProtectedRoute requireAdmin>
                     <FeedbackBaseline />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/paid-engagements" element={
+                  <ProtectedRoute requireAdmin>
+                    <PaidEngagements />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/data-sources" element={

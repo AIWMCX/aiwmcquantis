@@ -79,4 +79,27 @@ describe('createExecutiveReport render smoke test', () => {
     const buffer = await instance.toBuffer();
     expect(buffer).toBeTruthy();
   });
+
+  // Phase 7 (Paid Decision Workflow Validation, 2026-08-30): the Decision
+  // Memo page is new react-pdf markup with its own font/style combinations
+  // -- exactly the class of bug this file's own header comment describes
+  // (a font-variant mismatch that only a real render, not a source-pattern
+  // match, can catch).
+  it('renders to a PDF buffer without throwing, WITH engagementContext (Decision Memo page)', async () => {
+    const doc = createExecutiveReport(result, undefined, [], {
+      preparedFor: 'Jane Founder, CFO',
+      decisionQuestion: 'Should we open a second location in Q1?',
+      consultantNotes: 'Reviewed unit economics against the last 6 months of actuals; margins hold up.',
+    });
+    const instance = pdf(doc as any);
+    const buffer = await instance.toBuffer();
+    expect(buffer).toBeTruthy();
+  });
+
+  it('renders to a PDF buffer without throwing, with a partial engagementContext (single field only)', async () => {
+    const doc = createExecutiveReport(result, undefined, [], { decisionQuestion: 'Is this worth pursuing?' });
+    const instance = pdf(doc as any);
+    const buffer = await instance.toBuffer();
+    expect(buffer).toBeTruthy();
+  });
 });

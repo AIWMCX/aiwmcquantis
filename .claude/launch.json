@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quantis-dev",
+      "runtimeExecutable": "C:\\Users\\AIWMC\\AppData\\Roaming\\npm\\node_modules\\bun\\bin\\bun.exe",
+      "runtimeArgs": ["run", "dev"],
+      "port": 8080
+    }
+  ]
+}
