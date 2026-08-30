@@ -158,7 +158,9 @@ export function computeBenchmarksSignal(bench: RawBenchmarkSignal): ComponentSig
     name: 'RVCE / Benchmark Corpus',
     description: 'Industry and location benchmark data backing comparisons',
     status,
-    detail: bench.rowCount > 0 ? `${bench.rowCount.toLocaleString()} benchmark rows reachable` : 'Benchmark table returned zero rows',
+    detail: bench.rowCount > 0
+      ? `${bench.rowCount.toLocaleString()} rows reachable in one of five master benchmark tables (liveness check only, not the total corpus size)`
+      : 'Benchmark table returned zero rows',
   };
 }
 
