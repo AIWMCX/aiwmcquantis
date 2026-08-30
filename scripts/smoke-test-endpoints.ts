@@ -65,6 +65,12 @@ const CHECKS: Check[] = [
     schema: HealthEnvelope,
   },
   {
+    name: 'system-status',
+    path: '/functions/v1/system-status',
+    method: 'GET',
+    accept: [200],
+  },
+  {
     name: 'analyze-business (ping)',
     path: '/functions/v1/analyze-business',
     method: 'POST',

@@ -396,6 +396,7 @@ jobs:
             confirm-email-subscription
             # ── Platform / infra ──────────────────────────────────────────
             health-check
+            system-status
             warm-functions
             manage-benchmarks
             manage-knowledge-base

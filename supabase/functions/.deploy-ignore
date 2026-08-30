@@ -45,6 +45,14 @@ api-analyze-main
 run-accuracy-harness
 run-tier-qa-harness
 
+# ── Paused work-in-progress (2026-08-29) ──
+# Part of the Predicta/Evidence Service shadow-mode integration, paused
+# mid-development when the 2026-08-27 ordered execution checklist superseded
+# it as the active work item (see docs/execution/2026-08-27-canonical-register.md).
+# Not deploy-ready; classified here rather than left ambiguous so this gap
+# doesn't block unrelated CI runs. Revisit when Evidence Service work resumes.
+evidence-shadow-worker
+
 # ── Decommissioned (P0-23, 2026-07-25) ──
 # Duplicate financial-calculation microservice with zero callers in src/ (only
 # warm-functions/admin-health-sweep pinged it) and two defects the live engine
