@@ -137,6 +137,25 @@ Run at the user's request to prove the feature works, not just that it typecheck
 
 **Separately noted, not part of this phase's scope:** the Browser pane's `preview_start` dev-server launcher fails outright in this repo (isolated to the `™` character in the project's folder path breaking its Windows process spawn — confirmed by running the identical command successfully via plain Bash). Not fixable from the coding agent's side; documented as a standing workaround in `.claude/launch.json`'s adjacent commit message: start the dev server via Bash and `navigate` the Browser pane to `http://localhost:8080` directly.
 
+## Phase 6A — closing Phase 6's two scope cuts (2026-08-30)
+
+**Status: CLOSED.**
+
+| Item | Status | Evidence |
+|---|---|---|
+| 6.5 incident admin UI | Done | `/admin/incidents` implements detect (log incident) → acknowledge/update (timestamped status posts appended to `updates` jsonb) → resolve (status + `resolved_at`) → postmortem (optional URL). Uses the existing `status_incidents` schema/RLS from Phase 6 — no migration needed. Registered in `AdminDashboard.tsx` nav alongside the two Phase 6/7 admin pages that had also been missed there (feedback-baseline, paid-engagements). |
+| 6.17 external-reader comprehension test | Done | A fresh subagent with zero session context read `/status` and `/state-of-quantis` live and cold, as a founder/CFO would (same "independent verification" method validated in Phase 5). Reported the deterministic/AI boundary language and incident history as genuinely clear and credible — **and found a real production bug**: `/state-of-quantis` 404'd, linked twice from `/status`. |
+
+**Real bug found and fixed via the 6.17 test:** `/state-of-quantis` returned a genuine 404 in production. Root cause: this build pipeline has **four** independent, non-overlapping route registries instead of a catch-all SPA fallback, and the page (shipped in Phase 6) was only ever added to React Router's table in `App.tsx`:
+1. `scripts/seo.routes.mjs` (`PUBLIC_ROUTES`) — drives the sitemap and the build's own visibility gate (which refuses to ship a route rendering as the homepage shell).
+2. `public/prerender-urls.txt` — the list `prerender-seo.ts` reads to decide which routes get a real `dist/<route>/index.html` with correct title/canonical/OG (Vercel serves the raw SPA shell for anything without one).
+3. `src/components/seo/RouteSEO.tsx` (`ROUTE_META`) — the title/description content, parsed straight out of this file's source.
+4. `scripts/generate-sitemap.ts` — a **separate file** from `generate-sitemap.mjs`, wired to the implicit `prebuild`/`predev` npm/bun hooks, with its own hardcoded `staticEntries` list that **silently overwrites** both `public/sitemap.xml` and `public/prerender-urls.txt` from itself before the main build chain runs. This is the one that actually wins whenever a script literally named `build` runs (only exact-name matches trigger `prebuild`) — which is why fixing registries 1-3 alone (commit `df6027e2`) still failed CI's own `bun run build` gate, even though it might have deployed correctly via Vercel's actual `build:vercel` command (no `prebuild` hook on that name). Fixed by adding the route to all four (commits `df6027e2`, `c8802045`). Live-verified: `curl -o /dev/null -w '%{http_code}' https://www.aiwmcquantis.com/state-of-quantis` → `200`, correct `<title>`, correct canonical, real body content.
+
+This four-registry structure is a standing footgun independent of this one bug — any future new public page needs all four touched, and nothing currently catches a partial update except the build's own visibility gate (which only runs on the exact `build` script name, not `build:vercel`). Flagging as a known-issue for whoever next adds a public route; not fixed here since the charter scope was closing 6.5/6.17, not refactoring the SEO pipeline.
+
+Also incidentally found and fixed: a GitHub Actions billing block that was failing CI for unrelated reasons (resolved by the user in GitHub's own billing settings, not a code fix).
+
 ## Phase 8-9 (charter numbering)
 
 Status: **Not started.** Phase 8 (Dahl, charter numbering) has one piece of forward-compatible groundwork laid earlier this session (the `isDahlAliasCleared()` gate, `e4de1c24`) but remains explicitly blocked on Phases 1 and 5 per the charter — those are now closed, so re-check this gate before Phase 8 work begins. The charter's original Phase 7 (Compliance/SOC2/breach-response/data-deletion) is deferred, not cancelled, per the naming resolution above — needs a phase number once scheduled.
