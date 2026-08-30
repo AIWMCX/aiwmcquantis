@@ -9,13 +9,14 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { EXAMPLE_ANALYSES, type ExampleData } from './exampleData';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
-function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: React.ElementType; color: string }) {
+function MetricCard({ label, value, icon: Icon, color, note }: { label: string; value: string; icon: React.ElementType; color: string; note?: string }) {
   return (
     <Card className="text-center">
       <CardContent className="pt-6 pb-4">
         <Icon className={`w-6 h-6 mx-auto mb-2 ${color}`} />
         <p className="text-2xl font-bold text-foreground">{value}</p>
         <p className="text-sm text-muted-foreground mt-1">{label}</p>
+        {note && <p className="text-xs text-muted-foreground/70 mt-1.5 leading-snug">{note}</p>}
       </CardContent>
     </Card>
   );
@@ -131,7 +132,7 @@ export default function ExampleAnalysis() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard label="Monthly Revenue" value={data.metrics.monthlyRevenue} icon={DollarSign} color="text-success" />
             <MetricCard label="Monthly Profit" value={data.metrics.monthlyProfit} icon={TrendingUp} color="text-primary" />
-            <MetricCard label="Payback Period" value={data.metrics.paybackMonths} icon={Clock} color="text-warning" />
+            <MetricCard label="Payback Period" value={data.metrics.paybackMonths} icon={Clock} color="text-warning" note={data.metrics.paybackNote} />
             <MetricCard label="ROI (Year 1)" value={data.metrics.roi} icon={Target} color="text-success" />
           </div>
         </section>

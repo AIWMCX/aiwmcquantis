@@ -10,6 +10,15 @@ export interface ExampleData {
     monthlyRevenue: string;
     monthlyProfit: string;
     paybackMonths: string;
+    /** Optional reconciliation note shown under the Payback Period card. Required
+     *  whenever paybackMonths does not equal ceil(startupCost / monthlyProfit) --
+     *  e.g. because the engine's real ramp-up methodology (financial-calculator.ts,
+     *  "With N-month ramp-up: payback at month X (steady-state would be Y months)")
+     *  means the shown payback is longer than the naive steady-state division.
+     *  Found missing on the Denver example (2026-08-30): $35,000 / $4,200/mo
+     *  divides to ~8.3 months, but the page showed "12 months" with no
+     *  explanation -- a real, reported trust problem, not an arithmetic error. */
+    paybackNote?: string;
     roi: string;
     startupCost: string;
   };
@@ -63,7 +72,12 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Coffee Shop Business Analysis — Denver, CO | AIWMC Quantis',
       description: 'Full financial analysis of opening a coffee shop in Denver. Revenue projections, startup costs, risk assessment, and action plan. $4,200/mo profit, 12 month payback.',
     },
-    metrics: { monthlyRevenue: '$18,500', monthlyProfit: '$4,200', paybackMonths: '12 months', roi: '109%', startupCost: '$35,000' },
+    metrics: {
+      monthlyRevenue: '$18,500', monthlyProfit: '$4,200',
+      paybackMonths: '12 months',
+      paybackNote: 'Reflects a 6-month ramp-up to full revenue, not $35,000 ÷ $4,200. Steady-state payback (if month-1 revenue were already $18,500) would be 9 months.',
+      roi: '109%', startupCost: '$35,000',
+    },
     costBreakdown: [
       { label: 'Equipment & buildout', value: '$18,000' },
       { label: 'Initial inventory', value: '$4,000' },
@@ -284,7 +298,12 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Management Consulting Firm Analysis — NYC | AIWMC Quantis',
       description: 'Financial analysis for a boutique management consulting firm in New York. $18,500/mo profit, 68% gross margin, low startup costs.',
     },
-    metrics: { monthlyRevenue: '$45,000', monthlyProfit: '$18,500', paybackMonths: '6 months', roi: '679%', startupCost: '$28,000' },
+    metrics: {
+      monthlyRevenue: '$45,000', monthlyProfit: '$18,500',
+      paybackMonths: '6 months',
+      paybackNote: 'Not $28,000 ÷ $18,500 — the long B2B sales cycle (2–6 months, see risks below) delays revenue start, so payback tracks time-to-first-client more than steady-state division.',
+      roi: '679%', startupCost: '$28,000',
+    },
     costBreakdown: [
       { label: 'Office space (WeWork/coworking)', value: '$8,000' },
       { label: 'Legal & professional licenses', value: '$5,000' },
