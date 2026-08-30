@@ -359,7 +359,7 @@ export default function Consultants() {
               Board-deck stress test
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Deterministic, reproducible numbers that survive investor scrutiny.
+              Deterministic, reproducible numbers, built to be questioned line by line.
               The engine computes every financial number; the AI narrative layer
               never originates one. Same inputs, same outputs, always.
             </p>

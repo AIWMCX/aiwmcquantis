@@ -40,7 +40,13 @@ export const CONFIDENCE_BADGE_CONFIG: Record<
   { label: string; color: string; icon: string; description: string }
 > = {
   verified: {
-    label: 'Verified',
+    // Relabeled from 'Verified' 2026-08-30: this tier is a self-computed
+    // composite (consensus + completeness + benchmark alignment, see
+    // calculateOutputConfidence above) reaching a >=95 threshold -- not an
+    // independent or third-party verification. "Verified" reads as a claim
+    // this system cannot honestly make; the description text below was
+    // already careful about this, the label wasn't.
+    label: 'High Confidence',
     color: 'emerald',
     icon: 'ShieldCheck',
     description: 'High-confidence result backed by strong data and model agreement.',

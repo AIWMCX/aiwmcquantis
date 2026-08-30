@@ -10,6 +10,7 @@ import { emitAnalysisSnapshot, ENGINE_VERSION as SCENARIO_BASE_INPUT_ENGINE_VERS
 import { lockNumericPayload } from '../_shared/locked-numeric-payload.ts';
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
 import { deriveInvestmentVerdict, computeInputCompletenessPct } from './investment-verdict.ts';
+import { scoreIndustriesByKeywords } from './industry-classifier-core.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
@@ -413,7 +414,17 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
     ltv_cac_max: 10,
     net_margin_min: 20,
     net_margin_max: 50,
-    keywords: ['consulting', 'consultant', 'agency', 'services', 'professional', 'advisor', 'coach', 'coaching', 'training', 'b2b', 'enterprise']
+    // 'services' and 'professional' removed 2026-08-30: both are generic
+    // English words present in most business descriptions regardless of
+    // industry (e.g. "targeting busy professionals", "a pet-sitting
+    // service") -- via detectIndustryFromDatabase/detectIndustry's
+    // substring-includes scoring (score += keyword.length), either word
+    // alone was enough to misclassify a dog-walking/pet-sitting business as
+    // "Consulting / Professional Services" in production (live-reproduced
+    // 2026-08-30 via the homepage free-analysis flow). No 'agency'/'advisor'
+    // etc. removed -- those are still consulting-specific enough not to
+    // false-positive on ordinary business copy.
+    keywords: ['consulting', 'consultant', 'agency', 'advisor', 'coach', 'coaching', 'training', 'b2b', 'enterprise']
   },
   {
     id: 'fitness',
@@ -782,25 +793,8 @@ async function detectIndustryFromDatabase(
   }
   
   // ===== PHASE 2: Fall back to hardcoded benchmarks =====
-  let bestMatch: IndustryBenchmarks | null = null;
-  let bestScore = 0;
-  
-  for (const industry of INDUSTRY_BENCHMARKS) {
-    if (industry.id === 'general') continue;
-    
-    let score = 0;
-    for (const keyword of industry.keywords) {
-      if (ideaLower.includes(keyword.toLowerCase())) {
-        score += keyword.length;
-      }
-    }
-    
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = industry;
-    }
-  }
-  
+  const { match: bestMatch, score: bestScore } = scoreIndustriesByKeywords(ideaLower, INDUSTRY_BENCHMARKS);
+
   const finalBenchmark = bestMatch || INDUSTRY_BENCHMARKS.find(i => i.id === 'general')!;
   log.info(`Using hardcoded benchmark: ${finalBenchmark.name}, score: ${bestScore}`);
   
@@ -820,26 +814,7 @@ async function detectIndustryFromDatabase(
  */
 function detectIndustry(businessIdea: string): IndustryBenchmarks {
   const ideaLower = businessIdea.toLowerCase();
-  
-  let bestMatch: IndustryBenchmarks | null = null;
-  let bestScore = 0;
-  
-  for (const industry of INDUSTRY_BENCHMARKS) {
-    if (industry.id === 'general') continue;
-    
-    let score = 0;
-    for (const keyword of industry.keywords) {
-      if (ideaLower.includes(keyword.toLowerCase())) {
-        score += keyword.length;
-      }
-    }
-    
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = industry;
-    }
-  }
-  
+  const { match: bestMatch } = scoreIndustriesByKeywords(ideaLower, INDUSTRY_BENCHMARKS);
   return bestMatch || INDUSTRY_BENCHMARKS.find(i => i.id === 'general')!;
 }
 

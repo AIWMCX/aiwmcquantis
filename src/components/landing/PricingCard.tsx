@@ -80,10 +80,15 @@ export const PricingCard = React.memo(function PricingCard({
           </div>
         )}
 
-        {/* Total yearly cost */}
+        {/* Total yearly cost -- worded to avoid "$X/year billed monthly", which
+            read as self-contradictory (found live 2026-08-30): a monthly plan's
+            totalYear is "what 12 monthly payments add up to," not an annual
+            invoice, so it must not be phrased like one. */}
         {totalYear && price > 0 && (
           <p className="text-xs text-muted-foreground mt-2">
-            ${totalYear}/year billed {isAnnualBilling ? 'annually' : 'monthly'}
+            {isAnnualBilling
+              ? `$${totalYear}/year, billed annually`
+              : `$${totalYear} total across 12 monthly payments`}
           </p>
         )}
 
