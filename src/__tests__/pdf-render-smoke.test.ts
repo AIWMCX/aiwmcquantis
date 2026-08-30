@@ -18,8 +18,53 @@
  */
 import { describe, it, expect } from 'vitest';
 import { pdf } from '@react-pdf/renderer';
+import zlib from 'zlib';
 import { createExecutiveReport } from '../hooks/usePdfExport';
 import type { BusinessAnalysisResult } from '../types/analysis';
+
+// react-pdf's toBuffer() returns a readable stream in this Node/Vitest
+// environment, not an actual Buffer -- collecting it into real bytes is
+// what makes the assertions below meaningful (byte size, PDF header,
+// extracted text), rather than the earlier tests' `expect(x).toBeTruthy()`
+// on the stream object itself, which is true even for a broken stream.
+async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
+  });
+}
+
+// react-pdf renders text as hex-encoded TJ/Tj operators inside
+// FlateDecode-compressed content streams, even for standard fonts with no
+// custom embedding -- a raw substring search against the PDF bytes (or
+// even the inflated stream bytes) never matches literal words. This
+// decompresses every stream object and hex-decodes every `<...>` text
+// operand to recover the actual rendered text, verified empirically
+// against a real generated Decision Memo PDF before writing this test.
+function extractPdfText(buffer: Buffer): string {
+  const latin1 = buffer.toString('latin1');
+  const streamRe = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  let decoded = '';
+  let match: RegExpExecArray | null;
+  while ((match = streamRe.exec(latin1))) {
+    try {
+      decoded += zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1') + '\n';
+    } catch {
+      // not every stream object is Flate-encoded (e.g. embedded binaries) -- skip
+    }
+  }
+  const hexRe = /<([0-9a-fA-F]+)>/g;
+  let text = '';
+  let hexMatch: RegExpExecArray | null;
+  while ((hexMatch = hexRe.exec(decoded))) {
+    const hex = hexMatch[1];
+    if (hex.length % 2 !== 0) continue;
+    text += Buffer.from(hex, 'hex').toString('latin1');
+  }
+  return text;
+}
 
 const baseFinancial: any = {
   mrr: 10000,
@@ -85,15 +130,37 @@ describe('createExecutiveReport render smoke test', () => {
   // -- exactly the class of bug this file's own header comment describes
   // (a font-variant mismatch that only a real render, not a source-pattern
   // match, can catch).
-  it('renders to a PDF buffer without throwing, WITH engagementContext (Decision Memo page)', async () => {
+  //
+  // This test consumes the stream into real bytes and checks actual PDF
+  // content, not merely that a truthy stream object came back (a broken or
+  // empty stream is also "truthy") -- promoted to a permanent regression
+  // test after a 2026-08-30 manual verification (logging a real
+  // paid_engagements row and exporting through this exact function) asked
+  // for exactly this rigor before the row was deleted.
+  it('produces a valid, nontrivial PDF with real Decision Memo content when engagementContext is provided', async () => {
+    const decisionQuestion = 'Should we open a second location in Q1?';
+    const consultantNotes = 'Reviewed unit economics against the last 6 months of actuals; margins hold up.';
     const doc = createExecutiveReport(result, undefined, [], {
       preparedFor: 'Jane Founder, CFO',
-      decisionQuestion: 'Should we open a second location in Q1?',
-      consultantNotes: 'Reviewed unit economics against the last 6 months of actuals; margins hold up.',
+      decisionQuestion,
+      consultantNotes,
     });
-    const instance = pdf(doc as any);
-    const buffer = await instance.toBuffer();
-    expect(buffer).toBeTruthy();
+    const stream = await pdf(doc as any).toBuffer();
+    const buffer = await streamToBuffer(stream as unknown as NodeJS.ReadableStream);
+
+    // Valid PDF header.
+    expect(buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    // Nontrivial size -- a broken/near-empty render would be a few hundred
+    // bytes at most; a real multi-page report is tens of kilobytes.
+    expect(buffer.length).toBeGreaterThan(10_000);
+
+    const text = extractPdfText(buffer);
+    expect(text).toContain('DECISION MEMO');
+    expect(text).toContain(decisionQuestion);
+    expect(text).toContain(consultantNotes);
+    // Sanity check that extraction itself works and isn't vacuously
+    // passing -- the rest of the report's own content must appear too.
+    expect(text).toContain(result.metadata.idea);
   });
 
   it('renders to a PDF buffer without throwing, with a partial engagementContext (single field only)', async () => {
