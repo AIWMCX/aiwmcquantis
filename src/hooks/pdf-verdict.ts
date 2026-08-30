@@ -15,6 +15,31 @@ export interface ReportVerdict {
 }
 
 /**
+ * FIX (2026-08-29, Phase 5 5.12 independent re-verification): the two
+ * flags below used to be computed inline in usePdfExport.ts as
+ * `(rawResult as any)?.used_fallback` and `(rawResult as any)?.report_
+ * integrity === 'BLOCK'` -- exactly the un-extracted, only-regex-tested
+ * pattern this file's own header comment says was already fixed once
+ * (CodeRabbit catch on PR #88). It wasn't fully fixed: `deriveReportVerdict`
+ * got extracted and got real tests, but the FLAG DERIVATION feeding it
+ * did not, and `used_fallback` derivation was silently broken --
+ * confirmed against analyze-business/index.ts, `used_fallback`/
+ * `fallback_mode` are set INSIDE the `metadata` object, not at the top
+ * level of the response, so `rawResult.used_fallback` was always
+ * `undefined` in production. This function is the same kind of pure,
+ * directly-testable extraction as deriveReportVerdict above, so the next
+ * time this shape changes, a real assertion on real output catches it --
+ * not a regex match against source text.
+ */
+export function deriveDegradedFlags(rawResult: unknown): { isDegraded: boolean; integrityBlocked: boolean } {
+  const r = rawResult as { metadata?: { used_fallback?: unknown }; report_integrity?: unknown } | null | undefined;
+  return {
+    isDegraded: Boolean(r?.metadata?.used_fallback),
+    integrityBlocked: r?.report_integrity === 'BLOCK',
+  };
+}
+
+/**
  * GTM-audit item #2 (2026-08-25): a report that failed its own accounting-
  * integrity check (integrityBlocked) can never present a clean verdict,
  * regardless of confidence/profit/payback -- this is the direct fix for

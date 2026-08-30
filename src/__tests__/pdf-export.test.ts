@@ -101,6 +101,25 @@ describe('usePdfExport — canonical PDF pipeline', () => {
     expect(HOOK).toMatch(/isDegraded/);
   });
 
+  // Phase 5 5.12 independent re-verification (2026-08-29): the flag
+  // DERIVATION (not just its downstream consumer, deriveReportVerdict)
+  // must also be the extracted, directly-testable function -- an inline
+  // `(rawResult as any)?.used_fallback` here (the exact bug this fix
+  // closed, see pdf-verdict.ts's deriveDegradedFlags comment) would pass
+  // every other test in this file while being silently wrong in
+  // production. See pdf-verdict.test.ts's `deriveDegradedFlags` suite for
+  // the real runtime assertions on its actual output.
+  it('derives isDegraded/integrityBlocked via the extracted, testable deriveDegradedFlags() -- not an inline (rawResult as any) read', () => {
+    expect(HOOK).toMatch(/deriveDegradedFlags\(/);
+    expect(HOOK).not.toMatch(/\(rawResult as any\)\?\.\s*used_fallback\b/);
+    // Note: `report_integrity_issues` (a different, unrelated field -- the
+    // contradiction-message array) is still legitimately read inline
+    // elsewhere in this file; only the exact `report_integrity ===` status
+    // check that used to live here was extracted, so this must not match
+    // the `_issues` variant.
+    expect(HOOK).not.toMatch(/\(rawResult as any\)\?\.\s*report_integrity\s*===/);
+  });
+
   // GTM-audit item #6 (2026-08-25): the Benchmark Citations page header
   // used to hardcode '97,500' directly, bypassing canonical-facts.ts's own
   // single-source-of-truth rule for this exact number. See

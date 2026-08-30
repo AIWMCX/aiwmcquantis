@@ -27,7 +27,7 @@ import {
   serverRecordToResult,
   type ServerBenchmarkRecord,
 } from '@/components/analysis/BenchmarkCitations';
-import { deriveReportVerdict } from './pdf-verdict';
+import { deriveReportVerdict, deriveDegradedFlags } from './pdf-verdict';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { buildBenchmarkCitationsSummary } from './pdf-benchmark-summary';
 import {
@@ -846,16 +846,13 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
   const result = prepareSafeResult(rawResult);
 
   // GTM-audit item #2 (2026-08-25): a failed AI narrator step previously
-  // produced a normal-looking report -- deterministic fallback text is
-  // full prose (see generateDeterministicFallbackResult in index.ts), so
-  // nothing in this PDF distinguished it from a real AI-written analysis,
-  // even though the UI's own results screen was already showing "AI
-  // narrative unavailable". `used_fallback`/`report_integrity` aren't on
-  // BusinessAnalysisResult's type (same reason AccuracyTransparentResults
-  // .tsx already reads them via `as any`) but do exist on the raw server
-  // response and survive prepareSafeResult's spread.
-  const isDegraded = Boolean((rawResult as any)?.used_fallback);
-  const integrityBlocked = (rawResult as any)?.report_integrity === 'BLOCK';
+  // produced a normal-looking report with no indication anything had
+  // failed. Flag derivation (isDegraded/integrityBlocked) is extracted
+  // into pdf-verdict.ts's deriveDegradedFlags() -- see its own comment
+  // for the 2026-08-29 fix to a real bug this extraction caught (the
+  // `used_fallback` flag was being read from the wrong path and was
+  // always false in production).
+  const { isDegraded, integrityBlocked } = deriveDegradedFlags(rawResult);
 
   // GTM-audit item #7 (2026-08-25): the cover previously showed a single
   // "Confidence Score" -- a 40/30/20/10 blend of input completeness, data

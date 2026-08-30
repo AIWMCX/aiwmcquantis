@@ -10,7 +10,7 @@
  * and asserted on for real.
  */
 import { describe, it, expect } from 'vitest';
-import { deriveReportVerdict } from '../hooks/pdf-verdict';
+import { deriveReportVerdict, deriveDegradedFlags } from '../hooks/pdf-verdict';
 
 const base = { confidenceScore: 80, monthlyProfit: 1000, paybackMonths: 6, isDegraded: false, integrityBlocked: false };
 
@@ -56,5 +56,54 @@ describe('deriveReportVerdict', () => {
   it('does not add a qualifier when the AI narrator succeeded', () => {
     const input = { ...base, confidenceScore: 10, monthlyProfit: -500 };
     expect(deriveReportVerdict(input)).toEqual({ text: 'HIGH RISK', tone: 'danger' });
+  });
+});
+
+/**
+ * Real runtime tests for deriveDegradedFlags() (Phase 5 5.12 independent
+ * re-verification, 2026-08-29). Proves the actual bug this fix closed:
+ * `used_fallback` lives at `metadata.used_fallback` on the real
+ * analyze-business response shape (confirmed directly against
+ * analyze-business/index.ts's `metadata: (() => {...})()` block), not at
+ * the top level -- the pre-fix inline code read the wrong path and was
+ * always false in production, on every degraded analysis, since it
+ * shipped.
+ */
+describe('deriveDegradedFlags', () => {
+  it('reads used_fallback from metadata (the REAL response shape) -- the exact path the pre-fix code got wrong', () => {
+    const realShapedResult = {
+      financial_analysis: {},
+      metadata: { used_fallback: true, fallback_mode: true, fallback_reason: 'AI narrator did not return a valid tool call; deterministic engine used.' },
+      report_integrity: 'PASS',
+    };
+    expect(deriveDegradedFlags(realShapedResult)).toEqual({ isDegraded: true, integrityBlocked: false });
+  });
+
+  it('regression guard: a top-level used_fallback (the OLD, broken path) is correctly ignored, not accidentally read', () => {
+    // If this ever passes with isDegraded: true, the fix has regressed
+    // back to reading the wrong (top-level) path.
+    const wrongShapeResult = { used_fallback: true, metadata: {} };
+    expect(deriveDegradedFlags(wrongShapeResult).isDegraded).toBe(false);
+  });
+
+  it('returns false/false for a normal, fully AI-narrated, non-blocked analysis', () => {
+    const normalResult = { metadata: { used_fallback: false }, report_integrity: 'PASS' };
+    expect(deriveDegradedFlags(normalResult)).toEqual({ isDegraded: false, integrityBlocked: false });
+  });
+
+  it('reads report_integrity from the top level (this path was already correct)', () => {
+    const blockedResult = { metadata: { used_fallback: false }, report_integrity: 'BLOCK' };
+    expect(deriveDegradedFlags(blockedResult)).toEqual({ isDegraded: false, integrityBlocked: true });
+  });
+
+  it('both flags can be true simultaneously (a degraded analysis that also fails integrity)', () => {
+    const bothResult = { metadata: { used_fallback: true }, report_integrity: 'BLOCK' };
+    expect(deriveDegradedFlags(bothResult)).toEqual({ isDegraded: true, integrityBlocked: true });
+  });
+
+  it('does not throw on null, undefined, or a completely empty object (defensive against a malformed raw result)', () => {
+    expect(deriveDegradedFlags(null)).toEqual({ isDegraded: false, integrityBlocked: false });
+    expect(deriveDegradedFlags(undefined)).toEqual({ isDegraded: false, integrityBlocked: false });
+    expect(deriveDegradedFlags({})).toEqual({ isDegraded: false, integrityBlocked: false });
   });
 });
