@@ -11,7 +11,7 @@ import { ActivationKpiCard } from '@/components/admin/ActivationKpiCard';
 import { AdminNotificationsBell } from '@/components/admin/AdminNotificationsBell';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen, Workflow, Scale } from 'lucide-react';
+import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen, Workflow, Scale, MessageSquare, HandCoins, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -92,6 +92,24 @@ export default function AdminDashboard() {
               <Link to="/admin/invariant-sweeps">
                 <Scale className="w-4 h-4 mr-2" />
                 Invariant Sweeps
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/incidents">
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Incidents
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/feedback-baseline">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Feedback Baseline
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/paid-engagements">
+                <HandCoins className="w-4 h-4 mr-2" />
+                Paid Engagements
               </Link>
             </Button>
             <Button variant="default" size="sm" asChild>
