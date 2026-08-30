@@ -105,11 +105,27 @@ Deploy chain for this phase (all live-verified, not merely CI-green): migration 
 
 **Constraints honored:** Phases 1-5 were not reopened; no customer-data-ingestion or decision-workspace work was started.
 
-**Open naming question for the user, not yet resolved:** the original charter's Phase 7 is "Category 10: Compliance and customer control" (SOC2 groundwork, breach-response, data-deletion). The user's Phase-6-kickoff instruction named the next phase "Phase 7 — Paid Decision Workflow Validation" instead. This register has not silently picked one — surface this to the user before starting Phase 7 work.
+**Naming question resolved (2026-08-30):** the user confirmed the active Phase 7 is **"Paid Decision Workflow Validation,"** explicitly acknowledging it diverges from the original charter's Phase 7 ("Category 10: Compliance and customer control" — SOC2 groundwork, breach-response, data-deletion). That compliance work is not cancelled; it is renumbered to a later phase, not yet scheduled. Do not assume it has been dropped.
 
-## Phase 7-9 (charter numbering) / Phase 7 (user's alternate naming, unreconciled — see above)
+## Phase 7 — Paid Decision Workflow Validation (user-defined, supersedes charter's Phase 7 naming — see above)
 
-Status: **Not started.** Phase 8 (Dahl, charter numbering) has one piece of forward-compatible groundwork laid earlier this session (the `isDahlAliasCleared()` gate, `e4de1c24`) but remains explicitly blocked on Phases 1 and 5 per the charter — those are now closed, so re-check this gate before Phase 8 work begins.
+**Status: engineering scope shipped 2026-08-30.** This phase is fundamentally a sales/ops initiative the founder runs directly (outreach, running paid reviews) — the register tracks only the engineering support pieces, scoped via an explicit user choice among four options (build tracking infra / build the memo surface / instrument return usage / wait — user selected the first three).
+
+| Deliverable | Status | Evidence |
+|---|---|---|
+| Engagement tracking infrastructure | Done | New `paid_engagements` table (admin/service_role only — internal sales tooling, no customer self-serve path exists). Admin UI at `/admin/paid-engagements` to log/view engagements (contact, type, price, status, linked analysis, decision question, notes). |
+| Decision memo surface | Done | Rather than a parallel Doc Studio template, extended the existing trusted PDF report (`createExecutiveReport` in `usePdfExport.ts`) with an optional `engagementContext` param inserting one new page (prepared-for / decision question / reviewer notes) ahead of the same verdict and numbers every report already shows. Omitting the param is byte-for-byte unaffected — the free/self-serve export path doesn't change. Two new real `@react-pdf/renderer` render-smoke tests added (full context, partial context) in the same suite that already caught one production font bug this session. |
+| Measured-return-usage telemetry | Done | `/admin/paid-engagements` computes, per engagement with a linked account, whether that user ran another analysis after the engagement date — live query, not a stored/batched metric. Zero real engagements logged at ship time, so there is no return-rate number to report yet; the page states this rather than showing a misleading zero. |
+
+One supporting fix along the way: `public.analyses` had zero admin-read RLS policy at all (confirmed by searching every migration) — added one narrow, additive, SELECT-only `has_role()` policy (migration `20260830060624`) so the memo export and return-usage check can read any user's analysis, matching the existing `ai_calls` admin-read pattern. Does not touch or weaken owner-scoped policies.
+
+Deploy chain (live-verified): migrations `20260830060410_phase7_paid_decision_workflow` and `20260830060624_admin_read_analyses_for_paid_engagements` applied and ledger-reconciled on the first attempt this time (filenames matched to the ledger-assigned version before committing, avoiding the drift-and-fix cycle from Phase 6's migration); frontend + edge functions deployed via the standard CI pipeline, all green.
+
+**Separately noted, not part of this phase's scope:** the Browser pane's `preview_start` dev-server launcher fails outright in this repo (isolated to the `™` character in the project's folder path breaking its Windows process spawn — confirmed by running the identical command successfully via plain Bash). Not fixable from the coding agent's side; documented as a standing workaround in `.claude/launch.json`'s adjacent commit message: start the dev server via Bash and `navigate` the Browser pane to `http://localhost:8080` directly.
+
+## Phase 8-9 (charter numbering)
+
+Status: **Not started.** Phase 8 (Dahl, charter numbering) has one piece of forward-compatible groundwork laid earlier this session (the `isDahlAliasCleared()` gate, `e4de1c24`) but remains explicitly blocked on Phases 1 and 5 per the charter — those are now closed, so re-check this gate before Phase 8 work begins. The charter's original Phase 7 (Compliance/SOC2/breach-response/data-deletion) is deferred, not cancelled, per the naming resolution above — needs a phase number once scheduled.
 
 ## Daily commercial lane
 
