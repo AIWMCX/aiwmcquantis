@@ -12,6 +12,7 @@
 /research
 /cases
 /status
+/state-of-quantis
 /security
 /refund-policy
 /changelog

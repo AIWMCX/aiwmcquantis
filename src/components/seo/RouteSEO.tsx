@@ -76,6 +76,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Status — Quantis System Health',
     description: 'Real-time status of Quantis services: API, analysis engine, and integrations.',
   },
+  '/state-of-quantis': {
+    title: 'State of Quantis — What It Does, What It Doesn\'t Guarantee',
+    description: 'An honest account of what Quantis does, what it does not guarantee, where the deterministic engine ends and AI narration begins, and known issues.',
+  },
   '/security': {
     title: 'Security — How Quantis Protects Your Data',
     description: 'Quantis security posture: RLS, encryption at rest, GDPR-compliant deletion, SOC 2-aligned controls.',
