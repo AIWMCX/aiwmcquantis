@@ -61,6 +61,8 @@ const Research = lazy(() => import("./pages/Research"));
 const PreMortem = lazy(() => import("./pages/PreMortem"));
 const ScenarioWorkspace = lazy(() => import("./pages/ScenarioWorkspace"));
 const Status = lazy(() => import("./pages/Status"));
+const StateOfQuantis = lazy(() => import("./pages/StateOfQuantis"));
+const FeedbackBaseline = lazy(() => import("./pages/admin/FeedbackBaseline"));
 const Security = lazy(() => import("./pages/Security"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
@@ -168,6 +170,7 @@ const App = () => {
                 <Route path="/trial" element={<TrialPage />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />
                 <Route path="/status" element={<Status />} />
+                <Route path="/state-of-quantis" element={<StateOfQuantis />} />
                 <Route path="/security" element={<Security />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/changelog" element={<Changelog />} />
@@ -283,6 +286,11 @@ const App = () => {
                 <Route path="/admin/invariant-sweeps" element={
                   <ProtectedRoute requireAdmin>
                     <InvariantSweeps />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/feedback-baseline" element={
+                  <ProtectedRoute requireAdmin>
+                    <FeedbackBaseline />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/data-sources" element={

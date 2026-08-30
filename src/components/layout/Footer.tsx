@@ -154,6 +154,9 @@ export function Footer() {
             <Link to="/status" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Status
             </Link>
+            <Link to="/state-of-quantis" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              State of Quantis
+            </Link>
             <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Security
             </Link>

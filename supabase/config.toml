@@ -21,6 +21,9 @@ verify_jwt = false
 [functions.health-check]
 verify_jwt = false
 
+[functions.system-status]
+verify_jwt = false
+
 [functions.manage-benchmarks]
 verify_jwt = false
 

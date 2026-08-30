@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -162,7 +162,10 @@ export type Database = {
           ok: boolean
           output_tokens: number
           provider: string
+          repair_attempted: boolean | null
           request_id: string | null
+          retry_count: number | null
+          status: string
           task: string
           user_id: string | null
         }
@@ -179,7 +182,10 @@ export type Database = {
           ok?: boolean
           output_tokens?: number
           provider: string
+          repair_attempted?: boolean | null
           request_id?: string | null
+          retry_count?: number | null
+          status?: string
           task: string
           user_id?: string | null
         }
@@ -196,7 +202,10 @@ export type Database = {
           ok?: boolean
           output_tokens?: number
           provider?: string
+          repair_attempted?: boolean | null
           request_id?: string | null
+          retry_count?: number | null
+          status?: string
           task?: string
           user_id?: string | null
         }
@@ -2609,6 +2618,60 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_invariant_sweep_runs: {
+        Row: {
+          applied_count: number
+          created_at: string
+          engine_version: string | null
+          environment: string
+          failure_summary: string | null
+          finished_at: string | null
+          id: number
+          malformed_count: number
+          mode: string
+          run_at: string
+          scanned_count: number
+          status: string
+          violation_categories: Json
+          violation_count: number
+          violation_ids: Json
+        }
+        Insert: {
+          applied_count?: number
+          created_at?: string
+          engine_version?: string | null
+          environment?: string
+          failure_summary?: string | null
+          finished_at?: string | null
+          id?: never
+          malformed_count?: number
+          mode: string
+          run_at?: string
+          scanned_count?: number
+          status?: string
+          violation_categories?: Json
+          violation_count?: number
+          violation_ids?: Json
+        }
+        Update: {
+          applied_count?: number
+          created_at?: string
+          engine_version?: string | null
+          environment?: string
+          failure_summary?: string | null
+          finished_at?: string | null
+          id?: never
+          malformed_count?: number
+          mode?: string
+          run_at?: string
+          scanned_count?: number
+          status?: string
+          violation_categories?: Json
+          violation_count?: number
+          violation_ids?: Json
+        }
+        Relationships: []
+      }
       funnel_events: {
         Row: {
           created_at: string
@@ -3179,6 +3242,70 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      product_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          least_trusted_output: string | null
+          likelihood_to_recommend: number
+          main_reason: string | null
+          missing_decision: string | null
+          most_trusted_output: string | null
+          product_version: string | null
+          tier: string | null
+          user_id: string | null
+          would_use_again: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          least_trusted_output?: string | null
+          likelihood_to_recommend: number
+          main_reason?: string | null
+          missing_decision?: string | null
+          most_trusted_output?: string | null
+          product_version?: string | null
+          tier?: string | null
+          user_id?: string | null
+          would_use_again?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          least_trusted_output?: string | null
+          likelihood_to_recommend?: number
+          main_reason?: string | null
+          missing_decision?: string | null
+          most_trusted_output?: string | null
+          product_version?: string | null
+          tier?: string | null
+          user_id?: string | null
+          would_use_again?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "clean_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "external_commercial_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_cohorts"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -4315,6 +4442,51 @@ export type Database = {
           token?: string
           user_id?: string
           view_count?: number | null
+        }
+        Relationships: []
+      }
+      status_incidents: {
+        Row: {
+          component: string
+          created_at: string
+          detected_at: string
+          id: string
+          postmortem_url: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+          updates: Json
+        }
+        Insert: {
+          component: string
+          created_at?: string
+          detected_at?: string
+          id?: string
+          postmortem_url?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          summary: string
+          title: string
+          updated_at?: string
+          updates?: Json
+        }
+        Update: {
+          component?: string
+          created_at?: string
+          detected_at?: string
+          id?: string
+          postmortem_url?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+          updates?: Json
         }
         Relationships: []
       }
