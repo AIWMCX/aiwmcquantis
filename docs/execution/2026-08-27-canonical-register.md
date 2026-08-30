@@ -91,9 +91,25 @@ Verified before closure: full 1514-test suite green (1507 + 7 from the P1 PDF fi
 
 **Per explicit instruction: Phases 1-5 are not to be reopened unless production evidence identifies a P0/P1 regression** — the PDF disclosure bug found and fixed during this closure pass is the intended outcome of that rule (a real regression caught and closed), not an exception to it.
 
-## Phase 6-9
+## Phase 6 — Public Trust Foundation
 
-Status: **Not started.** Phase 8 (Dahl) has one piece of forward-compatible groundwork laid this session (the `isDahlAliasCleared()` gate, `e4de1c24`) but remains explicitly blocked on Phases 1 and 5 per the charter — Phase 1 has open gaps (above), so Phase 8 is not unblocked yet.
+**Status: CLOSED (2026-08-29/30, one-working-day scope, per explicit instruction).**
+
+| Charter item | Deliverable | Status | Evidence |
+|---|---|---|---|
+| 6.1-6.6 (status page) | Real per-component status page | Done | New `system-status` edge function computes health from live signals (DB ping, auth admin call, latest `financial_invariant_sweep_runs` row, `ai_calls` failure rate for the AI narrator, `stripe_webhook_events` failure rate, benchmark-table liveness) instead of a hand-maintained list. Deterministic engine health (6.3) tracked separately from AI-narrative health. Aggregation logic extracted to `status-core.ts` (pure) with 23 unit tests including synthetic-failure cases (6.6) — see `src/__tests__/system-status-core.test.ts`. `status_incidents` table backs incident history (6.4), seeded with the two real incidents already documented this session (Dahl `DAHL_UNAVAILABLE`, Stripe webhook signing-secret mismatch). Live-verified: `curl https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/system-status` returns real component statuses and both seeded incidents. Report/PDF generation is honestly reported `unmonitored` rather than fabricated as operational — no server-side telemetry exists for it yet. A detect/acknowledge/update/resolve/postmortem workflow (6.5) exists structurally (`status`/`updates`/`postmortem_url` columns, admin-only write policy) but has no admin UI built yet — incidents are currently written via direct SQL, a scope cut made to hit the one-day window. |
+| 6.7-6.11 (feedback baseline) | Structured feedback baseline | Done | New `product_feedback` table + `ProductFeedbackDialog` (in-app, reachable from `AppFooter`) asking the charter's six questions. Admin view at `/admin/feedback-baseline` reports respondent count as the headline number and explicitly refuses to call a sub-30 sample a real NPS (6.7). Zero real respondents at ship time — the baseline mechanism is live and correct, but there is no baseline number to report yet; that is stated on the page itself, not glossed over. |
+| 6.12-6.17 (State of Quantis) | Honesty page | Done | `/state-of-quantis`, linked from both footers and the status page. Built from `canonical-facts.ts` (6.15, one source, no re-typed numbers) plus this session's own audit findings: what Quantis does/doesn't guarantee, the deterministic/AI boundary, recently-fixed issues (PDF disclosure bug, Dahl incident, Stripe webhook incident), known issues (wrong-period/stale-cohort deferred, leaked-password toggle pending), reliability history, data handling, support/escalation. Literal `LAST_VERIFIED` constant (6.16), not a dynamic timestamp. 6.17 (external-reader comprehension test) was **not** run — no second human reviewer was available in this session; flagged as an open verification gap, not silently skipped.
+
+Deploy chain for this phase (all live-verified, not merely CI-green): migration `20260830051051_phase6_public_trust_foundation` applied and ledger-reconciled (one drift-and-fix cycle: `apply_migration` stamped a different version than the git filename first used — same class as the PR #41 ledger drift — corrected by renaming the file to match); `system-status` edge function deployed with fidelity verified; frontend deployed via Vercel git integration; one CI gate fix along the way (`system-status` had to be registered in `production-deploy.yml`'s `FUNCTIONS` array, and a stray empty untracked `evidence-shadow-worker` directory — leftover from the paused Predicta work, never committed — was found and deleted rather than misclassified).
+
+**Constraints honored:** Phases 1-5 were not reopened; no customer-data-ingestion or decision-workspace work was started.
+
+**Open naming question for the user, not yet resolved:** the original charter's Phase 7 is "Category 10: Compliance and customer control" (SOC2 groundwork, breach-response, data-deletion). The user's Phase-6-kickoff instruction named the next phase "Phase 7 — Paid Decision Workflow Validation" instead. This register has not silently picked one — surface this to the user before starting Phase 7 work.
+
+## Phase 7-9 (charter numbering) / Phase 7 (user's alternate naming, unreconciled — see above)
+
+Status: **Not started.** Phase 8 (Dahl, charter numbering) has one piece of forward-compatible groundwork laid earlier this session (the `isDahlAliasCleared()` gate, `e4de1c24`) but remains explicitly blocked on Phases 1 and 5 per the charter — those are now closed, so re-check this gate before Phase 8 work begins.
 
 ## Daily commercial lane
 
