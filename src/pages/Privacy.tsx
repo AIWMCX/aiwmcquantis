@@ -87,8 +87,17 @@ export default function Privacy() {
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
             <li><strong>Stripe</strong> - Payment processing (PCI-DSS compliant)</li>
-            <li><strong>DeepSeek</strong> - Free-tier business analysis generation</li>
-            <li><strong>Anthropic Claude</strong> - Plus/Pro business analysis, narrative generation, and cross-check validation</li>
+          </ul>
+          <p className="text-muted-foreground leading-relaxed mt-4">
+            Quantis uses approved AI providers for classification and narration. Provider routing can vary by
+            capability, availability, and controlled rollout — it is not simply "Free uses one provider, Plus/Pro
+            use another." Financial calculations remain deterministic and do not depend on which narrative provider
+            handled a given request. Providers that may process your business idea text to generate an analysis:
+          </p>
+          <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <li><strong>Dahl gateway</strong> - where enabled, through controlled canary routing to a subset of requests</li>
+            <li><strong>DeepSeek</strong> - primary provider when Dahl routing does not apply</li>
+            <li><strong>Anthropic</strong> - fallback provider</li>
           </ul>
           <p className="text-muted-foreground leading-relaxed">
             These services have their own privacy policies governing how they handle your data.
