@@ -303,6 +303,26 @@ field, which is silently overwritten from `calc` after generation, and
 `market_plan` text), **there is still no consistency check at all** —
 this scope was never claimed to extend beyond `executive_summary`.
 
+### Ambiguous-field ownership policy (charter 5.10, added 2026-08-29)
+
+The fields above have no numeric-reconciliation check, but "unchecked"
+is not the same as "ungoverned" — each has a real ownership rule, stated
+here explicitly rather than left implicit:
+
+| Field | Owner | Rule |
+|---|---|---|
+| Qualitative risks (`business_plan.risks`) | **AI narrator, fully** | Inherently a judgment call, not a derived figure — there is no engine-computed "correct" risk list to reconcile against. No numeric check is planned unless a specific risk cites a dollar figure, in which case that figure falls under `executive_summary`'s existing rule if it appears there, or is a candidate for extending the anchor-set check to this field specifically. |
+| Benchmark interpretation (prose describing how the business compares to industry benchmarks) | **Split**: benchmark *values* are engine-sourced (RVCE/`benchmark_master_*` tables), interpretive *prose* is AI-authored | The underlying numbers the AI cites should reconcile with the served `benchmarks` array, but this is currently unenforced — same class of gap as wrong-period/stale-cohort above, not yet closed. |
+| Market commentary (`market_analysis.*`: TAM/SAM/SOM prose, competitive landscape, growth opportunities) | **AI narrator, fully** | Describes external market context, not the business's own financials — there is no corresponding engine-computed value to check against, even in principle. |
+| Recommendations (`launch_steps` descriptions, action-plan strategy text) | **Split**: `launch_steps[].cost` is engine-owned (silently overwritten from `calc` after generation, per the note above); the strategic advice/sequencing text is AI-owned | The one numeric field in this group already has engine authority; nothing else in it does or needs to. |
+| Confidence labels (`quality_dimensions`, `confidence_score`) | **Engine, fully** | Computed server-side by `_shared/quality-dimensions.ts` from input completeness, data quality, and validation-rule signals — the AI narrator has no input into this score at all, so there is no narrator-vs-engine conflict possible here by construction. |
+
+This table is the answer to "who governs this field until the code
+changes" — it does not itself change what's enforced in code. Extending
+enforcement to any "AI narrator, fully" or "split" row above is future
+work, tracked the same way wrong-period/stale-cohort detection is
+(see above): a real, scoped decision, not a silent assumption.
+
 **AI-narration failure does not by itself trigger `report_integrity =
 'BLOCK'`.** When all AI retries fail or the response doesn't parse,
 `generateDeterministicFallbackResult()` builds a fully template-generated
