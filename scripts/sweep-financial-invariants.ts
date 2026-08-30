@@ -24,18 +24,26 @@
  * scripts/apply-pending-migrations.mjs), not a direct Postgres
  * connection -- no new secret/connection type introduced.
  *
+ * Pure logic (scenario validation, category-breakdown aggregation, run-
+ * record shape) lives in scripts/invariant-sweep-core.ts, imported here
+ * and tested directly in scripts/invariant-sweep-core.test.ts (charter
+ * 5.7) -- this file itself stays untestable under Vitest (it reads
+ * Deno.env at module scope by design, matching every other script in
+ * this repo), so the split is what makes the logic testable at all.
+ *
  * Run with:
  *   SUPABASE_ACCESS_TOKEN=sbp_... deno run --allow-net --allow-env scripts/sweep-financial-invariants.ts
  *   SUPABASE_ACCESS_TOKEN=sbp_... deno run --allow-net --allow-env scripts/sweep-financial-invariants.ts --apply
- *
- * Scheduling this (frequency, alert channel on failure) is a product/ops
- * decision left to the team -- this script is the reusable primitive,
- * not a cron wiring. A natural next step: a GitHub Actions workflow on a
- * `schedule:` trigger running this in report-only mode and failing the
- * job (hence alerting via existing CI notification channels) if any
- * violation is found.
  */
 import { checkFinancialInvariants } from "../supabase/functions/analyze-business/payback-contract.ts";
+import { ENGINE_VERSION } from "../supabase/functions/analyze-business/financial-engine.ts";
+import {
+  isValidScenarioSet,
+  buildCompletedRunRecord,
+  buildInterruptedRunRecord,
+  type ViolationRecord,
+  type SweepRunRecord,
+} from "./invariant-sweep-core.ts";
 
 const PROJECT_REF = "dmlxrvfyqsakyjomsvdj";
 const TOKEN = Deno.env.get("SUPABASE_ACCESS_TOKEN");
@@ -58,86 +66,49 @@ async function runSql(query: string): Promise<unknown[]> {
   return JSON.parse(text) as unknown[];
 }
 
-interface ScenarioTriple {
-  revenue: number;
-  gross_profit: number;
-  net_profit: number;
-}
-
-/**
- * CodeRabbit catch: the SQL below only requires scenarios.base to be
- * non-null -- pessimistic/optimistic could still be absent or null on a
- * malformed/partial row (e.g. an older or free-tier analysis that never
- * computed all three). checkFinancialInvariants() unconditionally reads
- * .revenue/.gross_profit/.net_profit off all three, so an unvalidated
- * TypeScript cast here would let one malformed row throw a TypeError and
- * silently stop the ENTIRE sweep partway through -- exactly the kind of
- * failure a scheduled health check must never have. `scenarios` is typed
- * loosely and validated per-row below instead of asserted as the full
- * contract.
- */
 interface CandidateRow {
   id: string;
   scenarios: unknown;
   already_blocked: boolean;
 }
 
-function isScenarioTriple(v: unknown): v is ScenarioTriple {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as Record<string, unknown>).revenue === "number" &&
-    typeof (v as Record<string, unknown>).gross_profit === "number" &&
-    typeof (v as Record<string, unknown>).net_profit === "number"
-  );
-}
-
-function isValidScenarioSet(scenarios: unknown): scenarios is {
-  pessimistic: ScenarioTriple;
-  base: ScenarioTriple;
-  optimistic: ScenarioTriple;
-} {
-  if (typeof scenarios !== "object" || scenarios === null) return false;
-  const s = scenarios as Record<string, unknown>;
-  return isScenarioTriple(s.pessimistic) && isScenarioTriple(s.base) && isScenarioTriple(s.optimistic);
-}
-
 /**
- * GTM-audit item #18 (2026-08-27, Q19): records a summary of this run so
- * an admin page (/admin/invariant-sweeps) can show run history at a
- * glance instead of requiring someone to open GitHub Actions logs.
- * Written via the same Management API connection as the rest of this
- * script (full database privileges, not subject to PostgREST/RLS).
+ * GTM-audit item #18 (2026-08-27, Q19) + #22 (2026-08-29, charter 5.2/5.3):
+ * records a summary of this run so an admin page (/admin/invariant-sweeps)
+ * can show run history at a glance. Written via the same Management API
+ * connection as the rest of this script (full database privileges, not
+ * subject to PostgREST/RLS).
  *
- * GTM-audit item #22 (2026-08-27, Phase 5 re-validation, charter 5.6):
- * this used to swallow a write failure with only a non-fatal
- * console.warn -- meaning a genuinely broken persistence path (RLS
- * misconfigured, table dropped, connection issue) could produce an
- * unbroken string of green CI runs on the invariant check itself while
- * silently writing NOTHING to the table the admin dashboard reads, and
- * nobody would ever be told. Returns success/failure instead so the
- * caller can make the sweep's exit code reflect it -- a persistence
- * failure is itself the kind of thing a scheduled health check exists
- * to catch, not something to catch AND then hide.
+ * Returns success/failure (2026-08-29 fix, charter 5.6) rather than
+ * swallowing a write failure -- a persistence failure is itself the kind
+ * of thing this whole mechanism exists to catch, not something to catch
+ * and then hide.
  */
-async function recordSweepRun(summary: {
-  scanned: number;
-  violationIds: string[];
-  malformedCount: number;
-  appliedCount: number;
-}): Promise<boolean> {
+async function recordSweepRun(record: SweepRunRecord): Promise<boolean> {
   try {
-    const idsJson = JSON.stringify(summary.violationIds).replace(/'/g, "''");
+    const idsJson = JSON.stringify(record.violationIds).replace(/'/g, "''");
+    const categoriesJson = JSON.stringify(record.violationCategories).replace(/'/g, "''");
+    const failureSummarySql = record.failureSummary === null
+      ? "NULL"
+      : `'${record.failureSummary.replace(/'/g, "''")}'`;
     await runSql(`
       INSERT INTO public.financial_invariant_sweep_runs
-        (mode, scanned_count, violation_count, malformed_count, applied_count, violation_ids)
+        (mode, status, engine_version, environment, finished_at,
+         scanned_count, violation_count, malformed_count, applied_count,
+         violation_ids, violation_categories, failure_summary)
       VALUES (
-        '${APPLY ? "apply" : "report-only"}',
-        ${summary.scanned},
-        ${summary.violationIds.length},
-        ${summary.malformedCount},
-        ${summary.appliedCount},
-        '${idsJson}'::jsonb
+        '${record.mode}',
+        '${record.status}',
+        '${record.engineVersion}',
+        'production',
+        now(),
+        ${record.scanned},
+        ${record.violationIds.length},
+        ${record.malformedCount},
+        ${record.appliedCount},
+        '${idsJson}'::jsonb,
+        '${categoriesJson}'::jsonb,
+        ${failureSummarySql}
       );
     `);
     return true;
@@ -164,7 +135,7 @@ async function main() {
 
   console.log(`Scanned ${rows.length} analyses with scenario data.`);
 
-  const violations: Array<{ id: string; issues: ReturnType<typeof checkFinancialInvariants> }> = [];
+  const violations: ViolationRecord[] = [];
   const malformed: string[] = [];
   for (const row of rows) {
     if (!isValidScenarioSet(row.scenarios)) {
@@ -198,7 +169,8 @@ async function main() {
     console.log(malformed.length > 0
       ? "\nPASS (with skipped rows): no financial-invariant violations found among the analyses that could be checked."
       : "\nPASS: no financial-invariant violations found.");
-    const persisted = await recordSweepRun({ scanned: rows.length, violationIds: [], malformedCount: malformed.length, appliedCount: 0 });
+    const record = buildCompletedRunRecord({ mode: APPLY ? "apply" : "report-only", engineVersion: ENGINE_VERSION, scanned: rows.length, violations: [], malformedCount: malformed.length, appliedCount: 0 });
+    const persisted = await recordSweepRun(record);
     // A clean invariant check does not mean a clean run: if the result
     // never made it into financial_invariant_sweep_runs, the admin
     // dashboard silently falls behind and nobody is told unless this
@@ -209,7 +181,8 @@ async function main() {
 
   if (!APPLY) {
     console.log("\nReport-only mode -- no rows written. Re-run with --apply to flag these for review.");
-    const persisted = await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
+    const record = buildCompletedRunRecord({ mode: "report-only", engineVersion: ENGINE_VERSION, scanned: rows.length, violations, malformedCount: malformed.length, appliedCount: 0 });
+    const persisted = await recordSweepRun(record);
     if (!persisted) console.error("Additionally: this run's summary was NOT persisted (see PERSISTENCE FAILURE above).");
     Deno.exit(1); // non-zero so a scheduled job alerts on any violation found
   }
@@ -220,7 +193,8 @@ async function main() {
 
   if (toFlag.length === 0) {
     console.log("\nAll violating rows are already flagged (report_integrity='BLOCK'). Nothing to apply.");
-    const persisted = await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: 0 });
+    const record = buildCompletedRunRecord({ mode: "apply", engineVersion: ENGINE_VERSION, scanned: rows.length, violations, malformedCount: malformed.length, appliedCount: 0 });
+    const persisted = await recordSweepRun(record);
     if (!persisted) console.error("Additionally: this run's summary was NOT persisted (see PERSISTENCE FAILURE above).");
     Deno.exit(1);
     return;
@@ -244,9 +218,23 @@ async function main() {
     WHERE id IN (${idList});
   `);
   console.log("Done.");
-  const persisted = await recordSweepRun({ scanned: rows.length, violationIds: violations.map((v) => v.id), malformedCount: malformed.length, appliedCount: toFlag.length });
+  const record = buildCompletedRunRecord({ mode: "apply", engineVersion: ENGINE_VERSION, scanned: rows.length, violations, malformedCount: malformed.length, appliedCount: toFlag.length });
+  const persisted = await recordSweepRun(record);
   if (!persisted) console.error("Additionally: this run's summary was NOT persisted (see PERSISTENCE FAILURE above).");
   Deno.exit(1); // still non-zero: violations existed, even though now flagged
 }
 
-main();
+// GTM-audit item #22 (2026-08-29, charter 5.3): previously, any error
+// thrown before main() reached its own recordSweepRun() call (most
+// notably the very first `runSql()` for the candidate-row SELECT) crashed
+// the whole process with zero row ever written to
+// financial_invariant_sweep_runs -- an interrupted run and a run that
+// never happened were indistinguishable to the dashboard. This wrapper
+// ensures SOME row is always written, with status='interrupted' and a
+// sanitized failure_summary, whenever main() throws for any reason.
+main().catch(async (err) => {
+  console.error(`SWEEP INTERRUPTED before completing its scan: ${String(err)}`);
+  const record = buildInterruptedRunRecord({ mode: APPLY ? "apply" : "report-only", engineVersion: ENGINE_VERSION, err });
+  await recordSweepRun(record);
+  Deno.exit(1);
+});
