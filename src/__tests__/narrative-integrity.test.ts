@@ -96,27 +96,23 @@ describe('enforceNarrativeIntegrity', () => {
  * 5.13 asks for fixtures covering six classes of narrative/engine
  * conflict: wrong totals, wrong units, wrong currency, wrong period,
  * reversed verdict, and stale benchmark cohorts. The describe block
- * above already covers "wrong totals" (the SubBase corpus case). This
- * block covers the other five — but not by pretending detection exists
- * where it doesn't.
+ * above already covers "wrong totals." This block covers the other
+ * five.
  *
- * enforceNarrativeIntegrity()'s actual mechanism, read directly from
- * ai-safety-guardrails.ts: DOLLAR_PATTERN = /\$[\d,]+(?:\.\d{1,2})?/g
- * extracts ONLY literal `$`-prefixed tokens, ignores any value <= $100,
- * and checks the remaining raw NUMBER against an anchor SET by value
- * alone — with no awareness of what the number is labeled as, what
- * period it describes, what currency symbol precedes it, or whether the
- * surrounding prose's qualitative claim (profitable/unprofitable, good/
- * bad) matches calc.isProfitable. Three of the five classes below are
- * therefore genuinely undetectable by the current implementation, by
- * construction — not a test-writing gap, an implementation gap. Per
- * AI_SAFETY_ARCHITECTURE.md's own "Engine vs. Narrator Conflict
- * Resolution" section, this is already disclosed as a real, currently-
- * open gap. These tests turn that prose disclosure into an explicit,
- * checked-in assertion of CURRENT behavior — a canary that will force a
- * conscious test update (not a silent pass) the day someone extends
- * enforceNarrativeIntegrity() to actually cover these classes, rather
- * than letting "we said this was a known gap" quietly go stale.
+ * Updated 2026-08-29 (same day, second pass): the original version of
+ * this block found wrong currency and reversed verdict were genuinely
+ * undetectable and left them as documented-gap canaries. Both are now
+ * FIXED in ai-safety-guardrails.ts (NON_USD_CURRENCY_PATTERN and the
+ * STRONG_PROFITABLE_CLAIMS/STRONG_UNPROFITABLE_CLAIMS checks added to
+ * narrativeReconciles()) — the tests below were flipped from "confirms
+ * the gap" to "confirms the fix," not silently left stale.
+ *
+ * Wrong period and stale benchmark cohort remain genuinely open: fixing
+ * either requires changing NarrativeIntegrityCalc's shape (adding a
+ * period/label context or a dataset-vintage field) and updating its
+ * construction at the real call site in analyze-business/index.ts —
+ * larger, riskier surgery on the core analysis path than this pass's
+ * scope, deliberately deferred rather than bundled in.
  */
 describe('enforceNarrativeIntegrity — conflict-fixture coverage (charter 5.13)', () => {
   it('WRONG UNITS: catches an order-of-magnitude error ($675 cited for a real $67,500 startup investment)', () => {
@@ -129,52 +125,72 @@ describe('enforceNarrativeIntegrity — conflict-fixture coverage (charter 5.13)
     expect(result.executiveSummary).not.toContain('$675');
   });
 
-  it('WRONG CURRENCY (known limitation): a non-$-prefixed figure is invisible to the check, even when wildly wrong', () => {
-    // Real MRR is $2,235. Citing it as "€225,000" is both the wrong
-    // currency AND off by two orders of magnitude -- but DOLLAR_PATTERN
-    // only matches a literal "$" prefix, so this string is never
-    // extracted at all. This is a genuine, currently-open detection
-    // gap, not a test oversight -- documented in AI_SAFETY_ARCHITECTURE.md.
+  it('WRONG CURRENCY: fixed 2026-08-29 — a non-USD currency symbol is now caught regardless of the underlying number', () => {
     const text = `Monthly recurring revenue stands at €225,000, reflecting strong early traction.`;
     const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
-    expect(result.wasModified).toBe(false);
-    expect(result.executiveSummary).toBe(text);
+    expect(result.wasModified).toBe(true);
+    expect(result.executiveSummary).not.toContain('€225,000');
   });
 
-  it('WRONG PERIOD (known limitation): a dollar figure matching the wrong anchor by value passes, even though its label describes a different concept/period', () => {
+  it('WRONG CURRENCY: also catches £ and ¥, and a currency symbol trailing the number', () => {
+    expect(enforceNarrativeIntegrity(`CAC is estimated at £9,396 for this market.`, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog).wasModified).toBe(true);
+    expect(enforceNarrativeIntegrity(`Startup costs of 67,500¥ are required.`, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog).wasModified).toBe(true);
+  });
+
+  it('WRONG PERIOD (still a known, open limitation): a dollar figure matching the wrong anchor by value passes, even though its label describes a different concept/period', () => {
     // $15,000 is baseCalc's breakEvenRevenue (a one-time/cumulative
     // threshold), not its MRR ($2,235, a recurring monthly figure).
     // The check only verifies "is this number within 10% of ANY anchor
     // in the set" -- it has no concept of which anchor a number is
     // supposed to correspond to, so mislabeling the break-even figure
-    // as monthly revenue passes silently.
+    // as monthly revenue passes silently. Not touched by the 2026-08-29
+    // currency/verdict fix -- fixing this needs period context plumbed
+    // into NarrativeIntegrityCalc, deferred (see block comment above).
     const text = `This business already generates $15,000 in monthly revenue, well ahead of plan.`;
     const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
     expect(result.wasModified).toBe(false);
     expect(result.executiveSummary).toBe(text);
   });
 
-  it('REVERSED VERDICT (known limitation): a qualitative claim contradicting calc.isProfitable is never checked', () => {
-    // baseCalc.isProfitable is false (net loss of $31,916/mo). Nothing
-    // in enforceNarrativeIntegrity() reads isProfitable at all -- the
-    // function's entire scope is dollar-figure reconciliation, so a
-    // purely qualitative contradiction (with no unanchored dollar
-    // figure in the sentence) is structurally outside what it checks.
-    // This is the EXACT example AI_SAFETY_ARCHITECTURE.md itself names
-    // as a currently-open gap ("prose calling the business 'highly
-    // profitable' while net_margin_percent is negative").
+  it('REVERSED VERDICT: fixed 2026-08-29 — a strong, unhedged profitability claim contradicting calc.isProfitable is now caught', () => {
+    // baseCalc.isProfitable is false (net loss of $31,916/mo). This is
+    // the EXACT example AI_SAFETY_ARCHITECTURE.md named as a currently-
+    // open gap ("prose calling the business 'highly profitable' while
+    // net_margin_percent is negative") -- now closed.
     const text = `This is a highly profitable business with excellent unit economics and strong near-term upside.`;
     const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
-    expect(result.wasModified).toBe(false);
-    expect(result.executiveSummary).toBe(text);
+    expect(result.wasModified).toBe(true);
   });
 
-  it('STALE BENCHMARK COHORT (known limitation): a claim about dataset vintage is entirely outside this function\'s scope', () => {
-    // NarrativeIntegrityCalc (the only context enforceNarrativeIntegrity
-    // receives) has no dataset_version/cohort field at all -- there is
-    // nothing in this function's signature it COULD check a benchmark-
-    // vintage claim against, even in principle. A narrative citing a
-    // stale or wrong benchmark cohort passes through unconditionally.
+  it('REVERSED VERDICT: also catches the mirror case (calling a profitable business unprofitable)', () => {
+    const profitableCalc: NarrativeIntegrityCalc = { ...baseCalc, isProfitable: true, netProfit: 4832 };
+    const text = `Unfortunately, this remains a failing business with no path to sustainability.`;
+    const result = enforceNarrativeIntegrity(text, profitableCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(true);
+  });
+
+  it('REVERSED VERDICT: does NOT flag a hedged claim ("could become profitable") — deliberately narrow to avoid false positives', () => {
+    // The whole point of keeping this check narrow: this function's only
+    // remedy is a wholesale executive_summary replacement, so it must
+    // not fire on legitimate, honestly-hedged language just because the
+    // word "profitable" appears near a negative outcome.
+    const text = `This business could become profitable with optimization, though current unit economics of $9,396 CAC and $6,389 LTV are challenging.`;
+    const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(false);
+  });
+
+  it('REVERSED VERDICT: does NOT flag a plain "profitable" mention with correctly-anchored numbers', () => {
+    const profitableCalc: NarrativeIntegrityCalc = { ...baseCalc, isProfitable: true, netProfit: 4832 };
+    const text = `The business is profitable, generating $4,832 in monthly net profit.`;
+    const result = enforceNarrativeIntegrity(text, profitableCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(false);
+  });
+
+  it('STALE BENCHMARK COHORT (still a known, open limitation): a claim about dataset vintage is entirely outside this function\'s scope', () => {
+    // NarrativeIntegrityCalc has no dataset_version/cohort field at all
+    // -- there is nothing in this function's signature it COULD check a
+    // benchmark-vintage claim against, even in principle. Not touched by
+    // the 2026-08-29 fix -- deferred, see block comment above.
     const text = `Based on our 2023 industry benchmark dataset, this concept shows strong market alignment.`;
     const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
     expect(result.wasModified).toBe(false);

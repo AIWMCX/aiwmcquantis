@@ -255,30 +255,53 @@ displayed as a report figure — `calc` is the only source `AnalysisResults`
 and the PDF ever read. This is correct and requires no further
 documentation.
 
-**For narrative prose, only one field is checked, and only for one kind of
-error.** `enforceNarrativeIntegrity()` extracts every `$#,###`-style
-dollar figure from `business_plan.executive_summary` and checks each
-against an anchor set (MRR, net profit, CAC, LTV, startup investment,
-break-even revenue, 3-year NPV, expense line items) within 10% tolerance.
-If any unanchored figure over $100 appears, the **entire
-`executive_summary` is discarded and replaced** with a template built
-purely from `calc` — not edited in place, not flagged, replaced wholesale.
-This is the one and only automated "when these disagree, the engine wins"
-enforcement point in the codebase.
+**For narrative prose, only one field is checked** —
+`business_plan.executive_summary` — **but as of 2026-08-29 it checks
+three distinct kinds of error, not one.** `enforceNarrativeIntegrity()`:
 
-**Everywhere else in the narrative, there is no consistency check at
-all.** `risks`, `competitive_advantages`, `product_description`,
-`launch_steps` descriptions (except their `cost` field, which is silently
-overwritten from `calc` after generation), and `market_plan` text can all
-contain a citation that doesn't match `calc`, or a qualitative claim that
-contradicts the numbers (e.g. prose calling the business "highly
-profitable" while `net_margin_percent` is negative), and none of it is
-caught. This is a real, currently-open gap, not a hypothetical — if this
-class of contradiction is reported by a customer or found in an audit,
-extending `enforceNarrativeIntegrity()`'s anchor-set check to these fields
-(or adding a lighter-weight sentiment/number-mention check) is the
-natural fix, following the exact pattern already proven for
+1. Extracts every `$#,###`-style dollar figure and checks each against
+   an anchor set (MRR, net profit, CAC, LTV, startup investment,
+   break-even revenue, 3-year NPV, expense line items) within 10%
+   tolerance — the original 2026-07-11 check.
+2. (Added 2026-08-29, Phase 5 re-validation) Flags **any non-USD
+   currency symbol** (€, £, ¥, ₹, ₩) appearing anywhere in the text —
+   Quantis has no multi-currency support anywhere else in the product,
+   so there is no legitimate reason one should appear.
+3. (Added 2026-08-29) Flags a **strong, unhedged verdict claim
+   contradicting `calc.isProfitable`** — e.g. "highly profitable" while
+   the business is actually running a loss, or "a failing business"
+   while it's actually profitable. Deliberately narrow (a small,
+   explicit phrase list, not a sentiment classifier) to keep the
+   false-positive rate low, since the only remedy on detection is a
+   wholesale `executive_summary` replacement — a hedge like "could
+   become profitable with optimization" is deliberately NOT flagged.
+
+If any of the three trips, the **entire `executive_summary` is discarded
+and replaced** with a template built purely from `calc` — not edited in
+place, not flagged, replaced wholesale, exactly as before. Live-verified
+via `src/__tests__/narrative-integrity.test.ts`'s conflict-fixture suite
+(16 tests, including explicit false-positive-safety cases for the
+hedged/plain-mention wording).
+
+**Wrong period and stale benchmark cohort remain genuinely open.**
+`NarrativeIntegrityCalc` has no period-label context (so a break-even
+figure mislabeled as monthly revenue passes if the raw number happens
+to match) and no dataset-version/cohort field at all (so a claim about
+benchmark vintage is entirely outside what this function could check,
+even in principle). Fixing either requires changing
+`NarrativeIntegrityCalc`'s shape and updating its construction at the
+real call site in `analyze-business/index.ts` — larger, riskier surgery
+on the core analysis path than the 2026-08-29 fix's scope, deliberately
+deferred rather than bundled in. If either class is reported by a
+customer or found in an audit, that plumbing change is the natural next
+step, following the same pattern already proven twice now for
 `executive_summary`.
+
+**Everywhere else in the narrative** (`risks`, `competitive_advantages`,
+`product_description`, `launch_steps` descriptions except their `cost`
+field, which is silently overwritten from `calc` after generation, and
+`market_plan` text), **there is still no consistency check at all** —
+this scope was never claimed to extend beyond `executive_summary`.
 
 **AI-narration failure does not by itself trigger `report_integrity =
 'BLOCK'`.** When all AI retries fail or the response doesn't parse,

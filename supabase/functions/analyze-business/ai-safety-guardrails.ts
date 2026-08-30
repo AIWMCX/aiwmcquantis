@@ -478,6 +478,41 @@ export interface NarrativeIntegrityCalc {
 
 const DOLLAR_PATTERN = /\$[\d,]+(?:\.\d{1,2})?/g;
 
+// Phase 5 re-validation (2026-08-29, charter 5.9/5.11) extension #1: a
+// figure in any other currency symbol appearing in what should be an
+// all-USD narrative is presumptively wrong -- Quantis has no multi-
+// currency support anywhere else in the product, so there's no
+// legitimate reason a non-USD symbol should appear next to a number in
+// generated business-plan prose. Deliberately no `g` flag: this is used
+// as a presence check via .test(), and a global-flagged regex's
+// stateful lastIndex would silently misbehave across repeated calls to
+// narrativeReconciles() from the same module instance.
+const NON_USD_CURRENCY_PATTERN = /[€£¥₹₩]\s?[\d,]+(?:\.\d{1,2})?|[\d,]+(?:\.\d{1,2})?\s?[€£¥₹₩]/;
+
+// Phase 5 re-validation (2026-08-29, charter 5.9/5.11) extension #2: the
+// exact "reversed verdict" example AI_SAFETY_ARCHITECTURE.md itself
+// named as a currently-open gap -- prose calling the business
+// "profitable" while calc says otherwise, or vice versa. Deliberately
+// narrow (only unambiguous, strongly-worded claims): this function's
+// only remedy on detection is a WHOLESALE replacement of
+// executive_summary, so an over-eager pattern here would do more damage
+// than the gap it closes. A hedge like "could become profitable with
+// optimization," or a plain "profitable" mention next to correctly-
+// anchored numbers, is deliberately NOT flagged -- only a strong,
+// unhedged claim directly contradicting calc.isProfitable is. This is
+// intentionally NOT a general sentiment classifier.
+const STRONG_PROFITABLE_CLAIMS = [
+  /\bhighly profitable\b/i,
+  /\bvery profitable\b/i,
+  /\bstrongly profitable\b/i,
+  /\bexcellent profitability\b/i,
+];
+const STRONG_UNPROFITABLE_CLAIMS = [
+  /\b(?:deeply|highly|significantly) unprofitable\b/i,
+  /\blosing (?:significant amounts of )?money\b/i,
+  /\ba failing business\b/i,
+];
+
 function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
   return [
     calc.mrr,
@@ -508,6 +543,16 @@ function narrativeReconciles(text: string, calc: NarrativeIntegrityCalc): boolea
     const isAnchored = anchors.some((anchor) => Math.abs(value - anchor) / Math.abs(anchor) < 0.1);
     if (!isAnchored) return false;
   }
+
+  // Extension #1 (2026-08-29): non-USD currency symbol anywhere in the
+  // narrative -- see NON_USD_CURRENCY_PATTERN's comment above.
+  if (NON_USD_CURRENCY_PATTERN.test(text)) return false;
+
+  // Extension #2 (2026-08-29): a strong, unhedged verdict claim directly
+  // contradicting calc.isProfitable -- see the claim-list comments above.
+  if (calc.isProfitable === false && STRONG_PROFITABLE_CLAIMS.some((p) => p.test(text))) return false;
+  if (calc.isProfitable === true && STRONG_UNPROFITABLE_CLAIMS.some((p) => p.test(text))) return false;
+
   return true;
 }
 
@@ -542,7 +587,7 @@ export function enforceNarrativeIntegrity(
     if (narrativeReconciles(executiveSummary, calc)) {
       return { executiveSummary, wasModified: false };
     }
-    log.warn('Narrative integrity check: executive_summary contained a dollar figure not reconciling with computed metrics within 10% tolerance — regenerating from calc');
+    log.warn('Narrative integrity check: executive_summary did not reconcile with computed metrics (unanchored dollar figure, non-USD currency, or a verdict claim contradicting calc.isProfitable) — regenerating from calc');
     return {
       executiveSummary: buildSafeExecutiveSummary(calc, industryLabel, location),
       wasModified: true,
