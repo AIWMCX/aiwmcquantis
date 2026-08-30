@@ -380,6 +380,67 @@ serve(async (req) => {
         log.info(`[${requestId}] Customer Email: ${maskEmail(session.customer_email)}`);
         log.info(`[${requestId}] Subscription: ${session.subscription}`);
 
+        // One-time paid-engagement Payment Links (Founder Decision Review /
+        // Consultant Founding Pilot, 2026-08-30) are NOT subscriptions —
+        // session.subscription is null for these, so this branch must run
+        // and return BEFORE the subscription-only code below, which would
+        // otherwise call stripe.subscriptions.retrieve(undefined) and error.
+        // Matched on payment_link ID rather than price ID since these were
+        // created directly as Stripe Payment Links (no app-side price
+        // config). Never grants Plus/Pro entitlement — logs to
+        // paid_engagements only, per the one-time-engagement fulfillment
+        // spec's explicit rule against silently granting subscription tiers.
+        const ENGAGEMENT_PAYMENT_LINKS: Record<string, { offerCode: string; engagementType: "founder_review" | "consultant_review" }> = {
+          "plink_1UAHfLLKMhSmZURCpBCtsin5": { offerCode: "founder_decision_review", engagementType: "founder_review" },
+          "plink_1UAHgRLKMhSmZURCFJsZaLiv": { offerCode: "consultant_founding_pilot", engagementType: "consultant_review" },
+        };
+        const paymentLinkId = typeof session.payment_link === "string" ? session.payment_link : session.payment_link?.id;
+        const engagementOffer = paymentLinkId ? ENGAGEMENT_PAYMENT_LINKS[paymentLinkId] : undefined;
+
+        if (engagementOffer) {
+          const contactEmail = session.customer_details?.email || session.customer_email || null;
+          const contactName = session.customer_details?.name || contactEmail || "(unknown — pending intake)";
+          const amountUsd = session.amount_total != null ? session.amount_total / 100 : null;
+
+          log.info(`[${requestId}] === One-time paid engagement (${engagementOffer.offerCode}) ===`);
+          log.info(`[${requestId}] Session ID: ${session.id}, amount: $${amountUsd}, email: ${maskEmail(contactEmail)}`);
+
+          const { error: engagementErr } = await supabase
+            .from("paid_engagements")
+            .upsert(
+              {
+                stripe_checkout_session_id: session.id,
+                stripe_payment_intent_id: (session.payment_intent as string) || null,
+                stripe_customer_id: (session.customer as string) || null,
+                offer_code: engagementOffer.offerCode,
+                engagement_type: engagementOffer.engagementType,
+                contact_email: contactEmail,
+                contact_name: contactName,
+                price_usd: amountUsd,
+                currency: session.currency || "usd",
+                status: "scheduled",
+                engaged_at: new Date().toISOString(),
+              },
+              { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true }
+            );
+
+          if (engagementErr) {
+            log.error(`[${requestId}] Failed to log paid_engagements row for session ${session.id}: ${engagementErr.message}`);
+          } else {
+            log.info(`[${requestId}] SUCCESS: paid_engagements row logged for session ${session.id}`);
+          }
+
+          await supabase
+            .from("stripe_webhook_events")
+            .update({ status: "processed", processed_at: new Date().toISOString() })
+            .eq("event_id", event.id);
+
+          return new Response(
+            JSON.stringify({ received: true, engagement_logged: !engagementErr, offer_code: engagementOffer.offerCode, event_id: event.id }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
