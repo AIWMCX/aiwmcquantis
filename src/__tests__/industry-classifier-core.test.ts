@@ -22,6 +22,7 @@ const FIXTURE_INDUSTRIES: KeywordIndustry[] = [
   },
   { id: 'fitness', name: 'Fitness / Wellness', keywords: ['gym', 'fitness', 'yoga', 'personal training'] },
   { id: 'food_service', name: 'Food & Beverage', keywords: ['restaurant', 'cafe', 'bakery', 'food', 'coffee'] },
+  { id: 'saas', name: 'SaaS / Software', keywords: ['saas', 'software', 'app', 'platform', 'ai ', 'ml '] },
 ];
 
 describe('scoreIndustriesByKeywords', () => {
@@ -61,5 +62,42 @@ describe('scoreIndustriesByKeywords', () => {
     const idea = 'A BOUTIQUE MANAGEMENT CONSULTING FIRM';
     const { match } = scoreIndustriesByKeywords(idea, FIXTURE_INDUSTRIES);
     expect(match?.id).toBe('consulting');
+  });
+
+  // Second real production bug (2026-08-30), same root cause as the first:
+  // "A mobile car detailing service ... with driveway appointments" was
+  // classified as "SaaS / Software" because "appointments" substring-
+  // matched the keyword 'app'. Fixed by switching from raw
+  // String.includes() to word-boundary-aware regex matching.
+  it('SYNTHETIC REGRESSION: a car-detailing business mentioning "appointments" does not match SaaS via the "app" keyword', () => {
+    const idea = 'a mobile car detailing service with driveway appointments, $85 per detail, 60 recurring customers target';
+    const { match, score } = scoreIndustriesByKeywords(idea, FIXTURE_INDUSTRIES);
+    expect(match).toBeNull();
+    expect(score).toBe(0);
+  });
+
+  it('still correctly matches a genuine app/software business on the "app" keyword', () => {
+    const idea = 'a mobile app that helps freelancers track invoices';
+    const { match } = scoreIndustriesByKeywords(idea, FIXTURE_INDUSTRIES);
+    expect(match?.id).toBe('saas');
+  });
+
+  it('matches "app" as a standalone word even directly followed by punctuation', () => {
+    const idea = 'we are building an app, and need to validate the market';
+    const { match } = scoreIndustriesByKeywords(idea, FIXTURE_INDUSTRIES);
+    expect(match?.id).toBe('saas');
+  });
+
+  it('matches trailing-space-style fragment keywords ("ai ") even when not literally followed by a space (e.g. "AI-powered")', () => {
+    const idea = 'an AI-powered scheduling tool for salons';
+    const { match } = scoreIndustriesByKeywords(idea, FIXTURE_INDUSTRIES);
+    expect(match?.id).toBe('saas');
+  });
+
+  it('does not match the "ai " fragment keyword inside an unrelated word like "again" or "captain"', () => {
+    const idea = 'a captain runs charter fishing trips again each summer season';
+    const { match, score } = scoreIndustriesByKeywords(idea, FIXTURE_INDUSTRIES);
+    expect(match).toBeNull();
+    expect(score).toBe(0);
   });
 });
