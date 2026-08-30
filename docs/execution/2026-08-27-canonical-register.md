@@ -121,6 +121,20 @@ One supporting fix along the way: `public.analyses` had zero admin-read RLS poli
 
 Deploy chain (live-verified): migrations `20260830060410_phase7_paid_decision_workflow` and `20260830060624_admin_read_analyses_for_paid_engagements` applied and ledger-reconciled on the first attempt this time (filenames matched to the ledger-assigned version before committing, avoiding the drift-and-fix cycle from Phase 6's migration); frontend + edge functions deployed via the standard CI pipeline, all green.
 
+### Manual verification record (2026-08-30) — decision memo export
+
+Run at the user's request to prove the feature works, not just that it typechecks. Evidence, then disposition:
+
+- Engagement ID: `08f1c44e-1315-4543-8d98-e41bc24b7e60`, logged directly into the live `paid_engagements` table via `execute_sql` (contact name `TEST — Sample Engagement (safe to delete)`, founder_review, $750, status completed, with a real decision question and reviewer notes).
+- Production round-trip succeeded — inserted row read back correctly with all fields intact.
+- `createExecutiveReport()` (the exact function the admin page's export button calls) generated a valid 31 KB PDF from a synthetic analysis plus that row's real `engagementContext` fields.
+- Decision question and reviewer notes rendered correctly — confirmed by decompressing the PDF's content streams and hex-decoding the text operators (react-pdf encodes text as hex `TJ`/`Tj` operands inside FlateDecode-compressed streams even for standard fonts, so a raw byte/substring search against the file does not match; this was the actual reason the first verification attempt's naive checks would have been meaningless).
+- Browser button wiring remains unverified — logging into `/admin/paid-engagements` and clicking Export was not attempted, since that requires the user's own login (never entered by the coding agent) and the row's `analysis_id` was deliberately left empty, which hides the Export button by design. No real customer analysis was attached to a test row merely to force that button to appear.
+- Test row deleted after evidence capture: `DELETE ... WHERE id = '08f1c44e-...'`, then confirmed via a follow-up `SELECT count(*) ... WHERE id = '08f1c44e-...'` returning `0`. Zero synthetic rows remain in production.
+- The manual check itself was then converted into a **permanent** automated test (`src/__tests__/pdf-render-smoke.test.ts`, commit `3e241dd2`): consumes the react-pdf stream into real bytes (not a truthy-stream check), asserts a valid `%PDF-` header, a nontrivial byte size (>10KB), and — via the same decompress+hex-decode technique used for manual verification — that the actual rendered text contains the Decision Memo title, the decision question, and the reviewer notes. CI-verified green (commit `3e241dd2`).
+
+**Current status: PDF generation verified; production database integration verified; authenticated browser export wiring pending.** This pending item is not a reason to keep synthetic production data (none remains) or to delay the broader Phase 6/7 sequence. If browser-wiring verification is wanted later, it should use a dedicated test analysis/account in staging or a controlled production test record — never real customer data.
+
 **Separately noted, not part of this phase's scope:** the Browser pane's `preview_start` dev-server launcher fails outright in this repo (isolated to the `™` character in the project's folder path breaking its Windows process spawn — confirmed by running the identical command successfully via plain Bash). Not fixable from the coding agent's side; documented as a standing workaround in `.claude/launch.json`'s adjacent commit message: start the dev server via Bash and `navigate` the Browser pane to `http://localhost:8080` directly.
 
 ## Phase 8-9 (charter numbering)
