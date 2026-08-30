@@ -83,7 +83,7 @@ export function ConfidenceSidebar({
   }, [financialInputs]);
 
   const requiredReady = !!selectedIndustry && !!financialInputs.startup_investment && !!financialInputs.average_price && !!financialInputs.expected_customers && isFormValid;
-  const depthTime = DEPTH_OPTIONS.find(d => d.id === depth)?.time || '90s';
+  const depthTime = DEPTH_OPTIONS.find(d => d.id === depth)?.time || 'Standard';
 
   return (
     <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
@@ -175,7 +175,7 @@ export function ConfidenceSidebar({
         )}
       </button>
       <p className="text-[11px] text-center" style={{ color: 'var(--q-text-disabled)' }}>
-        {!requiredReady && missingHint ? missingHint : 'No card required · ~90 seconds'}
+        {!requiredReady && missingHint ? missingHint : 'No card required'}
       </p>
     </div>
   );

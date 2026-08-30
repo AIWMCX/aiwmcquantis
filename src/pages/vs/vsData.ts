@@ -16,7 +16,6 @@ import {
   BENCHMARK_SECTORS,
   MONTE_CARLO_ITERATIONS_DISPLAY,
   PIPELINE_LAYERS_LABEL,
-  VERDICT_SECONDS,
 } from '@/config/canonical-facts';
 
 export interface VsRow {
@@ -70,7 +69,7 @@ export const VS_PAGES: VsPage[] = [
       quote: 'Create a professional business plan in hours, not weeks, with step-by-step instructions and 500+ sample plans.',
       source: 'https://www.liveplan.com',
     },
-    wedge: `LivePlan is a business-plan builder; Quantis is a business-validation engine. If you want to write a 40-page document, choose LivePlan. If you want a defensible verdict — and the audit trail to back it — in ${VERDICT_SECONDS} seconds, Quantis is the only tool that does it.`,
+    wedge: `LivePlan is a business-plan builder; Quantis is a business-validation engine. If you want to write a 40-page document, choose LivePlan. If you want a fast, defensible verdict — and the audit trail to back it — Quantis is the only tool that does it.`,
     rows: [
       ...QUANTIS_DIFFERENTIATORS,
       {
@@ -87,7 +86,7 @@ export const VS_PAGES: VsPage[] = [
       },
       {
         feature: 'Time to first verdict',
-        quantis: `<${VERDICT_SECONDS} seconds.`,
+        quantis: 'One input, synchronous result — no multi-step wizard.',
         competitor: 'Hours — the workflow is "fill in step-by-step instructions then export."',
       },
       {

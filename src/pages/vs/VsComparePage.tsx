@@ -199,7 +199,7 @@ export default function VsComparePage() {
               Run {TIERS.free.limits.analysesPerMonth} free analyses this month
             </h2>
             <p className="text-base text-muted-foreground mb-6 max-w-xl mx-auto">
-              No credit card. Viability score, top 3 risks, and cited sources in under 90 seconds.
+              No credit card. Viability score, top 3 risks, and cited sources.
             </p>
             <Link to="/app">
               <Button size="lg" className="gap-2 min-h-[52px] px-7 text-base font-semibold">

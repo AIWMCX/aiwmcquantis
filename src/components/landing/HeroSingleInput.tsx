@@ -102,7 +102,7 @@ export function HeroSingleInput() {
             }}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Free · No signup · 90 seconds
+            Free · No signup required
           </span>
           <h2
             className="font-bold leading-[1.1] mb-3"
@@ -188,7 +188,7 @@ export function HeroSingleInput() {
                 />
               </div>
               <p className="text-[11px] mt-2" style={{ color: 'var(--q-text-tertiary, hsl(var(--muted-foreground)))' }}>
-                Typical run: 60–90 seconds · {elapsed}s elapsed
+                Analyzing · {elapsed}s elapsed
               </p>
             </div>
           )}

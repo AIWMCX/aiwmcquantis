@@ -41,7 +41,7 @@ export function HowItWorksSection() {
       <div className="container max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeader
           eyebrow="How It Works"
-          title="90 seconds. Full clarity."
+          title="Describe it once. Full clarity."
           subtitle="No spreadsheets, no guesswork — just verified financial intelligence."
         />
 

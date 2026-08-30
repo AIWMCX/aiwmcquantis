@@ -167,7 +167,7 @@ export default function PreMortem() {
                 <Activity className="w-8 h-8 text-primary mx-auto animate-pulse" />
                 <p className="mt-3 text-sm text-foreground font-medium">Running stress-test simulation…</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Pro Audit takes 30–90 seconds. Monte Carlo + scenario stress test in progress.
+                  Monte Carlo + scenario stress test in progress.
                 </p>
               </div>
             )}

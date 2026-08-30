@@ -143,7 +143,7 @@ export function MobileHero() {
               className="animate-fade-in text-base md:text-lg max-w-[560px] mx-auto lg:mx-0 leading-relaxed"
               style={{ fontFamily: 'var(--q-font-body)', color: 'var(--q-text-secondary)', animationDelay: '160ms', animationFillMode: 'both' }}
             >
-              Find out in 90 seconds if your business idea will make money —{' '}
+              Find out if your business idea will make money —{' '}
               <span className="font-semibold" style={{ color: 'var(--q-text-primary)' }}>
                 or cost you everything.
               </span>
@@ -191,7 +191,7 @@ export function MobileHero() {
               className="animate-fade-in text-xs"
               style={{ color: 'var(--q-text-tertiary)', animationDelay: '300ms', animationFillMode: 'both' }}
             >
-              No signup required &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Results in 90 seconds
+              No signup required &nbsp;·&nbsp; No credit card
             </p>
 
             {/* Trust trio — 3 icon badges */}
@@ -205,7 +205,7 @@ export function MobileHero() {
               </div>
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
                 <Clock className="w-4 h-4 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />
-                <span className="text-xs font-medium" style={{ color: 'var(--q-text-primary)' }}>90 seconds</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--q-text-primary)' }}>Fast results</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
                 <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />

@@ -82,7 +82,7 @@ export function StructuredData({
       operatingSystem: 'Web',
       browserRequirements: 'Requires JavaScript. Works in Chrome, Firefox, Safari, Edge.',
       softwareVersion: '2.0',
-      description: `AI-powered business validation platform that stress-tests startup ideas across 12 financial variables using ${BENCHMARK_COUNT_DISPLAY} benchmark data points in 90 seconds.`,
+      description: `AI-powered business validation platform that stress-tests startup ideas across 12 financial variables using ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`,
       url: SITE_URL,
       screenshot: `${SITE_URL}/og-image.png`,
       datePublished: '2024-06-01',
@@ -131,7 +131,7 @@ export function StructuredData({
       '@id': `${SITE_URL}/#website`,
       name: 'AIWMC Quantis',
       url: SITE_URL,
-      description: 'AI-powered business validation platform — stress-test any startup idea in 90 seconds',
+      description: 'AI-powered business validation platform — stress-test any startup idea',
       publisher: { '@id': `${SITE_URL}/#organization` },
       inLanguage: 'en-US',
       potentialAction: {

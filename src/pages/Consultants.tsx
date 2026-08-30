@@ -13,7 +13,6 @@ import {
   PIPELINE_LAYERS_LABEL,
   CONSULTANT_COST_RANGE_DISPLAY,
   CONSULTANT_HOURLY_RATE_DISPLAY,
-  VERDICT_SECONDS,
   FREE_ANALYSES_PER_MONTH,
   LEGAL_ENTITY_NAME,
 } from '@/config/canonical-facts';
@@ -247,8 +246,8 @@ export default function Consultants() {
   return (
     <PublicPageShell active="use-cases" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
-        title="Quantis for Consultants — Client Pre-Screening in 90 Seconds"
-        description={`A client pre-screen in ${VERDICT_SECONDS} seconds, under your own brand. ${BENCHMARK_COUNT_DISPLAY} benchmarks, ${MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo iterations, RVCE cross-check. For independent consultants, fractional CFOs, and M&A advisors.`}
+        title="Quantis for Consultants — Client Pre-Screening"
+        description={`A client pre-screen under your own brand. ${BENCHMARK_COUNT_DISPLAY} benchmarks, ${MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo iterations, RVCE cross-check. For independent consultants, fractional CFOs, and M&A advisors.`}
         canonical="/consultants"
         jsonLd={{
           '@context': 'https://schema.org',
@@ -307,7 +306,7 @@ export default function Consultants() {
           </div>
         </Reveal>
         <SectionHeader
-          title="Run a client pre-screen in under 90 seconds. Deliver it under your own brand."
+          title="Run a client pre-screen. Deliver it under your own brand."
           subtitle={
             <>
               A manual feasibility study costs you 15-25 hours before you bill a dollar.
@@ -349,7 +348,7 @@ export default function Consultants() {
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Know which engagements are viable before committing billable hours.
-              A {VERDICT_SECONDS}-second read on unit economics, capital requirements,
+              A fast read on unit economics, capital requirements,
               and payback horizon — before the intake call ends.
             </p>
           </GlassCard>

@@ -141,7 +141,7 @@ export function AnalysisTemplatesGrid({ onSelect, disabled, className }: Analysi
           What Would You Like to Analyze?
         </h3>
         <p className="text-sm text-muted-foreground">
-          Choose a template. Answer a few questions. Get insights in about 90 seconds.
+          Choose a template. Answer a few questions. Get insights fast.
         </p>
       </div>
 

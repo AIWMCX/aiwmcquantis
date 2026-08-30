@@ -180,7 +180,7 @@ export function useAnalysis() {
         setProJobId(data.job_id);
         toast.info('Pro Audit is running in the background', {
           description:
-            'This is the deepest analysis we offer — Monte Carlo + scenario stress test. Typical run: 30–90 seconds. You can stay on this page; we’ll show progress in real time.',
+            'This is the deepest analysis we offer — Monte Carlo + scenario stress test. You can stay on this page; we’ll show progress in real time.',
           duration: 8000,
         });
         return;

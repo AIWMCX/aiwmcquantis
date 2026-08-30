@@ -337,7 +337,7 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
                   Still working — this one's detailed
                 </p>
                 <p className="text-xs text-[var(--q-text-tertiary)]">
-                  Full analyses can take up to 90 seconds. Your results are on the way.
+                  Full analyses take a bit longer to compute. Your results are on the way.
                 </p>
                 <div className="flex gap-2">
                   {onRetry && (

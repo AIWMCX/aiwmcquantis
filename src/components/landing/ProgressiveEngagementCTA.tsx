@@ -74,7 +74,7 @@ export function ProgressiveEngagementCTA() {
               Run Your Own Analysis
             </h3>
             <p className="text-sm mb-4 text-muted-foreground">
-              Enter your business idea and get a full pre-mortem report in 90 seconds. Free — no credit card.
+              Enter your business idea and get a full pre-mortem report. Free — no credit card.
             </p>
             <Button onClick={handleRunAnalysis} className="w-full gap-2" size="lg">
               Start free analysis <ArrowRight className="w-4 h-4" />

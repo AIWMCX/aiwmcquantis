@@ -60,7 +60,7 @@ const TIERS = [
     title: 'Early Founders',
     uses: 'idea validation · runway math · pivot decisions',
     detail:
-      `Before writing code or signing a lease, run the numbers against ${BENCHMARK_COUNT_DISPLAY} modeled benchmarks. Get a profitability verdict and reliability score in 90 seconds with cited sources on every line.`,
+      `Before writing code or signing a lease, run the numbers against ${BENCHMARK_COUNT_DISPLAY} modeled benchmarks. Get a profitability verdict and reliability score with cited sources on every line.`,
     exampleSlug: 'coffee-shop-denver',
     exampleLabel: 'Coffee shop · Denver',
     glow: 'brand' as const,
@@ -139,7 +139,7 @@ export default function UseCases() {
                 Five roles. <span style={{ color: 'var(--aiwmc-grad-cyan)' }}>One deterministic engine.</span>
               </>
             }
-            subtitle="Whether you're validating a first idea, screening a deal, or stress-testing an expansion, Quantis runs the same 8-layer pipeline and gives you a cited, saveable verdict in 90 seconds."
+            subtitle="Whether you're validating a first idea, screening a deal, or stress-testing an expansion, Quantis runs the same 8-layer pipeline and gives you a cited, saveable verdict."
           />
 
           {/* ICP × outcome matrix — visual signal instead of a generic paragraph block. */}
@@ -316,7 +316,7 @@ export default function UseCases() {
             <SectionHeader
               eyebrow="Ready?"
               title="Your idea deserves real numbers."
-              subtitle="Free, no credit card, results in about 90 seconds."
+              subtitle="Free, no credit card required."
             />
             <div className="mt-8 flex flex-col items-center gap-3">
               <Link to="/app">

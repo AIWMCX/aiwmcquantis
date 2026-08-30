@@ -365,7 +365,7 @@ export default function ExampleAnalysis() {
               Get your own custom report
             </h2>
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-              Takes 90 seconds. Uses {BENCHMARK_COUNT_DISPLAY} benchmark data points. Free.
+              Uses {BENCHMARK_COUNT_DISPLAY} benchmark data points. Free.
             </p>
             <Link to="/app">
               <Button size="lg" className="gap-2 text-base px-8 py-6 hover:scale-[1.02] transition-transform">

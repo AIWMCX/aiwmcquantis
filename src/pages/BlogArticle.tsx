@@ -44,7 +44,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>With structured financial logic, risk signals, and projections in hand, you can make a clear-headed decision: build, pivot, or move on. This is validation — not motivation, not vibes, not gut feel.</p>
       
       <h2>How AIWMC Quantis Automates This</h2>
-      <p>Quantis runs all five steps automatically. You describe your idea and location, and the AI returns structured financial analysis, risk assessment, and 3-scenario projections — in under 90 seconds.</p>
+      <p>Quantis runs all five steps automatically. You describe your idea and location, and the AI returns structured financial analysis, risk assessment, and 3-scenario projections.</p>
       <p>It's the same framework VCs and accelerators use, made accessible to founders who are just getting started.</p>
     </>
   ),
@@ -140,7 +140,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       </ul>
       
       <h2>How to Get Accurate Startup Cost Estimates</h2>
-      <p>AIWMC Quantis calculates startup costs using {BENCHMARK_COUNT_DISPLAY} benchmark data points, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 90 seconds.</p>
+      <p>AIWMC Quantis calculates startup costs using {BENCHMARK_COUNT_DISPLAY} benchmark data points, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period.</p>
     </>
   ),
   'unit-economics-explained-for-founders': (
@@ -407,7 +407,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       </ul>
 
       <h2>Calculate Your Food Truck Profitability</h2>
-      <p>AIWMC Quantis models food truck economics for any city — including permit costs, seasonal adjustments, and local competition density. Get your full financial projection in under 90 seconds.</p>
+      <p>AIWMC Quantis models food truck economics for any city — including permit costs, seasonal adjustments, and local competition density. Get your full financial projection.</p>
     </>
   ),
   'how-to-validate-restaurant-idea': (
@@ -465,7 +465,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>If the conservative scenario shows losses beyond month 12, you need more capital, lower costs, or a different concept.</p>
 
       <h2>Validate Your Restaurant Concept with Data</h2>
-      <p>AIWMC Quantis runs full financial validation for restaurant concepts in any city — including location-adjusted rent, labor costs, food cost benchmarks, and 3-scenario projections. Enter your restaurant idea and get startup costs, monthly P&L, break-even timeline, and risk flags in 90 seconds.</p>
+      <p>AIWMC Quantis runs full financial validation for restaurant concepts in any city — including location-adjusted rent, labor costs, food cost benchmarks, and 3-scenario projections. Enter your restaurant idea and get startup costs, monthly P&L, break-even timeline, and risk flags.</p>
       <p>Don't sign a lease until the numbers work on paper. The data is free — the mistakes are expensive.</p>
     </>
   ),
@@ -551,7 +551,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
         <li><strong>Treat KYB as continuous governance.</strong> Client acceptance must be continuous governance protecting firms from risk at every stage, not just at onboarding. Periodic reviews, triggered re-screening, and transaction monitoring all feed back into the client's risk file.</li>
       </ul>
       <p><strong>Pro tip:</strong> Build your document checklist around the worst-case scenario for your highest-risk client type. Then strip it down for lower tiers. Starting from the top prevents gaps that only surface during audits.</p>
-      <p>AIWMC Quantis supports this kind of structured validation workflow by generating the documentation and risk analysis that financial professionals need, in 90 seconds, without manual assembly. You can see how the risk calculation methodology works and apply it directly to your client assessment process.</p>
+      <p>AIWMC Quantis supports this kind of structured validation workflow by generating the documentation and risk analysis that financial professionals need, without manual assembly. You can see how the risk calculation methodology works and apply it directly to your client assessment process.</p>
 
       <h2>Key takeaways</h2>
       <p>Effective business validation for financial clients requires verified ownership, documented risk rationale, and continuous monitoring — not a one-time onboarding check.</p>
@@ -572,7 +572,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>— Bogdan</p>
 
       <h2>How AIWMC Quantis supports your financial client validation process</h2>
-      <p>Financial professionals who need structured, document-ready validation outputs do not have to build everything from scratch. AIWMC Quantis delivers business validation with document generation, instant quoting, and invoicing in 90 seconds, free to try.</p>
+      <p>Financial professionals who need structured, document-ready validation outputs do not have to build everything from scratch. AIWMC Quantis delivers business validation with document generation, instant quoting, and invoicing — free to try.</p>
       <p>Whether you are validating a new business client, preparing a risk assessment file, or generating the supporting documentation for a compliance review, Quantis produces the structured outputs that financial professionals need without the manual assembly time. The platform is built for founders, investors, and consultants who need validation results fast and in a format that holds up to scrutiny.</p>
 
       <h2>FAQ</h2>
@@ -705,7 +705,7 @@ export default function BlogArticle() {
       {/* CTA */}
       <GlassCard glow="brand" className="mb-8 p-8 text-center">
         <h2 className="text-2xl font-bold mb-3" style={{ color: 'hsl(var(--foreground))' }}>Ready to validate your idea?</h2>
-        <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.</p>
+        <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free.</p>
         <Link to="/app">
           <Button size="lg" className="gap-2 py-6 px-8">
             See my numbers — free <ArrowRight className="w-5 h-5" />

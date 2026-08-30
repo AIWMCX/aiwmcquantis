@@ -162,7 +162,7 @@ export default function Connect() {
             Try AIWMC Quantis free →
           </a>
           <p className="mt-3 text-xs text-white/30">
-            Validate your business idea in 90 seconds · No credit card required
+            Validate your business idea · No credit card required
           </p>
         </div>
       </div>

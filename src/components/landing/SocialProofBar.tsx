@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Globe, Clock, Activity } from 'lucide-react';
+import { TrendingUp, Globe, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -102,7 +102,6 @@ export function SocialProofBar() {
       label: 'Plans stress-tested',
     },
     { icon: Globe, value: '50+', label: 'Cities covered' },
-    { icon: Clock, value: '90s', label: 'Average analysis time' },
     {
       icon: Activity,
       value: analysesTotal.toLocaleString(),

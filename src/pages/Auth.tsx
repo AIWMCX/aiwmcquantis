@@ -163,7 +163,7 @@ export default function Auth() {
               {[
                 { metric: '12', label: 'Financial variables stress-tested' },
                 { metric: '97,500', label: 'Industry benchmarks' },
-                { metric: '90s', label: 'Time to full analysis' },
+                { metric: '1,000', label: 'Monte Carlo iterations' },
               ].map((stat) => (
                 <div
                   key={stat.label}

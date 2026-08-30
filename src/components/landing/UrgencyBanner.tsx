@@ -9,7 +9,7 @@ export function UrgencyBanner() {
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
           <span className="text-sm font-medium flex items-center gap-2">
             <Zap className="w-4 h-4" />
-            <span className="hidden sm:inline">Financial stress-test for founders — risk map, scenarios, and projections in 90 seconds</span>
+            <span className="hidden sm:inline">Financial stress-test for founders — risk map, scenarios, and projections</span>
             <span className="sm:hidden">Stress-test your idea free</span>
           </span>
           <Link 

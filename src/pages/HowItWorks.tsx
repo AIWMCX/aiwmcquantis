@@ -20,7 +20,6 @@ import {
   PIPELINE_LAYERS,
   FINANCIAL_VARIABLES,
   FREE_ANALYSES_PER_MONTH,
-  VERDICT_SECONDS,
   DOC_TEMPLATE_COUNT,
 } from '@/config/canonical-facts';
 
@@ -60,7 +59,7 @@ const STEPS = [
     step: 3,
     icon: BarChart3,
     title: 'Get Your Risk Report & Action Plan',
-    description: `Receive 3-scenario projections (conservative, realistic, optimistic), risk flags, unit economics, and a prioritized action plan — in about ${VERDICT_SECONDS} seconds.`,
+    description: `Receive 3-scenario projections (conservative, realistic, optimistic), risk flags, unit economics, and a prioritized action plan.`,
     details: [
       'Viability score (0–100) with confidence indicator',
       'Top risks ranked by severity with dollar-impact estimates',
@@ -120,7 +119,7 @@ const FAQ_ITEMS = [
   { q: 'How is this different from ChatGPT?', a: 'ChatGPT generates text. Quantis runs a deterministic financial engine first — every number is calculated from verified benchmarks, not generated. The AI writes the narrative around the math, but the math is the source of truth. Every metric is tagged as "computed", "benchmark", or "estimated" so you know exactly what\'s proven and what\'s inferred.' },
   { q: 'What data do you use for projections?', a: `${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, informed by ${BENCHMARK_SOURCES_DISPLAY}. City-level cost data covers 16 metros plus a US national baseline.` },
   { q: 'Can I trust the projections?', a: 'Projections are estimates, not guarantees — that\'s why we provide 3 scenarios and confidence scores. Every metric shows its source, and RVCE cross-checks your numbers against live web data. If something looks off, the engine flags it as an OUTLIER and suggests a correction. You always see the margin of uncertainty.' },
-  { q: 'Do I need a business plan first?', a: 'No. Enter your idea and location in one sentence. The engine builds the complete financial model from benchmarks — revenue, costs, unit economics, P&L, cash flow, and risk flags. You get the equivalent of weeks of financial analysis in about 90 seconds.' },
+  { q: 'Do I need a business plan first?', a: 'No. Enter your idea and location in one sentence. The engine builds the complete financial model from benchmarks — revenue, costs, unit economics, P&L, cash flow, and risk flags. You get the equivalent of weeks of financial analysis in a fraction of the time.' },
   { q: 'What if my industry is niche?', a: `We cover ${BENCHMARK_SECTORS} industry sectors. For niche businesses, the AI maps your idea to the closest benchmark cluster and the engine flags the confidence level so you know the margin of uncertainty. The more specific your description, the better the match.` },
   { q: 'What is RVCE?', a: 'RVCE (Reality Validation & Calibration Engine) is Layer 8. After the financial engine calculates your numbers, RVCE searches the web — industry reports, competitor data, market research — and cross-references each of your 12 core metrics. Each metric gets a validation status: OK (within range), WARN (outside typical range), or OUTLIER (significantly different from market data).' },
   { q: 'What does Monte Carlo simulation do?', a: `Instead of giving you one revenue estimate, the Monte Carlo engine runs ${MONTE_CARLO_ITERATIONS_DISPLAY} simulations with different assumptions. The result: P10 (worst reasonable case), P50 (median), P90 (best reasonable case), success probability, and a histogram of all possible outcomes. This shows you the full range of what could happen — not just the best guess.` },
@@ -135,14 +134,13 @@ export default function HowItWorks() {
     <PublicPageShell active="how-it-works" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title={`How Quantis Works — ${PIPELINE_LAYERS}-Layer AI Financial Stress-Testing Engine`}
-        description={`${PIPELINE_LAYERS} layers, ${FINANCIAL_VARIABLES} financial variables, ${BENCHMARK_COUNT_DISPLAY} benchmarks: describe your business idea, get revenue projections, risk flags, Monte Carlo simulation, and an action plan in ${VERDICT_SECONDS} seconds.`}
+        description={`${PIPELINE_LAYERS} layers, ${FINANCIAL_VARIABLES} financial variables, ${BENCHMARK_COUNT_DISPLAY} benchmarks: describe your business idea, get revenue projections, risk flags, Monte Carlo simulation, and an action plan.`}
         canonical="/how-it-works"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'HowTo',
           name: 'How to Validate a Business Idea with AIWMC Quantis',
-          description: `Stress-test your business model in about ${VERDICT_SECONDS} seconds with a deterministic ${PIPELINE_LAYERS}-layer financial engine and ${BENCHMARK_COUNT_DISPLAY} industry benchmarks.`,
-          totalTime: `PT${VERDICT_SECONDS}S`,
+          description: `Stress-test your business model with a deterministic ${PIPELINE_LAYERS}-layer financial engine and ${BENCHMARK_COUNT_DISPLAY} industry benchmarks.`,
           step: STEPS.map((s) => ({ '@type': 'HowToStep', position: s.step, name: s.title, text: s.description })),
         }}
       />
@@ -170,7 +168,7 @@ export default function HowItWorks() {
             <>
               Enter your business idea and location. An {PIPELINE_LAYERS}-layer financial engine computes {FINANCIAL_VARIABLES} variables
               against {BENCHMARK_COUNT_DISPLAY} industry benchmarks, runs {MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo simulations,
-              and cross-references results against live web data — in about {VERDICT_SECONDS} seconds.
+              and cross-references results against live web data.
             </>
           }
         />
@@ -411,7 +409,7 @@ export default function HowItWorks() {
           </h2>
           <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
             {PIPELINE_LAYERS}-layer engine, {BENCHMARK_COUNT_DISPLAY} benchmarks, {MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo iterations.
-            Free, no credit card, results in about {VERDICT_SECONDS} seconds.
+            Free, no credit card required.
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">

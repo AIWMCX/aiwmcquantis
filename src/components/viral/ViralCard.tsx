@@ -169,7 +169,7 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
             color: '#94a3b8',
             fontStyle: 'italic',
           }}>
-            Validate your idea in 90 seconds →
+            Validate your idea free →
           </div>
         </div>
       </div>

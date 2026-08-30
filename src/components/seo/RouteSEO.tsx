@@ -26,19 +26,19 @@ interface RouteMeta {
 const ROUTE_META: Record<string, RouteMeta> = {
   '/': {
     title: 'AIWMC Quantis — AI Business Idea Validator',
-    description: `Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points. Free to start.`,
+    description: `Stress-test your business idea. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points. Free to start.`,
   },
   '/how-it-works': {
     title: 'How Quantis Works — 3 Steps to Financial Clarity',
-    description: 'See how Quantis turns your idea into a stress-tested financial model in 90 seconds: input, benchmarks, risk report.',
+    description: 'See how Quantis turns your idea into a stress-tested financial model: input, benchmarks, risk report.',
   },
   '/use-cases': {
     title: 'Use Cases — Founders, Investors, Consultants',
     description: 'Quantis use cases for solo founders, angel investors, and finance consultants validating business models pre-launch.',
   },
   '/consultants': {
-    title: 'Quantis for Consultants — Client Pre-Screening in 90 Seconds',
-    description: `A client pre-screen under 90 seconds, under your own brand. ${BENCHMARK_COUNT_DISPLAY} benchmark data points and 1,000 Monte Carlo iterations behind every deliverable. For consultants, fractional CFOs, and M&A advisors.`,
+    title: 'Quantis for Consultants — Client Pre-Screening',
+    description: `A client pre-screen under your own brand. ${BENCHMARK_COUNT_DISPLAY} benchmark data points and 1,000 Monte Carlo iterations behind every deliverable. For consultants, fractional CFOs, and M&A advisors.`,
   },
   '/examples': {
     title: 'Example Analyses — See Quantis in Action',
@@ -112,7 +112,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   // title so the crawler and the F8-hardened SEO gate see the same intent.
   '/vs/liveplan': {
     title: 'Quantis vs LivePlan — Which financial validator wins?',
-    description: 'Side-by-side: Quantis (97,500 benchmarks + Monte Carlo) vs LivePlan for stress-testing a business idea in 90 seconds.',
+    description: 'Side-by-side: Quantis (97,500 benchmarks + Monte Carlo) vs LivePlan for stress-testing a business idea.',
   },
   '/vs/upmetrics': {
     title: 'Quantis vs Upmetrics — 90-second financial pre-mortem',
@@ -157,7 +157,7 @@ export function RouteSEO({ path, titleOverride, descriptionOverride, noIndex }: 
   const description =
     descriptionOverride ??
     meta?.description ??
-    `Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`;
+    `Stress-test your business idea. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`;
   const shouldNoIndex = noIndex ?? meta?.noIndex ?? false;
 
   return <PageMeta title={title} description={description} path={resolvedPath} noIndex={shouldNoIndex} />;

@@ -1,8 +1,8 @@
 # AIWMC Quantis
 
-> AI-powered business validation. Stress-test any startup idea against 95,500 real industry benchmarks in 90 seconds — deterministic financial engine, Monte Carlo risk simulation, location-adjusted unit economics. Built by AIWMC™ LLC.
+> AI-powered business validation. Stress-test any startup idea against 97,500 industry benchmark observations — deterministic financial engine, Monte Carlo risk simulation, location-adjusted unit economics. Built by AIWMC™ LLC.
 
-Quantis runs a deterministic financial engine over your business idea (industry, location, pricing, costs) and returns: 3-scenario revenue projections, break-even timeline, LTV:CAC, risk flags, and a Monte Carlo distribution. Every number is sourced from verified benchmarks (BLS, XBRL filings, government data) — never hallucinated. Free tier gives one full analysis; Plus ($17/mo) unlocks unlimited runs, PDF export, and Document Studio.
+Quantis runs a deterministic financial engine over your business idea (industry, location, pricing, costs) and returns: 3-scenario revenue projections, break-even timeline, LTV:CAC, risk flags, and a Monte Carlo distribution. Every number is sourced from a benchmark corpus informed by SEC XBRL filings, World Bank enterprise surveys, and proprietary industry modeling — never hallucinated. Free tier gives one full analysis; Plus ($17/mo) unlocks unlimited runs, PDF export, and Document Studio.
 
 ## Pages
 

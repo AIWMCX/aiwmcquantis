@@ -66,7 +66,7 @@ export function BeforeAfterComparison() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground mt-2">No credit card · Results in 90 seconds</p>
+          <p className="text-xs text-muted-foreground mt-2">No credit card required</p>
         </div>
       </div>
     </section>);

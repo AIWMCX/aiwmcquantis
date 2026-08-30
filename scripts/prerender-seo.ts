@@ -42,7 +42,7 @@ const TEMPLATE_PATH = join(DIST, 'index.html');
 // routes (caught by scripts/verify-unique-meta.ts, 2026-06-30).
 const DEFAULT_TITLE = 'AIWMC Quantis — Deterministic Business Validation';
 const DEFAULT_DESC =
-  'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 97,500 benchmark data points. Free to start.';
+  'Stress-test your business idea. AI-powered financial pre-mortem with 97,500 benchmark data points. Free to start.';
 
 interface RouteMeta {
   title: string;

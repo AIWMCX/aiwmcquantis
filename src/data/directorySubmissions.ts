@@ -36,7 +36,7 @@ export const optimizedDescriptions: Record<string, { label: string; text: string
   },
   betaList: {
     label: 'BetaList / Betabound / BetaPage',
-    text: 'We built AIWMC Quantis for founders who need a sober answer before spending capital. Quantis returns a financial stress test, risk breakdown, and action plan in under 90 seconds — not months. Currently accepting beta users.',
+    text: 'We built AIWMC Quantis for founders who need a sober answer before spending capital. Quantis returns a financial stress test, risk breakdown, and action plan — not months of manual work. Currently accepting beta users.',
   },
   saasHub: {
     label: 'SaaSHub / AlternativeTo',

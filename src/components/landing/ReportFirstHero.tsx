@@ -310,7 +310,7 @@ export function ReportFirstHero() {
               letterSpacing: '-0.035em',
             }}
           >
-            Before you invest $50K, spend 90 seconds finding out if you’ll get it back.
+            Before you invest $50K, find out if you’ll get it back.
           </h1>
           <p className="mt-5 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Quantis stress-tests your idea against <strong>{BENCHMARK_COUNT_DISPLAY} benchmark data points</strong> informed
@@ -817,7 +817,7 @@ export function ReportFirstHero() {
                   Step 2 · Now do yours
                 </p>
                 <h2 className="text-xl sm:text-2xl font-bold leading-tight" style={{ color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
-                  Generate a report like this — free, 90s.
+                  Generate a report like this — free.
                 </h2>
               </div>
 
@@ -903,7 +903,7 @@ export function ReportFirstHero() {
                       />
                     </div>
                     <p className="text-[10px] mt-1.5 font-mono" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                      Typical 60–90s · {elapsed}s elapsed
+                      Analyzing · {elapsed}s elapsed
                     </p>
                   </div>
                 )}

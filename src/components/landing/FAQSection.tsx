@@ -12,7 +12,7 @@ import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/can
 const faqItems = [
   {
     question: 'What is AIWMC Quantis?',
-    answer: `AIWMC Quantis is a deterministic financial stress-testing engine with an AI narrator layer. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using ${BENCHMARK_COUNT_DISPLAY} benchmark data points — in about 90 seconds.`
+    answer: `AIWMC Quantis is a deterministic financial stress-testing engine with an AI narrator layer. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`
   },
   {
     question: 'How is this different from ChatGPT?',
@@ -36,7 +36,7 @@ const faqItems = [
   },
   {
     question: 'How is my data protected?',
-    answer: 'We take security seriously. Data is encrypted with AES-256 at rest and HTTPS/TLS in transit. We support GDPR and CCPA data-subject rights (export or deletion on request), and we never sell your business ideas or analysis data. Your idea text is sent to our AI processing partners (DeepSeek, Anthropic Claude) solely to generate your analysis — see our Privacy Policy for the full list.'
+    answer: 'We take security seriously. Data is encrypted with AES-256 at rest and HTTPS/TLS in transit. We support GDPR and CCPA data-subject rights (export or deletion on request), and we never sell your business ideas or analysis data. Your idea text is sent to one of our approved AI processing partners (routing varies by capability, availability, and controlled rollout) solely to generate your analysis — see our Privacy Policy for the full provider list.'
   },
   {
     question: 'What payment methods are accepted?',

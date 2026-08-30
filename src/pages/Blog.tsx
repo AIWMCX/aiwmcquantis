@@ -283,7 +283,7 @@ export default function Blog() {
             Ready to validate your idea?
           </h2>
           <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.
+            Revenue projections, risk flags, and a clear action plan — free.
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">

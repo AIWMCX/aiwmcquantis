@@ -95,7 +95,23 @@ export const FINANCIAL_VARIABLES = 12;
 /** Free-tier monthly analysis quota. Mirrors TIERS.free.limits.analysesPerMonth. */
 export const FREE_ANALYSES_PER_MONTH = 5;
 
-/** Time-to-verdict ceiling promised on the homepage hero. */
+/**
+ * SUPERSEDED 2026-08-30 — no longer used in any live public copy. Kept only
+ * as historical record of what the site used to claim.
+ *
+ * This was treated as a settled, fact-checked constant (see the
+ * PROCESSING_TIME_CLAIM note below) based on a 2026-07-11 reconciliation
+ * that resolved a *phrasing* inconsistency across surfaces. That
+ * reconciliation never established the one thing an explicit "under 90
+ * seconds" performance promise actually requires: measured production
+ * telemetry (start/completion events, eligible analysis types, sample
+ * size, measurement window, p50/p95/p99, timeout and degraded/fallback
+ * treatment). "Somebody standardized the number" is not the same claim as
+ * "the number is true" -- confirmed live-verifying that this same page's
+ * copy still says "90 seconds" is not evidence the number is accurate. Do
+ * not reuse this constant, or reintroduce a specific processing-time
+ * promise anywhere, without that telemetry backing it.
+ */
 export const VERDICT_SECONDS = 90;
 
 /**
@@ -146,13 +162,23 @@ export const LEGAL_ENTITY_NAME = 'AIWMC™ LLC';
 export const CANONICAL_HOST = 'https://www.aiwmcquantis.com';
 
 /**
- * PROCESSING TIME CLAIM — single source for the "under 90 seconds" /
- * "90-second" claim family. VERDICT_SECONDS above is the numeric value;
- * this is the one canonical phrasing. An external audit (2026-07-11) found
- * three different speed claims across surfaces ("under 60 seconds", "90
- * seconds", "three minutes") on what turned out to be a stale, pre-redirect
- * crawl of the apex domain — live verification the same day found only this
- * phrasing on the canonical host. Kept here so it can't drift again.
+ * SUPERSEDED 2026-08-30, per explicit instruction — do not reintroduce.
+ * Previously: single source for the "under 90 seconds" / "90-second" claim
+ * family. The 2026-07-11 note below only ever resolved which *phrasing*
+ * was live across surfaces, not whether the claim itself is true; no
+ * production telemetry (p50/p95/p99, sample size, measurement window,
+ * timeout/degraded-mode treatment) was ever produced to support it. Every
+ * public usage of this constant was removed in the same pass this comment
+ * was written; see docs/execution/2026-08-27-canonical-register.md.
+ *
+ * Original note, kept for history: single source for the "under 90
+ * seconds" / "90-second" claim family. VERDICT_SECONDS above is the
+ * numeric value; this is the one canonical phrasing. An external audit
+ * (2026-07-11) found three different speed claims across surfaces ("under
+ * 60 seconds", "90 seconds", "three minutes") on what turned out to be a
+ * stale, pre-redirect crawl of the apex domain — live verification the
+ * same day found only this phrasing on the canonical host. Kept here so it
+ * can't drift again.
  */
 export const PROCESSING_TIME_CLAIM = 'under 90 seconds';
 

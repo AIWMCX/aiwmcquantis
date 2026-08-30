@@ -413,7 +413,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
   free_returning_7d: {
     trigger: 'free_returning_7d',
     headline: 'Your idea is still waiting',
-    body: 'Run your full Monte Carlo analysis and get a complete 36-month P&L. Takes 90 seconds.',
+    body: 'Run your full Monte Carlo analysis and get a complete 36-month P&L.',
     cta: `Start Full Analysis — $${TIER_PRICES.plus.monthly}/mo`,
     required_tier: 'PLUS',
   },

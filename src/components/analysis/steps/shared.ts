@@ -25,7 +25,7 @@ export const INDUSTRIES = [
 
 export const DEPTH_OPTIONS = [
   { id: 'quick', label: 'Quick', time: '30s', desc: 'Core projections' },
-  { id: 'full',  label: 'Full',  time: '90s', desc: 'P&L + Stress Map + Benchmarks', recommended: true },
+  { id: 'full',  label: 'Full',  time: 'Standard', desc: 'P&L + Stress Map + Benchmarks', recommended: true },
   { id: 'deep',  label: 'Deep',  time: '3min', desc: 'All engines + Monte Carlo' },
 ];
 

@@ -9,7 +9,6 @@ import {
   BENCHMARK_DEFINITION,
   MONTE_CARLO_ITERATIONS_DISPLAY,
   PIPELINE_LAYERS_LABEL,
-  PROCESSING_TIME_CLAIM,
 } from '@/config/canonical-facts';
 
 /**
@@ -21,7 +20,7 @@ import {
  * dynamic `new Date()`, so it reflects when a human actually reviewed this
  * page's claims, not when it happened to build.
  */
-const LAST_VERIFIED = 'August 29, 2026';
+const LAST_VERIFIED = 'August 30, 2026';
 
 export default function StateOfQuantis() {
   return (
@@ -47,7 +46,7 @@ export default function StateOfQuantis() {
             Quantis runs a deterministic financial engine — {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo
             simulation across a {PIPELINE_LAYERS_LABEL} pipeline — against a corpus of {BENCHMARK_COUNT_DISPLAY} benchmark
             observations covering {BENCHMARK_SECTORS} sectors ({BENCHMARK_DEFINITION}), informed by {BENCHMARK_SOURCES_DISPLAY}.
-            It produces a financial verdict in {PROCESSING_TIME_CLAIM}, plus an AI-authored narrative layered on top of
+            It produces a financial verdict plus an AI-authored narrative layered on top of
             those numbers.
           </p>
         </Section>

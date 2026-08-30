@@ -411,7 +411,7 @@ export default function RiskGallery() {
             Ready to stress-test your own model?
           </h2>
           <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Validate your business idea with AI-powered financial analysis. Get structured revenue projections, risk signals, and an action plan — free, in under 90 seconds.
+            Validate your business idea with AI-powered financial analysis. Get structured revenue projections, risk signals, and an action plan — free.
           </p>
           <Link to="/app" onClick={() => trackCtaClick('start_validation_click', 'risk_gallery_bottom')}>
             <Button size="lg" className="gap-2 py-6 px-8">

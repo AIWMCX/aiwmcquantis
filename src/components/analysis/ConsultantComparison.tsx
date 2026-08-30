@@ -2,15 +2,7 @@ import React from 'react';
 import { Clock, DollarSign } from 'lucide-react';
 import { CONSULTANT_COST_RANGE_DISPLAY } from '@/config/canonical-facts';
 
-interface ConsultantComparisonProps {
-  analysisSeconds?: number;
-}
-
-export function ConsultantComparison({ analysisSeconds }: ConsultantComparisonProps) {
-  const timeDisplay = analysisSeconds
-    ? `${analysisSeconds} seconds`
-    : 'under 90 seconds';
-
+export function ConsultantComparison() {
   return (
     <div
       className="animate-fade-in flex items-center gap-3 px-4 py-3 rounded-lg border border-[var(--q-border-default)] bg-[var(--q-bg-elevated)]"
@@ -26,7 +18,7 @@ export function ConsultantComparison({ analysisSeconds }: ConsultantComparisonPr
         </span>
         {' '}from a financial consultant.{' '}
         <span className="text-[var(--q-accent-primary)] font-medium">
-          You got it in {timeDisplay}.
+          You got it for free.
         </span>
       </p>
     </div>
