@@ -19,6 +19,7 @@ import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { RateLimitBanner } from '@/components/analysis/RateLimitBanner';
 import { QuickStartWizard } from '@/components/onboarding/QuickStartWizard';
+import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
 import { FirstAnalysisCelebration } from '@/components/onboarding/FirstAnalysisCelebration';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -125,8 +126,10 @@ export default function Index() {
   }, [isAuthenticated]);
 
   const {
+    shouldShowWelcome,
     shouldShowQuickStart,
     shouldShowFirstAnalysisCelebration,
+    markWelcomeSeen,
     markQuickStartComplete,
     markFirstAnalysisCelebrationSeen,
     incrementAnalysisCount,
@@ -1036,12 +1039,23 @@ export default function Index() {
       />
 
       {isAuthenticated && (
-        <QuickStartWizard
-          open={shouldShowQuickStart}
-          onClose={markQuickStartComplete}
-          onComplete={handleQuickStartComplete}
-          userName={user?.user_metadata?.full_name}
-        />
+        <>
+          {/* First thing a genuinely new user sees — one time only, gated by
+              useOnboarding's localStorage state. Not shown to returning
+              users. Closing it (either button) advances the sequence to
+              QuickStartWizard on the next render via shouldShowQuickStart. */}
+          <WelcomeModal
+            open={shouldShowWelcome}
+            onClose={markWelcomeSeen}
+            onStartQuickStart={() => {}}
+          />
+          <QuickStartWizard
+            open={shouldShowQuickStart}
+            onClose={markQuickStartComplete}
+            onComplete={handleQuickStartComplete}
+            userName={user?.user_metadata?.full_name}
+          />
+        </>
       )}
 
       <FirstAnalysisCelebration

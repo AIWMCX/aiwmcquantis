@@ -94,6 +94,26 @@ export default function Pricing() {
       {/* Pricing tiers */}
       <PricingSection />
 
+      {/* Founder-assisted one-time reviews — low-key, not competing with the self-serve tiers above */}
+      <section className="py-6 md:py-10">
+        <GlassCard className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-2">Want it done with you, not by you alone?</p>
+              <h2 className="text-xl font-bold" style={{ color: 'hsl(var(--foreground))' }}>Founder-assisted decision reviews — from $349, one-time</h2>
+              <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
+                A founder personally reconciles your numbers and walks you through the assumptions that control the decision. Fixed scope, 48-hour delivery target.
+              </p>
+            </div>
+            <Link to="/decision-review" className="shrink-0">
+              <Button variant="outline" size="lg" className="gap-2 whitespace-nowrap">
+                See the two options <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </GlassCard>
+      </section>
+
       {/* Bottom CTA */}
       <section className="py-12 md:py-16">
         <GlassCard glow="cyan" className="p-8 md:p-12 text-center">
