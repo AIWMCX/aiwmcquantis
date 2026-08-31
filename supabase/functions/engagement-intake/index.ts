@@ -1,0 +1,141 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@14.21.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+import { corsHeadersFor } from "../_shared/cors.ts";
+import {
+  getEngagementOfferByPaymentLinkId,
+  paymentLinkIdFromSession,
+  validateEngagementPayment,
+} from "../_shared/engagement-offers.ts";
+
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Cache-Control": "no-store",
+};
+
+function cleanText(value: unknown, maxLength: number): string {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
+  const headers = { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" };
+
+  if (req.method === "OPTIONS") return new Response(null, { headers });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers });
+  }
+
+  try {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!stripeKey || !supabaseUrl || !serviceKey) throw new Error("Service is not configured");
+
+    const body = await req.json().catch(() => null) as Record<string, unknown> | null;
+    const sessionId = cleanText(body?.session_id, 255);
+    if (!/^cs_(test_|live_)?[A-Za-z0-9_]+$/.test(sessionId)) {
+      return new Response(JSON.stringify({ error: "invalid_session" }), { status: 400, headers });
+    }
+
+    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const paymentLinkId = paymentLinkIdFromSession(session.payment_link);
+    const offer = getEngagementOfferByPaymentLinkId(paymentLinkId);
+    if (!offer) {
+      return new Response(JSON.stringify({ error: "invalid_session" }), { status: 404, headers });
+    }
+
+    const paymentValidation = validateEngagementPayment(offer, {
+      amountTotal: session.amount_total,
+      currency: session.currency,
+      paymentStatus: session.payment_status,
+    });
+    if (!paymentValidation.ok) {
+      return new Response(JSON.stringify({ error: "payment_not_confirmed" }), { status: 409, headers });
+    }
+
+    if (body?.action === "verify") {
+      return new Response(JSON.stringify({
+        verified: true,
+        offer_code: offer.code,
+        offer_name: offer.name,
+        case_capacity: offer.caseCapacity,
+      }), { status: 200, headers });
+    }
+
+    if (body?.action !== "submit" || body?.terms_accepted !== true) {
+      return new Response(JSON.stringify({ error: "terms_required" }), { status: 400, headers });
+    }
+
+    const companyName = cleanText(body.company_name, 160);
+    const decisionQuestion = cleanText(body.decision_question, 1500);
+    const deadline = cleanText(body.deadline, 160);
+    const clientType = cleanText(body.client_type, 300);
+    const context = cleanText(body.context, 4000);
+    if (!companyName || !decisionQuestion || (offer.code === "consultant_founding_pilot" && !clientType)) {
+      return new Response(JSON.stringify({ error: "required_fields_missing" }), { status: 400, headers });
+    }
+
+    const now = new Date();
+    const deliveryDue = new Date(now.getTime() + offer.deliveryTargetHours * 60 * 60 * 1000);
+    const pilotEndsAt = offer.pilotWindowDays
+      ? new Date((session.created + offer.pilotWindowDays * 86_400) * 1000)
+      : null;
+    const contactEmail = session.customer_details?.email || session.customer_email || null;
+    const contactName = session.customer_details?.name || contactEmail || "Paid customer";
+
+    const supabase = createClient(supabaseUrl, serviceKey);
+    const { data: existing, error: existingError } = await supabase
+      .from("paid_engagements")
+      .select("substantive_work_started_at")
+      .eq("stripe_checkout_session_id", session.id)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (existing?.substantive_work_started_at) {
+      return new Response(JSON.stringify({ error: "intake_locked" }), { status: 409, headers });
+    }
+
+    const { error } = await supabase.from("paid_engagements").upsert({
+      stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
+      stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
+      offer_code: offer.code,
+      engagement_type: offer.engagementType,
+      contact_email: contactEmail,
+      contact_name: contactName,
+      price_usd: offer.expectedAmountMinor / 100,
+      amount_paid_minor: offer.expectedAmountMinor,
+      currency: offer.currency,
+      payment_status: "paid",
+      paid_at: new Date(session.created * 1000).toISOString(),
+      status: "scheduled",
+      case_capacity: offer.caseCapacity,
+      cases_completed: 0,
+      intake_status: "complete",
+      intake_completed_at: now.toISOString(),
+      terms_accepted_at: now.toISOString(),
+      company_name: companyName,
+      decision_question: decisionQuestion,
+      delivery_target_hours: offer.deliveryTargetHours,
+      delivery_due_at: deliveryDue.toISOString(),
+      pilot_window_days: offer.pilotWindowDays,
+      pilot_ends_at: pilotEndsAt?.toISOString() ?? null,
+      intake_data: {
+        deadline: deadline || null,
+        client_type: clientType || null,
+        context: context || null,
+        submitted_via: "session_bound_intake_v1",
+      },
+    }, { onConflict: "stripe_checkout_session_id" });
+
+    if (error) throw error;
+    return new Response(JSON.stringify({ submitted: true, offer_code: offer.code }), { status: 200, headers });
+  } catch (error) {
+    // Keep the public error generic; Stripe IDs and buyer details never enter logs.
+    console.error("engagement-intake failed", error instanceof Error ? error.message : String(error));
+    return new Response(JSON.stringify({ error: "intake_unavailable" }), { status: 500, headers });
+  }
+});

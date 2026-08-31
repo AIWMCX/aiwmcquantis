@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Plus, RefreshCw, TrendingUp } from 'lucide-react';
+import { CheckCircle2, Download, Link2, Play, Plus, RefreshCw, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import type { BusinessAnalysisResult } from '@/types/analysis';
@@ -38,6 +38,15 @@ interface Engagement {
   decision_question: string | null;
   consultant_notes: string | null;
   engaged_at: string;
+  offer_code?: string | null;
+  payment_status?: 'pending' | 'paid' | 'partially_refunded' | 'refunded' | 'failed';
+  intake_status?: 'pending' | 'complete' | 'needs_information' | 'waived';
+  case_capacity?: number;
+  cases_completed?: number;
+  delivery_due_at?: string | null;
+  pilot_ends_at?: string | null;
+  substantive_work_started_at?: string | null;
+  completed_at?: string | null;
 }
 
 interface ReturnUsage {
@@ -54,6 +63,8 @@ export default function PaidEngagements() {
   const [returnUsage, setReturnUsage] = useState<Record<string, ReturnUsage>>({});
   const [showForm, setShowForm] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ analysis_id: '', decision_question: '', consultant_notes: '' });
   const { generatePdf } = usePdfExport();
 
   const [form, setForm] = useState({
@@ -143,8 +154,50 @@ export default function PaidEngagements() {
     }
   }
 
+  async function updateEngagement(id: string, updates: Record<string, unknown>) {
+    // Generated database types are updated after the production migration;
+    // keep this operational helper compatible with the pre-migration client.
+    const { error } = await supabase.from('paid_engagements').update(updates as never).eq('id', id);
+    if (error) {
+      logger.error('Failed to update paid engagement', error);
+      return false;
+    }
+    await load();
+    return true;
+  }
+
+  function beginLinkAnalysis(engagement: Engagement) {
+    setEditingId(engagement.id);
+    setEditForm({
+      analysis_id: engagement.analysis_id ?? '',
+      decision_question: engagement.decision_question ?? '',
+      consultant_notes: engagement.consultant_notes ?? '',
+    });
+  }
+
+  async function saveLinkedAnalysis(id: string) {
+    if (!editForm.analysis_id.trim()) return;
+    const saved = await updateEngagement(id, {
+      analysis_id: editForm.analysis_id.trim(),
+      decision_question: editForm.decision_question.trim() || null,
+      consultant_notes: editForm.consultant_notes.trim() || null,
+    });
+    if (saved) setEditingId(null);
+  }
+
+  async function markCaseComplete(engagement: Engagement) {
+    const capacity = engagement.case_capacity ?? 1;
+    const nextCompleted = Math.min((engagement.cases_completed ?? 0) + 1, capacity);
+    await updateEngagement(engagement.id, {
+      cases_completed: nextCompleted,
+      ...(nextCompleted >= capacity ? { status: 'completed', completed_at: new Date().toISOString() } : {}),
+    });
+  }
+
   const completedWithUser = engagements.filter((e) => e.user_id).length;
   const returnedCount = Object.values(returnUsage).filter((r) => r.returned).length;
+  const paidAwaitingIntake = engagements.filter((e) => e.payment_status === 'paid' && e.intake_status === 'pending').length;
+  const readyForDelivery = engagements.filter((e) => e.payment_status === 'paid' && e.intake_status === 'complete' && e.status === 'scheduled').length;
 
   return (
     <AppLayout>
@@ -173,6 +226,11 @@ export default function PaidEngagements() {
             </CardDescription>
           </CardHeader>
         </Card>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Card><CardContent className="pt-6"><p className="text-xs uppercase tracking-wider text-muted-foreground">Paid · awaiting intake</p><p className="text-3xl font-bold mt-2">{paidAwaitingIntake}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs uppercase tracking-wider text-muted-foreground">Intake complete · ready</p><p className="text-3xl font-bold mt-2">{readyForDelivery}</p></CardContent></Card>
+        </div>
 
         {showForm && (
           <Card>
@@ -224,11 +282,28 @@ export default function PaidEngagements() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{e.engagement_type.replace('_', ' ')}</Badge>
+                      {e.payment_status && <Badge variant={e.payment_status === 'paid' ? 'default' : e.payment_status.includes('refund') ? 'destructive' : 'secondary'}>{e.payment_status.replace('_', ' ')}</Badge>}
+                      {e.intake_status && <Badge variant="outline">intake: {e.intake_status.replace('_', ' ')}</Badge>}
                       <Badge variant={e.status === 'completed' ? 'default' : e.status === 'cancelled' ? 'destructive' : 'secondary'}>{e.status}</Badge>
                       {e.price_usd != null && <Badge variant="outline">${e.price_usd.toLocaleString()}</Badge>}
                     </div>
                   </div>
                   {e.decision_question && <p className="text-sm text-muted-foreground">Deciding: {e.decision_question}</p>}
+                  {e.case_capacity != null && (
+                    <p className="text-xs text-muted-foreground">
+                      Cases {e.cases_completed ?? 0}/{e.case_capacity}
+                      {e.delivery_due_at ? ` · target ${new Date(e.delivery_due_at).toLocaleString()}` : ''}
+                      {e.pilot_ends_at ? ` · pilot closes ${new Date(e.pilot_ends_at).toLocaleDateString()}` : ''}
+                    </p>
+                  )}
+                  {editingId === e.id && (
+                    <div className="space-y-2 rounded-md border border-border p-3">
+                      <Input placeholder="Analysis ID" value={editForm.analysis_id} onChange={(event) => setEditForm({ ...editForm, analysis_id: event.target.value })} />
+                      <Textarea placeholder="Decision question" value={editForm.decision_question} onChange={(event) => setEditForm({ ...editForm, decision_question: event.target.value })} className="h-16" />
+                      <Textarea placeholder="Reviewer notes" value={editForm.consultant_notes} onChange={(event) => setEditForm({ ...editForm, consultant_notes: event.target.value })} className="h-16" />
+                      <div className="flex gap-2"><Button size="sm" onClick={() => saveLinkedAnalysis(e.id)} disabled={!editForm.analysis_id.trim()}>Save link</Button><Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button></div>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       Engaged {new Date(e.engaged_at).toLocaleDateString()}
@@ -241,12 +316,21 @@ export default function PaidEngagements() {
                           : 'Checking return usage…'
                         : 'No linked account'}
                     </span>
-                    {e.analysis_id && (
-                      <Button size="sm" variant="outline" className="gap-1.5" disabled={exportingId === e.id} onClick={() => handleExportMemo(e)}>
-                        <Download className="w-3.5 h-3.5" />
-                        {exportingId === e.id ? 'Exporting…' : 'Export Decision Memo'}
-                      </Button>
-                    )}
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {e.payment_status === 'paid' && e.intake_status === 'complete' && !e.substantive_work_started_at && e.status === 'scheduled' && (
+                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => updateEngagement(e.id, { substantive_work_started_at: new Date().toISOString() })}><Play className="w-3.5 h-3.5" />Start work</Button>
+                      )}
+                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => beginLinkAnalysis(e)}><Link2 className="w-3.5 h-3.5" />{e.analysis_id ? 'Edit analysis' : 'Link analysis'}</Button>
+                      {e.status === 'scheduled' && (e.cases_completed ?? 0) < (e.case_capacity ?? 1) && (
+                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => markCaseComplete(e)}><CheckCircle2 className="w-3.5 h-3.5" />Case complete</Button>
+                      )}
+                      {e.analysis_id && (
+                        <Button size="sm" variant="outline" className="gap-1.5" disabled={exportingId === e.id} onClick={() => handleExportMemo(e)}>
+                          <Download className="w-3.5 h-3.5" />
+                          {exportingId === e.id ? 'Exporting…' : 'Export Decision Memo'}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

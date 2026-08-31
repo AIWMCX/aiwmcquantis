@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.url }}
+      url: ${{ steps.deploy.outputs.url || steps.deploy_state.outputs.url }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -44,40 +44,79 @@ jobs:
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
         run: bun run build
 
-      # ── Frontend deploy note ──────────────────────────────────────────────────
-      # Vercel's GitHub git-integration auto-deploys on every push to main.
-      # A redundant CLI deploy via VERCEL_TOKEN was causing two competing
-      # deployments and a flaky smoke test (brief "building" window).
-      # The CLI deploy is intentionally removed; Vercel git integration owns this.
-      - name: Frontend deploy (Vercel git integration)
+      # Prefer Vercel's Git integration, but verify that it produced a READY
+      # production deployment for the exact commit. If the integration is stale
+      # or disconnected, deploy the already-validated commit through the CLI.
+      - name: Resolve exact frontend deployment
+        id: deploy_state
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          EXPECT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
-          {
-            echo "## Frontend deploy"
-            echo ""
-            echo "Vercel git integration deploys automatically on push to main."
-            echo "No CLI deploy needed — see the Vercel dashboard for deployment status."
-            echo "Build artifact validated by the Build step above."
-          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "deploy_required=true" >> "$GITHUB_OUTPUT"
+            echo "reason=missing_vercel_credentials" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-      - name: Post-deploy smoke test
-        # Non-blocking: a transient CDN hiccup must not fail the deploy workflow.
-        # Use www (canonical production host) not apex (308 redirect).
-        continue-on-error: true
+          for attempt in 1 2 3 4 5 6; do
+            RESPONSE=$(curl -fsS               -H "Authorization: Bearer $VERCEL_TOKEN"               "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&target=production&limit=20")
+            URL=$(echo "$RESPONSE" | jq -r --arg sha "$EXPECT_SHA"               '.deployments[] | select(.meta.githubCommitSha == $sha and ((.readyState // .state) == "READY")) | .url'               | head -n 1)
+            if [ -n "$URL" ]; then
+              echo "deploy_required=false" >> "$GITHUB_OUTPUT"
+              echo "url=https://$URL" >> "$GITHUB_OUTPUT"
+              echo "Git integration READY for exact SHA: $EXPECT_SHA" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "deploy_required=true" >> "$GITHUB_OUTPUT"
+          echo "reason=no_ready_deployment_for_exact_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy exact commit to Vercel (fallback)
+        id: deploy
+        if: steps.deploy_state.outputs.deploy_required == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error title=Frontend deploy blocked::No READY Git deployment exists and Vercel production credentials are missing"
+            exit 1
+          fi
+          bunx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+          bunx vercel@latest build --prod --token "$VERCEL_TOKEN"
+          URL=$(bunx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Fallback production deploy: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post-deploy sales-path smoke test
         env:
           SMOKE_URL: ${{ secrets.PRODUCTION_SMOKE_URL || 'https://www.aiwmcquantis.com' }}
         run: |
-          echo "Smoke testing: $SMOKE_URL"
-          for i in 1 2 3 4 5; do
-            CODE=$(curl -sS -o /dev/null -w "%{http_code}" -L "$SMOKE_URL" || echo "000")
-            echo "Attempt $i → HTTP $CODE"
-            if [ "$CODE" = "200" ]; then
-              echo "::notice title=Smoke OK::$SMOKE_URL returned 200"
-              exit 0
+          for PATHNAME in "/" "/decision-review"; do
+            OK=false
+            for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+              CODE=$(curl -sS -o /dev/null -w "%{http_code}" -L "$SMOKE_URL$PATHNAME" || echo "000")
+              echo "$PATHNAME attempt $attempt → HTTP $CODE"
+              if [ "$CODE" = "200" ]; then
+                OK=true
+                break
+              fi
+              sleep 5
+            done
+            if [ "$OK" != "true" ]; then
+              echo "::error title=Production smoke failed::$SMOKE_URL$PATHNAME did not return 200"
+              exit 1
             fi
-            sleep 5
           done
-          echo "::warning title=Smoke test::$SMOKE_URL did not return 200 after 5 attempts (last: $CODE) — Vercel may still be propagating"
-          exit 0
 
   run-migrations:
     name: Apply Supabase DB Migrations
@@ -354,6 +393,8 @@ jobs:
           FUNCTIONS=(
             # ── Billing (must deploy first so payments work) ──────────────
             stripe-webhook
+            engagement-checkout
+            engagement-intake
             create-checkout-session
             create-portal-session
             # ── Core analysis pipeline ────────────────────────────────────
