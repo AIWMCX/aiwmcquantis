@@ -483,7 +483,7 @@ serve(async (req) => {
                 template_key: intakeTemplateKey,
                 dynamic_data: { first_name: session.customer_details?.name?.split(" ")[0] },
               },
-            }).catch((err) => log.error(`[${requestId}] intake email failed for ${engagementOffer.offerCode}:`, err instanceof Error ? err.message : String(err)));
+            }).catch((err) => log.error(`[${requestId}] intake email failed for ${engagementOffer.code}:`, err instanceof Error ? err.message : String(err)));
           }
 
           // CRM (Zoho) Closed Won update is NOT wired here — this Supabase
