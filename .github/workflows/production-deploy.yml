@@ -354,6 +354,8 @@ jobs:
           FUNCTIONS=(
             # ── Billing (must deploy first so payments work) ──────────────
             stripe-webhook
+            engagement-checkout
+            engagement-intake
             create-checkout-session
             create-portal-session
             # ── Core analysis pipeline ────────────────────────────────────
