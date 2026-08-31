@@ -444,6 +444,70 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
       </div>
     `,
   },
+
+  // Sent automatically by supabase/functions/stripe-webhook on
+  // checkout.session.completed for the Founder Decision Review ($349)
+  // Payment Link (offer_code=founder_decision_review, 2026-08-30 offer
+  // listing spec). This is the confirmed-payment intake ask — checkout
+  // itself does not collect the decision/company details, so this email
+  // is where that happens.
+  founder_decision_review_intake: {
+    subject: "You're confirmed — let's schedule your Founder Decision Review",
+    html: (data) => `
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #1a1a1a; font-size: 24px;">Thanks for your payment${data.first_name ? `, ${data.first_name}` : ''} — you're confirmed.</h1>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          Your <strong>Founder Decision Review</strong> is reserved. Before we schedule the 30-minute intake, reply to this email with three things:
+        </p>
+        <ol style="color: #4a4a4a; font-size: 16px; line-height: 1.8;">
+          <li>Your company/business name</li>
+          <li>The specific decision you're evaluating (the one active decision this review should focus on)</li>
+          <li>Any deadline you're working against (optional)</li>
+        </ol>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          Once I have those, I'll send two call times for the intake. The 48-hour delivery target starts once the intake is complete and I have what I need to run the analysis.
+        </p>
+        <p style="color: #4a4a4a; font-size: 15px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 16px; margin-top: 24px;">
+          <strong>Refund terms:</strong> if we determine during intake that Quantis can't responsibly analyze your decision within scope, you receive a full refund. You may cancel for a full refund before the intake call or before substantive work begins, whichever comes first.
+        </p>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          Talk soon,<br />Bogdan Jeltov, AIWMC LLC
+        </p>
+        ${unsubscribeFooter(data)}
+      </div>
+    `,
+  },
+
+  // Sent automatically by supabase/functions/stripe-webhook on
+  // checkout.session.completed for the Consultant Founding Pilot ($499)
+  // Payment Link (offer_code=consultant_founding_pilot, 2026-08-30 offer
+  // listing spec).
+  consultant_founding_pilot_intake: {
+    subject: "You're confirmed — let's schedule your Consultant Founding Pilot",
+    html: (data) => `
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #1a1a1a; font-size: 24px;">Thanks for your payment${data.first_name ? `, ${data.first_name}` : ''} — you're confirmed.</h1>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          Your <strong>Consultant Founding Pilot</strong> is reserved — two client decision cases within 30 days. Before we schedule pilot setup, reply to this email with three things:
+        </p>
+        <ol style="color: #4a4a4a; font-size: 16px; line-height: 1.8;">
+          <li>Your consulting firm or company name</li>
+          <li>Your primary client type</li>
+          <li>Your first case, or a decision deadline (optional)</li>
+        </ol>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          Once I have those, I'll send two setup call times. Each case's delivery clock starts once its intake is complete and I have what I need.
+        </p>
+        <p style="color: #4a4a4a; font-size: 15px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 16px; margin-top: 24px;">
+          <strong>Refund terms:</strong> if we determine during pilot setup that Quantis can't responsibly support your intended cases within scope, you receive a full refund. You may cancel for a full refund before pilot setup or before substantive work begins, whichever comes first.
+        </p>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          Talk soon,<br />Bogdan Jeltov, AIWMC LLC
+        </p>
+        ${unsubscribeFooter(data)}
+      </div>
+    `,
+  },
 };
 
 serve(async (req: Request): Promise<Response> => {
