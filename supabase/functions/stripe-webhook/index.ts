@@ -1122,56 +1122,6 @@ serve(async (req) => {
         break;
       }
 
-      // Fulfillment requirement #8 (2026-08-30 offer listing spec): refund
-      // and cancellation operations must be recorded in Stripe (already
-      // true — Stripe is the source), the engagement record, and CRM. This
-      // handles the engagement-record half for the two one-time
-      // paid-engagement offers; matched by payment_intent since a refund
-      // event carries the charge/PaymentIntent, not the Checkout Session.
-      // Requires this webhook endpoint to actually be subscribed to
-      // charge.refunded in the Stripe Dashboard — verify that separately.
-      case "charge.refunded": {
-        const charge = event.data.object as Stripe.Charge;
-        const paymentIntentId = charge.payment_intent as string | null;
-        log.info(`[${requestId}] === Charge Refunded === PaymentIntent: ${paymentIntentId}`);
-
-        if (!paymentIntentId) {
-          log.warn(`[${requestId}] charge.refunded with no payment_intent — skipping`);
-          break;
-        }
-
-        const { data: engagementRow, error: findErr } = await supabase
-          .from("paid_engagements")
-          .select("id, offer_code, contact_email")
-          .eq("stripe_payment_intent_id", paymentIntentId)
-          .maybeSingle();
-
-        if (findErr) {
-          log.error(`[${requestId}] Lookup failed for refund on PaymentIntent ${paymentIntentId}:`, findErr.message);
-          break;
-        }
-        if (!engagementRow) {
-          log.info(`[${requestId}] Refund on PaymentIntent ${paymentIntentId} does not match a known paid_engagements row — not one of our tracked offers, ignoring`);
-          break;
-        }
-
-        const { error: cancelErr } = await supabase
-          .from("paid_engagements")
-          .update({ status: "cancelled" })
-          .eq("id", engagementRow.id);
-
-        if (cancelErr) {
-          log.error(`[${requestId}] Failed to mark engagement ${engagementRow.id} cancelled:`, cancelErr.message);
-        } else {
-          log.info(`[${requestId}] Engagement ${engagementRow.id} (${engagementRow.offer_code}) marked cancelled on refund`);
-        }
-
-        // CRM update on refund is manual for the same reason as the Closed
-        // Won update above — no Zoho credentials configured server-side.
-        log.warn(`[${requestId}] CRM cancellation update NOT automated — update lead manually for ${maskEmail(engagementRow.contact_email)}`);
-        break;
-      }
-
       default:
         log.info(`[${requestId}] Unhandled event type: ${event.type}`);
     }
