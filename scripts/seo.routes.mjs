@@ -37,6 +37,8 @@ export const PUBLIC_ROUTES = [
     must: ["What Quantis does", "deterministic"] },
   { path: "/security",        title: "Security" },
   { path: "/refund-policy",   title: "Refund" },
+  { path: "/decision-review", title: "Founder Decision Review",
+    must: ["$349", "$499", "Founder Decision Review", "Consultant Founding Pilot"] },
   { path: "/changelog",       title: "Changelog" },
   { path: "/privacy",         title: "Privacy" },
   { path: "/terms",           title: "Terms" },
