@@ -15,6 +15,7 @@
 /state-of-quantis
 /security
 /refund-policy
+/decision-review
 /changelog
 /privacy
 /terms

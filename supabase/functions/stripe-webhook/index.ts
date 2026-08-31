@@ -6,6 +6,11 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
+import {
+  getEngagementOfferByPaymentLinkId,
+  paymentLinkIdFromSession,
+  validateEngagementPayment,
+} from '../_shared/engagement-offers.ts';
 
 const FUNCTION_NAME = 'stripe-webhook';
 const FUNCTION_VERSION = '1.0.0';
@@ -124,6 +129,7 @@ serve(async (req) => {
   // anywhere in the handler. Stripe will retry the same event.id; our
   // idempotency guard reprocesses non-'processed' rows safely.
   let inFlightEventId: string | null = null;
+  let serviceClient: ReturnType<typeof createClient> | null = null;
   try {
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
@@ -143,6 +149,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    serviceClient = supabase;
 
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
@@ -370,6 +377,7 @@ serve(async (req) => {
     }
 
     switch (event.type) {
+      case "checkout.session.async_payment_succeeded":
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         log.info(`[${requestId}] === Checkout Session Completed ===`);
@@ -385,24 +393,40 @@ serve(async (req) => {
         // session.subscription is null for these, so this branch must run
         // and return BEFORE the subscription-only code below, which would
         // otherwise call stripe.subscriptions.retrieve(undefined) and error.
-        // Matched on payment_link ID rather than price ID since these were
-        // created directly as Stripe Payment Links (no app-side price
-        // config). Never grants Plus/Pro entitlement — logs to
-        // paid_engagements only, per the one-time-engagement fulfillment
-        // spec's explicit rule against silently granting subscription tiers.
-        const ENGAGEMENT_PAYMENT_LINKS: Record<string, { offerCode: string; engagementType: "founder_review" | "consultant_review" }> = {
-          "plink_1UAHfLLKMhSmZURCpBCtsin5": { offerCode: "founder_decision_review", engagementType: "founder_review" },
-          "plink_1UAHgRLKMhSmZURCFJsZaLiv": { offerCode: "consultant_founding_pilot", engagementType: "consultant_review" },
-        };
-        const paymentLinkId = typeof session.payment_link === "string" ? session.payment_link : session.payment_link?.id;
-        const engagementOffer = paymentLinkId ? ENGAGEMENT_PAYMENT_LINKS[paymentLinkId] : undefined;
+        // Matched on a closed, shared Payment Link catalog. Never grants
+        // Plus/Pro entitlement: these are one-time founder-assisted services.
+        const paymentLinkId = paymentLinkIdFromSession(session.payment_link);
+        const engagementOffer = getEngagementOfferByPaymentLinkId(paymentLinkId);
 
         if (engagementOffer) {
+          const paymentValidation = validateEngagementPayment(engagementOffer, {
+            amountTotal: session.amount_total,
+            currency: session.currency,
+            paymentStatus: session.payment_status,
+          });
+          if (!paymentValidation.ok) {
+            log.error(`[${requestId}] Paid-engagement validation failed for session ${session.id}: ${paymentValidation.reason}`);
+            // A delayed payment method can legitimately be unpaid on
+            // checkout.session.completed. A later async_payment_succeeded
+            // event will re-enter this branch and fulfill exactly once.
+            if (paymentValidation.reason.startsWith("payment_status_")) {
+              await supabase
+                .from("stripe_webhook_events")
+                .update({ status: "processed", processed_at: new Date().toISOString() })
+                .eq("event_id", event.id);
+              return new Response(
+                JSON.stringify({ received: true, fulfillment: "awaiting_payment", event_id: event.id }),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+            throw new Error(`paid_engagement_contract_mismatch:${paymentValidation.reason}`);
+          }
+
           const contactEmail = session.customer_details?.email || session.customer_email || null;
           const contactName = session.customer_details?.name || contactEmail || "(unknown — pending intake)";
-          const amountUsd = session.amount_total != null ? session.amount_total / 100 : null;
+          const amountUsd = engagementOffer.expectedAmountMinor / 100;
 
-          log.info(`[${requestId}] === One-time paid engagement (${engagementOffer.offerCode}) ===`);
+          log.info(`[${requestId}] === One-time paid engagement (${engagementOffer.code}) ===`);
           log.info(`[${requestId}] Session ID: ${session.id}, amount: $${amountUsd}, email: ${maskEmail(contactEmail)}`);
 
           const { error: engagementErr } = await supabase
@@ -412,23 +436,37 @@ serve(async (req) => {
                 stripe_checkout_session_id: session.id,
                 stripe_payment_intent_id: (session.payment_intent as string) || null,
                 stripe_customer_id: (session.customer as string) || null,
-                offer_code: engagementOffer.offerCode,
+                offer_code: engagementOffer.code,
                 engagement_type: engagementOffer.engagementType,
                 contact_email: contactEmail,
                 contact_name: contactName,
                 price_usd: amountUsd,
-                currency: session.currency || "usd",
+                amount_paid_minor: engagementOffer.expectedAmountMinor,
+                currency: engagementOffer.currency,
+                payment_status: "paid",
+                paid_at: new Date(session.created * 1000).toISOString(),
                 status: "scheduled",
+                case_capacity: engagementOffer.caseCapacity,
+                cases_completed: 0,
+                intake_status: "pending",
+                delivery_target_hours: engagementOffer.deliveryTargetHours,
+                pilot_window_days: engagementOffer.pilotWindowDays,
+                pilot_ends_at: engagementOffer.pilotWindowDays
+                  ? new Date((session.created + engagementOffer.pilotWindowDays * 86_400) * 1000).toISOString()
+                  : null,
                 engaged_at: new Date().toISOString(),
               },
-              { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true }
+              { onConflict: "stripe_checkout_session_id" }
             );
 
           if (engagementErr) {
             log.error(`[${requestId}] Failed to log paid_engagements row for session ${session.id}: ${engagementErr.message}`);
-          } else {
-            log.info(`[${requestId}] SUCCESS: paid_engagements row logged for session ${session.id}`);
+            // Never acknowledge fulfillment if the internal order record did
+            // not persist. Throwing returns 5xx, marks the event failed, and
+            // lets Stripe retry the same event safely.
+            throw new Error(`paid_engagement_persistence_failed:${engagementErr.message}`);
           }
+          log.info(`[${requestId}] SUCCESS: paid_engagements row logged for session ${session.id}`);
 
           await supabase
             .from("stripe_webhook_events")
@@ -436,9 +474,15 @@ serve(async (req) => {
             .eq("event_id", event.id);
 
           return new Response(
-            JSON.stringify({ received: true, engagement_logged: !engagementErr, offer_code: engagementOffer.offerCode, event_id: event.id }),
+            JSON.stringify({ received: true, engagement_logged: true, offer_code: engagementOffer.code, event_id: event.id }),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
+        }
+
+        // async_payment_succeeded is relevant here only for recognized
+        // one-time engagement links. It must never enter subscription logic.
+        if (event.type === "checkout.session.async_payment_succeeded") {
+          break;
         }
 
         const customerId = session.customer as string;
@@ -562,6 +606,33 @@ serve(async (req) => {
           }
         } else {
           log.error(`[${requestId}] FAILED to create subscription:`, result.error);
+        }
+        break;
+      }
+
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const paymentIntentId = typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : charge.payment_intent?.id;
+        if (!paymentIntentId) {
+          log.warn(`[${requestId}] Refunded charge ${charge.id} has no PaymentIntent; no engagement to reconcile`);
+          break;
+        }
+
+        const fullyRefunded = charge.refunded === true || charge.amount_refunded >= charge.amount;
+        const { data: refundedRows, error: refundErr } = await supabase
+          .from("paid_engagements")
+          .update({
+            payment_status: fullyRefunded ? "refunded" : "partially_refunded",
+            refunded_at: fullyRefunded ? new Date().toISOString() : null,
+            ...(fullyRefunded ? { status: "cancelled" } : {}),
+          })
+          .eq("stripe_payment_intent_id", paymentIntentId)
+          .select("id");
+        if (refundErr) throw new Error(`paid_engagement_refund_reconciliation_failed:${refundErr.message}`);
+        if (refundedRows?.length) {
+          log.info(`[${requestId}] Reconciled ${fullyRefunded ? "full" : "partial"} refund for paid engagement`);
         }
         break;
       }
@@ -1064,7 +1135,7 @@ serve(async (req) => {
     try {
       const evId = inFlightEventId;
       if (evId) {
-        await supabase.from("stripe_webhook_events")
+        await serviceClient?.from("stripe_webhook_events")
           .update({ status: "failed", error_message: String((error as Error)?.message ?? error).slice(0, 1000) })
           .eq("event_id", evId);
       }

@@ -59,6 +59,7 @@ const staticEntries: Entry[] = [
   { path: '/state-of-quantis', changefreq: 'weekly', priority: '0.5' },
   { path: '/security', changefreq: 'monthly', priority: '0.5' },
   { path: '/refund-policy', changefreq: 'yearly', priority: '0.3' },
+  { path: '/decision-review', changefreq: 'weekly', priority: '0.9' },
   { path: '/changelog', changefreq: 'weekly', priority: '0.6' },
   { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
   { path: '/terms', changefreq: 'yearly', priority: '0.3' },
