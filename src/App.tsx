@@ -69,6 +69,7 @@ const Security = lazy(() => import("./pages/Security"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const DecisionReview = lazy(() => import("./pages/DecisionReview"));
 const EngagementIntake = lazy(() => import("./pages/EngagementIntake"));
+const PaidWorkspace = lazy(() => import("./pages/PaidWorkspace"));
 const Changelog = lazy(() => import("./pages/Changelog"));
 const AdminDenials = lazy(() => import("./pages/admin/Denials"));
 const MyStats = lazy(() => import("./pages/MyStats"));
@@ -179,6 +180,7 @@ const App = () => {
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/decision-review" element={<DecisionReview />} />
                 <Route path="/engagement-intake" element={<EngagementIntake />} />
+                <Route path="/engagement-workspace" element={<PaidWorkspace />} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/cases" element={<CaseBrowser />} />
                 <Route path="/dev/rvce-test" element={<RvceTestPanel />} />
