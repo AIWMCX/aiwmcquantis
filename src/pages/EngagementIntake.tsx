@@ -73,6 +73,7 @@ export default function EngagementIntake() {
               <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto" />
               <h2 className="text-2xl font-bold mt-4">Intake received</h2>
               <p className="text-muted-foreground mt-2">Your engagement is queued. AIWMC LLC will contact you within one business day to schedule the intake/review steps.</p>
+              <Button className="mt-6" onClick={() => window.location.assign('/engagement-workspace?session_id=' + encodeURIComponent(sessionId))}>Open your private workspace</Button>
             </div>
           )}
 

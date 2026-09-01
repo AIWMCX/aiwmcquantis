@@ -66,6 +66,119 @@ serve(async (req) => {
       }), { status: 200, headers });
     }
 
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    if (body?.action === "workspace" || body?.action === "save_workspace") {
+      const { data: engagement, error: engagementError } = await supabase
+        .from("paid_engagements")
+        .select("id,offer_code,engagement_type,contact_name,contact_email,company_name,decision_question,status,payment_status,intake_status,delivery_due_at,pilot_ends_at,case_capacity,cases_completed,workspace_status,workspace_data,workspace_updated_at")
+        .eq("stripe_checkout_session_id", session.id)
+        .maybeSingle();
+      if (engagementError) throw engagementError;
+      if (!engagement || engagement.payment_status !== "paid" || engagement.intake_status !== "complete") {
+        return new Response(JSON.stringify({ error: "intake_required" }), { status: 409, headers });
+      }
+
+      const current = (engagement.workspace_data && typeof engagement.workspace_data === "object")
+        ? engagement.workspace_data as Record<string, unknown>
+        : {};
+      if (body?.action === "workspace") {
+        await supabase.from("paid_engagements")
+          .update({ customer_last_active_at: new Date().toISOString() })
+          .eq("id", engagement.id);
+        return new Response(JSON.stringify({
+          workspace: {
+            engagement: {
+              id: engagement.id,
+              offer_code: engagement.offer_code,
+              engagement_type: engagement.engagement_type,
+              contact_name: engagement.contact_name,
+              contact_email: engagement.contact_email,
+              company_name: engagement.company_name,
+              decision_question: engagement.decision_question,
+              status: engagement.status,
+              payment_status: engagement.payment_status,
+              intake_status: engagement.intake_status,
+              delivery_due_at: engagement.delivery_due_at,
+              pilot_ends_at: engagement.pilot_ends_at,
+              case_capacity: engagement.case_capacity,
+              cases_completed: engagement.cases_completed,
+              workspace_status: engagement.workspace_status,
+              workspace_updated_at: engagement.workspace_updated_at,
+            },
+            data: current,
+          },
+        }), { status: 200, headers });
+      }
+
+      const incoming = body.workspace_data;
+      if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) {
+        return new Response(JSON.stringify({ error: "invalid_workspace" }), { status: 400, headers });
+      }
+      if (JSON.stringify(incoming).length > 24000) {
+        return new Response(JSON.stringify({ error: "workspace_too_large" }), { status: 413, headers });
+      }
+      const source = incoming as Record<string, unknown>;
+      const stage = ["intake", "briefing", "analysis", "review", "delivered", "closed"].includes(String(source.stage))
+        ? String(source.stage) : String(current.stage || "briefing");
+      const textArray = (value: unknown, maxItems: number, maxLength: number) =>
+        Array.isArray(value) ? value.filter((v): v is string => typeof v === "string").slice(0, maxItems).map(v => v.trim().slice(0, maxLength)).filter(Boolean) : [];
+      const assumptions = Array.isArray(source.assumptions) ? source.assumptions.slice(0, 12).map(item => {
+        const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+        return {
+          label: cleanText(row.label, 160),
+          value: cleanText(row.value, 240),
+          type: ["fact", "estimate", "unknown"].includes(String(row.type)) ? String(row.type) : "unknown",
+          source: cleanText(row.source, 300),
+          confidence: ["high", "medium", "low"].includes(String(row.confidence)) ? String(row.confidence) : "medium",
+          notes: cleanText(row.notes, 500),
+        };
+      }).filter(row => row.label) : [];
+      const scenarios = Array.isArray(source.scenarios) ? source.scenarios.slice(0, 3).map(item => {
+        const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+        return {
+          name: cleanText(row.name, 80),
+          revenue: cleanText(row.revenue, 80),
+          costs: cleanText(row.costs, 80),
+          cash: cleanText(row.cash, 80),
+          trigger: cleanText(row.trigger, 300),
+          notes: cleanText(row.notes, 500),
+        };
+      }).filter(row => row.name) : [];
+      const rawCases = Array.isArray(source.cases) ? source.cases.slice(0, offer.caseCapacity).map(item => {
+        const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+        return {
+          case_name: cleanText(row.case_name, 160),
+          client_type: cleanText(row.client_type, 300),
+          decision_question: cleanText(row.decision_question, 1500),
+          deadline: cleanText(row.deadline, 160),
+          context: cleanText(row.context, 2000),
+          status: ["not_started", "ready", "in_review", "delivered"].includes(String(row.status)) ? String(row.status) : "not_started",
+        };
+      }).filter(row => row.case_name || row.decision_question) : [];
+      const workspaceData = {
+        version: 1,
+        stage,
+        decision_summary: cleanText(source.decision_summary, 1500),
+        constraints: cleanText(source.constraints, 2000),
+        assumptions,
+        scenarios,
+        questions: textArray(source.questions, 10, 500),
+        action_items: textArray(source.action_items, 10, 500),
+        cases: rawCases,
+      };
+      const { error: saveError } = await supabase.from("paid_engagements")
+        .update({
+          workspace_data: workspaceData,
+          workspace_status: stage,
+          workspace_updated_at: new Date().toISOString(),
+          customer_last_active_at: new Date().toISOString(),
+        })
+        .eq("id", engagement.id);
+      if (saveError) throw saveError;
+      return new Response(JSON.stringify({ saved: true, data: workspaceData }), { status: 200, headers });
+    }
+
     if (body?.action !== "submit" || body?.terms_accepted !== true) {
       return new Response(JSON.stringify({ error: "terms_required" }), { status: 400, headers });
     }
@@ -87,7 +200,6 @@ serve(async (req) => {
     const contactEmail = session.customer_details?.email || session.customer_email || null;
     const contactName = session.customer_details?.name || contactEmail || "Paid customer";
 
-    const supabase = createClient(supabaseUrl, serviceKey);
     const { data: existing, error: existingError } = await supabase
       .from("paid_engagements")
       .select("substantive_work_started_at")
