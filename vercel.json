@@ -13,7 +13,9 @@
   "rewrites": [
     { "source": "/app", "destination": "/index.html" },
     { "source": "/app/(.*)", "destination": "/index.html" },
-    { "source": "/scenario", "destination": "/index.html" },\n    { "source": "/engagement-intake", "destination": "/index.html" },\n    { "source": "/engagement-workspace", "destination": "/index.html" },
+    { "source": "/scenario", "destination": "/index.html" },
+    { "source": "/engagement-intake", "destination": "/index.html" },
+    { "source": "/engagement-workspace", "destination": "/index.html" },
     { "source": "/admin", "destination": "/index.html" },
     { "source": "/admin/(.*)", "destination": "/index.html" },
     { "source": "/settings/(.*)", "destination": "/index.html" },
