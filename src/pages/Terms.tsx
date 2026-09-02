@@ -102,6 +102,47 @@ export default function Terms() {
             We offer a 14-day free trial for paid plans. After the trial period, refunds are provided at our
             discretion on a case-by-case basis.
           </p>
+
+          <h3 className="text-xl font-medium text-foreground">4.5 Founder-Assisted Paid Engagements ($349 / $499)</h3>
+          <p className="text-muted-foreground leading-relaxed">
+            Separately from the subscription plans above, AIWMC LLC offers two one-time, founder-assisted
+            engagements: the <strong>Founder Decision Review</strong> ($349) and the{' '}
+            <strong>Consultant Founding Pilot</strong> ($499). These are professional-services engagements,
+            not subscriptions, and are governed by these additional terms.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            <strong>What you are purchasing:</strong> a founder-reviewed decision analysis. The Founder
+            Decision Review covers one active business decision: a 30-minute intake, a fact-versus-assumption
+            register, base/downside/upside scenarios, reconciliation of cash, break-even and payback, five
+            identified fragile assumptions, one Decision Memo, one live results review, and one revision. The
+            Consultant Founding Pilot covers two client decision cases within 30 days, with the same
+            structure applied independently to each case, founder-led pilot setup, and one Decision Memo per
+            case.
+          </p>
+          <p className="text-muted-foreground leading-relaxed"><strong>What is not included:</strong></p>
+          <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <li>Bookkeeping, accounting, tax, legal, or investment advice</li>
+            <li>Audit, assurance, valuation certification, or a fundraising or client-acceptance guarantee</li>
+            <li>Independent verification of information you or your client supply</li>
+            <li>Unlimited revisions, ongoing consulting, or implementation work beyond the stated scope</li>
+            <li>Any guaranteed business, investor, lender, or financial outcome</li>
+          </ul>
+          <p className="text-muted-foreground leading-relaxed">
+            <strong>Delivery:</strong> the 48-hour delivery target begins after your intake is complete and we
+            have received the information reasonably required to perform the review. Materially incomplete or
+            changing inputs may extend delivery. You are responsible for the accuracy and completeness of the
+            information you supply — we do not independently verify it.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            <strong>No guaranteed outcome:</strong> this engagement is structured decision support based on
+            supplied information, modeled assumptions, and identified sources. It does not guarantee any
+            business, financial, investment, or lending outcome.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            <strong>Cancellation and refunds</strong> for these two engagements are governed by the{' '}
+            <a href="/refund-policy" className="underline">Refund Policy</a>, which sets different terms
+            than the subscription refund terms above — read it before purchasing.
+          </p>
         </section>
 
         <section className="space-y-4">

@@ -44,6 +44,7 @@ export default function Privacy() {
             <li>Business ideas and location data submitted for analysis</li>
             <li>Uploaded documents for financial analysis</li>
             <li>Payment information (processed securely by Stripe)</li>
+            <li>For the Founder Decision Review and Consultant Founding Pilot: your company/decision details, deadline, and context submitted during the payment-verified intake, used solely to deliver that engagement</li>
           </ul>
 
           <h3 className="text-xl font-medium text-foreground">2.2 Automatically Collected Information</h3>

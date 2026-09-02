@@ -63,6 +63,7 @@ serve(async (req) => {
         offer_code: offer.code,
         offer_name: offer.name,
         case_capacity: offer.caseCapacity,
+        contact_email: session.customer_details?.email || session.customer_email || null,
       }), { status: 200, headers });
     }
 
@@ -201,12 +202,47 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "required_fields_missing" }), { status: 400, headers });
     }
 
+    const stripeVerifiedEmail = session.customer_details?.email || session.customer_email || null;
+    const preferredEmail = cleanText(body.contact_email, 200);
+    // "Preferred contact email" from the intake form only OVERRIDES where we
+    // reach out -- it never changes how the row is located (always by
+    // stripe_checkout_session_id) or how payment identity is verified.
+    if (!stripeVerifiedEmail && !preferredEmail) {
+      return new Response(JSON.stringify({ error: "required_fields_missing" }), { status: 400, headers });
+    }
+
+    // Expanded intake fields (2026-09-02 launch-readiness pass). Kept out of
+    // Stripe custom fields deliberately -- Stripe collects only payment
+    // identity; this application is the system of record for engagement
+    // content, per the launch-scope decision to not turn Stripe into a CRM.
+    const intakeDetails = {
+      deadline: deadline || null,
+      client_type: clientType || null,
+      context: context || null,
+      website: cleanText(body.website, 200) || null,
+      industry: cleanText(body.industry, 160) || null,
+      current_situation: cleanText(body.current_situation, 2000) || null,
+      financial_context: cleanText(body.financial_context, 2000) || null,
+      what_tried: cleanText(body.what_tried, 1500) || null,
+      assumptions: cleanText(body.assumptions, 1500) || null,
+      desired_outcome: cleanText(body.desired_outcome, 1000) || null,
+      document_links: cleanText(body.document_links, 1000) || null,
+      additional_notes: cleanText(body.additional_notes, 2000) || null,
+      preferred_contact_email: preferredEmail || null,
+      // Founder Decision Review only
+      founder_context: cleanText(body.founder_context, 1500) || null,
+      primary_concern: cleanText(body.primary_concern, 1000) || null,
+      specific_questions: cleanText(body.specific_questions, 1000) || null,
+      followup_permitted: body.followup_permitted !== false,
+      submitted_via: "session_bound_intake_v2",
+    };
+
     const now = new Date();
     const deliveryDue = new Date(now.getTime() + offer.deliveryTargetHours * 60 * 60 * 1000);
     const pilotEndsAt = offer.pilotWindowDays
       ? new Date((session.created + offer.pilotWindowDays * 86_400) * 1000)
       : null;
-    const contactEmail = session.customer_details?.email || session.customer_email || null;
+    const contactEmail = preferredEmail || stripeVerifiedEmail;
     const contactName = session.customer_details?.name || contactEmail || "Paid customer";
 
     const { data: existing, error: existingError } = await supabase
@@ -244,15 +280,47 @@ serve(async (req) => {
       delivery_due_at: deliveryDue.toISOString(),
       pilot_window_days: offer.pilotWindowDays,
       pilot_ends_at: pilotEndsAt?.toISOString() ?? null,
-      intake_data: {
-        deadline: deadline || null,
-        client_type: clientType || null,
-        context: context || null,
-        submitted_via: "session_bound_intake_v1",
-      },
+      intake_data: intakeDetails,
     }, { onConflict: "stripe_checkout_session_id" });
 
     if (error) throw error;
+
+    // Owner notification (launch-readiness requirement): a completed paid
+    // intake must never depend on the founder happening to check the
+    // database. Best-effort -- a notification failure must never fail the
+    // customer-facing response, since the engagement record above is
+    // already the durable source of truth.
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    const ownerEmail = Deno.env.get("OWNER_NOTIFICATION_EMAIL") || "jeltovbogdan@gmail.com";
+    if (resendKey) {
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
+          body: JSON.stringify({
+            from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
+            to: [ownerEmail],
+            subject: `Paid intake complete: ${offer.name} — ${companyName}`,
+            html: `<p>A paid engagement intake just completed.</p>
+<ul>
+<li><strong>Offer:</strong> ${offer.name} (${offer.code})</li>
+<li><strong>Amount:</strong> $${(offer.expectedAmountMinor / 100).toFixed(2)}</li>
+<li><strong>Company:</strong> ${companyName}</li>
+<li><strong>Decision:</strong> ${decisionQuestion.slice(0, 300)}</li>
+<li><strong>Contact:</strong> ${contactEmail ?? "(none provided)"}</li>
+<li><strong>Delivery due:</strong> ${deliveryDue.toISOString()}</li>
+<li><strong>Session:</strong> ${session.id}</li>
+</ul>
+<p>Open the admin workspace view to begin fulfillment.</p>`,
+          }),
+        });
+      } catch (notifyErr) {
+        console.error("engagement-intake owner notification failed", notifyErr instanceof Error ? notifyErr.message : String(notifyErr));
+      }
+    } else {
+      console.error("engagement-intake: RESEND_API_KEY not configured — owner notification skipped");
+    }
+
     return new Response(JSON.stringify({ submitted: true, offer_code: offer.code }), { status: 200, headers });
   } catch (error) {
     // Keep the public error generic; Stripe IDs and buyer details never enter logs.

@@ -51,11 +51,36 @@ export default function RefundPolicyPage() {
       </div>
 
       <section className="space-y-6 text-sm text-muted-foreground leading-relaxed pb-8">
-        <Block title="What's eligible">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
+          <h3 className="text-base font-semibold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
+            Founder Decision Review ($349) &amp; Consultant Founding Pilot ($499)
+          </h3>
+          <p className="mb-2">
+            <strong>These one-time, founder-assisted engagements are not covered by the 14-day
+            subscription policy below — they have their own terms.</strong>
+          </p>
+          <p className="mb-2">
+            If AIWMC LLC determines during intake (or pilot setup, for the Consultant Founding Pilot) that
+            Quantis cannot responsibly analyze the decision within the agreed scope, you receive a full
+            refund. You may cancel for a full refund before the intake call (or pilot setup) or before
+            substantive work begins, whichever occurs first.
+          </p>
           <p>
-            All paid plans — Plus Monthly, Plus Annual, Pro Monthly, Pro Annual — are eligible for a full
-            refund within 14 days of the first successful charge. This includes annual plans where you
-            paid the full year upfront.
+            After substantive work begins, the engagement is non-refundable, except when AIWMC LLC cannot
+            deliver the agreed scope or where applicable law requires otherwise. To request a review or
+            refund under these terms, email{' '}
+            <a href="mailto:support@aiwmcquantis.com" className="font-medium hover:underline" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
+              support@aiwmcquantis.com
+            </a>.
+          </p>
+        </div>
+
+        <Block title="What's eligible (subscription plans only)">
+          <p>
+            All paid <em>subscription</em> plans — Plus Monthly, Plus Annual, Pro Monthly, Pro Annual — are
+            eligible for a full refund within 14 days of the first successful charge. This includes annual
+            plans where you paid the full year upfront. <strong>This 14-day window does not apply to the
+            Founder Decision Review or Consultant Founding Pilot above.</strong>
           </p>
         </Block>
 

@@ -69,6 +69,22 @@ serve(async (req) => {
       },
     });
 
+    // Separate, best-effort call: requires the Stripe account's own Terms of
+    // Service URL to be set (Dashboard -> Settings -> Public details) or
+    // Stripe rejects it. A missing account-level ToS URL must never break
+    // checkout-URL generation, so this failure is swallowed and logged, not
+    // surfaced to the buyer.
+    try {
+      await stripe.paymentLinks.update(offer.paymentLinkId, {
+        consent_collection: { terms_of_service: "required" },
+      });
+    } catch (consentErr) {
+      console.error(
+        "engagement-checkout: could not enable terms consent collection (likely missing account ToS URL)",
+        consentErr instanceof Error ? consentErr.message : String(consentErr)
+      );
+    }
+
     if (!configured.url) {
       return new Response(JSON.stringify({ error: "offer_temporarily_unavailable" }), { status: 503, headers });
     }
