@@ -123,7 +123,12 @@ serve(async (req) => {
         ? String(source.stage) : String(current.stage || "briefing");
       const textArray = (value: unknown, maxItems: number, maxLength: number) =>
         Array.isArray(value) ? value.filter((v): v is string => typeof v === "string").slice(0, maxItems).map(v => v.trim().slice(0, maxLength)).filter(Boolean) : [];
-      const assumptions = Array.isArray(source.assumptions) ? source.assumptions.slice(0, 12).map(item => {
+      // Consultant cases carry their OWN assumptions/scenarios (each client
+      // case is a separate model, per the offer's promise of independent
+      // cases) -- sanitizeAssumptions/sanitizeScenarios are reused per-case
+      // below, not just at the workspace's top level (which only the
+      // founder_decision_review offer, with no cases, actually uses).
+      const sanitizeAssumptions = (value: unknown) => Array.isArray(value) ? value.slice(0, 12).map(item => {
         const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
         return {
           label: cleanText(row.label, 160),
@@ -134,7 +139,7 @@ serve(async (req) => {
           notes: cleanText(row.notes, 500),
         };
       }).filter(row => row.label) : [];
-      const scenarios = Array.isArray(source.scenarios) ? source.scenarios.slice(0, 3).map(item => {
+      const sanitizeScenarios = (value: unknown) => Array.isArray(value) ? value.slice(0, 3).map(item => {
         const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
         return {
           name: cleanText(row.name, 80),
@@ -145,6 +150,8 @@ serve(async (req) => {
           notes: cleanText(row.notes, 500),
         };
       }).filter(row => row.name) : [];
+      const assumptions = sanitizeAssumptions(source.assumptions);
+      const scenarios = sanitizeScenarios(source.scenarios);
       const rawCases = Array.isArray(source.cases) ? source.cases.slice(0, offer.caseCapacity).map(item => {
         const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
         return {
@@ -154,6 +161,8 @@ serve(async (req) => {
           deadline: cleanText(row.deadline, 160),
           context: cleanText(row.context, 2000),
           status: ["not_started", "ready", "in_review", "delivered"].includes(String(row.status)) ? String(row.status) : "not_started",
+          assumptions: sanitizeAssumptions(row.assumptions),
+          scenarios: sanitizeScenarios(row.scenarios),
         };
       }).filter(row => row.case_name || row.decision_question) : [];
       const workspaceData = {

@@ -101,7 +101,7 @@ jobs:
         env:
           SMOKE_URL: ${{ secrets.PRODUCTION_SMOKE_URL || 'https://www.aiwmcquantis.com' }}
         run: |
-          for PATHNAME in "/" "/decision-review"; do
+          for PATHNAME in "/" "/decision-review" "/engagement-intake" "/engagement-workspace"; do
             OK=false
             for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
               CODE=$(curl -sS -o /dev/null -w "%{http_code}" -L "$SMOKE_URL$PATHNAME" || echo "000")
