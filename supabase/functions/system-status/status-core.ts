@@ -28,6 +28,8 @@ export interface RawCallStatsSignal {
 export interface RawSweepSignal {
   status: 'completed' | 'failed' | 'interrupted' | null;
   ageHours: number | null;
+  /** Violations found by the most recent run. Null when older rows predate this column or the query didn't select it -- treated as unknown, not zero. */
+  violationCount: number | null;
 }
 
 export interface RawWebhookSignal {
@@ -117,6 +119,20 @@ export function computeEngineSignal(sweep: RawSweepSignal): ComponentSignal {
       description: 'Financial calculations, RVCE, invariant safety checks',
       status: 'degraded',
       detail: 'Latest invariant sweep was interrupted before completing',
+    };
+  }
+  // A "completed" run only means the sweep finished without crashing -- it
+  // says nothing about whether it found violations. Conflating the two
+  // previously made this page report "clean" for runs that had persisted
+  // real violation_count > 0 (caught 2026-09-03: 5 OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT
+  // violations, unresolved across 3+ consecutive runs, page still said clean).
+  if (sweep.violationCount !== null && sweep.violationCount > 0) {
+    return {
+      key: 'engine',
+      name: 'Analysis Engine (deterministic)',
+      description: 'Financial calculations, RVCE, invariant safety checks',
+      status: 'degraded',
+      detail: `Invariant sweep found ${sweep.violationCount} violation(s), ${sweep.ageHours !== null ? sweep.ageHours.toFixed(1) : '?'}h ago`,
     };
   }
   return {

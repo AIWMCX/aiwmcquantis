@@ -45,25 +45,36 @@ describe('computeAuthSignal', () => {
 
 describe('computeEngineSignal (deterministic financial engine)', () => {
   it('reports unmonitored when no sweep has ever run', () => {
-    expect(computeEngineSignal({ status: null, ageHours: null }).status).toBe('unmonitored');
+    expect(computeEngineSignal({ status: null, ageHours: null, violationCount: null }).status).toBe('unmonitored');
   });
 
   it('SYNTHETIC FAILURE: reports outage when the latest sweep failed', () => {
-    expect(computeEngineSignal({ status: 'failed', ageHours: 1 }).status).toBe('outage');
+    expect(computeEngineSignal({ status: 'failed', ageHours: 1, violationCount: null }).status).toBe('outage');
   });
 
   it('SYNTHETIC FAILURE: reports degraded when the sweep is stale beyond 30h', () => {
-    const signal = computeEngineSignal({ status: 'completed', ageHours: 40 });
+    const signal = computeEngineSignal({ status: 'completed', ageHours: 40, violationCount: 0 });
     expect(signal.status).toBe('degraded');
     expect(signal.detail).toMatch(/30h/);
   });
 
   it('reports degraded when the latest sweep was interrupted', () => {
-    expect(computeEngineSignal({ status: 'interrupted', ageHours: 2 }).status).toBe('degraded');
+    expect(computeEngineSignal({ status: 'interrupted', ageHours: 2, violationCount: null }).status).toBe('degraded');
   });
 
-  it('reports operational for a fresh, completed sweep', () => {
-    expect(computeEngineSignal({ status: 'completed', ageHours: 2 }).status).toBe('operational');
+  it('reports operational for a fresh, completed, clean sweep', () => {
+    expect(computeEngineSignal({ status: 'completed', ageHours: 2, violationCount: 0 }).status).toBe('operational');
+  });
+
+  it('SYNTHETIC FAILURE: reports degraded when a fresh completed sweep found real violations (regression for the 2026-09-03 false-clean bug)', () => {
+    const signal = computeEngineSignal({ status: 'completed', ageHours: 0.1, violationCount: 5 });
+    expect(signal.status).toBe('degraded');
+    expect(signal.detail).toMatch(/5 violation/);
+    expect(signal.detail).not.toMatch(/clean/i);
+  });
+
+  it('falls back to operational when violationCount is null (older rows predating this column, or a partial select) -- cannot report a violation count it does not have', () => {
+    expect(computeEngineSignal({ status: 'completed', ageHours: 2, violationCount: null }).status).toBe('operational');
   });
 });
 

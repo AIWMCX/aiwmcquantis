@@ -64,16 +64,18 @@ serve(async (req) => {
   // Deterministic engine: latest invariant sweep
   let sweepStatus: 'completed' | 'failed' | 'interrupted' | null = null;
   let sweepAgeHours: number | null = null;
+  let sweepViolationCount: number | null = null;
   try {
     const { data } = await supabase
       .from('financial_invariant_sweep_runs')
-      .select('status, run_at')
+      .select('status, run_at, violation_count')
       .order('run_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     if (data) {
       sweepStatus = data.status ?? 'completed';
       sweepAgeHours = (Date.now() - new Date(data.run_at).getTime()) / 3_600_000;
+      sweepViolationCount = data.violation_count ?? null;
     }
   } catch {
     // leave null -> reported as unmonitored, not a false outage
@@ -128,7 +130,7 @@ serve(async (req) => {
   const signals = [
     computeDatabaseSignal({ ok: dbOk, latencyMs: dbLatency }),
     computeAuthSignal({ ok: authOk, latencyMs: authLatency }),
-    computeEngineSignal({ status: sweepStatus, ageHours: sweepAgeHours }),
+    computeEngineSignal({ status: sweepStatus, ageHours: sweepAgeHours, violationCount: sweepViolationCount }),
     computeAiNarrativeSignal({ total: aiTotal, failed: aiFailed }),
     computeBillingSignal({ total: webhookTotal, failedOrPending: webhookFailedOrPending }),
     computeBenchmarksSignal({ rowCount: benchmarkRowCount }),
