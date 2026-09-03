@@ -62,7 +62,12 @@ const ANGLE_PRESETS = [
 ];
 
 export default function ContentStudio() {
-  const { isAdmin, isLoading } = useAdmin();
+  // Backend (RLS + the content-studio-generate edge function) already
+  // authorizes admin OR content_admin -- this page's own gate must match,
+  // or scoped content_admin accounts get redirected away from a surface
+  // the backend already lets them use.
+  const { isAdmin, isContentAdmin, isLoading } = useAdmin();
+  const canAccess = isAdmin || isContentAdmin;
   const navigate = useNavigate();
 
   const [topic, setTopic] = useState('');
@@ -83,10 +88,10 @@ export default function ContentStudio() {
   const [history, setHistory] = useState<HistoryRow[]>([]);
 
   useEffect(() => {
-    if (!isLoading && !isAdmin) navigate('/app', { replace: true });
-  }, [isAdmin, isLoading, navigate]);
+    if (!isLoading && !canAccess) navigate('/app', { replace: true });
+  }, [canAccess, isLoading, navigate]);
 
-  useEffect(() => { if (isAdmin) loadHistory(); }, [isAdmin]);
+  useEffect(() => { if (canAccess) loadHistory(); }, [canAccess]);
 
   async function loadHistory() {
     const { data, error } = await supabase
@@ -138,7 +143,7 @@ export default function ContentStudio() {
 
   const variantList = useMemo(() => variants ? Object.entries(variants) : [], [variants]);
 
-  if (isLoading || !isAdmin) {
+  if (isLoading || !canAccess) {
     return (
       <AppLayout title="Content Studio">
         <div className="min-h-[400px] flex items-center justify-center text-[var(--q-text-secondary)]">
