@@ -181,6 +181,42 @@ Corrected 2026-08-30 after the user identified a real status-control failure: th
 
 All commits in this pass CI-green and production-deploy-confirmed (frontend + `analyze-business` edge function fidelity-verified). Full suite (1578 tests) passing throughout.
 
+## Phase 7 continuation — $349/$499 paid engagement launch (2026-09-01/02, outside charter numbering)
+
+**Status: engineering scope shipped and live-verified 2026-09-02; two backend changes blocked on tooling.**
+
+Continuation of Phase 7's engagement infrastructure toward an actual sellable, legally-consistent paid offer. Live-verified against the deployed JS bundles at production SHA `2190fd5d`, not just route 200s: Terms §4.5 (engagement terms, previously absent), Refund Policy engagement-specific carve-out (previously contradicted the correct terms with old subscription-only 14-day language), Privacy intake-data disclosure bullet, expanded `/engagement-intake` form (company/industry/financial context, founder-only fields, Stripe-verified email prefill). Negative-path tests (missing/fake session_id, malformed body, invalid offer_code) run directly against live functions, all pass correctly.
+
+**Two backend changes blocked, not abandoned**: `engagement-checkout` (Stripe `consent_collection` ToS checkbox) and `engagement-intake` (owner-notification email via Resend, expanded `intake_data` storage) are written and committed but not deployed — the Supabase `deploy_edge_function` MCP tool durably fails with a ZodError (`verify_jwt`/`files` received as strings despite correct typed input) reproduced identically 5x across three separate days (2026-09-01, 09-02, 09-03). `apply_migration` on the same connector works correctly, ruling out a broad connector outage — the fault is isolated to `deploy_edge_function` specifically. Does not block selling: the live (pre-edit) versions of both functions already do correct server-side price/tier verification and idempotent/locked intake.
+
+`paid_engagements` remains 0 rows all-time as of 2026-09-03 — no real or test payment has occurred yet.
+
+Full evidence and next-task detail: `docs/execution/2026-09-02-session-handoff-and-next-tasks.md`.
+
+## Post-charter security sweep (2026-09-03, outside charter numbering)
+
+**Status: two real findings closed same-day, live-verified; broader function inventory partially covered.**
+
+A fresh `get_advisors` (security) pull — 316 findings total, 0 ERROR / 308 WARN / 8 INFO — surfaced 139 `anon`/`authenticated`-security-definer-executable WARNs across 77 distinct functions that the 2026-08-27 sweep's "flagged, not yet fixed" list (2 functions) and fourth-wave migration (7 functions) had not individually covered. All 8 INFO findings and the `pg_net`/leaked-password-toggle WARNs matched already-accepted findings, no new action. `pg_graphql_*_table_exposed` (167 WARNs across 92 tables) is standard Supabase behavior, not a targeted gap — RLS still governs row access underneath it.
+
+Of the function-grant WARNs, 9 were individually read (`pg_get_functiondef`) and risk-assessed this session, not sampled-and-assumed:
+
+| Function | Finding | Disposition |
+|---|---|---|
+| `increment_quote_gen_usage()` | anon EXECUTE grant, sibling of the already-fixed `decrement_quote_gen_usage()` (Track A, 20260814120000) — Track A never covered this one | **FIXED** — migration `20260903004424`, live-verified: `has_function_privilege('anon',...)` now false |
+| `decrypt_pii(bytea)` / `encrypt_pii(text)` | **Real gap** — zero internal authorization check, directly callable by any authenticated user via RPC, bypassing the admin-role+rate-limit gating the correct wrapper (`get_lead_email`) enforces. All 4 legitimate callers (`capture_lead`, `get_lead_email`, `get_user_brand_profile`, `upsert_user_brand_profile`) invoke them via internal SQL-to-SQL calls under `SECURITY DEFINER`, which don't require the caller's own grant — confirmed safe to revoke before doing so | **FIXED** — migration `20260903005820`, live-verified: `authenticated` EXECUTE now false, `service_role` (needed by `send-weekly-insights` edge function) and `get_lead_email`'s own grant both confirmed unaffected |
+| `admin_force_sync_subscription(...)` / `get_admin_metrics()` | anon EXECUTE grant, but both correctly gate on `has_role(auth.uid(),'admin')`, and `has_role()` is built on `EXISTS(...)` — confirmed NULL-safe by construction (unlike the 2026-08-14 `get_referral_stats` bug's `!=` comparison), so a NULL `auth.uid()` from an anonymous caller correctly denies rather than silently bypassing | Not exploitable; **FIXED anyway** (defense-in-depth) — same migration `20260903005820` |
+| `get_lead_email(uuid)` | authenticated-only already, same NULL-safe `has_role()` gate plus a rate limit | Reviewed, confirmed correct, **not touched** |
+| `apply_pending_plan_grant()` / `protect_admin_role()` | broad anon/authenticated grant, but both `RETURNS trigger` — Postgres refuses direct invocation of a trigger function outside trigger context regardless of grant | Reviewed, confirmed inert as a direct-call vector, **not touched** |
+| `claim_admin_if_allowlisted()` / `claim_content_admin_if_allowlisted()` / `claim_pending_plan_grant()` | broad grant, each NULL-safe and scoped exclusively to the caller's own `auth.uid()`/email — no cross-account escalation path | Reviewed, confirmed correct, **not touched** |
+| `is_service_role()` | broad grant, but reads only the caller's own session `current_setting()` — no data access | Reviewed, confirmed harmless, **not touched** |
+
+**Not yet done, honestly flagged rather than silently skipped**: the remaining ~68 of the 77 flagged functions were not individually reviewed this pass (the sweep's own characterization is "mostly routine getters/cleanup jobs," not independently confirmed by this session). This is the same class of residual gap as Phase 2's "dynamic pgTAP suite not yet extended beyond 18 of ~78 tables" — a real, bounded follow-up, not a closed item.
+
+Both migrations applied directly via `apply_migration` (which works correctly — the `deploy_edge_function` fault above does not extend to this tool) with precondition/postcondition `RAISE NOTICE`/`RAISE EXCEPTION` blocks matching the Track A precedent, live-verified via a follow-up `has_function_privilege` query covering both fixes and both at-risk legitimate callers. Ledger assigned versions `20260903004424`/`20260903005820`, differing from the local files' original timestamp-based names (`20260903090000`/`20260903091500`) — same drift class documented in Phase 6; local files renamed to match before commit, no `apply_migration` retry needed.
+
+One item required explicit owner confirmation before applying: the auto-mode permission classifier correctly blocked the `decrypt_pii`/`encrypt_pii` migration on its own (a PII-access-control production mutation), and the founder explicitly approved it before it was applied — not run autonomously.
+
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
