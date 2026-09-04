@@ -28,7 +28,7 @@
     "prerender": "node scripts/prerender.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
     "verify:seo": "node scripts/verify-visibility.mjs",
-    "build:vercel": "vite build && node scripts/generate-static-bodies.mjs && npx --yes tsx scripts/prerender-seo.ts && node scripts/generate-sitemap.mjs && (node scripts/verify-visibility.mjs || echo VISIBILITY_WARN_NON_BLOCKING)"
+    "build:vercel": "vite build && node scripts/generate-static-bodies.mjs && npx --yes tsx scripts/prerender-seo.ts && node scripts/generate-sitemap.mjs && node scripts/verify-visibility.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
