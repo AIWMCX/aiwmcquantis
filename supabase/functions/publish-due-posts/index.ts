@@ -18,8 +18,79 @@ const FUNCTION_VERSION = '1.0.0';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const LINKEDIN_CLIENT_ID = Deno.env.get('LINKEDIN_CLIENT_ID') ?? '';
+const LINKEDIN_CLIENT_SECRET = Deno.env.get('LINKEDIN_CLIENT_SECRET') ?? '';
 
 const supa = createClient(SUPABASE_URL, SERVICE_KEY);
+
+// Refresh the LinkedIn access token if it's missing or within 5 minutes of
+// expiry. `autoposter_store_token` upserts by the fixed secret name, so the
+// existing access_token_secret_id keeps pointing at the same (now-updated)
+// Vault secret — only token_expires on the credentials row needs to change.
+// Workstream I.1 gap fix (2026-09-05): previously there was no refresh path
+// at all, so an expired token just failed every publish attempt forever.
+const REFRESH_MARGIN_MS = 5 * 60 * 1000;
+
+async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: string | null; disabled?: boolean }> {
+  const expiresAt = cred.token_expires ? new Date(cred.token_expires).getTime() : 0;
+  const needsRefresh = !cred.access_token || expiresAt - Date.now() < REFRESH_MARGIN_MS;
+  if (!needsRefresh) return { access_token: cred.access_token };
+
+  if (!cred.refresh_token_secret_id || !LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET) {
+    // Nothing we can do — surface as needs_credentials, not a silent stale-token failure.
+    return { access_token: null };
+  }
+
+  const { data: refreshToken } = await supa.rpc('autoposter_read_token', { p_id: cred.refresh_token_secret_id });
+  if (!refreshToken) return { access_token: null };
+
+  const res = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken as string,
+      client_id: LINKEDIN_CLIENT_ID,
+      client_secret: LINKEDIN_CLIENT_SECRET,
+    }),
+  });
+  const token = await res.json();
+
+  if (!res.ok || !token.access_token) {
+    // Recoverable-but-broken: disable the credential so every future run
+    // reports needs_credentials instead of quietly failing on every post,
+    // and log the refresh failure as its own auditable event.
+    await supa.from('autoposter_credentials').update({ is_active: false }).eq('id', cred.id);
+    await supa.from('autoposter_publishing_logs').insert({
+      post_platform_id: null,
+      action: 'token_refresh',
+      status: 'failed',
+      response_payload: token as any,
+      duration_ms: 0,
+    });
+    return { access_token: null, disabled: true };
+  }
+
+  await supa.rpc('autoposter_store_token', {
+    p_secret: token.access_token,
+    p_name: 'autoposter_linkedin_access_token',
+  });
+  const newExpiry = token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : null;
+  await supa.from('autoposter_credentials').update({
+    token_expires: newExpiry,
+    last_tested: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', cred.id);
+  await supa.from('autoposter_publishing_logs').insert({
+    post_platform_id: null,
+    action: 'token_refresh',
+    status: 'refreshed',
+    response_payload: { expires_in: token.expires_in } as any,
+    duration_ms: 0,
+  });
+
+  return { access_token: token.access_token };
+}
 
 type Platform = 'linkedin' | 'facebook' | 'instagram';
 
@@ -149,6 +220,10 @@ Deno.serve(async (req) => {
     if (c.access_token_secret_id) {
       const { data: tok } = await supa.rpc('autoposter_read_token', { p_id: c.access_token_secret_id });
       access_token = (tok as string) ?? null;
+    }
+    if (c.platform === 'linkedin') {
+      const { access_token: freshToken } = await refreshLinkedInTokenIfNeeded({ ...c, access_token });
+      access_token = freshToken;
     }
     credsByPlatform.set(c.platform, { ...c, access_token });
   }

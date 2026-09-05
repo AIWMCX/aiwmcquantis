@@ -57,7 +57,13 @@ Deno.serve(async (req) => {
 
   const { data: st } = await supa.from('autoposter_oauth_state').select('*').eq('state', state).maybeSingle();
   if (!st || st.platform !== 'linkedin') return html('<h2>Invalid state</h2>', 400);
+  // Single-use: delete on first sight regardless of outcome below, so a
+  // replayed callback (or an attacker who captured the redirect URL) can
+  // never reuse this state even if the exchange below fails.
   await supa.from('autoposter_oauth_state').delete().eq('state', state);
+  if (new Date(st.expires_at).getTime() < Date.now()) {
+    return html('<h2>State expired</h2><p>This authorization link expired. Start over from the connect flow.</p>', 400);
+  }
 
   // Exchange
   const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
