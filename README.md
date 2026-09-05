@@ -1,6 +1,6 @@
 # AIWMC Quantis — Financial Pre-Mortem for Business Ideas
 
-> **Validate any business idea in under 90 seconds.** A deterministic financial engine stress-tests 12 variables against 95,500 industry benchmarks, then surfaces a proceed / pivot / kill verdict you can actually audit.
+> **Stress-test a business idea against real benchmark data.** A deterministic financial engine checks 12 variables against 97,500 industry benchmarks, then surfaces a proceed / pivot / kill verdict you can actually audit.
 
 🌐 **Live production:** [www.aiwmcquantis.com](https://www.aiwmcquantis.com)
 📊 **Status:** 1,114 tests passing · 8-layer pipeline incl. RVCE · 65 edge functions · 83 public routes
@@ -9,12 +9,12 @@
 
 ## What it does
 
-You give Quantis a business idea, a location, and (optionally) some financial inputs. In under 90 seconds it returns:
+You give Quantis a business idea, a location, and (optionally) some financial inputs. It returns:
 
 - **Viability verdict** — `PROCEED`, `PIVOT`, or `KILL` with a confidence score
 - **Financial projections** — MRR/ARR, base/optimistic/pessimistic scenarios, 36-month P&L
 - **Unit economics** — CAC, LTV, LTV:CAC ratio, payback period, breakeven
-- **Industry-calibrated benchmarks** — pulled from a 95,500-row dataset (BLS, Census, IBISWorld, SBA, OECD)
+- **Industry-calibrated benchmarks** — pulled from a 97,500-row dataset (BLS, Census, IBISWorld, SBA, OECD)
 - **Location intelligence** — cost-of-living adjustments for 50+ global cities (rent, salary, utilities)
 - **Risk map** — 5–9 ranked risks specific to the idea, with mitigations
 - **Action plan** — 5 prioritized launch steps with timing and budget
@@ -31,7 +31,7 @@ What makes it different: **the verdict is auditable**. Every figure traces back 
 │  L1  Input validation + prompt-injection guard + sector classify   │
 │  L2  Database-driven industry detection (46 sectors)                │
 │  L3  Sub-industry detection (B2B/B2C, enterprise/SMB modifiers)     │
-│  L4  V2 benchmark overlay (95,500 rows by industry × geography)     │
+│  L4  V2 benchmark overlay (97,500 rows by industry × geography)     │
 │  L5  Deterministic financial engine (Monte Carlo runs first)        │
 │  L6  AI narrator (DeepSeek primary, Anthropic fallback)             │
 │  L7  Bulletproof validator (numerical coherence rules)              │
@@ -277,8 +277,8 @@ These invariants are enforced in tests and source guards. Violating any of them 
 
 - ✅ Canonical pricing: **$0 / $17 / $49** monthly (annual equivalents $0 / $14 / $41). No other prices. No ghost tiers.
 - ✅ **8-layer** pipeline (RVCE = Layer 8). Never `7-Layer` (historical staleness signal — CI rejects builds containing this string).
-- ✅ **95,500 benchmarks** is the public claim. Number lives in `canonical-facts.ts` only.
-- ✅ "**under 90 seconds**" is the canonical latency claim.
+- ✅ **97,500 benchmarks** is the public claim (corrected 2026-07-21 from a stale `95,500`; see `canonical-facts.ts`'s own history note). Number lives in `canonical-facts.ts` only.
+- ❌ **No processing-time claim** ("under 90 seconds," "in seconds," etc.) anywhere in public copy. `PROCESSING_TIME_CLAIM` and `VERDICT_SECONDS` in `canonical-facts.ts` are explicitly marked `SUPERSEDED 2026-08-30, per explicit instruction — do not reintroduce`. This README previously asserted the opposite as "non-negotiable brand canon," which was itself stale and wrong — corrected here to match the actual SSOT.
 - ✅ **No** AIWMC Research Foundation branding on any Quantis surface. Quantis is `Created by AIWMC Quantis`. Foundation lives at a separate AIWMC entity.
 - ✅ **No** acid green `#8FFF2A` anywhere in Quantis CSS or assets (Foundation brand color).
 - ✅ Banned marketing vocabulary: *hustle, grind, 10x, level up, unlock, game-changer, disrupt, breakthrough* — caught by content guards.
