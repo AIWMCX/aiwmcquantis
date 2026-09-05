@@ -14,8 +14,8 @@ const expiryMigration = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260905210000_autoposter_oauth_state_expiry.sql"),
   "utf8",
 );
-const lockMigration = readFileSync(
-  resolve(process.cwd(), "supabase/migrations/20260905211500_autoposter_credential_refresh_lock.sql"),
+const leaseMigration = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260905220000_autoposter_credential_lease_lock.sql"),
   "utf8",
 );
 
@@ -25,9 +25,6 @@ describe("autoposter LinkedIn OAuth hardening (Workstream I.1 gap fixes)", () =>
   });
 
   it("claims state atomically via DELETE ... RETURNING, not SELECT-then-DELETE", () => {
-    // A separate .select('*').eq('state', state) followed by a separate
-    // .delete() is exactly the race this replaces -- assert the delete call
-    // itself carries the .select('*') that makes it atomic (single round trip).
     expect(callbackSource).toContain(".delete()\n    .eq('state', state)\n    .select('*');");
     expect(callbackSource).not.toContain("select('*').eq('state', state).maybeSingle()");
   });
@@ -54,28 +51,36 @@ describe("autoposter LinkedIn OAuth hardening (Workstream I.1 gap fixes)", () =>
     expect(rotatedStoreIdx).toBeGreaterThan(rotationCheckIdx);
   });
 
-  it("acquires a per-credential advisory lock before refreshing and releases it in a finally block", () => {
-    expect(publishSource).toContain("autoposter_try_lock_credential");
-    expect(publishSource).toContain("autoposter_unlock_credential");
-    const lockIdx = publishSource.indexOf("autoposter_try_lock_credential");
-    const tryIdx = publishSource.indexOf("try {", lockIdx);
-    const finallyIdx = publishSource.indexOf("} finally {", lockIdx);
-    const unlockIdx = publishSource.indexOf("autoposter_unlock_credential", finallyIdx);
-    expect(tryIdx).toBeGreaterThan(lockIdx);
-    expect(finallyIdx).toBeGreaterThan(tryIdx);
-    expect(unlockIdx).toBeGreaterThan(finallyIdx);
+  it("no longer uses session-scoped Postgres advisory locks for concurrency (removed: unsafe across pooled RPC calls)", () => {
+    expect(publishSource).not.toContain("autoposter_try_lock_credential");
+    expect(publishSource).not.toContain("autoposter_unlock_credential");
+    expect(leaseMigration).toContain("drop function if exists public.autoposter_try_lock_credential(uuid);");
+    expect(leaseMigration).toContain("drop function if exists public.autoposter_unlock_credential(uuid);");
   });
 
-  it("skips refreshing (uses existing token) when the lock is already held by another worker", () => {
-    const lockIdx = publishSource.indexOf("autoposter_try_lock_credential");
-    const skipIdx = publishSource.indexOf("if (!gotLock)", lockIdx);
-    expect(skipIdx).toBeGreaterThan(lockIdx);
-    expect(skipIdx).toBeLessThan(publishSource.indexOf("try {", lockIdx));
+  it("acquires the refresh lease via a single atomic conditional UPDATE keyed on an owner token", () => {
+    expect(publishSource).toContain("refresh_lease_owner: leaseOwner");
+    expect(publishSource).toContain("refresh_lease_expires_at.lt.");
+    const leaseIdx = publishSource.indexOf("refresh_lease_owner: leaseOwner");
+    const skipIdx = publishSource.indexOf("if (!leased?.length)", leaseIdx);
+    expect(skipIdx).toBeGreaterThan(leaseIdx);
   });
 
-  it("grants the lock RPCs to service_role only", () => {
-    expect(lockMigration).toContain("revoke all on function public.autoposter_try_lock_credential(uuid) from public, anon, authenticated;");
-    expect(lockMigration).toContain("grant execute on function public.autoposter_try_lock_credential(uuid) to service_role;");
+  it("gates every credential write during refresh on still owning the lease, so an expired worker can't clobber a newer refresh", () => {
+    const refreshFnStart = publishSource.indexOf("async function refreshLinkedInTokenIfNeeded");
+    const refreshFnBody = publishSource.slice(refreshFnStart);
+    const ownerGateCount = (refreshFnBody.match(/\.eq\('refresh_lease_owner', leaseOwner\)/g) ?? []).length;
+    // Failure-path update, success-path update, and the release in `finally` --
+    // three separate writes, all conditioned on still owning the lease.
+    expect(ownerGateCount).toBeGreaterThanOrEqual(3);
+  });
+
+  it("releases the lease in a finally block, conditioned on still owning it", () => {
+    const refreshFnStart = publishSource.indexOf("async function refreshLinkedInTokenIfNeeded");
+    const finallyIdx = publishSource.indexOf("} finally {", refreshFnStart);
+    const releaseIdx = publishSource.indexOf("refresh_lease_owner: null, refresh_lease_expires_at: null", finallyIdx);
+    expect(finallyIdx).toBeGreaterThan(refreshFnStart);
+    expect(releaseIdx).toBeGreaterThan(finallyIdx);
   });
 
   it("disables the credential on refresh failure without erasing the last known-good token reference", () => {
@@ -105,5 +110,20 @@ describe("autoposter LinkedIn OAuth hardening (Workstream I.1 gap fixes)", () =>
   it("treats a non-finite (malformed) token_expires as needing refresh, not as valid", () => {
     const refreshFnStart = publishSource.indexOf("async function refreshLinkedInTokenIfNeeded");
     expect(publishSource.slice(refreshFnStart, refreshFnStart + 600)).toContain("!expiryIsValid");
+  });
+
+  it("claims due posts atomically (UPDATE ... WHERE status='scheduled' ... SELECT), not via a plain SELECT then a later UPDATE", () => {
+    const claimIdx = publishSource.indexOf(".update({ status: 'publishing' })");
+    const inIdx = publishSource.indexOf(".in('id', candidates.map", claimIdx);
+    const rescheckIdx = publishSource.indexOf(".eq('status', 'scheduled')", inIdx);
+    expect(claimIdx).toBeGreaterThan(-1);
+    expect(inIdx).toBeGreaterThan(claimIdx);
+    expect(rescheckIdx).toBeGreaterThan(inIdx);
+  });
+
+  it("treats zero newly-claimed rows as a normal empty result, not an error", () => {
+    const claimIdx = publishSource.indexOf(".update({ status: 'publishing' })");
+    const afterClaim = publishSource.slice(claimIdx);
+    expect(afterClaim).toContain("already claimed by a concurrent invocation");
   });
 });
