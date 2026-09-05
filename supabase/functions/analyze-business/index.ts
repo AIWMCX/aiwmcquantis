@@ -1983,6 +1983,20 @@ serve(async (req) => {
   const requestId = getRequestId(req);
   const responseHeaders = { ...corsHeaders, ...requestIdHeader(requestId) };
 
+  // AI-run correlation fix (P0 instrumentation defect, confirmed 0/130 NULL
+  // in ai_calls.analysis_id across every prior sample this analysis session
+  // was audited): this function never inserts into `analyses` itself -- the
+  // row is saved afterward by the caller -- so there is no analysis id yet
+  // at the point the AI call happens. aiCall() below already accepts an
+  // `analysisId` option (see _shared/llm-call.ts), but this call site never
+  // passed one, which is the entire cause of the NULL column. Generating a
+  // durable run id HERE, before the first provider call, and returning it in
+  // the response payload as `analysis_run_id` lets the caller persist the
+  // same id on the saved `analyses` row for a real join -- not depending on
+  // an id that doesn't exist until after AI execution, per the standing
+  // instruction on this fix.
+  const analysisRunId = crypto.randomUUID();
+
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: responseHeaders });
@@ -3028,6 +3042,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             task: 'analyze-business',
             timeoutMs: AI_TIMEOUT_MS,
         requestId,
+            analysisId: analysisRunId,
             userId: userId,
             metadata: { attempt, industry: detectedIndustry.name },
             // Explicit alias when Dahl is the active provider: a live
@@ -3983,6 +3998,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // ========== BUILD FULL PAYLOAD ==========
     const fullPayload = {
       ...result,
+      // AI-run correlation fix: the same id already passed as `analysisId`
+      // to every aiCall() in this run (see declaration near the top of the
+      // handler). The caller should persist this on the `analyses` row it
+      // saves, so ai_calls.analysis_id can finally be joined back to a real
+      // analysis instead of being NULL for every row.
+      analysis_run_id: analysisRunId,
       actionable_insights: actionableInsights,
       documents_used: documentsUsed.length > 0 ? documentsUsed : undefined,
       document_analysis_summary: documentAnalysisSummary,
