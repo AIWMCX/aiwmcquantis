@@ -246,6 +246,55 @@ All four migrations across this three-pass sweep applied directly via `apply_mig
 
 One item required explicit owner confirmation before applying: the auto-mode permission classifier correctly blocked the `decrypt_pii`/`encrypt_pii` migration on its own (a PII-access-control production mutation), and the founder explicitly approved it before it was applied — not run autonomously. The other three migrations in this sweep applied without a classifier block.
 
+## Session 2026-09-04/05 — paid journey state machine, autoposter hardening, revenue reconciliation
+
+**Status: engineering scope shipped and live-verified; commercial baseline unchanged (still zero external paying customers).** Continuation of Phase 7 (paid decision workflow) plus new Workstream I.1 (Content Studio/Autoposter). Tracked here per this register's own convention rather than a new tracker, per explicit instruction to reuse the canonical register.
+
+### Paid journey state machine (Priority 2/Workstream C continuation)
+
+| Deliverable | Status | Evidence |
+|---|---|---|
+| `engagement_journey_state` enum (18 states: original 11 + `payment_failed`/`checkout_expired`/`canceled`/`refunded`/`partially_refunded`/`admin_corrected`/`intake_abandoned`), `engagement_transition_rules` (88-row allow-list), `apply_engagement_transition()` | **Done, live-verified** | Migrations `20260904221936`, `20260904222003`, `20260904223130` (security hardening: service-role-only execute, empty `search_path`, advisory-lock-ordering fix, idempotency/stripe-event conflict detection — corrected after a first pass had the lock-check ordering wrong), all applied and confirmed via `has_function_privilege`/`pg_get_functiondef` |
+| PR #106 — fail-closed Vercel prerender verification | **Done, live-verified** | One-line `package.json` change (`build:vercel` no longer swallows `verify-visibility.mjs` failure via `|| echo ...`). Merged `d8518068`. Post-deploy: `/pricing` still shows 3×`$17`/2×`$49` crawlable |
+| PR #107 — webhook wiring (`checkout.session.completed` → `apply_engagement_transition(payment_confirmed)`) | **Done, live-verified** | Merged `3453a23e`. Deployed `stripe-webhook` v1.1.0; live health probe (`?health=1`) returned `commit_sha: 3453a23e...` matching the merge commit exactly — direct source-to-deploy proof, not inferred from a version counter alone |
+| Smoke tests (fail-closed transition, idempotent replay, `admin_corrected` actor requirement) | **Done, live-verified** | Two self-contained DB smoke tests run and cleaned up against production (0 rows before/after both times) |
+
+**Correction to this session's own earlier reporting, recorded for the honesty-audit trail**: an initial "built and verified" characterization of the state-machine security was too strong before a second pass found and fixed a real gap (lock-check ordering, missing schema-qualification). Recorded per this register's standing rule against upgrading reported facts to verified ones prematurely.
+
+### Autoposter / LinkedIn OAuth hardening (new — Workstream I.1)
+
+Direct code+schema verification (not assumed) found: Content Studio has 13 real generations since 2026-07-13; Autoposter has 42 rows, 100% `status='draft'`; `autoposter_credentials` = 0 rows; no LinkedIn account ever connected; `oauth-linkedin-callback` and `publish-due-posts` exist and are real, but had genuine gaps.
+
+| Gap found | Fix | PR | Status |
+|---|---|---|---|
+| `autoposter_oauth_state` had no expiry column at all | Added `expires_at` (10-min default), rejected in callback | #108 | **Done, live-verified** (TTL confirmed exactly `00:10:00` via live insert) |
+| State validated via SELECT-then-DELETE (race) | Atomic `DELETE ... RETURNING` | #108 | **Done, live-verified** |
+| `new Date(malformed).getTime()` is `NaN`, and `NaN < Date.now()` is always `false` — a corrupt timestamp would silently pass as "not expired" | Explicit `Number.isFinite()` guard, fails closed | #108 | **Done, live-verified** |
+| No LinkedIn token-refresh path at all — an expired token failed every publish attempt forever | Added `refreshLinkedInTokenIfNeeded()` | #108 | **Done, live-verified** (deployed, `publish-due-posts` v-bumped) |
+| Refresh-token rotation not stored (LinkedIn can rotate on use) | Stores rotated `refresh_token` when present | #108 | **Done, live-verified** |
+| Refresh-failure log recorded the raw LinkedIn response body | Sanitized to `{error, error_description, http_status}` only | #108 | **Done, live-verified** |
+| **Concurrency guard used `pg_try_advisory_lock`/`pg_advisory_unlock` as two separate Supabase RPC calls — session-scoped primitives with no guaranteed session affinity across pooled PostgREST connections. Correctly flagged by review as a real design flaw, not a false positive.** | Replaced with a durable row-based lease (`refresh_lease_owner`/`refresh_lease_expires_at` on `autoposter_credentials`): single atomic conditional `UPDATE` to acquire, every subsequent write gated on still owning the lease, self-expiring (30s) | #109 | **Done, live-verified** (migration applied, function redeployed, source confirmed to no longer reference the removed advisory-lock RPCs) |
+| Duplicate-publish race: two overlapping cron runs could both `SELECT status='scheduled'` before either updated | Atomic claim: `UPDATE ... WHERE status='scheduled' ... SELECT`, only rows this invocation actually flipped are processed | #109 | **Done, live-verified** |
+
+**Explicitly still open, not solved by either PR**: LinkedIn's `ugcPosts` API has no client-supplied idempotency key. A request that times out after LinkedIn already accepted it can still produce a duplicate post — an external API limitation, not closeable purely client-side. Flagged as accepted residual risk, not silently treated as solved.
+
+**Not started**: LinkedIn account not connected (requires founder completing real OAuth — never attempted or requested by the coding agent), zero real posts published, `ad_creative` Content Studio mode (Workstream I.2), `claude-ads`/`awesome-claude-code` adoption (I.3/I.4 — audited, see below, adoption not yet implemented), Claude Code ops setup (I.5).
+
+**I.3/I.4 audit summary** (full findings in this session's transcript, not yet filed as a repo doc): `claude-ads` (AgriciDaniel/claude-ads) — MIT, active, single-maintainer, genuinely read-only-by-default with real capability-gating; broader scope than Quantis needs (12-platform ad ops incl. creative production); recommend adopting its governance vocabulary (read-only default, capability gates, approval+rollback+idempotency, recommendation-vs-action separation) as documentation, reject vendoring code. `awesome-claude-code` (hesreallyhim/awesome-claude-code, confirmed canonical, 53.6k★) — discovery index only; five of ten targeted operational categories (smoke-test orchestration, migration-drift detection, public-claim regression scanning, webhook contract verification, invariant-alert escalation) have no match in this list; of what it does offer, `kenryu42/claude-code-safety-net` is the one clear adopt (no secrets required, blocks destructive agent commands); `anthropics/claude-code-action` and `claude-code-security-review` need further scoping before adoption (broad write access / explicitly not hardened against prompt injection per their own docs).
+
+### Revenue and commercial reconciliation (baseline re-verified, not re-guessed)
+
+- Live Stripe (queried directly): **$0 MRR, 0 active subscriptions**, confirmed via `GET /subscriptions?status=active` returning zero results.
+- The one Supabase `subscriptions` row that looked like a live "Sep 1 Pro" sale traces to `stripe_subscription_id = stripe_customer_id = "founder_comp_sasha"` — a manually-inserted founder comp, not a real Stripe object. Resolves an item this register's own prior sessions had left as "verify."
+- Trailing-30-day external (non-founder) analyses corrected from a previously-reported "1" to **0**, after identifying a second founder alt-account (`beltovbogdan@gmail.com`, one character off `jeltovbogdan@gmail.com`) that an earlier exclusion pass had missed.
+- Financial invariant sweep: cadence is healthy (runs every 11-25h, well under the 30h target) — the earlier "104.7h stale" finding was itself stale by the time it was re-checked. The 5 persistent `OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT` violations were traced to exact rows: **all 5 belong to founder or founder-alt accounts** (`jeltovbogdan@gmail.com`, `jjbalaganvasya@gmail.com`, `beltovbogdan@gmail.com`) — zero customer-visible instances, confirmed by joining `violation_ids` → `analyses` → `auth.users`. The underlying calculation mechanism (whether this could also affect a real customer's inputs) remains **unverified** — the sweep script's exact derivation of "operating profit" was not located in the schema-visible fields.
+- Zoho CRM read access, previously reported broken, **confirmed working** this session (`getModules` returned live data). Aug-30 outreach cohort reconciled directly against Gmail Sent: 20 emails, 19 unique recipients, exactly one duplicate send, **zero replies across all 19**, confirmed at the individual-thread level (each thread contains exactly one message), not just a search-result count.
+- Separately noted, not yet fixed: the repo's own `README.md` still states "Validate any business idea in under 90 seconds" and calls it "the canonical latency claim" — this directly contradicts the 2026-08-30 punch-list closure above, which removed this exact claim from every *deployed* surface but evidently did not touch the README. Flagged, not fixed this pass.
+
+### Next action (per this register's own rule: read the previous run's next action, don't regenerate a roadmap)
+
+Highest-priority open item is **not** more engine/security work — it is the buyer path: no real LinkedIn account is connected, no founder-approved post has published, and the Aug-30 outreach cohort has zero replies with no second-touch sent yet (14 drafted, approved, held pending a founder decision on sender identity between `jeltovbogdan@gmail.com` and the Zoho-configured `bogdan.jeltov@aiwmcquantis.com`). Per this charter's own prioritization rule (customer safety/reliability → broken buyer path → comprehension), the engineering lane has no further P0/P1 items; the next smallest useful action belongs to the founder, not another engineering pass.
+
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
