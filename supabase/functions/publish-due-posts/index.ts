@@ -33,7 +33,8 @@ const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
 async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: string | null; disabled?: boolean }> {
   const expiresAt = cred.token_expires ? new Date(cred.token_expires).getTime() : 0;
-  const needsRefresh = !cred.access_token || expiresAt - Date.now() < REFRESH_MARGIN_MS;
+  const expiryIsValid = Number.isFinite(expiresAt);
+  const needsRefresh = !cred.access_token || !expiryIsValid || expiresAt - Date.now() < REFRESH_MARGIN_MS;
   if (!needsRefresh) return { access_token: cred.access_token };
 
   if (!cred.refresh_token_secret_id || !LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET) {
@@ -41,55 +42,84 @@ async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: 
     return { access_token: null };
   }
 
-  const { data: refreshToken } = await supa.rpc('autoposter_read_token', { p_id: cred.refresh_token_secret_id });
-  if (!refreshToken) return { access_token: null };
+  // Concurrency guard: two overlapping publish-due-posts invocations must
+  // never both call LinkedIn's refresh endpoint for the same credential.
+  // LinkedIn refresh tokens can rotate on use, so a losing concurrent
+  // refresh would be exchanging a refresh_token that's already been
+  // invalidated by the winner. Non-blocking try-lock — if another worker
+  // already holds it, use whatever access token we already have rather
+  // than racing a second refresh; the winner's update will be visible on
+  // the next cron tick if this one still isn't fresh enough.
+  const { data: gotLock } = await supa.rpc('autoposter_try_lock_credential', { p_credential_id: cred.id });
+  if (!gotLock) return { access_token: cred.access_token ?? null };
 
-  const res = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken as string,
-      client_id: LINKEDIN_CLIENT_ID,
-      client_secret: LINKEDIN_CLIENT_SECRET,
-    }),
-  });
-  const token = await res.json();
+  try {
+    const { data: refreshToken } = await supa.rpc('autoposter_read_token', { p_id: cred.refresh_token_secret_id });
+    if (!refreshToken) return { access_token: null };
 
-  if (!res.ok || !token.access_token) {
-    // Recoverable-but-broken: disable the credential so every future run
-    // reports needs_credentials instead of quietly failing on every post,
-    // and log the refresh failure as its own auditable event.
-    await supa.from('autoposter_credentials').update({ is_active: false }).eq('id', cred.id);
+    const res = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken as string,
+        client_id: LINKEDIN_CLIENT_ID,
+        client_secret: LINKEDIN_CLIENT_SECRET,
+      }),
+    });
+    const token = await res.json();
+
+    if (!res.ok || !token.access_token) {
+      // Recoverable-but-broken: disable the credential so every future run
+      // reports needs_credentials instead of quietly failing on every post.
+      // Deliberately does NOT touch access_token_secret_id / token_expires —
+      // the last known-good credential stays intact, just marked inactive,
+      // in case the failure is transient and a human re-enables it.
+      // Log only the error shape LinkedIn returns on a failed grant
+      // (error/error_description) — never the raw response body, in case a
+      // future LinkedIn API version ever echoes request fields back.
+      await supa.from('autoposter_credentials').update({ is_active: false }).eq('id', cred.id);
+      await supa.from('autoposter_publishing_logs').insert({
+        post_platform_id: null,
+        action: 'token_refresh',
+        status: 'failed',
+        response_payload: { error: token?.error ?? null, error_description: token?.error_description ?? null, http_status: res.status },
+        duration_ms: 0,
+      });
+      return { access_token: null, disabled: true };
+    }
+
+    await supa.rpc('autoposter_store_token', {
+      p_secret: token.access_token,
+      p_name: 'autoposter_linkedin_access_token',
+    });
+    // LinkedIn may rotate the refresh token on use — if it returns a new
+    // one, it MUST be stored, or the next refresh attempt will exchange an
+    // already-invalidated refresh_token and fail permanently.
+    if (token.refresh_token) {
+      await supa.rpc('autoposter_store_token', {
+        p_secret: token.refresh_token,
+        p_name: 'autoposter_linkedin_refresh_token',
+      });
+    }
+    const newExpiry = token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : null;
+    await supa.from('autoposter_credentials').update({
+      token_expires: newExpiry,
+      last_tested: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', cred.id);
     await supa.from('autoposter_publishing_logs').insert({
       post_platform_id: null,
       action: 'token_refresh',
-      status: 'failed',
-      response_payload: token as any,
+      status: 'refreshed',
+      response_payload: { expires_in: token.expires_in, refresh_token_rotated: !!token.refresh_token },
       duration_ms: 0,
     });
-    return { access_token: null, disabled: true };
+
+    return { access_token: token.access_token };
+  } finally {
+    await supa.rpc('autoposter_unlock_credential', { p_credential_id: cred.id });
   }
-
-  await supa.rpc('autoposter_store_token', {
-    p_secret: token.access_token,
-    p_name: 'autoposter_linkedin_access_token',
-  });
-  const newExpiry = token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : null;
-  await supa.from('autoposter_credentials').update({
-    token_expires: newExpiry,
-    last_tested: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq('id', cred.id);
-  await supa.from('autoposter_publishing_logs').insert({
-    post_platform_id: null,
-    action: 'token_refresh',
-    status: 'refreshed',
-    response_payload: { expires_in: token.expires_in } as any,
-    duration_ms: 0,
-  });
-
-  return { access_token: token.access_token };
 }
 
 type Platform = 'linkedin' | 'facebook' | 'instagram';
