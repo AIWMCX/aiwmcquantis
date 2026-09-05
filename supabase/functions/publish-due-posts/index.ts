@@ -30,6 +30,7 @@ const supa = createClient(SUPABASE_URL, SERVICE_KEY);
 // Workstream I.1 gap fix (2026-09-05): previously there was no refresh path
 // at all, so an expired token just failed every publish attempt forever.
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
+const LEASE_MS = 30 * 1000; // generous over one LinkedIn token-refresh HTTP round trip
 
 async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: string | null; disabled?: boolean }> {
   const expiresAt = cred.token_expires ? new Date(cred.token_expires).getTime() : 0;
@@ -42,17 +43,38 @@ async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: 
     return { access_token: null };
   }
 
-  // Concurrency guard: two overlapping publish-due-posts invocations must
-  // never both call LinkedIn's refresh endpoint for the same credential.
-  // LinkedIn refresh tokens can rotate on use, so a losing concurrent
-  // refresh would be exchanging a refresh_token that's already been
-  // invalidated by the winner. Non-blocking try-lock — if another worker
-  // already holds it, use whatever access token we already have rather
-  // than racing a second refresh; the winner's update will be visible on
-  // the next cron tick if this one still isn't fresh enough.
-  const { data: gotLock } = await supa.rpc('autoposter_try_lock_credential', { p_credential_id: cred.id });
-  if (!gotLock) return { access_token: cred.access_token ?? null };
+  // Concurrency guard: a durable, row-based lease -- NOT a Postgres session-
+  // level advisory lock. pg_try_advisory_lock/pg_advisory_unlock belong to
+  // the Postgres *session*, and two separate Supabase RPC calls from an Edge
+  // Function have no guaranteed session affinity through PostgREST's
+  // connection pool: the acquire and release can land on different pooled
+  // connections, so a lock could be released by a session that never held
+  // it, or held forever by a session recycled for an unrelated request.
+  // A single atomic conditional UPDATE has no such assumption -- it's one
+  // statement, one round trip, correct regardless of which connection
+  // services it. The lease also self-expires (LEASE_MS), so a worker that
+  // crashes mid-refresh doesn't lock the credential out forever the way an
+  // un-released advisory lock effectively could.
+  const leaseOwner = crypto.randomUUID();
+  const nowIso = new Date().toISOString();
+  const leaseExpiresAt = new Date(Date.now() + LEASE_MS).toISOString();
+  const { data: leased } = await supa
+    .from('autoposter_credentials')
+    .update({ refresh_lease_owner: leaseOwner, refresh_lease_expires_at: leaseExpiresAt })
+    .eq('id', cred.id)
+    .or(`refresh_lease_owner.is.null,refresh_lease_expires_at.lt.${nowIso}`)
+    .select('id');
+  if (!leased?.length) {
+    // Another worker holds a live (unexpired) lease -- use the existing
+    // token rather than racing a second refresh; the lease-holder's update
+    // will be visible on the next cron tick if this one still isn't fresh.
+    return { access_token: cred.access_token ?? null };
+  }
 
+  // Every write below is additionally gated on `refresh_lease_owner = leaseOwner`.
+  // If our lease has since expired and a new worker has taken over (visible
+  // as a different owner value), these writes become no-ops instead of
+  // overwriting whatever the new, legitimate owner is doing.
   try {
     const { data: refreshToken } = await supa.rpc('autoposter_read_token', { p_id: cred.refresh_token_secret_id });
     if (!refreshToken) return { access_token: null };
@@ -78,7 +100,10 @@ async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: 
       // Log only the error shape LinkedIn returns on a failed grant
       // (error/error_description) — never the raw response body, in case a
       // future LinkedIn API version ever echoes request fields back.
-      await supa.from('autoposter_credentials').update({ is_active: false }).eq('id', cred.id);
+      await supa.from('autoposter_credentials')
+        .update({ is_active: false })
+        .eq('id', cred.id)
+        .eq('refresh_lease_owner', leaseOwner);
       await supa.from('autoposter_publishing_logs').insert({
         post_platform_id: null,
         action: 'token_refresh',
@@ -103,11 +128,14 @@ async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: 
       });
     }
     const newExpiry = token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : null;
-    await supa.from('autoposter_credentials').update({
-      token_expires: newExpiry,
-      last_tested: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', cred.id);
+    await supa.from('autoposter_credentials')
+      .update({
+        token_expires: newExpiry,
+        last_tested: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', cred.id)
+      .eq('refresh_lease_owner', leaseOwner);
     await supa.from('autoposter_publishing_logs').insert({
       post_platform_id: null,
       action: 'token_refresh',
@@ -118,7 +146,13 @@ async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: 
 
     return { access_token: token.access_token };
   } finally {
-    await supa.rpc('autoposter_unlock_credential', { p_credential_id: cred.id });
+    // Release only if we still own it. If our lease already expired and a
+    // new worker has legitimately taken over, this condition simply won't
+    // match, so we never clear a lease that isn't ours to clear.
+    await supa.from('autoposter_credentials')
+      .update({ refresh_lease_owner: null, refresh_lease_expires_at: null })
+      .eq('id', cred.id)
+      .eq('refresh_lease_owner', leaseOwner);
   }
 }
 
@@ -220,14 +254,46 @@ Deno.serve(async (req) => {
 
   const t0 = Date.now();
 
-  // Pull due rows. Limit batch size for safety.
+  // Find candidate rows, then claim them atomically. Two overlapping
+  // publish-due-posts invocations (e.g. a slow run still finishing when the
+  // next cron minute fires) could both see the same 'scheduled' rows from a
+  // plain SELECT. The UPDATE below re-checks status='scheduled' at write
+  // time, so even if both invocations see the same candidate ids, only one
+  // of them actually flips each given row -- the loser's UPDATE matches
+  // zero rows for anything already claimed, and .select() only returns
+  // what THIS invocation actually claimed. This is what makes "one
+  // scheduled post cannot publish twice" true at the row-claim level; it
+  // does not by itself make the downstream LinkedIn API call idempotent
+  // against a network-timeout retry -- LinkedIn's ugcPosts endpoint has no
+  // client-supplied idempotency key, so a request that times out after
+  // LinkedIn already accepted it remains a real, unresolved residual risk.
   const nowIso = new Date().toISOString();
-  const { data: due, error } = await supa
+  const { data: candidates, error: candidateErr } = await supa
     .from('autoposter_post_platforms')
-    .select('id, post_id, platform, content, scheduled_at, status')
+    .select('id')
     .eq('status', 'scheduled')
     .lte('scheduled_at', nowIso)
     .limit(20);
+
+  if (candidateErr) {
+    return new Response(JSON.stringify({ error: candidateErr.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!candidates || candidates.length === 0) {
+    return new Response(JSON.stringify({ ok: true, processed: 0, elapsed_ms: Date.now() - t0 }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { data: due, error } = await supa
+    .from('autoposter_post_platforms')
+    .update({ status: 'publishing' })
+    .in('id', candidates.map((c) => c.id))
+    .eq('status', 'scheduled')
+    .select('id, post_id, platform, content, scheduled_at');
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -237,6 +303,8 @@ Deno.serve(async (req) => {
   }
 
   if (!due || due.length === 0) {
+    // Every candidate was already claimed by a concurrent invocation between
+    // our SELECT and this UPDATE -- correct behavior, not an error.
     return new Response(JSON.stringify({ ok: true, processed: 0, elapsed_ms: Date.now() - t0 }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
