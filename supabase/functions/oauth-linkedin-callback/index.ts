@@ -55,9 +55,25 @@ Deno.serve(async (req) => {
   if (err) return html(`<h2>LinkedIn error</h2><pre>${err}: ${url.searchParams.get('error_description') ?? ''}</pre>`, 400);
   if (!code || !state) return html('<h2>Missing code or state</h2>', 400);
 
-  const { data: st } = await supa.from('autoposter_oauth_state').select('*').eq('state', state).maybeSingle();
+  // Atomic claim: DELETE ... RETURNING in one round trip, not SELECT-then-DELETE.
+  // Two concurrent callback requests racing the same state value can only ever
+  // have one of them see a returned row — the loser gets an empty array, not a
+  // stale read of a row the winner is about to delete out from under it.
+  const { data: claimed } = await supa
+    .from('autoposter_oauth_state')
+    .delete()
+    .eq('state', state)
+    .select('*');
+  const st = claimed?.[0] ?? null;
   if (!st || st.platform !== 'linkedin') return html('<h2>Invalid state</h2>', 400);
-  await supa.from('autoposter_oauth_state').delete().eq('state', state);
+
+  // Fail closed on a malformed/NULL timestamp: `new Date(x).getTime()` on a
+  // bad value is NaN, and `NaN < Date.now()` is always false in JS — so a
+  // naive expiry check would silently treat a corrupt row as "not expired".
+  const expiresAtMs = new Date(st.expires_at).getTime();
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs < Date.now()) {
+    return html('<h2>State expired</h2><p>This authorization link expired. Start over from the connect flow.</p>', 400);
+  }
 
   // Exchange
   const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
