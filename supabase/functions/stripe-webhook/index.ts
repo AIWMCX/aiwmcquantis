@@ -13,7 +13,7 @@ import {
 } from '../_shared/engagement-offers.ts';
 
 const FUNCTION_NAME = 'stripe-webhook';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 
 const log = createLogger('stripe-webhook', 'module');
 
@@ -429,7 +429,7 @@ serve(async (req) => {
           log.info(`[${requestId}] === One-time paid engagement (${engagementOffer.code}) ===`);
           log.info(`[${requestId}] Session ID: ${session.id}, amount: $${amountUsd}, email: ${maskEmail(contactEmail)}`);
 
-          const { error: engagementErr } = await supabase
+          const { data: engagementRow, error: engagementErr } = await supabase
             .from("paid_engagements")
             .upsert(
               {
@@ -457,7 +457,9 @@ serve(async (req) => {
                 engaged_at: new Date().toISOString(),
               },
               { onConflict: "stripe_checkout_session_id" }
-            );
+            )
+            .select("id, journey_state")
+            .single();
 
           if (engagementErr) {
             log.error(`[${requestId}] Failed to log paid_engagements row for session ${session.id}: ${engagementErr.message}`);
@@ -466,7 +468,39 @@ serve(async (req) => {
             // lets Stripe retry the same event safely.
             throw new Error(`paid_engagement_persistence_failed:${engagementErr.message}`);
           }
-          log.info(`[${requestId}] SUCCESS: paid_engagements row logged for session ${session.id}`);
+          if (!engagementRow?.id) {
+            throw new Error("paid_engagement_transition_failed:missing_engagement_id");
+          }
+
+          // The engagement row is created only after Stripe confirms payment,
+          // so the webhook owns exactly one journey transition:
+          // checkout_created -> payment_confirmed. The raw Stripe event ID is
+          // both the idempotency key and the Stripe replay identity.
+          const { error: transitionErr } = await supabase.rpc(
+            "apply_engagement_transition",
+            {
+              p_engagement_id: engagementRow.id,
+              p_next_state: "payment_confirmed",
+              p_actor_user_id: null,
+              p_idempotency_key: event.id,
+              p_stripe_event_id: event.id,
+            },
+          );
+          if (transitionErr) {
+            log.error(
+              `[${requestId}] Paid-engagement journey transition failed for session ${session.id}:`,
+              transitionErr.message,
+            );
+            // Do not acknowledge fulfillment. The durable webhook event row is
+            // marked failed by the outer catch and Stripe can safely retry.
+            throw new Error(
+              `paid_engagement_transition_failed:${transitionErr.message}`,
+            );
+          }
+
+          log.info(
+            `[${requestId}] SUCCESS: paid_engagements row logged and transitioned to payment_confirmed for session ${session.id}`,
+          );
 
           // Fulfillment requirement #6 (2026-08-30 offer listing spec): send
           // the correct intake for the purchased offer_code. Fire-and-forget,
