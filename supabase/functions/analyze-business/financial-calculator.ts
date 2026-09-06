@@ -478,6 +478,15 @@ export function calculateStrictFinancials(
   // instead of assuming full Month 1 profit. This fixes the "1 month payback" template artifact.
   let paybackMonths = 0;
   let paybackResult: MonthsMetricResult | null = null;
+  // Distinguishes the two distinct causes that both land on the same `999`
+  // sentinel below: a genuinely unprofitable business (finalNetProfit <= 0,
+  // line ~568) vs. a PROFITABLE business whose investment is simply too
+  // large relative to its steady-state profit to pay back within the
+  // 60-month simulation window (line ~514). The notes text used to treat
+  // 999 as always meaning "unprofitable, payback impossible" -- false for
+  // the second case, which tells a genuinely profitable, capital-intensive
+  // business that it's unprofitable.
+  let paybackExceedsHorizon = false;
   if (startupInvestment > 0) {
     if (finalNetProfit > 0) {
       // Simulate ramp-up cash flow to find true payback month
@@ -511,7 +520,10 @@ export function calculateStrictFinancials(
         }
       }
 
-      if (!foundPayback) paybackMonths = 999;
+      if (!foundPayback) {
+        paybackMonths = 999;
+        paybackExceedsHorizon = true;
+      }
 
       // Domain 6/18 accuracy audit (2026-07-25, P0-25): this project has three
       // separately-built, fully-tested reconciliation engines (reconciliation-
@@ -582,7 +594,9 @@ export function calculateStrictFinancials(
     result: paybackMonths,
     isValid: paybackMonths < 36 && paybackMonths > 0,
     notes: paybackMonths === 999
-      ? 'Business is unprofitable - payback impossible'
+      ? (paybackExceedsHorizon
+          ? `Profitable, but payback exceeds the 60-month simulation window at this investment size (steady-state profit $${finalNetProfit}/mo would take ~${Math.ceil(startupInvestment / finalNetProfit)} months at full ramp).`
+          : 'Business is unprofitable - payback impossible')
       : `With 6-month ramp-up: payback at month ${paybackMonths} (steady-state would be ${Math.ceil(startupInvestment / finalNetProfit)} months)`
   });
 
