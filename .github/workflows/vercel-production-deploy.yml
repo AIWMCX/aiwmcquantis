@@ -110,7 +110,13 @@ jobs:
           # deployment itself), and take the first remaining match -- the
           # real "Production" deployment URL always appears before any
           # later Building/Aliased/Ready chatter.
-          OUTPUT=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr)
+          # --archive=tgz: uploads one gzipped tarball instead of every build
+          # output file individually. Vercel's free-tier CLI upload quota
+          # (api-upload-free) counts files-per-upload, not bytes -- this
+          # project's ~5000+ output files exhausted it outright ("Too many
+          # requests - try again in 24 hours (more than 5000)"), blocking
+          # every deploy workflow sharing the account for the rest of the day.
+          OUTPUT=$(vercel deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr)
           # `|| true`: with pipefail + GitHub's default `bash -e`, a pipe that
           # matches nothing (grep exits 1) would abort the script here,
           # skipping the missing-URL check below entirely. The `if` block is

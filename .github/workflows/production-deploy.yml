@@ -93,7 +93,16 @@ jobs:
           fi
           bunx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
           bunx vercel@latest build --prod --token "$VERCEL_TOKEN"
-          URL=$(bunx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN")
+          # --archive=tgz bundles the build into one gzipped tarball instead of
+          # uploading each output file individually. Vercel's free-tier CLI
+          # upload quota (api-upload-free) is keyed on file COUNT per upload,
+          # not bytes -- this repo's ~5000+ output files (chunked JS, source
+          # maps, per-route prerendered HTML) exhausted that quota outright
+          # ("Too many requests - try again in 24 hours (more than 5000)"),
+          # blocking every deploy for the rest of the day regardless of how
+          # small any individual change was. One archive file sidesteps the
+          # count-based limit entirely.
+          URL=$(bunx vercel@latest deploy --prebuilt --prod --archive=tgz --token "$VERCEL_TOKEN")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Fallback production deploy: $URL" >> "$GITHUB_STEP_SUMMARY"
 
