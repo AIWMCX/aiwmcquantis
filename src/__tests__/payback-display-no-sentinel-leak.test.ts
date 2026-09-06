@@ -59,4 +59,18 @@ describe('formatPaybackDisplay never leaks the engine sentinel', () => {
     expect(formatPaybackDisplay(6, 5000)).toBe('6 months');
     expect(formatPaybackDisplay(24, 5000)).toBe('2.0 years');
   });
+
+  it('distinguishes a PROFITABLE business that exceeds the 60-month horizon from a genuinely unprofitable one', () => {
+    // financial-calculator.ts sets the 999 sentinel for two different
+    // reasons: finalNetProfit <= 0 (genuinely unprofitable), or
+    // finalNetProfit > 0 but the investment is too large to pay back
+    // within the 60-month simulation window. Collapsing both to
+    // "unprofitable" falsely labels a profitable, capital-intensive
+    // business as loss-making.
+    expect(formatPaybackDisplay(999, 100000)).toBe('N/A (exceeds 5-year horizon)');
+    expect(formatPaybackDisplay(999, 1)).toBe('N/A (exceeds 5-year horizon)');
+    expect(formatPaybackDisplay(999, 0)).toBe('N/A (unprofitable)');
+    expect(formatPaybackDisplay(999, -1)).toBe('N/A (unprofitable)');
+    expect(formatPaybackDisplay(999)).toBe('N/A (unprofitable)');
+  });
 });
