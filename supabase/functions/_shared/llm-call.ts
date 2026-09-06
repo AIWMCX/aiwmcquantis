@@ -467,7 +467,7 @@ async function callLegacyGateway(
     const latencyMs = Date.now() - start;
     const message = err instanceof Error ? err.message : 'fetch failed';
     const isAbort = /abort|timeout|deadline/i.test(message);
-    void recordAiCall({
+    scheduleBackgroundWork(recordAiCall({
       ok: false,
       task: opts.task,
       model,
@@ -480,7 +480,7 @@ async function callLegacyGateway(
       error: isAbort ? 'AI_TIMEOUT' : `AI_FETCH:${message.slice(0, 200)}`,
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
-    });
+    }));
     const fallback = await tryAnthropicFallback(requestBody, opts);
     if (fallback) return fallback;
     if (isAbort) {
@@ -493,7 +493,7 @@ async function callLegacyGateway(
 
   if (resp.status === 429) {
     await resp.text().catch(() => '');
-    void recordAiCall({
+    scheduleBackgroundWork(recordAiCall({
       ok: false,
       task: opts.task,
       model,
@@ -506,14 +506,14 @@ async function callLegacyGateway(
       error: 'RATE_LIMIT_EXCEEDED',
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
-    });
+    }));
     const fallback = await tryAnthropicFallback(requestBody, opts);
     if (fallback) return fallback;
     return { ok: false, status: 429, error: 'RATE_LIMIT_EXCEEDED', message: 'AI gateway rate-limited. Please retry shortly.', latencyMs };
   }
   if (resp.status === 402) {
     await resp.text().catch(() => '');
-    void recordAiCall({
+    scheduleBackgroundWork(recordAiCall({
       ok: false,
       task: opts.task,
       model,
@@ -526,7 +526,7 @@ async function callLegacyGateway(
       error: 'AI_CREDITS_EXHAUSTED',
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
-    });
+    }));
     {
       const fallback = await tryAnthropicFallback(requestBody, opts);
       if (fallback) return fallback;
@@ -535,7 +535,7 @@ async function callLegacyGateway(
   }
   if (!resp.ok) {
     const detail = await resp.text().catch(() => '');
-    void recordAiCall({
+    scheduleBackgroundWork(recordAiCall({
       ok: false,
       task: opts.task,
       model,
@@ -548,7 +548,7 @@ async function callLegacyGateway(
       error: `AI_${resp.status}:${detail.slice(0, 200)}`,
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
-    });
+    }));
     if (resp.status >= 500) {
       const fallback = await tryAnthropicFallback(requestBody, opts);
       if (fallback) return fallback;
@@ -558,7 +558,7 @@ async function callLegacyGateway(
 
   const data = (await resp.json().catch(() => null)) as Record<string, unknown> | null;
   if (!data) {
-    void recordAiCall({
+    scheduleBackgroundWork(recordAiCall({
       ok: false,
       task: opts.task,
       model,
@@ -571,7 +571,7 @@ async function callLegacyGateway(
       error: 'AI_NO_BODY',
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
-    });
+    }));
     return { ok: false, status: 502, error: 'AI_ERROR', message: 'AI gateway returned no body.', latencyMs };
   }
 
@@ -582,7 +582,7 @@ async function callLegacyGateway(
   const echoedModel = (data.model as string | undefined) ?? model;
   model = echoedModel;
 
-  void recordAiCall({
+  scheduleBackgroundWork(recordAiCall({
     ok: true,
     task: opts.task,
     model,
@@ -594,7 +594,7 @@ async function callLegacyGateway(
     requestId: opts.requestId ?? null,
     metadata: opts.metadata,
     skip: opts.skipTelemetry,
-  });
+  }));
 
   return { ok: true, status: 200, data, latencyMs, inputTokens, outputTokens };
 }
@@ -977,7 +977,7 @@ async function tryAnthropicFallback(
   const outputTokens = usage.output_tokens ?? 0;
   const echoedModel = `anthropic:${(data.model as string | undefined) ?? ANTHROPIC_FALLBACK_MODEL}`;
 
-  void recordAiCall({
+  scheduleBackgroundWork(recordAiCall({
     ok: true,
     task: opts.task,
     model: echoedModel,
@@ -989,7 +989,7 @@ async function tryAnthropicFallback(
     requestId: opts.requestId ?? null,
     metadata: { ...(opts.metadata ?? {}), fallback: 'anthropic' },
     skip: opts.skipTelemetry,
-  });
+  }));
 
   return {
     ok: true,
