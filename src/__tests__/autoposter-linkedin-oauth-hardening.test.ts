@@ -11,11 +11,11 @@ const publishSource = readFileSync(
   "utf8",
 );
 const expiryMigration = readFileSync(
-  resolve(process.cwd(), "supabase/migrations/20260905210000_autoposter_oauth_state_expiry.sql"),
+  resolve(process.cwd(), "supabase/migrations/20260905213627_autoposter_oauth_state_expiry.sql"),
   "utf8",
 );
 const leaseMigration = readFileSync(
-  resolve(process.cwd(), "supabase/migrations/20260905220000_autoposter_credential_lease_lock.sql"),
+  resolve(process.cwd(), "supabase/migrations/20260905222201_autoposter_credential_lease_lock.sql"),
   "utf8",
 );
 
