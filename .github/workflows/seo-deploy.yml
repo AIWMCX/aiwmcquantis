@@ -83,7 +83,9 @@ jobs:
       - name: Deploy prebuilt to Vercel
         id: deploy
         run: |
-          npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>&1 | tee deploy-output.txt
+          # --archive=tgz: see production-deploy.yml -- avoids the free-tier
+          # CLI upload file-count quota (api-upload-free) shared account-wide.
+          npx vercel deploy --prebuilt --prod --archive=tgz --token=$VERCEL_TOKEN 2>&1 | tee deploy-output.txt
           URL=$(tail -1 deploy-output.txt)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:

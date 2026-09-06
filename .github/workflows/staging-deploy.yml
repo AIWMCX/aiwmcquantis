@@ -64,7 +64,11 @@ jobs:
         run: |
           bunx vercel@latest pull --yes --environment=preview --token "$VERCEL_TOKEN"
           bunx vercel@latest build --token "$VERCEL_TOKEN"
-          URL=$(bunx vercel@latest deploy --prebuilt --token "$VERCEL_TOKEN")
+          # --archive=tgz: see production-deploy.yml -- this preview job runs
+          # on every PR push and is the likely dominant contributor to the
+          # account-wide free-tier upload quota (api-upload-free, keyed on
+          # file count, not bytes) exhausting itself mid-session.
+          URL=$(bunx vercel@latest deploy --prebuilt --archive=tgz --token "$VERCEL_TOKEN")
           echo "preview-url=$URL" >> "$GITHUB_OUTPUT"
           echo "Staging preview: $URL" >> "$GITHUB_STEP_SUMMARY"
 
