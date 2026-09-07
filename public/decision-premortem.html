@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A complimentary decision pre-mortem worksheet. Identify uncertain assumptions and leave with one concrete test before committing money.">
+  <title>Decision Pre-mortem — AIWMC Quantis</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080e19;--panel:#101c2b;--line:#2c4057;--text:#f0f4f8;--muted:#afbfce;--blue:#83baff;--orange:#f3b17b}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,sans-serif}main{max-width:940px;margin:auto;padding:34px 24px 70px}a{color:var(--blue)}header{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding-bottom:24px}.brand{letter-spacing:.12em;font-size:13px;font-weight:700}.eyebrow{color:var(--blue);font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-top:44px}h1{font-size:clamp(32px,6vw,54px);line-height:1.12;letter-spacing:-.035em;max-width:760px;margin:14px 0 20px}h2{font-size:23px;line-height:1.3}h3{font-size:17px}p{max-width:720px}.muted,small{color:var(--muted)}.lead{font-size:19px;color:var(--muted)}section,fieldset{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:24px;margin:24px 0}fieldset{min-width:0}legend{padding:0 8px;font-weight:650}label{display:block;font-weight:600;font-size:14px;margin-top:16px}input,textarea,select{display:block;width:100%;background:#080f1a;border:1px solid #526981;color:var(--text);border-radius:7px;padding:11px;font:inherit;margin-top:6px}textarea{min-height:84px;resize:vertical}input:focus,textarea:focus,select:focus,button:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}button,.button{display:inline-block;border:1px solid var(--blue);background:var(--blue);color:#08111d;padding:12px 18px;border-radius:8px;font:600 15px system-ui;cursor:pointer;text-decoration:none;min-height:46px}.secondary{background:transparent;color:var(--blue)}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.tag{color:var(--orange);font-size:13px}.assumption{border-top:1px solid var(--line);padding:18px 0}.assumption:first-child{border-top:0}.result-row{border-top:1px solid var(--line);padding:14px 0;white-space:pre-wrap;overflow-wrap:anywhere}#status{min-height:26px;color:var(--orange)}[hidden]{display:none!important}.skip{position:absolute;left:-999px}.skip:focus{left:12px;top:8px;background:var(--bg);padding:12px}.notice{border-left:3px solid var(--blue);padding-left:16px}.print-only{display:none}@media(max-width:600px){main{padding:24px 16px}.grid{grid-template-columns:1fr;gap:0}section,fieldset{padding:18px}header{font-size:13px}}@media print{body{background:white;color:#111}header,.eyebrow,h1,.lead,#worksheet,.no-print,#intro{display:none!important}main{padding:0;max-width:none}section{background:white;border:1px solid #777;break-inside:avoid}.muted,small,.tag,a{color:#333}.print-only{display:block}#result{display:block}.result-row{border-color:#bbb}button{display:none}}
+  </style>
+</head>
+<body>
+<a class="skip" href="#worksheet">Skip to worksheet</a>
+<main>
+  <header><span class="brand">AIWMC / QUANTIS</span><a href="/">Back to Quantis</a></header>
+  <p class="eyebrow">Complimentary decision worksheet</p>
+  <h1>Find what needs testing.<br>Before you commit.</h1>
+  <p class="lead">Choose one decision. Inspect five assumptions. Leave with a brief you can use—even if you never buy anything.</p>
+  <p id="intro" class="notice muted">This is a self-assessment, not a calculated financial forecast or a probability of success. Your entries stay in this page's memory until you leave or refresh. Export your brief to keep it. No signup, payment or AI call is required.</p>
+  <noscript><p>This interactive worksheet needs JavaScript. You can still write these five checks down: revenue commitment, delivery capacity, cost completeness, cash timing and capital exposure. For each, record your assumption, evidence, consequence if wrong and next test.</p></noscript>
+  <form id="worksheet">
+    <fieldset><legend>1 / Name the decision</legend>
+      <label for="decision">What are you deciding?</label><input id="decision" maxlength="300" required placeholder="For example: accept two new fixed-fee clients in Q4">
+      <div class="grid"><div><label for="commitment">What would you commit?</label><input id="commitment" maxlength="300" placeholder="Money, staff time, a lease or another obligation"></div><div><label for="horizon">Over what period?</label><input id="horizon" maxlength="120" placeholder="For example: October–December 2026"></div></div>
+    </fieldset>
+    <fieldset><legend>2 / Inspect the assumptions</legend><p class="muted">“Unknown” is a valid answer. Evidence means something you can inspect: a signed order, delivery records, a quote or an agreed payment term. A confident forecast is still an estimate.</p><div id="assumptions"></div></fieldset>
+    <fieldset><legend>3 / Choose the next test</legend>
+      <label for="priority">Which assumption matters most to this decision?</label><select id="priority"></select>
+      <label for="consequence">If it is wrong, what changes?</label><textarea id="consequence" maxlength="1800" required placeholder="For example: extra delivery hours would reduce contribution, and an earlier hire would increase cash outflow."></textarea>
+      <label for="test">What will you check before committing?</label><textarea id="test" maxlength="1800" required placeholder="For example: compare the proposed scope against actual hours from three completed projects."></textarea>
+      <div class="grid"><div><label for="owner">Who owns the check? (optional)</label><input id="owner" maxlength="120" placeholder="You or the person responsible"></div><div><label for="due">Check by (optional)</label><input id="due" type="date"></div></div>
+      <div class="actions"><button type="submit">Build my decision brief</button></div>
+    </fieldset>
+  </form>
+  <div id="status" role="status" aria-live="polite"></div>
+  <section id="result" hidden aria-labelledby="result-title" tabindex="-1">
+    <p class="print-only brand">AIWMC QUANTIS / COMPLIMENTARY DECISION PRE-MORTEM</p>
+    <span class="tag">Your inputs · Self-assessment</span><h2 id="result-title">Your next decision, made clearer</h2>
+    <div id="brief"></div>
+    <p class="muted">This brief records your assumptions and next test. It does not validate the evidence, calculate profitability or recommend an investment.</p>
+    <div class="actions no-print"><button id="export" type="button">Download brief (.txt)</button><button id="print" type="button" class="secondary">Print / save PDF</button><button id="edit" type="button" class="secondary">Edit my answers</button></div>
+  </section>
+  <section id="next" hidden class="no-print"><h2>Keep the brief. Choose your next step.</h2><p>Test the assumption yourself, share your export with an advisor, or continue into Quantis to explore a modeled scenario. Deeper analysis and review are optional.</p><div class="actions"><a class="button" href="/app?utm_source=complimentary_premortem&amp;utm_medium=owned&amp;utm_campaign=decision_evidence">Explore Quantis</a><a class="button secondary" href="/decision-review?utm_source=complimentary_premortem&amp;utm_medium=owned&amp;utm_campaign=decision_evidence">See optional review services</a></div><small>Your worksheet is not automatically transferred. Keep your export if you continue.</small></section>
+</main>
+<script>
+'use strict';
+const dimensions = [
+  ['Revenue commitment', 'What price, volume or client commitment does this depend on?', 'Check signed commitments separately from pipeline or verbal interest.'],
+  ['Delivery capacity', 'What work must your team deliver, and can it fit?', 'Compare required hours or units with actual available capacity.'],
+  ['Cost completeness', 'Which variable and fixed costs are included?', 'Check delivery, support, commissions and overhead without double-counting.'],
+  ['Cash timing', 'When does cash arrive relative to cash going out?', 'Compare collection dates with payroll, suppliers and other obligations.'],
+  ['Capital exposure', 'What initial cash or commitment must be recovered?', 'Separate operating break-even from recovery of your initial investment.']
+];
+const byId = id => document.getElementById(id);
+const form = byId('worksheet');
+let currentBrief = '';
+dimensions.forEach(([title, prompt, guidance], index) => {
+  const block = document.createElement('div');
+  block.className = 'assumption';
+  const heading = document.createElement('h3'); heading.textContent = title; block.append(heading);
+  const hint = document.createElement('p'); hint.className = 'muted'; hint.textContent = guidance; block.append(hint);
+  const add = (text, id, tag) => { const label = document.createElement('label'); label.htmlFor = id; label.textContent = text; const input = document.createElement(tag); input.id = id; if(tag !== 'select') input.maxLength = 1200; block.append(label, input); return input; };
+  add(prompt, 'assumption-' + index, 'textarea');
+  const state = add('Evidence status', 'state-' + index, 'select');
+  ['Unknown', 'Estimated', 'Confirmed by evidence'].forEach(text => {const option = document.createElement('option'); option.value = text; option.textContent = text; state.append(option);});
+  add('Evidence or source, including its date (if available)', 'evidence-' + index, 'textarea');
+  byId('assumptions').append(block);
+  const option = document.createElement('option'); option.value = String(index); option.textContent = title; byId('priority').append(option);
+});
+function value(id) {return byId(id).value.trim();}
+form.addEventListener('input', () => {
+  if(currentBrief) {currentBrief=''; byId('result').hidden=true; byId('next').hidden=true; byId('status').textContent='Answers changed. Rebuild your brief before exporting.';}
+});
+form.addEventListener('submit', event => {
+  event.preventDefault();
+  if(!form.reportValidity()) return;
+  for(let i=0;i<dimensions.length;i++) {
+    if(value('state-'+i)==='Confirmed by evidence' && (!value('evidence-'+i) || !value('assumption-'+i))) {
+      byId('status').textContent='Add both the assumption and its evidence for '+dimensions[i][0]+', or mark it estimated/unknown.';
+      byId(!value('assumption-'+i)?'assumption-'+i:'evidence-'+i).focus(); return;
+    }
+  }
+  const lines = ['AIWMC QUANTIS — DECISION PRE-MORTEM', 'Self-assessment; evidence not independently verified.', '', 'Decision: '+value('decision'), 'Commitment: '+(value('commitment')||'Not specified'), 'Period: '+(value('horizon')||'Not specified'), '', 'ASSUMPTION REGISTER'];
+  dimensions.forEach(([title], i) => lines.push('', title+' — '+value('state-'+i), 'Assumption: '+(value('assumption-'+i)||'Unknown'), 'Evidence: '+(value('evidence-'+i)||'Not supplied')));
+  lines.push('', 'PRIORITY TEST', dimensions[Number(value('priority'))][0], 'If wrong: '+value('consequence'), 'Next test: '+value('test'), 'Owner: '+(value('owner')||'Not assigned'), 'Check by: '+(value('due')||'Not set'), '', 'This is your decision worksheet, not a calculated financial forecast.');
+  currentBrief = lines.join('\n');
+  byId('brief').replaceChildren();
+  for(const line of lines.slice(3)) {const row = document.createElement('div'); row.className='result-row'; row.textContent=line; if(line) byId('brief').append(row);}
+  byId('result').hidden=false; byId('next').hidden=false;
+  byId('status').textContent='Your brief is ready. Download it before leaving or refreshing this page.';
+  byId('result').focus();
+});
+byId('export').addEventListener('click', () => {
+  if(!currentBrief) return;
+  try {const url=URL.createObjectURL(new Blob([currentBrief],{type:'text/plain;charset=utf-8'})); const link=document.createElement('a');link.href=url;link.download='quantis-decision-premortem.txt';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  catch {byId('status').textContent='Download could not start. Use Print / save PDF, or copy the brief from this page.';}
+});
+byId('print').addEventListener('click',()=>{if(currentBrief)window.print();});
+byId('edit').addEventListener('click',()=>byId('decision').focus());
+</script>
+</body>
+</html>
