@@ -15,11 +15,19 @@ describe("AI-run correlation (Priority 5 / Workstream F fix)", () => {
     expect(aiCallIdx).toBeGreaterThan(runIdIdx);
   });
 
-  it("passes analysisId to aiCall() -- this was the entire cause of ai_calls.analysis_id being 0/130 NULL", () => {
+  it("does NOT pass analysisId to aiCall() -- ai_calls.analysis_id has a FK to analyses(id), and analysisRunId never corresponds to a real analyses row at write time, so passing it makes every insert violate the FK and silently drop the whole telemetry row (live-confirmed 2026-09-06: a direct insert with a fabricated analysis_id reproduced error 23503)", () => {
     const aiCallIdx = source.indexOf("await aiCall(");
     const optsBlockEnd = source.indexOf("dahlAlias: 'fast_reasoning',", aiCallIdx);
     const optsBlock = source.slice(aiCallIdx, optsBlockEnd);
-    expect(optsBlock).toContain("analysisId: analysisRunId");
+    expect(optsBlock).not.toContain("analysisId: analysisRunId");
+    expect(optsBlock).not.toContain("analysisId:");
+  });
+
+  it("still keeps the run id correlatable via metadata (no FK on a jsonb column) instead of the FK'd analysis_id column", () => {
+    const aiCallIdx = source.indexOf("await aiCall(");
+    const optsBlockEnd = source.indexOf("dahlAlias: 'fast_reasoning',", aiCallIdx);
+    const optsBlock = source.slice(aiCallIdx, optsBlockEnd);
+    expect(optsBlock).toContain("analysis_run_id: analysisRunId");
   });
 
   it("returns the run id in the response payload so the caller can persist it on the saved analyses row", () => {
