@@ -4,7 +4,7 @@ Version 1.0. Owner: founder + engineering/content operations. This is a specific
 ## Evidence and corrections
 Read the canonical register before any recurring work. PR #109 already records durable credential leases and atomic publisher claims: preserve closure. Do not reopen the old advisory-lock issue from a stale handoff.
 Live Supabase baseline: 42 draft posts; 13 Studio generations; 0 credentials; 0 platform variants before this session. Six logs are action=generate/status=error, not failed publishing attempts.
-After this session: same 42 posts, three revised with original hook/brief/date/status retained in notes, three LinkedIn draft variants, no scheduled_at or publication IDs. Refresh key: 2026-09-07-premortem-v1. Dates Sep 8–10 are editorial proposals, not publication appointments.
+After this session: same 42 posts, three revised with original hook/brief/date/status retained in notes, three LinkedIn draft variants, no scheduled_at or publication IDs. Refresh batch: 2026-09-07-premortem-v1. Dates Sep 8–10 are editorial proposals, not publication appointments.
 
 Repository source:
 - Studio generates and copies text, shows last 20 generations, provides no native queue handoff.
@@ -49,7 +49,7 @@ Measure demo completion/completed starts; inquiry/qualified completed demos; pai
 UTM product/campaign/content IDs link to first-party events. CRM receives opt-in contact and campaign context through an authenticated idempotent outbox; no raw financial assumptions in CRM or ad-platform events. Preserve existing Zoho suppression/dedup/send-history controls. No inferred email opens or leads created merely because someone views a demo.
 
 ## Complimentary Decision Pre-mortem
-Status: specification, not a newly deployed route. Inspect existing PreMortem.tsx, public examples, anonymous result route and financial engine before implementation; extend them.
+Status: first self-assessment coded at public/decision-premortem.html on this PR, NOT LIVE. The existing PreMortem.tsx is Plus-only and redirects ineligible users to pricing. The complimentary static worksheet gives five evidence checks, a user-defined consequence/next test and text/print export without signup, payment, AI calls or persistent storage. It explicitly does not calculate forecasts or transfer inputs into the app. Five DOM regression tests added; real-browser test is blocked because Chromium is absent and the approved download timed out. The deeper engine-backed specification below remains unimplemented; extend existing engine/UI for that increment.
 
 Promise: “Find the assumption to test before committing money.”
 No card, no forced meeting, no email wall before the useful result. Optional save/account request follows the result, with clear privacy and retention behavior.
