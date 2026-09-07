@@ -183,9 +183,9 @@ export function useAddWeeklySnapshot() {
 }
 
 /**
- * Seed (or refresh) the canonical 90-day content plan into the DB.
- * Idempotent: upserts on (week_number, day_number). Safe to run anytime
- * after editing src/data/autoposterContentPlan.ts.
+ * Add missing entries from the canonical content plan without overwriting editorial work.
+ * Idempotent: conflicts on (week_number, day_number) are ignored. Existing
+ * drafts, approvals, publication state, and revisions must be preserved.
  */
 export function useSeedContentPlan() {
   const qc = useQueryClient();
@@ -204,15 +204,16 @@ export function useSeedContentPlan() {
         expected_reach: p.expected_reach,
         status: 'draft',
       }));
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('autoposter_posts')
-        .upsert(rows, { onConflict: 'week_number,day_number' });
+        .upsert(rows, { onConflict: 'week_number,day_number', ignoreDuplicates: true })
+        .select('id');
       if (error) throw error;
-      return rows.length;
+      return data?.length ?? 0;
     },
     onSuccess: (count) => {
       qc.invalidateQueries({ queryKey: ['autoposter'] });
-      toast.success(`Synced ${count} posts to queue`);
+      toast.success(`Added ${count} missing posts; existing content preserved`);
     },
     onError: (e: Error) => toast.error('Seed failed', { description: e.message }),
   });
