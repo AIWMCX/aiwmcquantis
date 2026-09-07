@@ -1,0 +1,4 @@
+# Exact documentation false positive: the non-secret editorial batch identifier
+# 2026-09-07-premortem-v1 followed the words 'Refresh key' in this commit.
+# No credential or authentication material; do not broaden this exception.
+9b3e595d1dc335cccb2fcc713f37e91c06e27755:docs/content-os/2026-09-07-marketing-operations.md:generic-api-key:7
