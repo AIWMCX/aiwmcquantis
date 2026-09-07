@@ -3042,9 +3042,20 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             task: 'analyze-business',
             timeoutMs: AI_TIMEOUT_MS,
         requestId,
-            analysisId: analysisRunId,
+            // Deliberately not passing analysisRunId as the aiCall "analysisId"
+            // option here. ai_calls.analysis_id has a
+            // foreign key to public.analyses(id), and analysisRunId is
+            // generated before this function (or its caller) has created any
+            // row in analyses -- passing it as analysisId makes every insert
+            // violate the FK and fail outright (losing the whole telemetry
+            // row, not just this field). No caller currently reuses
+            // analysisRunId as the analyses row's actual id (confirmed: not
+            // referenced anywhere in src/ outside this fix's own test), so
+            // there's no way to satisfy the FK yet. Keep the run id
+            // correlatable via metadata (no FK) instead; wiring it through to
+            // a real analyses.id is a separate, cross-cutting change.
             userId: userId,
-            metadata: { attempt, industry: detectedIndustry.name },
+            metadata: { attempt, industry: detectedIndustry.name, analysis_run_id: analysisRunId },
             // Explicit alias when Dahl is the active provider: a live
             // multi-model probe (2026-08-24) proved 'general' (MiniMax-M2.7)
             // times out completely on this exact large structured-JSON
