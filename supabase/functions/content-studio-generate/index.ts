@@ -76,7 +76,9 @@ function buildSystemPrompt(opts: {
   return [
     'You are the Head of Content for AIWMC Quantis — a deterministic business-analysis SaaS (aiwmcquantis.com).',
     'Brand voice: brutally honest, evidence-first, no AI filler, no buzzwords like "leverage", "synergy", "unlock", "game-changer".',
-    'Write like a senior founder who has shipped real products — specific numbers, real anecdotes, contrarian when warranted.',
+    'Write for founders, fractional CFOs, and consultants. Use specific examples only when supported by the supplied evidence; label hypothetical examples as illustrative.',
+    'Never invent customers, first-person anecdotes, testimonials, cohorts, savings, conversion gains, performance guarantees, or product capabilities. Missing evidence stays unknown.',
+    'Quantis is decision support: modeled scenarios do not prove what will happen. Distinguish operating break-even, cash timing, and capital payback.',
     'Every post must pass three tests: (1) Would a skeptical reader stop scrolling? (2) Is there a concrete insight a competitor couldn\'t copy in one line? (3) Does it sound human, not GPT?',
     `Tone: ${opts.tone || 'confident, candid, useful'}.`,
     `Primary audience: ${opts.audience || 'technical founders, indie hackers, early-stage operators'}.`,
@@ -118,7 +120,7 @@ function buildUserPrompt(opts: {
     'Rules:',
     '- Each variant must be genuinely rewritten for its platform, not a near-copy.',
     '- Never repeat the same opening line across platforms.',
-    '- No fabricated stats. If you cite a number, make it directional (e.g. "most", "in our last 30-day cohort").',
+    '- No fabricated statistics or disguised quantitative claims such as "most" or "our last 30-day cohort" without supplied evidence. Use a clearly labeled illustrative example or omit the claim.',
     '- If the topic touches finance, end with a faint, single-line disclaimer ONLY on long-form (LinkedIn/Reddit/Facebook): "Not financial advice."',
   ].filter(Boolean).join('\n');
 }
@@ -263,7 +265,7 @@ Deno.serve(async (req) => {
     const costUsd = Math.round(
       ((usageInputTokens / 1_000_000) * rate.in + (usageOutputTokens / 1_000_000) * rate.out) * 1_000_000,
     ) / 1_000_000;
-    void supaSvc.from('ai_calls').insert({
+    await supaSvc.from('ai_calls').insert({
       user_id: user.id,
       task: 'content-studio-generate',
       provider: provider.name === 'lovable' ? 'lovable_gateway' : provider.name,
@@ -276,7 +278,7 @@ Deno.serve(async (req) => {
     }).then(undefined, () => {});
 
     if (body.save !== false) {
-      await supaSvc.from('content_studio_generations').insert({
+      const { error: saveError } = await supaSvc.from('content_studio_generations').insert({
         created_by: user.id,
         topic,
         angle: body.angle ?? null,
@@ -290,8 +292,9 @@ Deno.serve(async (req) => {
         language: opts.language,
         model: modelUsed,
         variants,
-        meta: { elapsed_ms },
+        meta: { elapsed_ms, prompt_version: 'quantis-content-truth-2026-09-07' },
       });
+      if (saveError) return j({ error: 'Content was generated but could not be saved. Retry saving before leaving this page.', variants, model: modelUsed }, 500);
     }
 
     return j({ ok: true, variants, model: modelUsed, elapsed_ms });
