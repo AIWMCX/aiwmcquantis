@@ -318,3 +318,26 @@ Highest-priority open item is **not** more engine/security work — it is the bu
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
+
+## Session 2026-09-07 — marketing operations, daily refresh, complimentary pre-mortem
+Evidence attachment: [marketing operations specification](../content-os/2026-09-07-marketing-operations.md). This extends this register; it does not replace historical closure evidence.
+
+| ID | Owner | Finding / deliverable | Status | Evidence / next action |
+|---|---|---|---|---|
+| MKT-001 | Content ops | Reconcile existing content | Done | Live query: 42 drafts, 13 generations, zero credentials; before changes zero platform variants. Six logs are generation errors, not publishing failures. |
+| MKT-002 | Content ops | Public account audit | In progress | LinkedIn company/aiwmc visible, mixed product posts; four other channels could not be retrieved. Public history and analytics incomplete. Manual posts must be reconciled independently of Autoposter. |
+| MKT-003 | Content ops | Three existing drafts refreshed for Sep 8–10 | Done | Batch 2026-09-07-premortem-v1; original hook/brief/date/status retained in notes. Three LinkedIn variants re-read as draft, null scheduled_at/platform_post_id. 42 parents remain; no publishing. |
+| MKT-004 | Content ops | Daily review and every-three-day refresh | Done | Two enabled scheduled ChatGPT tasks created, America/Denver; not application-worker wiring. Existing paused audits left paused. |
+| MKT-005 | Engineering | Preserve editorial work on seed | In progress | Branch work/marketing-operations-2026-09-07 ignores upsert conflicts, reports inserted count. Not deployed; CI required. |
+| MKT-006 | Engineering | Truthful generation and honest save failures | In progress | Same branch removes unsupported cohort/directional claims, awaits telemetry, reports save failure. Prompt rules alone are not claim enforcement. |
+| MKT-007 | Engineering + founder | Studio→queue→approval→publication | Blocked | Native handoff not implemented; zero credentials. Atomic handoff, DST-safe scheduling, real OAuth/account author and one approved external receipt required. |
+| MKT-008 | Engineering | Third-party marketing/ads adoption | In progress | 47.5k-star marketingskills, 8.9k-star claude-ads and 53.6k-star awesome-claude-code researched. Exact pinned-file/license/code review and runtime integration not complete. |
+| MKT-009 | Product + engineering | Complimentary Decision Pre-mortem | In progress | Complete free-value specification in attachment. Inspect existing PreMortem flow; no new free framework deployed in this session. |
+| MKT-010 | Revenue ops | Current external revenue truth | Blocked | Register labels the same account founder-alt and later likely external payer. Current Stripe/identity reconciliation required; no current sale count established in this session. |
+| MKT-011 | Engineering | Schedule error/DST correctness | Not started | useApproveAndSchedule assumes UTC-7 and ignores Supabase response errors. Replace with atomic authorized scheduling and timezone fixtures. |
+| MKT-012 | Content ops + founder | Public claims/account identity | In progress | LinkedIn bio retains unsupported timing/comparison claims; homepage crawler output still has trial/API claims needing live truth-gate reconciliation. Connect/SEO account URLs conflict. |
+
+Carry forward #108/#109 as recorded: durable lease/claim fixes are not reopened. External timeout ambiguity is still unresolved and requires reconciliation before retry.
+Historical evidence correction: a manually configured health commit_sha and deployment version increment alone do not prove deployed source identity. Preserve historical reports but require deployed-source comparison for future closure claims.
+Commercial-lane ownership supersedes the old “not tracked by coding agent” sentence: content operations now owns evidence reconciliation, draft refresh and task tracking; founder owns account authentication and approval of actual publishing. No messages or ads were sent by this session.
+Next: inspect CI on the bounded marketing PR; connect the actual authorized LinkedIn author, then finish transactional handoff/scheduling. Continue the free pre-mortem against existing engine/UI rather than generating another roadmap.
