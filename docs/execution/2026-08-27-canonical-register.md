@@ -315,6 +315,16 @@ Highest-priority open item is **not** more engine/security work — it is the bu
 
 **Unchanged from the prior session** — this session's work was entirely engineering-lane correctness/infrastructure fixes (telemetry, financial-display accuracy, deploy pipeline), none of which touch the open buyer-path item. The founder decision on outreach sender identity (`jeltovbogdan@gmail.com` vs. `bogdan.jeltov@aiwmcquantis.com`) and LinkedIn OAuth connection remain the highest-priority open items, and remain founder-only actions, not further engineering.
 
+### Specified (not built): social-account-informed Autoposter refresh cadence
+
+Founder request, 2026-09-06/07: a recurring job that (1) reads the actual AIWMC Quantis LinkedIn page's post history, (2) diffs it against Autoposter's drafts (42, all unpublished as of this session) to find used/unused/stale ideas, (3) refreshes/personalizes the stale and unused ones against the current month's theme and the metrics the founder cares about that day/month, and (4) feeds the result through one shared framework covering both Content Studio and Autoposter (and eventually AIWMC's other products' ad generation).
+
+**Deliberately not implemented this session.** Step (1) requires a connected LinkedIn account with read access to the page's real post history — this project has never had one (see "Next action" above, unchanged since the prior session). A refresh job with no real posting history to diff against cannot do what it's specified to do; building the wiring around it now would produce another "looks operational, isn't" surface, which is exactly the class of problem the last two sessions' engineering work (FK violation, deploy quota, RLS drift) existed to eliminate. Sequencing per this register's own prioritization rule: LinkedIn OAuth connection is a founder-only action that gates this entire spec, not an engineering task to route around.
+
+Separately evaluated and explicitly declined for this pass: vendoring code from third-party "Claude marketing/ads" repositories without a specific named target. The prior session (2026-09-04/05, recorded above) already audited the three concrete candidates that exist (`claude-ads`, `marketingskills`, `awesome-claude-code`) and recommended adopting their governance *patterns* (evidence-backed briefs, approval gates, versioned output) rather than vendoring their code — that recommendation stands. A request to "find any viral repo" with no name given is a request to install speculatively, which this register's charter explicitly prohibits.
+
+**Reopening trigger**: LinkedIn OAuth connected with read access to post history.
+
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
