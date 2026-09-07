@@ -1,5 +1,5 @@
 // Fast, DB-free viewer of the canonical content plan.
-// Renders QUANTIS_CONTENT_PLAN instantly + supports one-click seed/refresh.
+// Renders QUANTIS_CONTENT_PLAN instantly + supports one-click insert-missing.
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -95,7 +95,7 @@ export function ContentPlanView() {
           disabled={seed.isPending}
           className="bg-[var(--q-accent-primary)] text-black hover:bg-[var(--q-accent-primary)]/90"
         >
-          {seed.isPending ? 'Syncing…' : '↻ Seed / refresh to queue'}
+          {seed.isPending ? 'Adding…' : 'Add missing posts to queue'}
         </Button>
       </Card>
 
@@ -215,7 +215,7 @@ export function ContentPlanView() {
                     )}
                   </div>
                   <div className="text-right text-[10px] text-[var(--q-text-secondary)] font-mono whitespace-nowrap">
-                    <div>reach</div>
+                    <div>unverified estimate</div>
                     <div className="text-[var(--q-text-primary)]">{p.expected_reach}</div>
                   </div>
                 </div>
@@ -293,16 +293,16 @@ export function ContentPlanView() {
 
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] font-mono mb-1">
-                    Expected reach
+                    Unverified reach estimate
                   </div>
                   <p className="text-[var(--q-text-primary)]">{openEntry.expected_reach}</p>
                 </div>
               </div>
 
               <p className="text-xs text-[var(--q-text-secondary)] pt-2 border-t border-[var(--q-border-subtle)]">
-                This is the static plan preview. Click "Seed / refresh to queue" above to bring
+                This is the static plan preview. Click "Add missing posts to queue" above to bring
                 this post into the editable Queue tab, where you can generate platform copy,
-                edit, approve, and schedule it.
+                edit, approve, and schedule it. Existing queue content is preserved.
               </p>
             </>
           )}
