@@ -71,6 +71,7 @@ const ALLOWLIST = new Set([
   "doc_templates.doc_templates_public_read",
   "service_job_assemblies.Anyone can read active assemblies",
   "service_job_trades.Anyone can read active trades",
+  "status_incidents.Anyone can read status incidents",
 ]);
 
 interface WideOpenRow {
