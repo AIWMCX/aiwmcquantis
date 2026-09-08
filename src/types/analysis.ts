@@ -417,6 +417,13 @@ export interface BusinessAnalysisResult {
     generated_at: string;
     model: string;
     version: string;
+    /** Access attached to the generated report, not the viewer's current plan. */
+    access?: {
+      decision_bundle: 'complimentary' | 'paid';
+      includes?: Array<'full_analysis' | 'pre_mortem' | 'scenario_model'>;
+      monthly_limit?: number;
+      remaining_after_run?: number | null;
+    };
     /**
      * The server's real Benchmark Master match (~97,500-row dataset),
      * computed once at analysis time. CodeRabbit catch (PR #100): this
