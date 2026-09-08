@@ -75,16 +75,17 @@ export default function Terms() {
           <h2 className="text-2xl font-semibold text-foreground">4. Subscription Plans & Payment</h2>
           <h3 className="text-xl font-medium text-foreground">4.1 Free Tier</h3>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-            <li>{FREE_ANALYSES_PER_MONTH} analyses per month</li>
-            <li>Viability score and top 3 critical risks only</li>
-            <li>Basic revenue projection (locked: Monte Carlo, P&L, competitive matrix, full action plan)</li>
+            <li>{FREE_ANALYSES_PER_MONTH} complete Decision Runs per month</li>
+            <li>Full financial analysis, 36-month projection, Monte Carlo modeling, and action plan</li>
+            <li>Failure pre-mortem and one saved scenario set per analysis</li>
+            <li>Complimentary-run attribution and plan-specific document/export limits may apply</li>
           </ul>
 
           <h3 className="text-xl font-medium text-foreground">4.2 Plus Plan (${TIERS.plus.priceMonthly}/month)</h3>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
             <li>14-day free trial</li>
             <li>Unlimited analyses</li>
-            <li>Advanced financial modeling</li>
+            <li>Continuous advanced financial modeling without the monthly run limit</li>
             <li>Complete business plans</li>
             <li>Document Intelligence (AI extraction)</li>
             <li>PDF export with custom branding</li>
