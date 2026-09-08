@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingFallback from "./components/layout/LoadingFallback";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -372,6 +374,8 @@ const App = () => {
             </BrowserRouter>
           </TooltipProvider>
         </QueryClientProvider>
+        <Analytics />
+        <SpeedInsights />
       </ThemeProvider>
       </HelmetProvider>
     </ErrorBoundary>
