@@ -33,23 +33,23 @@ export const TIERS = {
   free: {
     id: 'free',
     label: 'Free',
-    positioning: 'Reconnaissance — is this idea worth your time?',
+    positioning: 'Five complete Decision Runs each month — analysis, pre-mortem, and scenarios.',
     priceMonthly: 0,
     priceAnnual: 0,
     limits: {
       analysesPerMonth: 5,
       downloadsPerDay: 5,
-      projectionMonths: 0,
-      monteCarloScenarios: 0,
+      projectionMonths: 36,
+      monteCarloScenarios: MONTE_CARLO_ITERATIONS,
       teamSeats: 0,
-      templates: 0, // Doc Studio fully locked for Free (per CTO §2)
-      scenarioSetsPerAnalysis: 0, // Free: view + one unsaved preview only, no saved sets
+      templates: 3, // Starter templates; AI document workflows remain paid
+      scenarioSetsPerAnalysis: 1, // One versioned scenario set accompanies every free Decision Run
     },
     features: {
       depthQuick: true,
-      depthFull: false,
+      depthFull: true,
       depthPro: false,
-      preMortem: false,
+      preMortem: true,
       invoiceCapacity: false,
       documentStudio: false,
       aiDocIntelligence: false,
@@ -62,13 +62,13 @@ export const TIERS = {
       pitchDeck: false,
       strategicRoadmap: false,
       fiveYearModel: false,
-      actionPlan: false,
+      actionPlan: true,
       // Scenario framework (Release 1) — mirrors plan_entitlements.features
       // set by supabase/migrations/20260730084333_scenario_entitlement_keys.sql.
       scenarioView: true,
       scenarioCustom: true,
-      scenarioSave: false,
-      scenarioCompare: false,
+      scenarioSave: true,
+      scenarioCompare: true,
       scenarioPromote: false,
       scenarioEvidenceRefresh: false,
       scenarioDocument: false,
