@@ -42,8 +42,23 @@ const FREE_FALLBACK: EntitlementsSnapshot = {
   tier: 'free',
   label: 'Free',
   monthly_analyses: 5,
-  features: {},
-  limits: { analysesPerMonth: 5 },
+  features: {
+    depthQuick: true,
+    depthFull: true,
+    preMortem: true,
+    actionPlan: true,
+    scenarioView: true,
+    scenarioCustom: true,
+    scenarioSave: true,
+    scenarioCompare: true,
+  },
+  limits: {
+    analysesPerMonth: 5,
+    projectionMonths: 36,
+    monteCarloScenarios: 1000,
+    scenarioSetsPerAnalysis: 1,
+    templates: 3,
+  },
   stripe_price_ids: [],
 };
 
