@@ -42,12 +42,12 @@ export type LimitKey = 'analysesPerMonth' | 'downloadsPerDay' | 'projectionMonth
 
 export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
   free: {
-    depthQuick: true, depthFull: false, depthPro: false,
-    preMortem: false, invoiceCapacity: false, documentStudio: false, aiDocIntelligence: false,
+    depthQuick: true, depthFull: true, depthPro: false,
+    preMortem: true, invoiceCapacity: false, documentStudio: false, aiDocIntelligence: false,
     customBranding: false, whiteLabel: false, unlimitedHistory: false, watermarkFree: false,
     apiAccess: false, tamSamSom: false, pitchDeck: false, strategicRoadmap: false,
-    fiveYearModel: false, actionPlan: false,
-    scenarioView: true, scenarioCustom: true, scenarioSave: false, scenarioCompare: false,
+    fiveYearModel: false, actionPlan: true,
+    scenarioView: true, scenarioCustom: true, scenarioSave: true, scenarioCompare: true,
     scenarioPromote: false, scenarioEvidenceRefresh: false, scenarioDocument: false,
   },
   plus: {
@@ -71,7 +71,7 @@ export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
 };
 
 export const LIMITS: Record<TierId, Record<LimitKey, number>> = {
-  free: { analysesPerMonth: 5, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0, scenarioSetsPerAnalysis: 0 },
+  free: { analysesPerMonth: 5, downloadsPerDay: 5, projectionMonths: 36, monteCarloScenarios: 1_000, teamSeats: 0, templates: 3, scenarioSetsPerAnalysis: 1 },
   // monteCarloScenarios = MC iteration count (per src/config/canonical-facts.ts MONTE_CARLO_ITERATIONS).
   // Previously 95_500 — that was the BENCHMARK corpus size, not the iteration count.
   // Fixed per audit 2026-06-20 contradiction C-8.
@@ -364,28 +364,17 @@ export function coerceDepth(tier: TierId, requested: string | undefined): 'quick
 }
 
 /**
- * Strip Plus/Pro-only fields from an analysis result before returning to a Free user.
- * Critical: prevents compute leakage even if a Free user crafts a request that
- * accidentally runs the full engine. The engine may produce a full payload —
- * this guarantees the wire response is Free-tier-shaped.
+ * Keep the complete result for a Free Decision Run. Quota enforcement is the
+ * acquisition boundary: a user gets enough real product value to judge Quantis,
+ * while paid plans remove the five-run limit and add workflow capabilities.
  */
 export function sanitizeResultForTier<T extends Record<string, unknown>>(tier: TierId, result: T): Partial<T> {
   if (tier !== 'free') return result;
-  // Free shape: score + top 3 risks + base revenue only.
-  const safe: Record<string, unknown> = {};
-  if ('score' in result) safe.score = (result as any).score;
-  if ('confidence_score' in result) safe.confidence_score = (result as any).confidence_score;
-  if ('verdict' in result) safe.verdict = (result as any).verdict;
-  if ('top_risks' in result) safe.top_risks = ((result as any).top_risks ?? []).slice(0, 3);
-  if ('risks' in result) safe.risks = ((result as any).risks ?? []).slice(0, 3);
-  if ('revenue' in result && (result as any).revenue?.base !== undefined) {
-    safe.revenue = { base: (result as any).revenue.base };
-  } else if ('base_revenue' in result) {
-    safe.base_revenue = (result as any).base_revenue;
-  }
-  safe._tier = 'free';
-  safe._upgradeMessage = 'Upgrade to Plus for full Monte Carlo, 36-month projections, and stress testing.';
-  return safe as Partial<T>;
+  return {
+    ...result,
+    _tier: 'free',
+    _access: { decision_bundle: 'complimentary' },
+  } as Partial<T>;
 }
 
 async function logDenial(
