@@ -8,10 +8,11 @@ interface FreeVsProMatrixProps {
 }
 
 const features = [
-  { label: 'Scenarios', free: '3 / month', pro: 'Unlimited' },
-  { label: 'Benchmark depth', free: 'Quick', pro: 'Full forensic' },
+  { label: 'Decision Runs', free: '5 / month', pro: 'Unlimited' },
+  { label: 'Financial analysis', free: 'Full', pro: 'Full' },
+  { label: 'Pre-mortem + scenarios', free: true, pro: true },
   { label: 'PDF & exports', free: false, pro: true },
-  { label: 'Monte Carlo', free: false, pro: true },
+  { label: 'Monte Carlo', free: true, pro: true },
   { label: 'Custom branding', free: false, pro: true },
   { label: 'Priority support', free: false, pro: true },
 ];
