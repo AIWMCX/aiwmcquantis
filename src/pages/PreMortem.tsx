@@ -12,7 +12,7 @@ import { AlertTriangle, ShieldAlert, TrendingDown, Activity, ArrowLeft } from 'l
 import { PageSEO } from '@/components/seo/PageSEO';
 
 /**
- * Pre-Mortem Stress Test — Plus-only module.
+ * Pre-Mortem Stress Test — included in every Decision Run.
  *
  * Re-uses the analysis engine but reframes the question:
  *   Business Validator (Module 1):  "Should I start this?"
@@ -49,7 +49,7 @@ export default function PreMortem() {
     <AppLayout title="Pre-Mortem Stress Test">
       <PageSEO
         title="Pre-Mortem Stress Test — Quantis"
-        description="Stress-test your existing business against churn shocks, cost spikes, and seasonal collapse. Plus-only financial pre-mortem powered by Monte Carlo simulation."
+        description="Stress-test your existing business against churn shocks, cost spikes, and seasonal collapse. Included in every Quantis Decision Run."
         canonical="/app/pre-mortem"
       />
 
@@ -71,7 +71,7 @@ export default function PreMortem() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-foreground">Pre-Mortem Stress Test</h1>
-                <Badge variant="default" className="text-[10px]">PLUS</Badge>
+                <Badge variant="secondary" className="text-[10px]">INCLUDED</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
                 Find the failure modes before your customers, your bank, or your runway find them first.
