@@ -9,7 +9,6 @@ import {
   LogOut, 
   User,
   FileText,
-  Lock,
   X,
   Zap,
   Crown,
@@ -74,8 +73,12 @@ export function MobileNav({ children }: MobileNavProps) {
     { path: '/risk-gallery', label: 'Risk Gallery', icon: Shield, show: true },
     { path: '/pricing', label: 'Pricing', icon: Zap, show: true },
     { path: '/blog', label: 'Blog', icon: FileText, show: true },
-    { path: '/app', label: 'Dashboard', icon: LayoutDashboard, show: isAuthenticated },
-    { path: '/docs', label: 'Docs Studio', icon: FileText, show: isAuthenticated },
+    { path: '/app', label: 'Decision Analysis', icon: LayoutDashboard, show: isAuthenticated },
+    { path: '/app/pre-mortem', label: 'Failure Pre-Mortem', icon: Shield, show: isAuthenticated },
+    { path: '/app/scenarios', label: 'Scenario Lab', icon: Brain, show: isAuthenticated },
+    { path: '/quote', label: 'Quote Builder', icon: Zap, show: isAuthenticated },
+    { path: '/docs', label: 'Document Studio', icon: FileText, show: isAuthenticated },
+    { path: '/app/invoices', label: 'Invoice & Capacity', icon: Briefcase, show: isAuthenticated },
     { path: '/plus-settings', label: 'Plus Settings', icon: Settings, show: isAuthenticated },
     { path: '/admin', label: 'Admin Panel', icon: Shield, show: isAuthenticated && isAdmin },
   ];
@@ -112,7 +115,7 @@ export function MobileNav({ children }: MobileNavProps) {
             className="w-full gap-2 h-12 mb-4 font-semibold"
           >
             <Zap className="w-5 h-5" />
-            New Analysis
+            New Decision Run
           </Button>
 
           {/* User info section */}
