@@ -23,7 +23,7 @@ export default function Pricing() {
     <PublicPageShell active="pricing" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title={`Quantis Pricing — Free, Plus $${TIERS.plus.priceMonthly}/mo, Pro $${TIERS.pro.priceMonthly}/mo`}
-        description={`Run ${FREE_ANALYSES_PER_MONTH} free analyses/month to see your viability score and top risks. Plus at $${TIERS.plus.priceMonthly}/mo unlocks the full Monte Carlo report, P&L, action plan, and PDF export. Pro at $${TIERS.pro.priceMonthly}/mo adds white-label, API access, TAM/SAM/SOM, and the 5-year model.`}
+        description={`Run ${FREE_ANALYSES_PER_MONTH} complete Decision Runs each month: full financial analysis, Monte Carlo, failure pre-mortem, and scenarios. Plus at $${TIERS.plus.priceMonthly}/mo adds unlimited runs and professional workflows. Pro adds team, API, white-label, and 5-year modeling.`}
         canonical="/pricing"
         jsonLd={{
           '@context': 'https://schema.org',
@@ -42,7 +42,7 @@ export default function Pricing() {
       <section aria-labelledby="pricing-hero-heading" className="aiwmc-section-wash py-8 md:py-14">
         <SectionHeader
           title="Simple pricing for serious founders"
-          subtitle="Business analysis that costs less than a single consultant hour. Start free, upgrade when you're ready."
+          subtitle="Use the complete decision engine five times every month. Upgrade when continuity, exports, and professional workflows become valuable."
         />
       </section>
 
@@ -118,14 +118,14 @@ export default function Pricing() {
       <section className="py-12 md:py-16">
         <GlassCard glow="cyan" className="p-8 md:p-12 text-center">
           <h2 className="text-2xl font-bold mb-3" style={{ color: 'hsl(var(--foreground))' }}>
-            Start free, upgrade when ready
+            Test a real decision, end to end
           </h2>
           <p className="text-muted-foreground mb-6">
-            No credit card required. Run your first analysis free.
+            No credit card required. Every free Decision Run includes the full analysis, failure pre-mortem, and scenarios.
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">
-              See my numbers — free <ArrowRight className="w-5 h-5" />
+              Start a free Decision Run <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
         </GlassCard>
