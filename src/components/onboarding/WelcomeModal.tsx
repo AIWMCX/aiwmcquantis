@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Shield, Receipt, ArrowRight, CheckCircle2, Zap } from 'lucide-react';
+import { BarChart3, Shield, GitBranch, ArrowRight, CheckCircle2, Zap } from 'lucide-react';
 
 interface WelcomeModalProps {
   open: boolean;
@@ -26,25 +26,25 @@ export const WelcomeModal = React.memo(function WelcomeModal({
   const benefits = [
     {
       icon: BarChart3,
-      title: 'BI Report',
-      description: 'Revenue forecasts, unit economics, benchmark percentiles',
+      title: 'Financial Decision Analysis',
+      description: 'Unit economics, cash runway, break-even, payback, and benchmark context',
     },
     {
       icon: Shield,
-      title: 'Pre-Mortem Analysis',
-      description: 'Failure scenarios, risk flags, mitigation plans',
+      title: 'Failure Pre-Mortem',
+      description: 'The failure modes, thresholds, and mitigations your plan needs',
     },
     {
-      icon: Receipt,
-      title: 'Invoice Capacity',
-      description: 'Credit capacity, margin health, payment risk',
+      icon: GitBranch,
+      title: 'Scenario Lab',
+      description: 'One saved scenario set with every complimentary Decision Run',
     },
   ];
 
   const checklist = [
     'No card required',
     'We never fabricate numbers — we show confidence levels',
-    'You can save and edit every assumption later',
+    'Five complete Decision Runs every month',
   ];
 
   return (
@@ -55,10 +55,10 @@ export const WelcomeModal = React.memo(function WelcomeModal({
             <Zap className="w-6 h-6 text-primary" />
           </div>
           <DialogTitle className="text-2xl font-bold">
-            Welcome to Quantis!
+            Welcome to your decision workspace
           </DialogTitle>
           <DialogDescription className="text-base">
-            Get complete business analysis in under 2 minutes
+            Start with one decision. Quantis will show what works, what breaks, and what changes the answer.
           </DialogDescription>
         </DialogHeader>
 
@@ -101,7 +101,7 @@ export const WelcomeModal = React.memo(function WelcomeModal({
             }}
             className="gap-2"
           >
-            Get Started
+            Start a Decision Run
             <ArrowRight className="w-4 h-4" />
           </Button>
           <Button
