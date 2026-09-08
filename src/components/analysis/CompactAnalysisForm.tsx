@@ -22,8 +22,8 @@ import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 /* ─── OUTPUT TYPES ─── */
 const OUTPUT_TYPES = [
-  { id: 'bi', label: 'BI Report', plusOnly: false },
-  { id: 'premortem', label: 'Pre-Mortem Analysis', plusOnly: true },
+  { id: 'bi', label: 'Financial Decision Analysis', plusOnly: false },
+  { id: 'premortem', label: 'Failure Pre-Mortem', plusOnly: false },
   { id: 'invoice', label: 'Invoice Capacity Check', plusOnly: true },
 ] as const;
 
@@ -66,7 +66,7 @@ interface CompactAnalysisFormProps {
   onUploadFiles?: (files: FileList | File[]) => void;
   onRemoveFile?: (fileId: string) => void;
   isAuthenticated?: boolean;
-  /** When true, all output-type toggles are available; otherwise Plus-only ones are locked. */
+  /** When true, paid workflow add-ons are available. Core analysis + pre-mortem are always included. */
   isPlus?: boolean;
 }
 
@@ -89,18 +89,21 @@ export function CompactAnalysisForm({
     financialInputs.selected_industry
   );
   const [depth, setDepth] = useState('full');
-  const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(new Set(['bi']));
+  const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(
+    new Set(['bi', 'premortem'])
+  );
   const isFirstTimeAnon = !isAuthenticated && !localStorage.getItem('has_run_analysis');
   const [showAdvanced, setShowAdvanced] = useState(!isFirstTimeAnon);
 
   const toggleOutput = useCallback(
     (id: string) => {
       const opt = OUTPUT_TYPES.find((o) => o.id === id);
-      // Gate Plus-only features for Free/anonymous users — show upgrade nudge.
+      // Gate paid workflow add-ons only after the user asks for one. The core
+      // Decision Run and Pre-Mortem are available without an upgrade prompt.
       if (opt?.plusOnly && !isPlus) {
         toast.error(`${opt.label} is a Plus feature`, {
           description:
-            `Upgrade to Plus ($${TIERS.plus.priceMonthly}/mo) to unlock Pre-Mortem, Invoice Capacity Check, and unlimited analyses.`,
+            `Upgrade to Plus ($${TIERS.plus.priceMonthly}/mo) for Invoice & Capacity workflows and unlimited Decision Runs.`,
           duration: 8000,
           action: {
             label: 'Upgrade to Plus →',
