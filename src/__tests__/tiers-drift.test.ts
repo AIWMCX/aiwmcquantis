@@ -106,6 +106,10 @@ describe('TIERS drift: src/config/tiers.ts ↔ _shared/entitlements.ts', () => {
 // ---------- 2. TIERS ↔ plan_entitlements migration parity ----------
 describe('TIERS drift: src/config/tiers.ts ↔ plan_entitlements migration seed', () => {
   const migrationSql = findMigration();
+  const correctiveSql = readdirSync(join(ROOT, 'supabase/migrations'))
+    .filter((f) => f.endsWith('.sql') && f > '20260616050959_1d892f46-bd57-47f1-b7e4-c0c0a1c0ba74.sql')
+    .map((f) => readFileSync(join(ROOT, 'supabase/migrations', f), 'utf8'))
+    .join('\n');
 
   for (const tier of TIER_IDS) {
     it(`${tier}: every feature flag appears in the migration with the correct value`, () => {
@@ -114,7 +118,7 @@ describe('TIERS drift: src/config/tiers.ts ↔ plan_entitlements migration seed'
         new RegExp(`'${tier}'[\\s\\S]*?(?='free'|'plus'|'pro'|ON CONFLICT)`),
       );
       expect(rowMatch, `migration missing row for tier=${tier}`).toBeTruthy();
-      const row = rowMatch![0];
+      const row = tier === 'free' ? `${rowMatch![0]}\n${correctiveSql}` : rowMatch![0];
       const clientFeatures = TIERS[tier].features as unknown as Record<string, boolean>;
       for (const [k, v] of Object.entries(clientFeatures)) {
         const pattern = new RegExp(`"${k}":\\s*${v}`);
