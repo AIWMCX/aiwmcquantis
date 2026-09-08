@@ -186,15 +186,14 @@ export function useAnalysis() {
         return;
       }
 
-      // Free/anonymous depth — deliberately slim payload (no financial_analysis).
-      // Not persisted server-side by this call; the free tier doesn't get a
-      // saved analyses row from this path. Render the lightweight summary
-      // card instead of routing into the full-report renderer.
+      // Compatibility path for analyses created before complimentary Decision
+      // Runs returned the complete report. New free runs use the full-result
+      // branch below and are persisted like paid synchronous analyses.
       if (isFreeTierAnalysisSummary(data)) {
         setFreeTierSummary(data);
         void trackActivationEvent('calculation_completed', { idea_length: idea.length });
         toast.success('Analysis complete! ✅', {
-          description: 'Sign in to save this result and unlock the full report.',
+          description: 'Sign in to save this legacy result and run the complete Decision analysis.',
           duration: 6000,
         });
         return;
@@ -252,10 +251,10 @@ export function useAnalysis() {
         const stripped = cleanMsg(msg.replace(/^TIER_GATE:\s*/i, ''));
         const isQuotaMsg = /quota|limit.*reached|used.*free/i.test(stripped);
         title = isQuotaMsg
-          ? "You've used all your free analyses this month"
+          ? "You've used all 5 complimentary Decision Runs this month"
           : stripped || 'This feature requires a higher plan';
         description = isQuotaMsg
-          ? 'Upgrade to Plus for unlimited analyses — Monte Carlo, 36-month P&L, and full action plan included.'
+          ? 'Your saved reports stay available. Your free runs renew next month, or Plus keeps the work moving now.'
           : 'Upgrade to Plus to unlock this feature.';
       } else if (isRateLimit) {
         // RateLimitBanner (inline, persistent, with countdown) handles this display.
