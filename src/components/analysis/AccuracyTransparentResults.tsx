@@ -55,6 +55,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const { generatePdf, isGenerating } = usePdfExport();
   const { shareReport, isSharing, shareUrl } = useShareReport();
   const { isFree } = useSubscription();
+  const isComplimentaryDecisionRun =
+    result.metadata?.access?.decision_bundle === 'complimentary';
+  const isReportLocked = isFree && !isComplimentaryDecisionRun;
 
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
@@ -495,11 +498,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     chip={`$${(metrics.monthlyRevenue * 12 / 1000).toFixed(0)}k ARR`}
                     explanation="Your projected monthly income at month 12, based on customer count, pricing, and growth rate."
                   />
-                  <div className={cn('relative', isFree && 'pointer-events-none select-none')}>
-                    <div className={cn(isFree && 'blur-[6px] opacity-70')}>
+                  <div className={cn('relative', isReportLocked && 'pointer-events-none select-none')}>
+                    <div className={cn(isReportLocked && 'blur-[6px] opacity-70')}>
                       <SimpleMetricCard 
                         title="Net Profit M12" 
-                        value={isFree ? '$••.•k' : `$${(metrics.netProfit / 1000).toFixed(1)}k`}
+                        value={isReportLocked ? '$••.•k' : `$${(metrics.netProfit / 1000).toFixed(1)}k`}
                         variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
                         chip={metrics.netProfit >= 0 ? `Profitable at Mo.12` : `Losing $${Math.abs(metrics.netProfit / 1000).toFixed(1)}k/mo`}
                         explanation="What you actually take home after paying all expenses — rent, salaries, marketing, everything."
@@ -508,17 +511,17 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         numericValue={metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined}
                       />
                     </div>
-                    {isFree && (
+                    {isReportLocked && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="px-2 py-1 rounded-md bg-[var(--q-bg-surface)] border border-[var(--q-border-default)] text-[10px] font-bold uppercase tracking-wider text-[var(--q-accent-primary)]">🔒 Plus</span>
                       </div>
                     )}
                   </div>
-                  <div className={cn('relative', isFree && 'pointer-events-none select-none')}>
-                    <div className={cn(isFree && 'blur-[6px] opacity-70')}>
+                  <div className={cn('relative', isReportLocked && 'pointer-events-none select-none')}>
+                    <div className={cn(isReportLocked && 'blur-[6px] opacity-70')}>
                       <SimpleMetricCard 
                         title="Gross Margin %" 
-                        value={isFree ? '••.•%' : `${metrics.grossMargin.toFixed(1)}%`}
+                        value={isReportLocked ? '••.•%' : `${metrics.grossMargin.toFixed(1)}%`}
                         variant={metrics.grossMargin >= 50 ? 'success' : metrics.grossMargin >= 30 ? 'warning' : 'danger'}
                         chip={`${metrics.grossMargin.toFixed(0)}% of revenue kept`}
                         explanation="For every $1 you earn, this is how many cents remain after direct production costs. Higher is better."
@@ -527,17 +530,17 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         numericValue={metrics.grossMargin / 100}
                       />
                     </div>
-                    {isFree && (
+                    {isReportLocked && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="px-2 py-1 rounded-md bg-[var(--q-bg-surface)] border border-[var(--q-border-default)] text-[10px] font-bold uppercase tracking-wider text-[var(--q-accent-primary)]">🔒 Plus</span>
                       </div>
                     )}
                   </div>
-                  <div className={cn('relative', isFree && 'pointer-events-none select-none')}>
-                    <div className={cn(isFree && 'blur-[6px] opacity-70')}>
+                  <div className={cn('relative', isReportLocked && 'pointer-events-none select-none')}>
+                    <div className={cn(isReportLocked && 'blur-[6px] opacity-70')}>
                       <SimpleMetricCard 
                         title="LTV:CAC Ratio" 
-                        value={isFree ? '•.•x' : `${metrics.ltvCac.toFixed(1)}x`}
+                        value={isReportLocked ? '•.•x' : `${metrics.ltvCac.toFixed(1)}x`}
                         variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
                         chip={metrics.ltvCac >= 3 ? `${metrics.ltvCac.toFixed(1)}x — healthy` : `${metrics.ltvCac.toFixed(1)}x — below 3x target`}
                         explanation="How much a customer is worth over their lifetime divided by what it costs to acquire them. Above 3× means healthy unit economics."
@@ -546,7 +549,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         numericValue={metrics.ltvCac}
                       />
                     </div>
-                    {isFree && (
+                    {isReportLocked && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="px-2 py-1 rounded-md bg-[var(--q-bg-surface)] border border-[var(--q-border-default)] text-[10px] font-bold uppercase tracking-wider text-[var(--q-accent-primary)]">🔒 Plus</span>
                       </div>
@@ -711,7 +714,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {/* Inline upgrade wall — appears only for Free users at end of Step 1.
               This is the high-intent moment: they've seen score + 3 risks + revenue,
               now invite email save + Plus upgrade before they leave. */}
-          {currentStep === 1 && isFree && (
+          {currentStep === 1 && isReportLocked && (
             <div className="mt-6 space-y-5">
               <PostAnalysisEmailCapture
                 ideaTitle={typeof businessType === 'string' ? businessType : undefined}
@@ -725,8 +728,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 2 — LEVERS LAB (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {currentStep === 2 && isFree && <LockedAnalysisPaywall section="levers" />}
-          {currentStep === 2 && !isFree && (() => {
+          {currentStep === 2 && isReportLocked && <LockedAnalysisPaywall section="levers" />}
+          {currentStep === 2 && !isReportLocked && (() => {
             const fa: any = result.financial_analysis || {};
             const safeRevenue = Number.isFinite(scenarioMetrics.revenue) && scenarioMetrics.revenue > 0
               ? scenarioMetrics.revenue
@@ -831,8 +834,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 3 — RED FLAGS & ACTION PLAN (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {currentStep === 3 && isFree && <LockedAnalysisPaywall section="action-plan" />}
-          {currentStep === 3 && !isFree && (
+          {currentStep === 3 && isReportLocked && <LockedAnalysisPaywall section="action-plan" />}
+          {currentStep === 3 && !isReportLocked && (
             <div className="space-y-6">
               {/* ── RVCE Layer 8 — External Reality Validation ── */}
               {rvceLoading && (
@@ -1029,7 +1032,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               </div>
 
               {/* Locked Feature Preview for free users */}
-              {isFree && (
+              {isReportLocked && (
                 <LockedFeaturePreview onUpgrade={() => window.location.href = '/pricing'} />
               )}
 
