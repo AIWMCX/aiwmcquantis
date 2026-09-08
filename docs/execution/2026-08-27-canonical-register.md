@@ -325,6 +325,27 @@ Separately evaluated and explicitly declined for this pass: vendoring code from 
 
 **Reopening trigger**: LinkedIn OAuth connected with read access to post history.
 
+## Session 2026-09-08 — the "1 paying customer" question, resolved with primary-source evidence
+
+Two externally-produced audit reports were pasted into this session disagreeing on the same question: how many verified external paying customers does Quantis have. Report A (earlier) said "likely 1" (`jjbalaganvasya@gmail.com`, real-looking Stripe IDs). Report B (later, claiming Stripe was inaccessible to it) said that same account "has no valid Stripe customer or subscription identifiers" and reclassified it as complimentary, concluding 0 under all evidence.
+
+**Both were wrong in specific, checkable ways.** This session has live Stripe API access (`acct_1SjknzLKMhSmZURC`) and used it directly:
+
+- The Stripe IDs (`cus_UMqDAJHKWip0mg`, `sub_1TotZjLKMhSmZURCEpzsCh7M`) are real, correctly-formatted, livemode Stripe objects — Report B's "no valid identifiers" claim is factually false, confirmed by fetching the subscription object directly.
+- But the subscription itself: `status: "canceled"`, `cancellation_details.reason: "payment_failed"`. Trial ran 2026-07-02 → 2026-07-16, two `invoice.payment_failed` events fired and were correctly processed (2026-07-23, 2026-07-24, both `status: 'processed'` in `stripe_webhook_events`), then Stripe canceled the subscription outright on **2026-07-31**.
+- **The `customer.subscription.deleted` event for that cancellation was never received** — confirmed absent from `stripe_webhook_events` entirely, despite the two prior `invoice.payment_failed` events from the same customer in the same window landing fine. A one-off delivery gap, not the previously-fixed signing-secret issue recurring (that would have blocked the `invoice.payment_failed` events too, and it didn't).
+- Net effect: Supabase's `subscriptions` row for this user sat at `status='active', plan_id='pro'` for **5+ weeks** after Stripe had already canceled it for non-payment — a live, real "unpaid retains paid access" entitlement-drift bug, the inverse of the more commonly-checked "paid-without-access" case, but the same severity class per this charter's own alert-immediately rule.
+
+**Fixed live, with explicit founder confirmation before mutating a customer's entitlement**: ran the same reconciliation the webhook would have performed — set `status='canceled'`, then called `mark_subscription_canceled(user_id, 'payment_failed')`, which hard-flipped `plan_id` to `free` and opened the standard 30-day read-only window (through 2026-10-08). Verified post-fix: `status='canceled', plan_id='free'`.
+
+**Corrected answer to "verified external paying customers"**: **0, currently** — and now that's true both in Supabase and in Stripe, not just asserted. But the more useful fact for future sessions: **1 real signup did convert through trial-to-paid attempt and failed on payment**, which is a materially different, more actionable finding than "never had a real customer" — it means the checkout→trial path works end-to-end for a real external user; the gap is payment-method health / dunning follow-through, not the funnel itself.
+
+**Not yet done, flagged rather than assumed fixed**: this session checked only the one row that was already flagged as suspicious by the two pasted reports. Whether other `active` subscriptions have quietly drifted from their live Stripe state was not swept — the four `pro`+`active` rows this session, session-wide are now accounted for (1 founder's own manually-provisioned account, 2 internal comps with literal non-Stripe placeholder IDs, 1 real customer just corrected above) but a systemic reconciliation job (compare every `active` Supabase subscription against live Stripe state on a schedule) does not exist yet and would have caught this automatically instead of it surfacing via two disagreeing pasted reports.
+
+### Next action
+
+Unchanged primary blocker: LinkedIn OAuth + SPF/DKIM, founder-only. New, smaller follow-up identified above: build the scheduled Stripe↔Supabase subscription-status reconciliation job so an event-delivery gap like this one surfaces automatically instead of silently persisting for over a month.
+
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
