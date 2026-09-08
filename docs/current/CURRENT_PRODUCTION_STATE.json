@@ -1,4 +1,5 @@
 {
+  "_STALE_NOTICE": "This file was generated 2026-07-11 and never regenerated since (confirmed 2026-09-07: content, including deployed_git_sha and every status below, is frozen at that date despite 15+ merged PRs and multiple deploys since). Its own governing doc (00_READ_FIRST.md) states 'production evidence generated during the current run' outranks any file like this one. Do not treat this JSON as current -- for actual current state, use docs/execution/2026-08-27-canonical-register.md (actively maintained) or run a fresh check. This file is kept for historical reference, not deleted, per this project's rule against destroying recorded history. No automated regenerator (scripts/build-ai-context.mjs, referenced in 00_READ_FIRST.md) has been built yet -- that remains real, unbuilt future work, not something to fake by hand-editing this file's fields without the tooling that would keep it honest going forward.",
   "generated_at": "2026-07-11T00:00:00Z",
   "release_id": "QNT-STATE-20260711-001",
   "deployed_git_sha": "91db42beba6b08f49ff0e919e8aa74fb48da9785",
