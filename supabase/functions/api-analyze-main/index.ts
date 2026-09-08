@@ -128,6 +128,31 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  // 4b) Per-key hourly cap. The public /settings/api-keys page advertises
+  // "60 req/hour" and api_keys.rate_limit_per_hour (default 60) was being
+  // fetched above but never checked -- only the daily cap was enforced,
+  // meaning the hourly limit was a real, unenforced claim. Falls back to
+  // the column default (60) if a row somehow has it null.
+  const hourlyLimit = key.rate_limit_per_hour ?? 60;
+  const sinceHour = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: hourlyCount } = await admin
+    .from('api_request_logs')
+    .select('id', { count: 'exact', head: true })
+    .eq('api_key_id', key.id)
+    .eq('endpoint', '/api-analyze-main')
+    .gte('created_at', sinceHour);
+
+  if ((hourlyCount ?? 0) >= hourlyLimit) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'RATE_LIMITED',
+        message: `API hourly rate limit of ${hourlyLimit} req/hour reached. Try again shortly.`,
+      }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
   // 5) Forward to analyze-business
   let payload: unknown = {};
   try {

@@ -13,6 +13,16 @@ supersedes: []
 superseded_by: null
 ---
 
+> **Stale notice (added 2026-09-07):** this file's own front-matter is
+> frozen at `2026-07-11` / commit `bed9658d`, predating 15+ merged PRs and
+> multiple production deploys since. Applying this file's own rule to
+> itself: it is a document, and "no prose handbook, plan, roadmap, or
+> prompt overrides live production evidence" (see below) -- so this file
+> does not currently describe production. For actual current state, use
+> `docs/execution/2026-08-27-canonical-register.md` (actively maintained
+> through 2026-09-07) or run a fresh check. Kept for historical reference,
+> not deleted.
+
 # Read this before any other Quantis document
 
 This file, plus the evidence in `release-evidence/`, is where any session
