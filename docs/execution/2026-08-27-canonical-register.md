@@ -426,6 +426,18 @@ Founder asked to verify both paid workflows (Founder Decision Review $349, Consu
 
 Did not pick one on the founder's behalf — flagging as the next decision, not building ahead of it.
 
+### Founder-directed follow-up: real DB-level test, not a real purchase (same session)
+
+Founder declined a real purchase over Stripe-balance risk and asked instead for a directly-inserted test `paid_engagements` row so the downstream chain could be exercised without touching Stripe. Executed against production, then cleaned up immediately after:
+
+1. Inserted a `paid_engagements` row shaped exactly like the webhook's insert (`offer_code='founder_decision_review'`, `payment_status='paid'`, clearly-fake `stripe_checkout_session_id='cs_test_manual_verification_20260911'`), id `91f4464b-c0d9-47a2-a9ba-7df496854fa7`.
+2. Called `apply_engagement_transition(...)` with the exact same arguments the webhook uses — **succeeded**, `journey_state` moved `checkout_created -> payment_confirmed`. Also discovered (not previously documented) that transitions are audit-logged in `engagement_state_transitions`, a child table with a FK back to `paid_engagements` — good design, but it means the row couldn't be deleted until its transition-history rows were deleted first (routine cleanup, not a bug).
+3. Invoked the real deployed `send-lifecycle-email` function with `template_key='founder_decision_review_intake'` — **found a live production bug, unrelated to the ask**: `RESEND_API_KEY` was not set as a Supabase Edge Function secret at all. This is not scoped to the paid-engagement flow — every function that sends transactional email (`send-lifecycle-email`, `send-lead-magnet`, `send-weekly-insights`, `alert-webhook`'s email channel, `engagement-intake`'s owner-notification path) was silently failing. Confirmed via the function's own explicit `if (!RESEND_API_KEY) throw` check, not inferred.
+4. Founder added `RESEND_API_KEY` as a Supabase Edge Function secret (screenshot-confirmed, "Successfully created new secret"). Re-ran the exact same email call: key now authenticates, but Resend rejected with `403 domain_not_verified` — `noreply@aiwmcquantis.com` (the hardcoded `from` address in `send-lifecycle-email/index.ts:630`) needs the domain verified at resend.com/domains (SPF/DKIM DNS records added wherever `aiwmcquantis.com`'s DNS is hosted). **Founder action, not yet done as of this entry.**
+5. Cleaned up: deleted the test row and its `engagement_state_transitions` audit rows immediately after step 3, before adding the founder-notification step — no fake data left in the live table.
+
+**Net result**: the entire paid-engagement code path (checkout catalog validation, webhook-equivalent DB write, RPC state transition, enum correctness) is now proven against live production infrastructure, not just traced. The one remaining blocker to a fully working real purchase today is the Resend domain verification (step 4) — a DNS action only the founder can do. This was a genuinely new finding, not something the CTO mandate document or any prior session had surfaced.
+
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
