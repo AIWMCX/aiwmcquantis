@@ -19,10 +19,9 @@ describe("Autoposter archive filtering + Content Studio image display (2026-09-1
     expect(hookSource).toMatch(/useAutoposterArchive[\s\S]*?\.not\('archived_at', 'is', null\)/);
   });
 
-  it("useSeedContentPlan's upsert never includes archived_at, so it can't silently un-archive rows", () => {
-    const idx = hookSource.indexOf("export function useSeedContentPlan()");
-    const block = hookSource.slice(idx, idx + 800);
-    expect(block).not.toContain("archived_at");
+  it("useSeedContentPlan is retired -- the static-plan seed button that caused the status drift is gone entirely", () => {
+    expect(hookSource).not.toContain("useSeedContentPlan");
+    expect(hookSource).not.toContain("autoposterContentPlan");
   });
 
   it("Content Studio captures and renders the generated image_url from the response", () => {

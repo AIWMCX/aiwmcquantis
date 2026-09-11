@@ -7,7 +7,6 @@ import { PostQueue } from '@/components/autoposter/PostQueue';
 import { PostCalendar } from '@/components/autoposter/PostCalendar';
 import { PostArchive } from '@/components/autoposter/PostArchive';
 import { KPITracker } from '@/components/autoposter/KPITracker';
-import { ContentPlanView } from '@/components/autoposter/ContentPlanView';
 
 export default function Autoposter() {
   const { isAdmin, isLoading } = useAdmin();
@@ -37,18 +36,14 @@ export default function Autoposter() {
           </p>
         </div>
 
-        <Tabs defaultValue="plan" className="space-y-4">
+        <Tabs defaultValue="queue" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="plan">Content Plan</TabsTrigger>
             <TabsTrigger value="queue">Queue</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="archive">Archive</TabsTrigger>
             <TabsTrigger value="kpi">KPI Tracker</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="plan">
-            <ContentPlanView />
-          </TabsContent>
           <TabsContent value="queue">
             <PostQueue />
           </TabsContent>

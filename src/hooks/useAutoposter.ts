@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { QUANTIS_CONTENT_PLAN } from '@/data/autoposterContentPlan';
 
 export type AutoposterPlatform = 'linkedin' | 'facebook' | 'instagram';
 export const AP_PLATFORMS: AutoposterPlatform[] = ['linkedin', 'facebook', 'instagram'];
@@ -244,47 +243,5 @@ export function useAddWeeklySnapshot() {
       toast.success('Snapshot added');
     },
     onError: (e: Error) => toast.error('Insert failed', { description: e.message }),
-  });
-}
-
-/**
- * Seed (or refresh) the canonical 90-day content plan into the DB.
- * Idempotent: upserts on (week_number, day_number). Safe to run anytime
- * after editing src/data/autoposterContentPlan.ts.
- *
- * `status` is deliberately NOT in the upsert payload. It previously included
- * `status: 'draft'`, which on conflict silently overwrote every existing
- * row's status back to 'draft' -- including the 42 posts archived
- * 2026-09-11, whose archived_at stayed set while status drifted back to
- * 'draft' underneath it. New rows still get 'draft' via the column
- * default; existing rows keep whatever status they're actually in.
- */
-export function useSeedContentPlan() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const rows = QUANTIS_CONTENT_PLAN.map((p) => ({
-        week_number: p.week_number,
-        day_number: p.day_number,
-        post_date: p.post_date,
-        hook: p.hook,
-        content_brief: p.content_brief,
-        post_type: p.post_type,
-        visual_type: p.visual_type,
-        cta: p.cta,
-        hashtags: p.hashtags,
-        expected_reach: p.expected_reach,
-      }));
-      const { error } = await supabase
-        .from('autoposter_posts')
-        .upsert(rows, { onConflict: 'week_number,day_number' });
-      if (error) throw error;
-      return rows.length;
-    },
-    onSuccess: (count) => {
-      qc.invalidateQueries({ queryKey: ['autoposter'] });
-      toast.success(`Synced ${count} posts to queue`);
-    },
-    onError: (e: Error) => toast.error('Seed failed', { description: e.message }),
   });
 }

@@ -42,11 +42,9 @@ describe("Content Studio seed + manual status controls (2026-09-11 follow-up)", 
     expect(migrationSource).toMatch(/where not exists \(\s*select 1 from public\.autoposter_posts p where p\.content_studio_generation_id = g\.id/);
   });
 
-  it("useSeedContentPlan no longer includes status in its upsert payload (the drift's root cause)", () => {
-    const idx = hookSource.indexOf("export function useSeedContentPlan()");
-    const upsertIdx = hookSource.indexOf(".upsert(rows", idx);
-    const block = hookSource.slice(idx, upsertIdx);
-    expect(block).not.toMatch(/status:\s*'draft'/);
+  it("useSeedContentPlan and the static Content Plan tab are retired entirely, not just fixed", () => {
+    expect(hookSource).not.toContain("useSeedContentPlan");
+    expect(hookSource).not.toContain("autoposterContentPlan");
   });
 
   it("useSetPostStatus supports exactly the four manual states and clears archive fields on draft", () => {
