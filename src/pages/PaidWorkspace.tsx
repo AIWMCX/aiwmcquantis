@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, FileText, Loader2, Plus, Save, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, Check, Download, FileText, Loader2, Plus, Save, ShieldCheck, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,8 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { supabase } from '@/integrations/supabase/client';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
+import { buildEngagementPacketHtml } from '@/lib/engagement-packet';
 
 type Stage = 'intake' | 'briefing' | 'analysis' | 'review' | 'delivered' | 'closed';
 type Assumption = { label: string; value: string; type: 'fact' | 'estimate' | 'unknown'; source: string; confidence: 'high' | 'medium' | 'low'; notes: string };
@@ -37,6 +39,7 @@ export default function PaidWorkspace() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const { downloadPDF, isDownloading } = useDocumentDownload();
 
   useEffect(() => {
     const urlId = new URLSearchParams(window.location.search).get('session_id') || '';
@@ -86,13 +89,31 @@ export default function PaidWorkspace() {
     setSaving(false);
   }
 
+  function downloadBrief() {
+    if (!data || !engagement) return;
+    const html = buildEngagementPacketHtml({
+      offerName: consultant ? 'Consultant Founding Pilot' : 'Founder Decision Review',
+      contactName: engagement.contact_name,
+      contactEmail: engagement.contact_email,
+      companyName: engagement.company_name,
+      generatedAt: new Date().toISOString(),
+      decisionSummary: consultant ? undefined : data.decision_summary,
+      constraints: consultant ? undefined : data.constraints,
+      assumptions: consultant ? undefined : data.assumptions,
+      scenarios: consultant ? undefined : data.scenarios,
+      questions: data.questions,
+      cases: consultant ? data.cases : undefined,
+    });
+    downloadPDF(html, `${engagement.company_name || engagement.contact_name} — ${consultant ? 'Consultant Pilot' : 'Decision Review'} Brief`);
+  }
+
   if (loading) return <PublicPageShell maxWidth="xl"><div className="py-24 flex justify-center"><Loader2 className="animate-spin" /></div></PublicPageShell>;
   if (error || !engagement || !data) return <PublicPageShell maxWidth="md"><div className="py-20"><GlassCard className="p-8"><h1 className="text-2xl font-semibold">Workspace unavailable</h1><p className="text-muted-foreground mt-3">{error || 'Complete your paid intake first.'}</p><Link className="inline-flex mt-6 underline" to="/decision-review">Return to offer page <ArrowRight className="h-4 w-4 ml-2" /></Link></GlassCard></div></PublicPageShell>;
 
   return <PublicPageShell maxWidth="xl">
     <PageSEO title={consultant ? 'Consultant Pilot Desk — AIWMC Quantis' : 'Founder Decision Room — AIWMC Quantis'} description="Secure paid Quantis workspace for your decision review." canonical="/engagement-workspace" noindex />
     <div className="py-8 md:py-14">
-      <div className="flex flex-wrap justify-between gap-5 items-start"><div><div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-primary"><ShieldCheck className="h-4 w-4" />Payment verified · private workspace</div><h1 className="text-3xl md:text-5xl font-bold mt-3">{consultant ? 'Consultant Pilot Desk' : 'Founder Decision Room'}</h1><p className="text-muted-foreground mt-3 max-w-2xl">{consultant ? 'Prepare two client cases with repeatable intake, explicit assumptions, and a consultant-ready memo for each.' : 'Turn one consequential decision into a structured brief, reconciled assumptions, and a reviewable decision memo.'}</p></div><Button size="lg" onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}{saved ? 'Saved' : 'Save workspace'}</Button></div>
+      <div className="flex flex-wrap justify-between gap-5 items-start"><div><div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-primary"><ShieldCheck className="h-4 w-4" />Payment verified · private workspace</div><h1 className="text-3xl md:text-5xl font-bold mt-3">{consultant ? 'Consultant Pilot Desk' : 'Founder Decision Room'}</h1><p className="text-muted-foreground mt-3 max-w-2xl">{consultant ? 'Prepare two client cases with repeatable intake, explicit assumptions, and a consultant-ready memo for each.' : 'Turn one consequential decision into a structured brief, reconciled assumptions, and a reviewable decision memo.'}</p></div><div className="flex gap-2"><Button size="lg" variant="outline" onClick={downloadBrief} disabled={isDownloading}><Download className="h-4 w-4 mr-2" />Download brief</Button><Button size="lg" onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}{saved ? 'Saved' : 'Save workspace'}</Button></div></div>
       <div className="grid md:grid-cols-4 gap-3 mt-8">{[['Payment', true], ['Intake', engagement.intake_status === 'complete'], ['Brief', completion >= 1], ['Review', engagement.workspace_status === 'review' || engagement.workspace_status === 'delivered']].map(([label, ok]) => <div key={String(label)} className="rounded-xl border border-border/60 bg-card/60 p-4 flex items-center gap-3">{ok ? <Check className="h-4 w-4 text-emerald-400" /> : <div className="h-4 w-4 rounded-full border border-muted-foreground" />}<span className="text-sm">{label}</span></div>)}</div>
       <div className="grid lg:grid-cols-[1fr_320px] gap-8 mt-10"><main className="space-y-8">
         {consultant ? <GlassCard className="p-6"><SectionHeader eyebrow="Two-case capacity" title="Case pipeline" description="Each case has its own decision, assumptions, scenarios, and memo." /><div className="flex flex-wrap gap-2 mt-5">{data.cases.map((item, i) => <Button key={i} variant={activeCase === i ? 'default' : 'outline'} onClick={() => setActiveCase(i)}><Users className="h-4 w-4 mr-2" />Case {i + 1}{item.case_name ? ' · ' + item.case_name : ''}</Button>)}</div>{data.cases[activeCase] && <div className="grid md:grid-cols-2 gap-4 mt-6"><label className="space-y-2"><span className="text-sm">Case or client name</span><Input value={data.cases[activeCase].case_name} onChange={e => changeCase('case_name', e.target.value)} /></label><label className="space-y-2"><span className="text-sm">Primary client type</span><Input value={data.cases[activeCase].client_type} onChange={e => changeCase('client_type', e.target.value)} /></label><label className="md:col-span-2 space-y-2"><span className="text-sm">Decision this case must answer</span><Textarea className="min-h-24" value={data.cases[activeCase].decision_question} onChange={e => changeCase('decision_question', e.target.value)} /></label><label className="space-y-2"><span className="text-sm">Deadline</span><Input value={data.cases[activeCase].deadline} onChange={e => changeCase('deadline', e.target.value)} /></label><label className="space-y-2"><span className="text-sm">Context and known constraints</span><Textarea value={data.cases[activeCase].context} onChange={e => changeCase('context', e.target.value)} /></label></div>}</GlassCard> : <GlassCard className="p-6"><SectionHeader eyebrow="Founder decision" title="Write the decision in plain language" description="Name the commitment, deadline, and consequence—not a generic business goal." /><Textarea className="min-h-28 mt-5" value={data.decision_summary} onChange={e => update('decision_summary', e.target.value)} placeholder="What decision must be made, by when, and what money is exposed?" /><label className="block space-y-2 mt-5"><span className="text-sm">Constraints, commitments, or non-negotiables</span><Textarea className="min-h-24" value={data.constraints} onChange={e => update('constraints', e.target.value)} /></label></GlassCard>}
