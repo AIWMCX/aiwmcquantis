@@ -23,6 +23,8 @@ export interface AutoposterPost {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+  source: string;
+  content_studio_generation_id: string | null;
 }
 
 export interface AutoposterPlatformRow {
@@ -163,6 +165,44 @@ export function useUpdatePlatformContent() {
   });
 }
 
+export type PostStatus = 'draft' | 'scheduled' | 'posted' | 'archived' | 'not_published';
+
+/**
+ * Manual status control for a post: draft / posted / archived / not_published.
+ * Setting 'posted' or 'archived' sets archived_at/historical_publication_state
+ * consistently with how the 2026-09-11 seed migration marks already-published
+ * content, so this stays queryable the same way. Moving OFF archived/posted
+ * back to draft clears those fields rather than leaving stale archive data
+ * on an active post.
+ */
+export function useSetPostStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; status: PostStatus }) => {
+      const isRetiring = input.status === 'archived' || input.status === 'posted' || input.status === 'not_published';
+      const { error } = await supabase
+        .from('autoposter_posts')
+        .update({
+          status: input.status,
+          archived_at: isRetiring ? new Date().toISOString() : null,
+          archive_reason: isRetiring ? 'manual_review' : null,
+          historical_publication_state: input.status === 'posted'
+            ? 'founder_reported_published'
+            : input.status === 'not_published'
+              ? 'not_published'
+              : null,
+        })
+        .eq('id', input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Status updated');
+    },
+    onError: (e: Error) => toast.error('Status update failed', { description: e.message }),
+  });
+}
+
 export function useApproveAndSchedule() {
   const qc = useQueryClient();
   return useMutation({
@@ -211,6 +251,13 @@ export function useAddWeeklySnapshot() {
  * Seed (or refresh) the canonical 90-day content plan into the DB.
  * Idempotent: upserts on (week_number, day_number). Safe to run anytime
  * after editing src/data/autoposterContentPlan.ts.
+ *
+ * `status` is deliberately NOT in the upsert payload. It previously included
+ * `status: 'draft'`, which on conflict silently overwrote every existing
+ * row's status back to 'draft' -- including the 42 posts archived
+ * 2026-09-11, whose archived_at stayed set while status drifted back to
+ * 'draft' underneath it. New rows still get 'draft' via the column
+ * default; existing rows keep whatever status they're actually in.
  */
 export function useSeedContentPlan() {
   const qc = useQueryClient();
@@ -227,7 +274,6 @@ export function useSeedContentPlan() {
         cta: p.cta,
         hashtags: p.hashtags,
         expected_reach: p.expected_reach,
-        status: 'draft',
       }));
       const { error } = await supabase
         .from('autoposter_posts')
