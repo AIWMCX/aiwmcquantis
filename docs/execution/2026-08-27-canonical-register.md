@@ -478,6 +478,14 @@ Founder asked to schedule `reconcile-stripe-subscriptions`, blocked earlier this
 
 **Still open**: this fixes the *value* mismatch but does not rotate the secret to a fresh one — the same value now correctly live is still the same one that has been sitting in git history (both the wrong `fbfa43cf...` and, now via this investigation, the correct `75ba27f0...` are both known/exposed). True rotation (generating a new value and coordinating its update on both the Vault secret and the `CRON_SECRET` edge-function env var together) remains a separate, still-not-done follow-up — deliberately not attempted under today's time pressure to avoid risking the now-confirmed-working jobs.
 
+### All three items merged to main
+
+- [PR #132](https://github.com/AIWMCX/aiwmcquantis/pull/132) — paid-engagement packet/PDF generator — merged `15c4747f`.
+- [PR #133](https://github.com/AIWMCX/aiwmcquantis/pull/133) — `/admin/today` consolidated dashboard — merged `c5cbb2fb`.
+- [PR #134](https://github.com/AIWMCX/aiwmcquantis/pull/134) — Vault-backed cron secret + Stripe reconciliation scheduling (plus the 401 fix for the two lifecycle-email crons) — merged `adb305dc`.
+
+All three passed full CI (lint/format/typecheck/tests/audit, secret scan, qoc-gate, custom rules) before merge — not just declared done.
+
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
