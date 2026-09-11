@@ -538,8 +538,12 @@ describe('T6: analysis does not shadow-forward customer input', () => {
   });
 
   it('still runs the customer-facing hybrid validator in the primary request', () => {
-    expect(src).toContain('runHybridValidator');
-    expect(src).toMatch(/await\s+runHybridValidator\(/);
+    // The actual exported/called name is `validateAnalysis` (from
+    // hybrid-validator.ts) -- 'runHybridValidator' never existed under that
+    // name on main or this branch; this assertion was simply typo'd against
+    // the wrong identifier when T6 was rewritten for the shadow-mode removal.
+    expect(src).toContain('validateAnalysis');
+    expect(src).toMatch(/await\s+validateAnalysis\(/);
   });
 });
 
