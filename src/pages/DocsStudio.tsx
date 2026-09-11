@@ -202,7 +202,8 @@ export default function DocsStudio() {
   // enforcement point for this (document creation is a direct client-side
   // `documents` table insert, not an edge function), so this client check is
   // the only gate — consistent with Docs Studio access itself already being
-  // Plus/Pro-only at the route level (PlusGate module="docs" in App.tsx).
+  // Free users can use the starter templates; scenario promotion remains a
+  // paid document workflow and is enforced here as well as by entitlements.
   const incomingScenarioRunRef = (location.state as { scenarioRunRef?: ScenarioRunRef } | null)?.scenarioRunRef;
   const scenarioRunRef = incomingScenarioRunRef && hasFeature('scenarioDocument') ? incomingScenarioRunRef : undefined;
 
@@ -492,25 +493,27 @@ export default function DocsStudio() {
                 <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    Free Tier: {downloadsToday}/{dailyLimit} download used today
+                    Included download: {downloadsToday}/{dailyLimit} used today
                   </p>
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     {canDownload
-                      ? 'You have 1 free download per day. Choose wisely!'
+                      ? 'Your daily download is available.'
                       : `Limit reached. Resets at ${nextResetAt.toLocaleTimeString()}`
                     }
                   </p>
                 </div>
               </div>
-              <Button 
-                size="sm" 
-                variant="outline"
-                className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30 shrink-0"
-                onClick={() => createCheckout('plus')}
-              >
-                <Crown className="w-3 h-3" />
-                Upgrade
-              </Button>
+              {!canDownload && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30 shrink-0"
+                  onClick={() => createCheckout('plus')}
+                >
+                  <Crown className="w-3 h-3" />
+                  Continue today
+                </Button>
+              )}
             </div>
           )}
 
@@ -666,16 +669,6 @@ export default function DocsStudio() {
               </div>
             </div>
           </div>
-          {isFreeTier && (
-            <Button 
-              onClick={() => createCheckout('plus')} 
-              className="gap-2"
-              variant="default"
-            >
-              <Crown className="w-4 h-4" />
-              Unlock All Templates
-            </Button>
-          )}
         </div>
 
         {/* Tier info banner for free users */}
@@ -684,7 +677,7 @@ export default function DocsStudio() {
             <div className="flex items-start gap-3">
               <Download className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium text-sm">Free Tier Access</p>
+                <p className="font-medium text-sm">Included starter access</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   You have access to <strong>3 templates</strong> (Invoice, Quarterly Summary, NDA) with <strong>1 download per day</strong>. 
                   Upgrade to <strong>Plus</strong> to unlock all 10 templates with unlimited downloads.

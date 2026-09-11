@@ -33,7 +33,6 @@ import {
   HelpCircle,
   Zap,
   Crown,
-  Lock,
   Megaphone,
   Radio,
 } from 'lucide-react';
@@ -47,7 +46,6 @@ interface NavItem {
   contentAdminOnly?: boolean;
   external?: boolean;
   badge?: string;
-  plusOnly?: boolean;
   flag?: 'service_job';
 }
 
@@ -60,29 +58,30 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ANALYSIS',
     items: [
-      { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
-      { title: 'Instant Quotes', url: '/quote', icon: Zap, badge: 'BETA', flag: 'service_job' },
-      { title: 'History', url: '/app?tab=history', icon: Clock },
+      { title: 'Decision Analysis', url: '/app', icon: LayoutDashboard, badge: '5 FREE' },
+      { title: 'Failure Pre-Mortem', url: '/app/pre-mortem', icon: Zap, badge: 'INCLUDED' },
+      { title: 'Quote Builder', url: '/quote', icon: Receipt, badge: 'BETA', flag: 'service_job' },
+      { title: 'Decision History', url: '/app?tab=history', icon: Clock },
     ],
   },
   {
     label: 'DOCUMENTS',
     items: [
-      { title: 'My Documents', url: '/docs', icon: FileText, plusOnly: true },
-      { title: 'Templates', url: '/docs?view=templates', icon: FolderOpen, plusOnly: true },
+      { title: 'Document Studio', url: '/docs', icon: FileText },
+      { title: 'Document Templates', url: '/docs?view=templates', icon: FolderOpen },
     ],
   },
   {
     label: 'BILLING',
     items: [
-      { title: 'Invoices', url: '/app/invoices', icon: Receipt, plusOnly: true },
+      { title: 'Invoice & Capacity', url: '/app/invoices', icon: Receipt },
     ],
   },
   {
     label: 'INTELLIGENCE',
     items: [
       { title: 'Benchmarks', url: '/admin/benchmarks', icon: BarChart3, adminOnly: true },
-      { title: 'Scenarios', url: '/app/scenarios', icon: GitBranch },
+      { title: 'Scenario Lab', url: '/app/scenarios', icon: GitBranch, badge: 'INCLUDED' },
       { title: 'My Stats', url: '/app/stats', icon: Trophy },
       { title: 'Progress', url: '/leaderboard', icon: TrendingUp },
     ],
@@ -274,22 +273,6 @@ export function AppSidebar() {
                           {!collapsed && (
                             <>
                               <span className="ml-2.5 truncate">{item.title}</span>
-                              {/* Lock badge for Plus-only items */}
-                              {item.plusOnly && !isPlus && (
-                                <span
-                                  className="ml-auto inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full border"
-                                  style={{
-                                    fontFamily: 'var(--q-font-mono)',
-                                    letterSpacing: '0.06em',
-                                    background: 'var(--q-accent-glow)',
-                                    color: 'var(--q-accent-primary)',
-                                    borderColor: 'color-mix(in srgb, var(--q-accent-primary) 30%, transparent)',
-                                  }}
-                                >
-                                  <Lock className="w-2 h-2" />
-                                  PLUS
-                                </span>
-                              )}
                               {/* Generic badge (BETA etc.) */}
                               {item.badge && (
                                 <span

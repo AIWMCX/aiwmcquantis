@@ -2051,6 +2051,7 @@ serve(async (req) => {
     let userId: string | null = null;
     let userPlan = 'free';
     let isAnonymous = true;
+    let freeUsageBeforeRun: number | null = null;
     
     // Create Supabase clients
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -2160,6 +2161,7 @@ serve(async (req) => {
             .maybeSingle();
           
           const currentUsage = usage?.analyses_count || 0;
+          freeUsageBeforeRun = currentUsage;
           
           if (currentUsage >= FREE_TIER_LIMIT) {
             log.info(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
@@ -2174,7 +2176,7 @@ serve(async (req) => {
                 success: false,
                 error: "QUOTA_EXCEEDED",
                 code: "USAGE_LIMIT_EXCEEDED", // legacy alias for older clients
-                message: `Monthly analysis limit reached (${currentUsage}/${FREE_TIER_LIMIT}). Upgrade to Plus for unlimited analyses.`,
+                message: `You have used all ${FREE_TIER_LIMIT} complimentary Decision Runs this month. Your saved reports stay available; free runs renew next month, or Plus provides unlimited runs.`,
                 required_tier: "PLUS",
                 upgrade_url: "https://www.aiwmcquantis.com/pricing",
                 cta: "Upgrade to Plus",
@@ -2259,7 +2261,7 @@ serve(async (req) => {
                 reason,
                 retry_after_seconds: retryAfterSeconds,
                 reset_at: rateLimitResult.reset_at,
-                suggestion: "Sign in to get 3 free analyses per month"
+                suggestion: `Sign in to save this Decision Run and receive ${FREE_TIER_LIMIT} complete runs per month`
               }
             }),
             { 
@@ -2374,12 +2376,9 @@ serve(async (req) => {
     const workerRequestId = _rawBody._worker_request_id as string | undefined;
     const workerUserId = _rawBody._worker_user_id as string | undefined;
 
-    // ========== TIER-BASED DEPTH COERCION (compute leakage prevention) ==========
-    // Free users CANNOT request 'full' or 'pro' depth — silently coerce to 'quick'.
-    // Anonymous users are also Free. This is layer 1 of 3:
-    //   1) Coerce depth here (input)
-    //   2) Cap monteCarloScenarios + projectionMonths in engine call (compute)
-    //   3) Sanitize response payload before send (output)
+    // ========== TIER-BASED DEPTH COERCION ==========
+    // Free and anonymous users receive the same Full-depth decision analysis
+    // as Plus for their complimentary runs. Only Pro depth remains paid-only.
     // NOTE: 'deep' is a legacy alias for 'pro' from older clients — normalize it.
     const rawDepth = (analysis_depth || 'full').toString().toLowerCase();
     const requestedDepth = rawDepth === 'deep' ? 'pro' : rawDepth;
@@ -2389,22 +2388,9 @@ serve(async (req) => {
     } else if (userPlan === 'plus') {
       depthLevel = (requestedDepth === 'pro' || requestedDepth === 'full') ? 'full' : 'quick';
     } else {
-      // Free + anonymous → forced to quick, regardless of body input
-      depthLevel = 'quick';
-      if (requestedDepth !== 'quick') {
-        log.info(`[tier-gate] Coerced depth '${requestedDepth}' → 'quick' for ${userPlan} user (${userId ?? 'anon'})`);
-        // Log denial for observability — abuse signal
-        if (userId) {
-          try {
-            await supabaseService.rpc('log_entitlement_denial', {
-              p_user_id: userId,
-              p_tier: userPlan,
-              p_feature: requestedDepth === 'pro' ? 'depthPro' : 'depthFull',
-              p_path: '/analyze-business',
-              p_meta: { requested: requestedDepth, coerced_to: 'quick' },
-            });
-          } catch (_) { /* non-fatal */ }
-        }
+      depthLevel = requestedDepth === 'quick' ? 'quick' : 'full';
+      if (requestedDepth === 'pro') {
+        log.info(`[tier-gate] Coerced Pro depth → Full for complimentary Decision Run (${userId ?? 'anon'})`);
       }
     }
     log.info(`[tier-gate] Final depth: ${depthLevel} (plan=${userPlan}, requested=${requestedDepth}, worker=${isWorkerRun})`);
@@ -4243,11 +4229,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       })(),
     };
 
-    // ========== HYBRID VALIDATOR (paid tiers only) ==========
-    // Deterministic rules first, LLM second-pass only on warning.
-    // Skip for Free (already truncated) to save cost.
+    // ========== HYBRID VALIDATOR ==========
+    // A complimentary Decision Run must prove the real product, including the
+    // same deterministic checks and warning review used by a paid Full run.
     let validatorResult: ValidatorResult | null = null;
-    if (userPlan !== 'free') {
+    const shouldRunHybridValidator = true;
+    if (shouldRunHybridValidator) {
       try {
         validatorResult = await validateAnalysis({
           idea: idea_clean,
@@ -4330,12 +4317,27 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       }
     }
 
-    // ========== TIER-BASED RESPONSE SANITIZATION ==========
-    // Free + anonymous users get a STRIPPED payload regardless of what the engine produced.
-    // This is layer 3 of compute-leakage prevention — even if a crafted request slipped past
-    // depth coercion, we never wire-send paid-tier data to a Free user.
-    const isFreeOrAnon = userPlan === 'free';
-    const wirePayload = isFreeOrAnon ? (() => {
+    // ========== DECISION RUN ACCESS ENVELOPE ==========
+    // Quota is the acquisition boundary. Complimentary users receive the
+    // complete Full result; metadata lets the client keep that specific
+    // report unlocked even after the fifth monthly run has been consumed.
+    if (userPlan === 'free') {
+      (fullPayload as any).metadata.access = {
+        decision_bundle: 'complimentary',
+        includes: ['full_analysis', 'pre_mortem', 'scenario_model'],
+        monthly_limit: FREE_TIER_LIMIT,
+        remaining_after_run: freeUsageBeforeRun === null
+          ? null
+          : Math.max(0, FREE_TIER_LIMIT - freeUsageBeforeRun - 1),
+      };
+      (fullPayload as any)._tier = 'free';
+      (fullPayload as any)._watermark = 'Generated with a complimentary AIWMC Quantis Decision Run.';
+    }
+
+    // Retained only as an explicit rollback path while the acquisition launch
+    // is measured. It must stay false for the shipped Decision Run product.
+    const shouldReturnLegacySlimPayload = false;
+    const wirePayload = shouldReturnLegacySlimPayload ? (() => {
       // "Top Risks" MISLABEL (P1, found during the score:90 Gate-2 field
       // audit, closed 2026-08-17): this used to try (result as any)?.risks,
       // then (result as any)?.top_risks -- but transformResponse()'s return
@@ -4410,16 +4412,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         location: location_clean,
         idea: idea_clean,
         _tier: 'free',
-        _watermark: 'Generated by AIWMC Quantis — Upgrade to Plus for full Monte Carlo, 36-month projections, and stress testing.',
+        _watermark: 'Generated with a complimentary AIWMC Quantis Decision Run.',
         _upgrade_cta: {
-          message: 'Unlock the full report',
+          message: 'Continue with unlimited Decision Runs',
           features_locked: [
-            '36-month P&L projections with variance bands',
-            `${MONTE_CARLO_ITERATIONS_DISPLAY}-scenario Monte Carlo simulation`,
-            'Pre-Mortem stress testing',
             'Invoice & capacity check',
-            'Document Studio (10 branded templates)',
-            'No watermark on PDFs',
+            'Full Document Studio workflow',
+            'Unlimited clean PDF exports',
+            'Additional saved scenario sets',
           ],
           plus_price_monthly: 17,
           plus_trial_days: 14,
@@ -4435,7 +4435,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       };
     })() : fullPayload;
 
-    if (isFreeOrAnon) {
+    if (shouldReturnLegacySlimPayload) {
       log.info(`[tier-gate] Sanitized response: stripped ${Object.keys(fullPayload).length} keys → ${Object.keys(wirePayload).length} (Free tier)`);
     }
 
@@ -4457,63 +4457,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    }
-
-    // ── QOC Shadow Mode (docs/QOC_MIGRATION_PLAN.md, Stage 1) ──
-    // Purely observational: cannot change wirePayload or any header the user
-    // actually receives, and any error here is swallowed before the response
-    // below. Its only effect is a best-effort row in `qoc_audit_envelopes`
-    // (per qoc-orchestrate/adapters.ts's putEnvelope). Only fires for
-    // authenticated requests (anonymous callers have no bearer token for
-    // qoc-orchestrate to authenticate -- coverage starts with the logged-in
-    // tiers, intentionally partial in this stage).
-    //
-    // FIXED 2026-08-02 (P0-14, QOC decision): this was previously
-    // fire-and-forget via `edgeRuntime.waitUntil()`, added specifically
-    // because a bare unawaited promise gets killed when the Deno isolate
-    // tears down on `return`. A 2026-07-25 investigation found
-    // `qoc_audit_envelopes` still had 0 rows even for real authenticated
-    // traffic that should have been shadowed, and left as an open,
-    // unconfirmed hypothesis whether `EdgeRuntime.waitUntil` was ever
-    // actually available at runtime. Rather than keep guessing at isolate
-    // lifetime, this is now directly `await`ed (with a bounded timeout so a
-    // slow/hanging qoc-orchestrate call can never delay the user's real
-    // response by more than QOC_SHADOW_TIMEOUT_MS) -- the isolate cannot
-    // tear down mid-request while something is still being awaited in it,
-    // which is a strictly stronger guarantee than any keepalive API.
-    try {
-      const authHeader = req.headers.get('Authorization');
-      if (authHeader && idea_clean) {
-        const QOC_SHADOW_TIMEOUT_MS = 4000;
-        const shadowInvoke = supabaseService.functions
-          .invoke('qoc-orchestrate', {
-            headers: { Authorization: authHeader },
-            body: {
-              request_id: crypto.randomUUID(),
-              idea: idea_clean,
-              location: location_clean,
-            },
-          })
-          .then(({ data, error: shadowErr }) => {
-            if (shadowErr) {
-              log.info('[qoc-shadow] invoke error (non-fatal)', String(shadowErr));
-            } else {
-              log.info('[qoc-shadow] recorded', { verdict: data?.overall_verdict });
-            }
-          });
-        const shadowTimeout = new Promise<void>((resolve) => {
-          setTimeout(() => {
-            log.info(`[qoc-shadow] timed out after ${QOC_SHADOW_TIMEOUT_MS}ms (non-fatal)`);
-            resolve();
-          }, QOC_SHADOW_TIMEOUT_MS);
-        });
-        await Promise.race([shadowInvoke, shadowTimeout]).catch((e) => {
-          log.info('[qoc-shadow] skipped (non-fatal)', String((e as Error)?.message ?? e));
-        });
-      }
-    } catch (shadowSetupErr) {
-      // Shadow mode must never affect the real response path, even here.
-      log.info('[qoc-shadow] setup skipped (non-fatal)', String(shadowSetupErr));
     }
 
     return new Response(

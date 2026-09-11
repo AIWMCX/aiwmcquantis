@@ -84,8 +84,7 @@ export async function saveAnalysis(
       // attached server-side by analyze-business/index.ts. Enables scenario
       // modeling without re-running industry/location detection later (see
       // migration 20260801030858_scenario_base_input_and_quota_rpc.sql).
-      // Absent (undefined) for legacy result shapes and for the free-tier
-      // truncated payload — both correctly persist as null.
+      // Absent (undefined) only for legacy result shapes.
       scenario_base_input: (result as unknown as { _scenarioBaseInput?: unknown })._scenarioBaseInput ?? null,
     } as any)
     .select('id')
@@ -149,6 +148,10 @@ export async function saveAnonymousAnalysis(
         payback_months: getPaybackMonths(result.financial_analysis),
         depth,
         idempotency_key: idempotencyKey,
+        // Preserve the frozen deterministic input so that a guest who creates
+        // an account can immediately use the included Scenario Lab against
+        // this exact Decision Run after it is claimed.
+        scenario_base_input: (result as unknown as { _scenarioBaseInput?: unknown })._scenarioBaseInput ?? null,
       } as any)
       .select('id')
       .single();

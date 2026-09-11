@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, X, ArrowRight, Mail, CheckCircle2, Lock, Infinity as InfinityIcon } from 'lucide-react';
+import { Sparkles, X, ArrowRight, Mail, CheckCircle2, Lock, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -122,8 +122,8 @@ export function PostAnalysisAuthPrompt({
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {monthlyProfit
-              ? `Your idea projects ${monthlyProfit}/mo. Create a free account to keep this result, run more analyses, and unlock the full report.`
-              : 'Create a free account to keep this result, run more analyses, and unlock the full report.'}
+              ? `Your idea projects ${monthlyProfit}/mo. Create a free account to keep the complete result and receive five Decision Runs each month.`
+              : 'Create a free account to keep this complete result and receive five Decision Runs each month.'}
           </p>
 
           {/* Benefit row */}
@@ -132,7 +132,7 @@ export function PostAnalysisAuthPrompt({
               <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> This analysis saved to your history
             </span>
             <span className="inline-flex items-center gap-1">
-              <InfinityIcon className="w-3.5 h-3.5 text-primary" /> Run more analyses
+              <GitBranch className="w-3.5 h-3.5 text-primary" /> Analysis + pre-mortem + scenarios
             </span>
             <span className="inline-flex items-center gap-1">
               <Lock className="w-3.5 h-3.5 text-primary" /> Free — no credit card

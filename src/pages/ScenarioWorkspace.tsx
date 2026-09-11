@@ -28,7 +28,7 @@ import {
   type ScenarioBreakpointResult,
   type AssumptionOriginClass,
 } from '@/services/scenario-sets-api';
-import { ArrowLeft, Loader2, Sparkles, Lock, GitBranch, ChevronRight, Target } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, GitBranch, ChevronRight, Target, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ASSUMPTION_LABELS: Record<ScenarioAssumptionKey, string> = {
@@ -109,7 +109,7 @@ export default function ScenarioWorkspace() {
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get('analysisId');
   const setId = searchParams.get('setId');
-  const { hasFeature } = useEntitlements();
+  const { hasFeature, tier, getLimit } = useEntitlements();
 
   const [baseAvailable, setBaseAvailable] = useState<boolean | null>(null);
   const [scenarioSets, setScenarioSets] = useState<ScenarioSetRow[]>([]);
@@ -255,14 +255,24 @@ export default function ScenarioWorkspace() {
         value: Number(value),
       }));
 
-  const handlePreview = async () => {
-    if (!setId) {
-      toast.error('Create a scenario set first');
-      return;
+  const ensureScenarioSet = async () => {
+    if (!analysisId) throw new Error('Choose an analysis first');
+    const targetSetId = setId ?? scenarioSets[0]?.id;
+    if (targetSetId) {
+      if (!setId) navigate(`/app/scenarios?analysisId=${analysisId}&setId=${targetSetId}`, { replace: true });
+      return targetSetId;
     }
+
+    const created = await createScenarioSet(analysisId, 'Decision Run Scenarios');
+    navigate(`/app/scenarios?analysisId=${analysisId}&setId=${created.scenario_set_id}`, { replace: true });
+    return created.scenario_set_id;
+  };
+
+  const handlePreview = async () => {
     setIsRunning(true);
     try {
-      const result = await runScenario({ scenarioSetId: setId, changes: buildChanges(), persist: false, startingCase });
+      const targetSetId = await ensureScenarioSet();
+      const result = await runScenario({ scenarioSetId: targetSetId, changes: buildChanges(), persist: false, startingCase });
       setPreview(result);
     } catch (e) {
       if (e instanceof ScenarioEntitlementError) {
@@ -300,13 +310,9 @@ export default function ScenarioWorkspace() {
     if (!analysisId) return;
     setIsSaving(true);
     try {
-      let targetSetId = setId;
-      if (!targetSetId) {
-        const created = await createScenarioSet(analysisId);
-        targetSetId = created.scenario_set_id;
-      }
+      const targetSetId = await ensureScenarioSet();
       const result = await runScenario({
-        scenarioSetId: targetSetId!,
+        scenarioSetId: targetSetId,
         name: scenarioName || 'Custom Scenario',
         changes: buildChanges(),
         persist: true,
@@ -317,7 +323,9 @@ export default function ScenarioWorkspace() {
       setPreview(result);
     } catch (e) {
       if (e instanceof ScenarioEntitlementError) {
-        toast.error(e.message, { description: 'Upgrade to Plus or Pro to save scenarios.' });
+        toast.error(e.message, {
+          description: 'This Decision Run includes one saved scenario set. Open the existing set, or use Plus for additional sets.',
+        });
       } else {
         toast.error(e instanceof Error ? e.message : 'Save failed');
       }
@@ -364,10 +372,10 @@ export default function ScenarioWorkspace() {
 
   if (!analysisId) {
     return (
-      <AppLayout title="Scenario Modeling">
+      <AppLayout title="Scenario Lab">
         <PageSEO
-          title="Scenario Modeling — Quantis"
-          description="Model what-if scenarios against any of your completed analyses using the same deterministic engine, then compare and promote results into documents."
+          title="Scenario Lab — Quantis"
+          description="Change one assumption at a time, find break-even points, and compare the financial effect against a completed Decision Run."
           canonical="/app/scenarios"
         />
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -381,10 +389,10 @@ export default function ScenarioWorkspace() {
 
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-primary shrink-0" />
-            <h1 className="text-xl font-semibold">Scenario Modeling</h1>
+            <h1 className="text-xl font-semibold">Scenario Lab</h1>
           </div>
           <p className="text-sm text-muted-foreground -mt-4">
-            Pick a completed analysis to model what-if changes against — same engine, same numbers, fully reproducible.
+            Pick a Decision Run, change the assumptions that matter, and see exactly what moves the outcome.
           </p>
 
           {loadingHistory ? (
@@ -397,7 +405,7 @@ export default function ScenarioWorkspace() {
                 <p className="text-sm text-muted-foreground">
                   You haven't run an analysis yet. Run one first, then come back here to model scenarios against it.
                 </p>
-                <Button onClick={() => navigate('/app')}>Run an Analysis</Button>
+                <Button onClick={() => navigate('/app')}>Start a Decision Run</Button>
               </CardContent>
             </Card>
           ) : (
@@ -442,10 +450,10 @@ export default function ScenarioWorkspace() {
   }
 
   return (
-    <AppLayout title="Scenario Modeling">
-      <PageSEO
-        title="Scenario Modeling — Quantis"
-        description="Model what-if scenarios against your analysis using the same deterministic engine, then compare and promote results into documents."
+      <AppLayout title="Scenario Lab">
+        <PageSEO
+        title="Scenario Lab — Quantis"
+        description="Change assumptions, find break-even points, and compare their financial effect using the same validated engine as your Decision Run."
         canonical="/app/scenarios"
       />
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -459,8 +467,18 @@ export default function ScenarioWorkspace() {
 
         <div className="flex items-center gap-3">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-semibold">Scenario Modeling</h1>
+          <h1 className="text-xl font-semibold">Scenario Lab</h1>
         </div>
+
+        {tier === 'free' && (
+          <div className="flex items-start gap-2 rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <p>
+              Included with this Decision Run: live previews, break-even analysis, comparisons, and{' '}
+              {getLimit('scenarioSetsPerAnalysis')} saved scenario set.
+            </p>
+          </div>
+        )}
 
         {baseAvailable === false && (
           <Card className="border-amber-500/40">
@@ -477,7 +495,9 @@ export default function ScenarioWorkspace() {
               {loadingSets ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : scenarioSets.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No saved sets yet — build one below and save it.</p>
+                <p className="text-sm text-muted-foreground">
+                  Choose a starting case below. Your included scenario set will be created automatically when you preview or save.
+                </p>
               ) : (
                 scenarioSets.map((s) => (
                   <button
@@ -498,9 +518,6 @@ export default function ScenarioWorkspace() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Compare Scenarios</CardTitle>
-              {!hasFeature('scenarioCompare') && (
-                <Badge variant="secondary"><Lock className="w-3 h-3 mr-1" />Upgrade to compare</Badge>
-              )}
             </CardHeader>
             <CardContent className="space-y-3">
               {loadingCompare ? (
@@ -671,17 +688,21 @@ export default function ScenarioWorkspace() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="outline" onClick={handlePreview} disabled={isRunning || baseAvailable === false}>
+              <Button
+                variant="outline"
+                onClick={handlePreview}
+                disabled={isRunning || baseAvailable === false || (!setId && loadingSets)}
+              >
                 {isRunning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Preview
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={isSaving || baseAvailable === false || !hasFeature('scenarioSave')}
-                title={!hasFeature('scenarioSave') ? 'Upgrade to Plus or Pro to save scenarios' : undefined}
+                disabled={isSaving || baseAvailable === false || (!setId && loadingSets) || !hasFeature('scenarioSave')}
+                title={!hasFeature('scenarioSave') ? 'Scenario saving is unavailable for this account' : undefined}
               >
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {hasFeature('scenarioSave') ? 'Save to Scenario Set' : <><Lock className="w-3 h-3 mr-2" />Save (Upgrade)</>}
+                Save to Scenario Set
               </Button>
             </div>
 

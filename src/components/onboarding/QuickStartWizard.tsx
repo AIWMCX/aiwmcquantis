@@ -83,7 +83,7 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
                 Hey {displayName}! 👋
               </h2>
               <p className="text-muted-foreground">
-                Get your first business reality check in under 2 minutes.
+                Use your first Decision Run on a real choice or a guided sample.
               </p>
             </div>
 
@@ -93,10 +93,10 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
               </p>
               <div className="p-3 rounded-lg bg-success/5 border border-success/20">
                 <p className="text-sm font-semibold text-foreground">
-                  Your 18-month survival odds
+                  A complete financial decision model
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Plus one critical anomaly in your plan — the thing most founders miss.
+                  Analysis, failure pre-mortem, scenario ranges, and the assumptions driving the answer.
                 </p>
               </div>
             </div>
@@ -131,8 +131,8 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
               </h2>
               <p className="text-muted-foreground">
                 {selectedPath === 'sample'
-                  ? "We've pre-filled a sample business for you. Click Analyze to see the magic!"
-                  : "Enter your business idea and location, then click Analyze."}
+                  ? "We've pre-filled a sample business. Review the assumptions, then run the analysis."
+                  : "Enter the business and location, add any numbers you know, then run the analysis."}
               </p>
             </div>
 
@@ -148,7 +148,7 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
 
             <div className="space-y-3">
               <Button onClick={handleComplete} className="w-full gap-2" size="lg">
-                Start Analyzing
+                Start Decision Run
                 <Zap className="w-4 h-4" />
               </Button>
               

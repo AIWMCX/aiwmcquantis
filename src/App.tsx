@@ -92,7 +92,6 @@ const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
 const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
 const QuoteEdit = lazy(() => import("./pages/quote/QuoteEdit"));
 const QuoteResult = lazy(() => import("./pages/quote/QuoteResult"));
-import { PlusGate } from "./components/PlusGate";
 
 // Spec-requested "/scenario" compatibility alias -> "/app/scenarios",
 // preserving the query string (e.g. ?analysisId=...) — plain <Navigate
@@ -221,29 +220,21 @@ const App = () => {
                 } />
                 <Route path="/docs" element={
                   <ProtectedRoute>
-                    <PlusGate module="docs">
-                      <DocsStudio />
-                    </PlusGate>
+                    <DocsStudio />
                   </ProtectedRoute>
                 } />
                 <Route path="/app/invoices" element={
                   <ProtectedRoute>
-                    <PlusGate module="invoices">
-                      <InvoiceManager />
-                    </PlusGate>
+                    <InvoiceManager />
                   </ProtectedRoute>
                 } />
                 <Route path="/app/pre-mortem" element={
                   <ProtectedRoute>
-                    <PlusGate module="pre-mortem">
-                      <PreMortem />
-                    </PlusGate>
+                    <PreMortem />
                   </ProtectedRoute>
                 } />
-                {/* Phase D — deliberately NOT wrapped in PlusGate: free users
-                    have scenarioView/scenarioCustom and can build + preview;
-                    only save/compare/promote are gated inline via
-                    useEntitlements() inside the page itself. */}
+                {/* Decision tools stay discoverable. Server entitlements protect
+                    paid actions; the route itself never becomes a sales wall. */}
                 <Route path="/app/scenarios" element={
                   <ProtectedRoute>
                     <ScenarioWorkspace />

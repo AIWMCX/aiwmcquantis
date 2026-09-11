@@ -42,13 +42,21 @@ const FEATURES: FeatureKey[] = [
   'api_access',
 ];
 
-// Expected matrix: which tiers can access which features.
-// Spec §8.1: FREE has no premium features; PLUS has PLUS-tier features;
-// PRO inherits all PLUS features and adds PRO-tier features.
+// Expected matrix: the acquisition product includes the complete analytical
+// core at FREE; PLUS adds continuous professional workflows; PRO inherits all
+// of it and adds investor/team capabilities.
+const FREE_DECISION_FEATURES: FeatureKey[] = [
+  'monte_carlo',
+  'pnl_36_month',
+  'action_plan',
+  'pre_mortem',
+];
 const EXPECTED_FEATURE_ACCESS: Record<Tier, Record<FeatureKey, boolean>> = {
-  FREE: Object.fromEntries(FEATURES.map((f) => [f, false])) as Record<FeatureKey, boolean>,
+  FREE: Object.fromEntries(
+    FEATURES.map((f) => [f, FREE_DECISION_FEATURES.includes(f)]),
+  ) as Record<FeatureKey, boolean>,
   PLUS: Object.fromEntries(
-    FEATURES.map((f) => [f, FEATURE_TIER_REQUIREMENT[f] === 'PLUS']),
+    FEATURES.map((f) => [f, FEATURE_TIER_REQUIREMENT[f] !== 'PRO']),
   ) as Record<FeatureKey, boolean>,
   PRO: Object.fromEntries(FEATURES.map((f) => [f, true])) as Record<FeatureKey, boolean>,
 };

@@ -33,27 +33,24 @@ const PRICING = {
 
 const FREE_FEATURES = [
   {
-    text: '5 analyses per month',
-    highlight: false,
-    subtext: 'Score + 3 critical risks + base revenue only',
+    text: '5 complete Decision Runs per month',
+    highlight: true,
+    subtext: 'Full financial analysis, validation, pre-mortem, and scenarios',
   },
-  { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
+  { text: '36-month P&L + Monte Carlo', highlight: true, subtext: 'Complete model and prioritized action plan' },
+  { text: 'Failure Pre-Mortem ✓', highlight: true, subtext: 'See what breaks first and why' },
+  { text: '1 saved scenario set per run', highlight: true, subtext: 'Preview changes, compare outcomes, and find break-even' },
   {
     text: '5 PDF downloads/day',
     highlight: false,
     subtext: 'Separate from your monthly analysis limit, watermarked with "Powered by Quantis"',
   },
   {
-    text: 'Pre-Mortem Stress Test 🔒',
-    highlight: false,
-    subtext: 'Plus only — stress-test existing businesses',
-  },
-  {
     text: 'Invoice & Capacity Check 🔒',
     highlight: false,
     subtext: 'Plus only — should you take this client?',
   },
-  { text: 'Document Studio 🔒', highlight: false, subtext: 'Plus only — investor-ready exports' },
+  { text: 'Document Studio starter access', highlight: false, subtext: '3 templates and 1 document download per day' },
   { text: 'Email support — best effort', highlight: false },
 ];
 
@@ -61,17 +58,12 @@ const PLUS_FEATURES = [
   {
     text: 'Unlimited analyses',
     highlight: true,
-    subtext: 'Replaces 3-5 hours of senior CFO analysis',
+    subtext: 'Keep testing decisions without a monthly run limit',
   },
   {
-    text: 'Full report — Monte Carlo, 36-mo P&L, action plan',
+    text: 'More scenario sets and comparison workflows',
     highlight: true,
-    subtext: '97,500 scenario stress-tests per analysis',
-  },
-  {
-    text: 'Pre-Mortem Stress Test ✓',
-    highlight: true,
-    subtext: 'Stress-test churn shocks, cost spikes, customer concentration',
+    subtext: 'Save, promote, and reuse scenarios across professional documents',
   },
   {
     text: 'Invoice & Capacity Check ✓',
@@ -253,9 +245,9 @@ export function PricingSection() {
             name="Free"
             price={0}
             period="forever"
-            description="Reconnaissance — is this idea worth your time?"
+            description="Complete decision evidence — five times every month"
             features={FREE_FEATURES}
-            ctaText="Start Free Analysis"
+            ctaText="Start a Decision Run"
             onCtaClick={() => handlePlanClick('free')}
             isLoading={loadingPlan === 'free'}
             disabled={loadingPlan !== null}
@@ -264,7 +256,7 @@ export function PricingSection() {
             name="Plus"
             price={plusPricing.price}
             period={plusPricing.period}
-            description="Full Analysis — should you actually start this business?"
+            description="Continuous decision work and professional workflows"
             features={PLUS_FEATURES}
             ctaText="Start 14-Day Free Trial →"
             onCtaClick={() => handlePlanClick('plus')}
@@ -322,13 +314,14 @@ function FeatureComparisonTable() {
   // /how-it-works (REPORT_SECTIONS / TOOLS) and /pricing's tier cards —
   // no feature claimed here that isn't already live elsewhere on the site.
   const features = [
-    { name: 'Monthly analyses', free: '5', plus: 'Unlimited', pro: 'Unlimited' },
-    { name: 'Financial projections', free: 'Basic', plus: '36-month, 12-variable', pro: '60-month, 12-variable' },
-    { name: 'Monte Carlo simulation', free: 'no', plus: `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration`, pro: `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration` },
-    { name: 'Pre-Mortem Stress Test', free: 'no', plus: 'yes', pro: 'yes' },
-    { name: 'Document Studio', free: 'no', plus: `${DOC_TEMPLATE_COUNT} templates`, pro: `${DOC_TEMPLATE_COUNT} templates` },
+    { name: 'Monthly Decision Runs', free: '5', plus: 'Unlimited', pro: 'Unlimited' },
+    { name: 'Financial projections', free: '36-month, 12-variable', plus: '36-month, 12-variable', pro: '60-month, 12-variable' },
+    { name: 'Monte Carlo simulation', free: `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration`, plus: `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration`, pro: `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration` },
+    { name: 'Failure Pre-Mortem', free: 'yes', plus: 'yes', pro: 'yes' },
+    { name: 'Saved scenario sets / analysis', free: '1', plus: '10', pro: '30' },
+    { name: 'Document Studio', free: '3 starter templates', plus: `${DOC_TEMPLATE_COUNT} templates`, pro: `${DOC_TEMPLATE_COUNT} templates` },
     { name: 'Invoice & Capacity Check', free: 'no', plus: 'yes', pro: 'yes' },
-    { name: 'RVCE external validation', free: 'no', plus: 'yes', pro: 'yes' },
+    { name: 'RVCE external validation', free: 'yes', plus: 'yes', pro: 'yes' },
     { name: 'TAM / SAM / SOM + pitch deck data', free: 'no', plus: 'TAM/SAM/SOM only', pro: '+ pitch deck data' },
     { name: 'Strategic roadmap', free: 'no', plus: 'no', pro: 'yes' },
     { name: 'White-label PDF export', free: 'no', plus: 'no', pro: 'yes' },

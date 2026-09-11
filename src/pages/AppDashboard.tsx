@@ -42,10 +42,9 @@ import {
   ChevronDown,
   CheckCircle2,
   Crown,
-  Sparkles,
-  ArrowRight,
+  GitBranch,
+  ShieldAlert,
 } from 'lucide-react';
-import { usePromoStatus, FOUNDER_PROMO_CODE } from '@/hooks/usePromoStatus';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { PostAnalysisAuthPrompt } from '@/components/analysis/PostAnalysisAuthPrompt';
@@ -59,6 +58,7 @@ import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
+import { QuantisWorkspaceGuide } from '@/components/dashboard/QuantisWorkspaceGuide';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -103,7 +103,6 @@ export default function Index() {
   const prevResultRef = useRef<boolean>(false);
 
   const { isAuthenticated, user } = useAuth();
-  const { showPromo: showFounderPromoCard } = usePromoStatus();
 
   // Soft "welcome back" nudge for recognized returning visitors who already ran a
   // free analysis on this device but never created an account. Non-blocking (they
@@ -237,9 +236,8 @@ export default function Index() {
     [markQuickStartComplete, setIdea, setLocation]
   );
 
-  // Either a full paid-tier result or a free-tier summary counts as "has a
-  // result to show" — the free tier never populates `result` (it lacks
-  // financial_analysis and is rendered by FreeTierResultCard instead).
+  // New complimentary Decision Runs populate `result` with the complete
+  // report. `freeTierSummary` remains only for legacy cached responses.
   const hasAnyResult = !!result || !!freeTierSummary;
 
   useEffect(() => {
@@ -385,7 +383,7 @@ export default function Index() {
     <AppLayout title="Dashboard">
       <PageSEO
         title="Run a free business idea analysis | AIWMC Quantis"
-        description={`Stress-test any business idea against ${BENCHMARK_COUNT_DISPLAY} benchmark data points informed by ${BENCHMARK_SOURCES_DISPLAY}. Free first analysis — no credit card. Get a profitability verdict and reliability score with Monte Carlo projections.`}
+        description={`Run five complete Decision Runs each month: financial analysis, failure pre-mortem, and scenarios informed by ${BENCHMARK_COUNT_DISPLAY} benchmark data points from ${BENCHMARK_SOURCES_DISPLAY}.`}
         canonical="/app"
       />
 
@@ -413,34 +411,6 @@ export default function Index() {
           <DashboardSkeleton />
         ) : (
           <>
-            {/* Founder trial promo — prominent, dedicated dashboard CTA (in addition
-                to the site-wide top banner in App.tsx). Every new signup lands here
-                right after auth, so this is the first thing an eligible new user sees.
-                usePromoStatus already excludes users who redeemed before or are
-                already Plus/Pro, so this never re-appears for converted users. */}
-            {isAuthenticated && showFounderPromoCard && (
-              <div className="mb-4 p-4 sm:p-5 rounded-xl border-2 border-primary/40 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 animate-fade-in">
-                <div className="flex items-start gap-3 min-w-0">
-                  <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" aria-hidden />
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Founder trial — 50 seats, limited time
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Get a full month of Plus free — unlimited analyses, Monte Carlo, Document Studio.
-                      Code {FOUNDER_PROMO_CODE}.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => navigate(`/trial?code=${FOUNDER_PROMO_CODE}`)}
-                  className="gap-2 flex-shrink-0 w-full sm:w-auto"
-                >
-                  Claim free month <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-
             {/* Welcome-back nudge — recognized returning visitor, not signed in */}
             {showWelcomeBack && (
               <div className="mb-4 p-3 rounded-lg border border-primary/30 bg-primary/5 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
@@ -475,6 +445,16 @@ export default function Index() {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {isAuthenticated && (
+              <QuantisWorkspaceGuide
+                isFree={isFree}
+                remainingAnalyses={remainingAnalyses}
+                onStartAnalysis={() =>
+                  formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              />
             )}
 
             {/* Subscription Status Bar — slim */}
@@ -532,14 +512,18 @@ export default function Index() {
                       >
                         <FileText className="w-3 h-3" /> Docs
                       </Button>
-                      {isFree ? (
+                      {isFree && remainingAnalyses <= 0 ? (
                         <Button
                           size="sm"
                           onClick={() => setShowUpgradePrompt(true)}
                           className="gap-1 h-7 text-xs"
                         >
-                          <Zap className="w-3 h-3" /> Upgrade
+                          <Zap className="w-3 h-3" /> Continue with Plus
                         </Button>
+                      ) : isFree ? (
+                        <span className="text-xs text-muted-foreground">
+                          Analysis + pre-mortem + scenario included
+                        </span>
                       ) : (
                         <>
                           {isPlus && (
@@ -801,7 +785,7 @@ export default function Index() {
                   )}
 
                   <TabsContent value="analyze">
-                    <ContextualUpgradeBanner />
+                    {isFree && remainingAnalyses <= 0 && <ContextualUpgradeBanner />}
                     {isError && error && (
                       <div className="mb-4">
                         <AnalysisErrorPanel
@@ -862,6 +846,27 @@ export default function Index() {
                             }}
                           />
                         </Suspense>
+                        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">Your failure pre-mortem is included in this report.</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                Next, change the fragile assumptions in Scenario Lab and find the break-even point.
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="shrink-0 gap-2"
+                            disabled={!(currentAnalysisId ?? analysisId)}
+                            onClick={() => navigate(`/app/scenarios?analysisId=${currentAnalysisId ?? analysisId}`)}
+                          >
+                            <GitBranch className="h-4 w-4" />
+                            Open Scenario Lab
+                          </Button>
+                        </div>
                         {showNextSteps && (
                           <NextStepsBar
                             onShare={() => {

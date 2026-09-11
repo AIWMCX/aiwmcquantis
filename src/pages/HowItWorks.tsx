@@ -50,7 +50,7 @@ const STEPS = [
       `${BENCHMARK_COUNT_DISPLAY} benchmarks across ${BENCHMARK_SECTORS} sectors (BLS, Census, SBA, CoStar)`,
       'City-level cost indices: rent, salary, and demand multipliers',
       'Decimal-precision arithmetic (Decimal.js) — no floating-point drift',
-      `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo simulation (Plus/Pro)`,
+      `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo simulation`,
     ],
     example: 'Revenue, margins, OpEx, unit economics, cash flow — all computed from verified data',
     glow: 'violet' as const,
@@ -75,7 +75,7 @@ const ENGINE_LAYERS = [
   { layer: 1, icon: Database, title: 'Benchmark Calibration', desc: `Matches your idea against ${BENCHMARK_COUNT_DISPLAY} industry benchmarks. Queries sector, sub-sector, and business model to pull real CAC, LTV, churn, margins, and growth rates — with percentile confidence bands.` },
   { layer: 2, icon: MapPin, title: 'Location Intelligence', desc: 'Applies city-level cost multipliers for rent, salaries, and demand. Covers 16 metros (NYC, SF, Denver, Austin, Chicago, Miami, Seattle, Boston, and more) plus US national baseline. Sources: BLS 2024, Census ACS 2023, CoStar.' },
   { layer: 3, icon: Search, title: 'Sub-Industry Detection', desc: 'Refines your NAICS classification to the sub-vertical level. Adjusts churn rates, pricing models, and margin profiles — a fintech SaaS is not the same as an HR SaaS.' },
-  { layer: 4, icon: Calculator, title: 'Financial Engine', desc: 'Builds a bottom-up P&L, cash flow statement, and unit economics model. 36-month projection for Plus, 60-month for Pro. All arithmetic via Decimal.js — zero floating-point drift.' },
+  { layer: 4, icon: Calculator, title: 'Financial Engine', desc: 'Builds a bottom-up P&L, cash flow statement, and unit economics model. Free and Plus runs project 36 months; Pro extends to 60 months. All arithmetic uses Decimal.js.' },
   { layer: 5, icon: Activity, title: 'Market Prior & Anomaly Detection', desc: 'Maps your business to market distributions and flags outliers. If your margin claim is in the 99th percentile for your industry, the engine tells you why that\'s suspicious.' },
   { layer: 6, icon: Shield, title: 'Quantis Logic Engine', desc: 'Deterministic validation and auto-correction. Catches unrealistic inputs (0% churn, 90% margins), applies guardrails, generates health scores and specific recommendations.' },
   { layer: 7, icon: BrainCircuit, title: 'AI Narrative & Safety Guardrails', desc: 'An AI writes the strategic narrative around your numbers — but the numbers come first. Every claim is truth-labeled ("computed", "benchmark", or "estimated"). The engine, not the AI, is the source of truth.' },
@@ -83,18 +83,18 @@ const ENGINE_LAYERS = [
 ];
 
 const REPORT_SECTIONS = [
-  { icon: TrendingUp, title: 'Revenue & Profit Projections', desc: '3 scenarios (conservative, realistic, optimistic) with monthly P&L breakdown: revenue, COGS, OpEx (rent, salaries, marketing, software), EBITDA, and net income.', tier: 'Free (summary) / Plus (36-month detail) / Pro (60-month)' },
-  { icon: AlertTriangle, title: 'Risk Assessment & Pre-Mortem', desc: 'Top risks ranked by severity. Plus/Pro adds the Pre-Mortem Stress Test: churn shock, cost spike, capacity overload, and "what breaks first" scenario modeling.', tier: 'Free (top 3 risks) / Plus+ (full Pre-Mortem)' },
+  { icon: TrendingUp, title: 'Revenue & Profit Projections', desc: '3 scenarios (conservative, realistic, optimistic) with monthly P&L breakdown: revenue, COGS, OpEx (rent, salaries, marketing, software), EBITDA, and net income.', tier: 'Free / Plus: 36 months · Pro: 60 months' },
+  { icon: AlertTriangle, title: 'Risk Assessment & Pre-Mortem', desc: 'Top risks ranked by severity plus churn shock, cost spike, capacity overload, cash pressure, and “what breaks first” modeling.', tier: 'Included in every Decision Run' },
   { icon: Target, title: 'Unit Economics', desc: 'LTV, CAC, LTV:CAC ratio, CAC payback period, customer lifetime, ARPU, and margin per customer — computed from benchmarks, not guessed.', tier: 'All tiers' },
-  { icon: BarChart3, title: 'Monte Carlo Simulation', desc: `${MONTE_CARLO_ITERATIONS_DISPLAY} iterations modeling revenue variability. Produces P10/P25/P50/P75/P90 outcome bands, success probability, and a histogram of possible outcomes.`, tier: 'Plus / Pro' },
-  { icon: Activity, title: 'Cash Flow & Runway', desc: 'Month-by-month cash position, burn rate, break-even month, and runway calculation. See exactly when (or if) the business becomes self-sustaining.', tier: 'Plus / Pro' },
-  { icon: Shield, title: 'Action Plan', desc: 'Top 5 prioritized next steps tied to your specific risks. What to cut, where to double down, and whether to proceed — based on your numbers, not generic advice.', tier: 'Plus / Pro' },
-  { icon: Globe, title: 'RVCE Validation Results', desc: `External cross-referencing of ${FINANCIAL_VARIABLES} metrics against live web data. Each metric tagged: OK, WARN, or OUTLIER — with sources, evidence samples, and recommended corrections.`, tier: 'Plus / Pro' },
+  { icon: BarChart3, title: 'Monte Carlo Simulation', desc: `${MONTE_CARLO_ITERATIONS_DISPLAY} iterations modeling revenue variability. Produces P10/P25/P50/P75/P90 outcome bands, success probability, and a histogram of possible outcomes.`, tier: 'Included in every Decision Run' },
+  { icon: Activity, title: 'Cash Flow & Runway', desc: 'Month-by-month cash position, burn rate, break-even month, and runway calculation. See exactly when (or if) the business becomes self-sustaining.', tier: 'Included in every Decision Run' },
+  { icon: Shield, title: 'Action Plan', desc: 'Top 5 prioritized next steps tied to your specific risks. What to cut, where to double down, and whether to proceed — based on your numbers, not generic advice.', tier: 'Included in every Decision Run' },
+  { icon: Globe, title: 'RVCE Validation Results', desc: `External cross-referencing of ${FINANCIAL_VARIABLES} metrics against live web data. Each metric tagged: OK, WARN, or OUTLIER — with sources, evidence samples, and recommended corrections.`, tier: 'Included in every Decision Run' },
   { icon: Database, title: 'Benchmark Insights & Confidence', desc: `Every metric shows its benchmark source, percentile position, and confidence level. You see exactly where your numbers sit relative to ${BENCHMARK_COUNT_DISPLAY} data points.`, tier: 'All tiers' },
 ];
 
 const TOOLS = [
-  { icon: FileText, title: 'Document Studio', desc: '10 professional templates — executive summary, investor snapshot, financial forecast, business plan, NDA, partnership agreement — auto-populated from your analysis. PDF and DOCX export with custom branding.', tier: 'Plus / Pro' },
+  { icon: FileText, title: 'Document Studio', desc: 'Create invoices, quarterly summaries, and NDAs free; Plus adds the full professional template library, saved documents, and unlimited exports.', tier: 'Free starter access / Plus full workflow' },
   { icon: Zap, title: 'Invoice & Capacity Check', desc: '"Should I accept this client?" Analyzes cash-flow impact, team utilization, engagement economics, and late-payment risk. Returns ACCEPT, ACCEPT_WITH_CONDITIONS, or DECLINE with specific conditions.', tier: 'Plus / Pro' },
   { icon: TrendingUp, title: 'TAM / SAM / SOM Calculator', desc: 'Total, Serviceable, and Obtainable market sizing with cited research sources. Investor-ready market analysis with data provenance.', tier: 'Plus (TAM/SAM/SOM) / Pro (+ pitch deck data)' },
   { icon: Target, title: '5-Year Financial Model & Roadmap', desc: '60-month projection horizon with variance bands. Strategic roadmap with week-by-week milestones, critical-path dependencies, and launch sequence.', tier: 'Pro' },
@@ -125,7 +125,7 @@ const FAQ_ITEMS = [
   { q: 'What does Monte Carlo simulation do?', a: `Instead of giving you one revenue estimate, the Monte Carlo engine runs ${MONTE_CARLO_ITERATIONS_DISPLAY} simulations with different assumptions. The result: P10 (worst reasonable case), P50 (median), P90 (best reasonable case), success probability, and a histogram of all possible outcomes. This shows you the full range of what could happen — not just the best guess.` },
   { q: 'What is the Pre-Mortem Stress Test?', a: 'The Pre-Mortem identifies how your business could fail before you launch. It models specific scenarios: churn shock (sudden customer loss), cost spikes (materials/rent increases), capacity overload, and cash-flow crunches. Each scenario shows the dollar impact and whether your model survives it.' },
   { q: 'How does the Invoice & Capacity Check work?', a: '"Should I accept this new client?" You enter your current revenue, costs, team capacity, and the proposed client\'s terms. Quantis models the cash-flow bridge, capacity utilization, late-payment risk, and engagement economics. Result: ACCEPT, ACCEPT_WITH_CONDITIONS (e.g., require upfront payment), or DECLINE — with specific reasoning.' },
-  { q: 'What is the difference between Free, Plus, and Pro?', a: `Free gives you ${FREE_ANALYSES_PER_MONTH} analyses/month with viability score, top risks, and basic projections. Plus ($${TIERS.plus.priceMonthly}/mo) unlocks unlimited analyses, 36-month P&L, Monte Carlo, Pre-Mortem, Document Studio, and Invoice & Capacity Check. Pro ($${TIERS.pro.priceMonthly}/mo) adds 60-month projections, TAM/SAM/SOM, pitch deck data, strategic roadmap, white-label PDF, and API access. All paid plans include a 14-day free trial.` },
+  { q: 'What is the difference between Free, Plus, and Pro?', a: `Free gives you ${FREE_ANALYSES_PER_MONTH} complete Decision Runs each month. Each includes the full 36-month analysis, Monte Carlo model, action plan, failure pre-mortem, and one saved scenario set. Plus ($${TIERS.plus.priceMonthly}/mo) removes the run limit and expands scenario, document, export, and Invoice & Capacity workflows. Pro ($${TIERS.pro.priceMonthly}/mo) adds 60-month projections, pitch-deck data, strategic roadmap, white-label PDF, API access, and team seats. All paid plans include a 14-day free trial.` },
   { q: 'How is arithmetic precision handled?', a: 'All financial calculations use Decimal.js (arbitrary-precision arithmetic). This eliminates the floating-point errors that plague spreadsheet models — every dollar and cent is exact. The same math library runs on both client and server for full parity.' },
 ];
 
@@ -325,17 +325,17 @@ export default function HowItWorks() {
 
       {/* Tier Comparison (concise) */}
       <section className="py-12 md:py-16">
-        <SectionHeader eyebrow="Plans" title="Free vs Plus vs Pro" subtitle="Start free. Upgrade when you need the full engine." />
+        <SectionHeader eyebrow="Plans" title="Free vs Plus vs Pro" subtitle="The full decision engine is free five times each month. Paid plans add continuity and professional workflows." />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-10">
           <GlassCard glow="cyan" className="p-6">
             <p className="text-sm font-semibold text-muted-foreground mb-1">Free</p>
             <p className="text-3xl font-bold mb-4" style={{ color: 'hsl(var(--foreground))' }}>$0</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> {FREE_ANALYSES_PER_MONTH} analyses per month</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Viability score + top risks</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Basic revenue projections</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Unit economics summary</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Benchmark insights</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> {FREE_ANALYSES_PER_MONTH} complete Decision Runs per month</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> 36-month P&amp;L + cash flow</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Failure pre-mortem + action plan</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> One saved scenario set per run</li>
             </ul>
           </GlassCard>
           <GlassCard glow="brand" revealDelay={80} className="p-6 relative">
@@ -352,9 +352,8 @@ export default function HowItWorks() {
             <p className="text-xs text-muted-foreground mb-4">or ${TIERS.plus.priceAnnualMonthlyEquivalent}/mo annually · 14-day free trial</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Unlimited analyses</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> 36-month P&L + cash flow</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Pre-Mortem Stress Test</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> More scenario sets and comparisons</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Professional PDF and DOCX exports</li>
               <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Document Studio ({DOC_TEMPLATE_COUNT} templates)</li>
               <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> Invoice & Capacity Check</li>
               <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} /> RVCE external validation</li>

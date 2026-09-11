@@ -518,71 +518,35 @@ describe('T9: sentinel 999 never reaches a customer-facing surface as literal mo
 });
 
 // ============================================================================
-// T6 — QOC shadow-mode guard (docs/QOC_MIGRATION_PLAN.md, Stage 1)
-// analyze-business fires a parallel, non-blocking call to qoc-orchestrate so
-// real production data accumulates for the QOC migration's parity analysis.
-// This guard is a STATIC structural check — it cannot prove runtime behavior,
-// but it can prove the source can't do the one thing that must never happen:
-// let a shadow-mode failure delay or break the real user response. If this
-// guard ever fails, someone made the shadow call blocking or unguarded —
-// stop and fix it before it ships, don't weaken the assertion.
+// T6 — Analysis requests must not be shadow-forwarded to a second service.
+// The live analysis path already runs its deterministic engine, reconciliation,
+// safety, and hybrid validation. A former migration experiment additionally
+// forwarded raw idea/location inputs to qoc-orchestrate. That duplicate path
+// added latency and widened data disclosure without contributing to the
+// customer response, so production now pins its absence.
 // ============================================================================
-describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
+describe('T6: analysis does not shadow-forward customer input', () => {
   const src = readFileSync(
     join(ROOT, 'supabase/functions/analyze-business/index.ts'),
     'utf8',
   );
 
-  it('the shadow-mode block exists and references the migration plan', () => {
-    expect(src).toContain('QOC Shadow Mode');
-    expect(src).toContain('QOC_MIGRATION_PLAN.md');
-    expect(src).toContain("supabaseService.functions");
-    expect(src).toContain("'qoc-orchestrate'");
+  it('contains no qoc-orchestrate shadow invoke or shadow timeout machinery', () => {
+    expect(src).not.toContain('QOC Shadow Mode');
+    expect(src).not.toContain('QOC_SHADOW_TIMEOUT_MS');
+    expect(src).not.toMatch(/functions\.invoke\(\s*['"]qoc-orchestrate['"]/);
   });
 
-  it('the shadow invoke is awaited with a bounded timeout, not fire-and-forget (fixed 2026-08-02, P0-14)', () => {
-    // Isolate the shadow-mode block (between its start marker and the final
-    // `return new Response` that ships wirePayload to the user).
-    const start = src.indexOf('QOC Shadow Mode');
-    const responseMarker = 'success: true, data: wirePayload';
-    const end = src.indexOf(responseMarker, start);
-    expect(start, 'shadow-mode block not found').toBeGreaterThan(-1);
-    expect(end, 'final wirePayload response not found after shadow block').toBeGreaterThan(start);
-    const block = src.slice(start, end);
-    // Previously handed to EdgeRuntime.waitUntil (fire-and-forget) -- found
-    // to still leave qoc_audit_envelopes at 0 rows for real authenticated
-    // traffic, unconfirmed whether the keepalive API was ever actually
-    // available. Now directly awaited (bounded by a timeout so it can never
-    // stall the user's real response indefinitely) -- an isolate cannot
-    // tear down while something inside it is still being awaited.
-    expect(block).toMatch(/await Promise\.race\(\[shadowInvoke, shadowTimeout\]\)/);
-    expect(block).toContain('QOC_SHADOW_TIMEOUT_MS');
-    // The explanatory comment may still name EdgeRuntime/waitUntil for
-    // historical context; the actual conditional call site must be gone.
-    expect(block).not.toMatch(/if\s*\(edgeRuntime\?\.\s*waitUntil\)/);
-  });
-
-  it('the shadow-mode setup is wrapped in try/catch so it cannot throw into the request', () => {
-    const start = src.indexOf('QOC Shadow Mode');
-    const responseMarker = 'success: true, data: wirePayload';
-    const end = src.indexOf(responseMarker, start);
-    const block = src.slice(start, end);
-    // The comment header alone runs ~700 chars; assert structurally within
-    // the whole isolated block rather than a fixed-size window.
-    expect(block).toMatch(/try\s*\{/);
-    expect(block).toMatch(/\}\s*catch\s*\(shadowSetupErr\)/);
-  });
-
-  it('the awaited shadow race has its own .catch so a rejection cannot throw into the request', () => {
-    const start = src.indexOf('QOC Shadow Mode');
-    const responseMarker = 'success: true, data: wirePayload';
-    const end = src.indexOf(responseMarker, start);
-    const block = src.slice(start, end);
-    expect(block).toMatch(/Promise\.race\(\[shadowInvoke, shadowTimeout\]\)\.catch\(/);
+  it('still runs the customer-facing hybrid validator in the primary request', () => {
+    // The actual exported/called name is `validateAnalysis` (from
+    // hybrid-validator.ts) -- 'runHybridValidator' never existed under that
+    // name on main or this branch; this assertion was simply typo'd against
+    // the wrong identifier when T6 was rewritten for the shadow-mode removal.
+    expect(src).toContain('validateAnalysis');
+    expect(src).toMatch(/await\s+validateAnalysis\(/);
   });
 });
 
-// ============================================================================
 // T12 — Cross-section reconciliation (handbook §19 item 4)
 // ============================================================================
 describe('T12 — cross-section reconciliation flags in PDF', () => {
@@ -891,28 +855,20 @@ describe('T17 — reconciliation module map is honestly labeled, not silently de
 });
 
 // ============================================================================
-// T18 — QOC shadow-mode call is awaited, not fire-and-forget (P0-14, decided
-// 2026-08-02). qoc_audit_envelopes had 0 rows in production for months
-// despite Stage 1 being marked shipped, including for real authenticated
-// traffic that should have been shadowed. A 2026-07-25 investigation
-// suspected but never confirmed that `EdgeRuntime.waitUntil()` wasn't
-// actually keeping the isolate alive long enough for the fire-and-forget
-// invoke to complete. Rather than keep guessing at isolate lifetime, the
-// call is now directly awaited with a bounded timeout -- an isolate cannot
-// tear down mid-request while something inside it is still being awaited,
-// a strictly stronger guarantee than any keepalive API, and the timeout
-// caps the worst-case latency added to a real user's response.
+// T18 — Customer-input minimization remains pinned at the request boundary.
+// Keep a second, explicit guard near the historical P0 slot so future migration
+// work cannot quietly reintroduce duplicate forwarding as a latency or privacy
+// regression.
 // ============================================================================
-describe('T18 — QOC shadow-mode call cannot be silently killed by isolate teardown', () => {
-  it('the qoc-orchestrate shadow invoke is awaited (with a bounded timeout), not fire-and-forget', () => {
+describe('T18 — analysis has one authoritative validation path', () => {
+  it('does not invoke qoc-orchestrate from analyze-business', () => {
     const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
-    expect(src).toMatch(/await Promise\.race\(\[shadowInvoke, shadowTimeout\]\)/);
-    expect(src).toContain('QOC_SHADOW_TIMEOUT_MS');
-    expect(src).not.toMatch(/edgeRuntime\.waitUntil\(shadowInvoke\)/);
+    expect(src).not.toMatch(/functions\.invoke\(\s*['"]qoc-orchestrate['"]/);
+    expect(src).not.toContain('shadowInvoke');
+    expect(src).not.toContain('shadowTimeout');
   });
 });
 
-// ============================================================================
 // T19 — /consultants (the ICP landing page) is reachable from real navigation,
 // not just a direct URL hit. 2026-08-02 investigation found the page itself
 // was already fully built and live (real ROI calculator, objection FAQ,

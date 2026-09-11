@@ -14,7 +14,7 @@ interface AnalysisCounterTooltipProps {
 }
 
 /**
- * Shows remaining analyses with a tooltip defining what "analysis" means.
+ * Shows remaining Decision Runs with a tooltip defining what one run includes.
  * Reduces ambiguity per audit point #4.
  */
 export function AnalysisCounterTooltip({ remainingAnalyses, totalLimit = 5, isFree }: AnalysisCounterTooltipProps) {
@@ -29,15 +29,15 @@ export function AnalysisCounterTooltip({ remainingAnalyses, totalLimit = 5, isFr
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-help">
-            {remainingAnalyses} of {totalLimit} remaining
+            {remainingAnalyses} of {totalLimit} Decision Runs remaining
             <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
           </span>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-          <p className="font-medium mb-1">What counts as 1 analysis?</p>
+          <p className="font-medium mb-1">What counts as 1 Decision Run?</p>
           <p className="text-muted-foreground">
-            One business scenario that we fully grade and benchmark. 
-            You can edit the same scenario unlimited times — only new scenarios count.
+            One complete financial analysis with validation, failure pre-mortem, and an included scenario set.
+            Previewing or editing scenarios inside that run does not use another run.
           </p>
         </TooltipContent>
       </Tooltip>

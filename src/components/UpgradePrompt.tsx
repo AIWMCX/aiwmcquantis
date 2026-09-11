@@ -51,8 +51,8 @@ export function UpgradePrompt({
           </DialogTitle>
           <DialogDescription>
             {remainingAnalyses === 0 
-              ? "You've used your free analysis this month. Upgrade to Plus for unlimited analyses + the full report — Monte Carlo, P&L, competitive analysis, and the complete action plan."
-              : `You have ${remainingAnalyses} free ${remainingAnalyses === 1 ? 'analysis' : 'analyses'} remaining. Free shows score + top 3 risks. Plus unlocks everything.`
+              ? "You've completed all five complimentary Decision Runs this month. Your full reports remain available; Plus lets you continue with unlimited runs now."
+              : `You have ${remainingAnalyses} complete Decision ${remainingAnalyses === 1 ? 'Run' : 'Runs'} remaining. Your current analysis is already fully available; Plus adds unlimited runs, clean exports, and professional workflows.`
             }
           </DialogDescription>
         </DialogHeader>

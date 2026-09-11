@@ -110,9 +110,8 @@ const PLUS_OUTPUT_FIELDS = [
 
 export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
   FREE: {
-    allowed_endpoints: [ENDPOINTS.ANALYSE_MAIN],
+    allowed_endpoints: [ENDPOINTS.ANALYSE_MAIN, ENDPOINTS.ANALYSE_PREMORTEM],
     blocked_endpoints: [
-      ENDPOINTS.ANALYSE_PREMORTEM,
       ENDPOINTS.ANALYSE_PRO_EXTENSION,
       ENDPOINTS.TOOLS_CAPACITY_CHECK,
       ENDPOINTS.DOCUMENTS_STUDIO,
@@ -128,7 +127,9 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
     white_label: false,
     api_access: false,
     team_seats: 0,
-    allowed_output_fields: FREE_OUTPUT_FIELDS,
+    // The acquisition product is the real product: all Plus-level analysis
+    // fields are available for the five complimentary Decision Runs.
+    allowed_output_fields: PLUS_OUTPUT_FIELDS,
   },
   PLUS: {
     allowed_endpoints: [
@@ -191,13 +192,13 @@ export interface LlmBudget {
 
 export const LLM_BUDGET: Record<Tier, LlmBudget> = {
   FREE: {
-    max_tokens: 1_200,
+    max_tokens: 4_800,
     temperature: 0.2,
     top_p: 0.9,
-    monte_carlo_iterations: null,
-    pnl_horizon_months: null,
-    retry_on_schema_fail: 1,
-    timeout_ms: 15_000,
+    monte_carlo_iterations: 1_000,
+    pnl_horizon_months: 36,
+    retry_on_schema_fail: 2,
+    timeout_ms: 45_000,
     response_format: 'json_object',
   },
   PLUS: {
@@ -299,10 +300,10 @@ export function evaluateGate(args: {
       body: {
         success: false,
         error: 'QUOTA_EXCEEDED',
-        message: 'You have used your 1 free analysis this month.',
+        message: 'You have used your 5 complimentary Decision Runs this month.',
         required_tier: 'PLUS',
         upgrade_url: UPGRADE_URL,
-        cta: 'Get unlimited analyses — Upgrade to Plus',
+        cta: 'Continue with unlimited Decision Runs',
         resets_at: resetsAt,
       },
     };
@@ -348,10 +349,10 @@ export type FeatureKey =
 
 export const FEATURE_TIER_REQUIREMENT: Record<FeatureKey, Tier> = {
   unlimited_analyses: 'PLUS',
-  monte_carlo: 'PLUS',
-  pnl_36_month: 'PLUS',
-  action_plan: 'PLUS',
-  pre_mortem: 'PLUS',
+  monte_carlo: 'FREE',
+  pnl_36_month: 'FREE',
+  action_plan: 'FREE',
+  pre_mortem: 'FREE',
   capacity_check: 'PLUS',
   document_studio: 'PLUS',
   clean_pdf_export: 'PLUS',
@@ -385,16 +386,16 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
   // §10.1 Free → Plus
   free_quota_hit: {
     trigger: 'free_quota_hit',
-    headline: "You're out of free analyses",
-    body: 'Your monthly analysis is used. Upgrade for unlimited, with Monte Carlo and full P&L.',
-    cta: 'Unlock Unlimited — $17/mo',
+    headline: 'Your five complimentary Decision Runs are complete',
+    body: 'Your reports remain available and free runs renew next month. Plus adds unlimited runs when you need to continue now.',
+    cta: 'Continue with Plus — $17/mo',
     required_tier: 'PLUS',
   },
   locked_premortem: {
     trigger: 'locked_premortem',
-    headline: 'Stress-test your business',
-    body: 'Discover the exact churn shock, cost spike, and concentration scenario that breaks your model — before it happens.',
-    cta: 'Unlock Pre-Mortem — Plus',
+    headline: 'Start another Decision Run',
+    body: 'Failure pre-mortem is included in every run. Plus is required only when the complimentary monthly runs are used.',
+    cta: 'Continue with Plus',
     required_tier: 'PLUS',
   },
   clean_pdf_export: {
@@ -413,9 +414,9 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
   },
   free_returning_7d: {
     trigger: 'free_returning_7d',
-    headline: 'Your idea is still waiting',
-    body: 'Run your full Monte Carlo analysis and get a complete 36-month P&L. Takes 90 seconds.',
-    cta: 'Start Full Analysis — $17/mo',
+    headline: 'Your decision workspace is ready',
+    body: 'Reopen a saved report or use a complimentary run for a complete analysis, pre-mortem, and scenario set.',
+    cta: 'Open Decision Workspace',
     required_tier: 'PLUS',
   },
   // §10.2 Plus → Pro
@@ -461,9 +462,9 @@ export function buildUpgradeNudge(tier: Tier): UpgradeMessage | null {
   if (tier === 'FREE')
     return {
       trigger: 'free_post_analysis',
-      headline: 'Want the full picture?',
-      body: 'Unlock Monte Carlo simulation, 36-month P&L, and your action plan on Plus.',
-      cta: 'Upgrade to Plus — $17/mo',
+      headline: 'Need to keep testing decisions?',
+      body: 'This complete report is yours. Plus adds unlimited Decision Runs and professional workflows.',
+      cta: 'Continue with Plus — $17/mo',
       required_tier: 'PLUS',
     };
   if (tier === 'PLUS') return UPGRADE_TRIGGERS.plus_complete_investor;
