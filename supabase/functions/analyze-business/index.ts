@@ -3162,11 +3162,29 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         result.financial_analysis.unit_economics.cac_payback_months =
           !calc.isProfitable ? 999 : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - detectedIndustry.cogs_percent) / 100), 1);
       }
+      // Contract widening, additive only (2026-09-11): payback_period_months
+      // stays exactly as-is -- 20+ downstream call sites depend on its
+      // existing integer/999 contract, and replacing it is a larger,
+      // separately-scoped change. But a raw 999 is genuinely ambiguous to
+      // any consumer that doesn't know this codebase's special-casing (the
+      // public API, PDF/CSV export, any future integration): it means either
+      // "unprofitable" or "profitable but exceeds the 60-month simulation
+      // window," and those are opposite conclusions about the same business.
+      // calc.paybackResult already computes the correct typed state (VALUE /
+      // NOT_APPLICABLE / etc, per payback-contract.ts) and was already being
+      // written to the internal analysis_snapshots table -- it just never
+      // reached the response a customer or API caller actually receives.
+      // Exposing it as sibling fields lets any consumer resolve the
+      // ambiguity without guessing from the bare number.
       if (result.financial_analysis) {
         result.financial_analysis.payback_period_months = calc.paybackMonths;
+        result.financial_analysis.payback_status = calc.paybackResult?.status ?? null;
+        result.financial_analysis.payback_reason_code = calc.paybackResult?.reasonCode ?? null;
       }
       if (result.financial_analysis?.returns) {
         result.financial_analysis.returns.payback_period_months = calc.paybackMonths;
+        result.financial_analysis.returns.payback_status = calc.paybackResult?.status ?? null;
+        result.financial_analysis.returns.payback_reason_code = calc.paybackResult?.reasonCode ?? null;
       }
       if (corrections.length > 0) {
         log.info(`Narrative sanitizer applied ${corrections.length} correction(s): ${corrections.join(" | ")}`);
