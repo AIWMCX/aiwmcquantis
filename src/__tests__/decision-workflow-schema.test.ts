@@ -56,7 +56,8 @@ describe("Founder Decision Review / Consultant Intake — Day 1 schema", () => {
       const nextTableIdx = schemaSql.indexOf("create table public.", idx + 1);
       const block = schemaSql.slice(idx, nextTableIdx > -1 ? nextTableIdx : undefined);
       expect(block).toContain("consultant_private");
-      expect(block).toMatch(/visibility = 'shared' or m\.role in \(/);
+      expect(block).toMatch(/\.visibility = 'shared'/);
+      expect(block).toMatch(/or m\.role in \(/);
     }
   });
 
