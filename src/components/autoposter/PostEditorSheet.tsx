@@ -7,9 +7,11 @@ import {
   AutoposterPost,
   AutoposterPlatformRow,
   AP_PLATFORMS,
+  PostStatus,
   useGenerateContent,
   useUpdatePlatformContent,
   useApproveAndSchedule,
+  useSetPostStatus,
 } from '@/hooks/useAutoposter';
 
 interface Props {
@@ -29,6 +31,7 @@ export function PostEditorSheet({ post, platforms, onClose }: Props) {
   const generate = useGenerateContent();
   const update = useUpdatePlatformContent();
   const approve = useApproveAndSchedule();
+  const setStatus = useSetPostStatus();
 
   useEffect(() => {
     const d: Record<string, string> = {};
@@ -64,6 +67,23 @@ export function PostEditorSheet({ post, platforms, onClose }: Props) {
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)]">Status</span>
+            <Badge variant="outline" className="uppercase text-[10px]">{post.status}</Badge>
+            {(['draft', 'posted', 'archived', 'not_published'] as PostStatus[]).map((s) => (
+              <Button
+                key={s}
+                size="sm"
+                variant={post.status === s ? 'default' : 'outline'}
+                disabled={setStatus.isPending || post.status === s}
+                onClick={() => setStatus.mutate({ id: post.id, status: s })}
+                className="h-7 text-[11px]"
+              >
+                Mark {s.replace('_', ' ')}
+              </Button>
+            ))}
+          </div>
+
           <div className="rounded-md border border-[var(--q-border-subtle)] p-3 bg-[var(--q-bg-elevated)]">
             <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] mb-1">Brief</div>
             <div className="text-xs whitespace-pre-wrap">{post.content_brief}</div>

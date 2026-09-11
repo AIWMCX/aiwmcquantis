@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdmin } from '@/hooks/useAdmin';
 import { PostQueue } from '@/components/autoposter/PostQueue';
 import { PostCalendar } from '@/components/autoposter/PostCalendar';
+import { PostArchive } from '@/components/autoposter/PostArchive';
 import { KPITracker } from '@/components/autoposter/KPITracker';
 import { ContentPlanView } from '@/components/autoposter/ContentPlanView';
 
@@ -41,6 +42,7 @@ export default function Autoposter() {
             <TabsTrigger value="plan">Content Plan</TabsTrigger>
             <TabsTrigger value="queue">Queue</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            <TabsTrigger value="archive">Archive</TabsTrigger>
             <TabsTrigger value="kpi">KPI Tracker</TabsTrigger>
           </TabsList>
 
@@ -52,6 +54,9 @@ export default function Autoposter() {
           </TabsContent>
           <TabsContent value="calendar">
             <PostCalendar />
+          </TabsContent>
+          <TabsContent value="archive">
+            <PostArchive />
           </TabsContent>
           <TabsContent value="kpi">
             <KPITracker />
