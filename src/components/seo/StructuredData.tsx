@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
 
 const SITE_URL = 'https://www.aiwmcquantis.com';
 
@@ -96,7 +96,7 @@ export function StructuredData({
           price: '0',
           priceCurrency: 'USD',
           availability: 'https://schema.org/InStock',
-          description: '1 free analysis with score and top 3 risks; full report requires Plus'
+          description: `${FREE_ANALYSES_PER_MONTH} complete Decision Runs per month, each with the full analysis, Monte Carlo simulation, and failure pre-mortem`
         },
         {
           '@type': 'Offer',
