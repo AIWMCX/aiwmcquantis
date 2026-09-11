@@ -406,6 +406,7 @@ jobs:
             engagement-intake
             create-checkout-session
             create-portal-session
+            reconcile-stripe-subscriptions
             # ── Core analysis pipeline ────────────────────────────────────
             analyze-business
             analyze-plus
