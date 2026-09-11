@@ -20,9 +20,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Download, Link2, Play, Plus, RefreshCw, TrendingUp } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Download, Link2, Play, Plus, RefreshCw, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { usePdfExport } from '@/hooks/usePdfExport';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
+import { buildEngagementPacketHtml } from '@/lib/engagement-packet';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { logger } from '@/lib/logger';
 
@@ -47,6 +49,16 @@ interface Engagement {
   pilot_ends_at?: string | null;
   substantive_work_started_at?: string | null;
   completed_at?: string | null;
+  company_name?: string | null;
+  intake_data?: Record<string, unknown> | null;
+  workspace_data?: {
+    decision_summary?: string;
+    constraints?: string;
+    assumptions?: unknown[];
+    scenarios?: unknown[];
+    questions?: string[];
+    cases?: unknown[];
+  } | null;
 }
 
 interface ReturnUsage {
@@ -65,7 +77,9 @@ export default function PaidEngagements() {
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ analysis_id: '', decision_question: '', consultant_notes: '' });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const { generatePdf } = usePdfExport();
+  const { downloadPDF } = useDocumentDownload();
 
   const [form, setForm] = useState({
     contact_name: '',
@@ -152,6 +166,28 @@ export default function PaidEngagements() {
     } finally {
       setExportingId(null);
     }
+  }
+
+  function downloadPacket(engagement: Engagement) {
+    const ws = engagement.workspace_data || {};
+    const isConsultant = engagement.offer_code === 'consultant_founding_pilot';
+    const html = buildEngagementPacketHtml({
+      offerName: isConsultant ? 'Consultant Founding Pilot' : 'Founder Decision Review',
+      contactName: engagement.contact_name,
+      contactEmail: engagement.contact_email,
+      companyName: engagement.company_name,
+      generatedAt: new Date().toISOString(),
+      decisionSummary: isConsultant ? undefined : ws.decision_summary,
+      constraints: isConsultant ? undefined : ws.constraints,
+      // Workspace JSON already matches this shape (label/value/type/... for
+      // assumptions, name/revenue/costs/... for scenarios) — see PaidWorkspace.tsx.
+      assumptions: isConsultant ? undefined : (ws.assumptions as never),
+      scenarios: isConsultant ? undefined : (ws.scenarios as never),
+      questions: ws.questions,
+      cases: isConsultant ? (ws.cases as never) : undefined,
+      intake: engagement.intake_data,
+    });
+    downloadPDF(html, `${engagement.company_name || engagement.contact_name} — Founder Packet`);
   }
 
   async function updateEngagement(id: string, updates: Record<string, unknown>) {
@@ -296,6 +332,37 @@ export default function PaidEngagements() {
                       {e.pilot_ends_at ? ` · pilot closes ${new Date(e.pilot_ends_at).toLocaleDateString()}` : ''}
                     </p>
                   )}
+                  {(e.intake_data || e.workspace_data) && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(expandedId === e.id ? null : e.id)}
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                      >
+                        {expandedId === e.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        {expandedId === e.id ? 'Hide submitted brief' : 'View submitted brief'}
+                      </button>
+                      {expandedId === e.id && (
+                        <div className="mt-2 rounded-md border border-border bg-muted/30 p-3 space-y-2 text-xs">
+                          {e.workspace_data?.decision_summary && (
+                            <p><span className="font-medium">Decision:</span> {e.workspace_data.decision_summary}</p>
+                          )}
+                          {(e.workspace_data?.assumptions?.length ?? 0) > 0 && (
+                            <p><span className="font-medium">Assumptions recorded:</span> {e.workspace_data!.assumptions!.length}</p>
+                          )}
+                          {(e.workspace_data?.cases?.length ?? 0) > 0 && (
+                            <p><span className="font-medium">Client cases:</span> {e.workspace_data!.cases!.length}</p>
+                          )}
+                          {e.intake_data && Object.entries(e.intake_data).filter(([, v]) => v && String(v).trim()).map(([key, value]) => (
+                            <p key={key}><span className="font-medium">{key.replace(/_/g, ' ')}:</span> {String(value)}</p>
+                          ))}
+                          {!e.intake_data && !e.workspace_data?.decision_summary && (e.workspace_data?.cases?.length ?? 0) === 0 && (
+                            <p className="text-muted-foreground">Nothing submitted yet.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {editingId === e.id && (
                     <div className="space-y-2 rounded-md border border-border p-3">
                       <Input placeholder="Analysis ID" value={editForm.analysis_id} onChange={(event) => setEditForm({ ...editForm, analysis_id: event.target.value })} />
@@ -321,6 +388,9 @@ export default function PaidEngagements() {
                         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => updateEngagement(e.id, { substantive_work_started_at: new Date().toISOString() })}><Play className="w-3.5 h-3.5" />Start work</Button>
                       )}
                       <Button size="sm" variant="outline" className="gap-1.5" onClick={() => beginLinkAnalysis(e)}><Link2 className="w-3.5 h-3.5" />{e.analysis_id ? 'Edit analysis' : 'Link analysis'}</Button>
+                      {(e.intake_data || e.workspace_data) && (
+                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => downloadPacket(e)}><Download className="w-3.5 h-3.5" />Download packet</Button>
+                      )}
                       {e.status === 'scheduled' && (e.cases_completed ?? 0) < (e.case_capacity ?? 1) && (
                         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => markCaseComplete(e)}><CheckCircle2 className="w-3.5 h-3.5" />Case complete</Button>
                       )}
