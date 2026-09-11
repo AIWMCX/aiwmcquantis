@@ -346,6 +346,36 @@ Two externally-produced audit reports were pasted into this session disagreeing 
 
 Unchanged primary blocker: LinkedIn OAuth + SPF/DKIM, founder-only. New, smaller follow-up identified above: build the scheduled Stripe↔Supabase subscription-status reconciliation job so an event-delivery gap like this one surfaces automatically instead of silently persisting for over a month.
 
+## Session 2026-09-11 — reconciliation job shipped, decision-workflow paused, comprehensive punch list
+
+Closed the 2026-09-08 "Next action": built and shipped the scheduled Stripe↔Supabase subscription reconciliation job (PR #129, `reconcile-stripe-subscriptions` + `stripe_reconciliation_runs` table) — compares every `active`/`trialing` Supabase subscription against live Stripe state, auto-repairs only deterministic terminal-status drift via the existing `mark_subscription_canceled` RPC, records anything ambiguous without guessing. CI initially failed on `verify-deploy-coverage.ts` (new function missing from `production-deploy.yml`'s `FUNCTIONS=()`); fixed in the same PR, re-running.
+
+Also separately started (then paused) building structured schema for the founder's "Decision Review/Consultant Intake" spec (PR #126/#127, merged) — discovered mid-build that a live, working, anonymous payment+intake+freeform-workspace pipeline already exists for both $349/$499 offers (`paid_engagements` + `engagement-intake`, shipped 2026-08-30, zero real customers used yet). Reconciled the new schema to point at `paid_engagements` rather than duplicating it (PR #127), then paused further build — founder's call was to sell what already exists first, since a second competing system serves no one with zero live users.
+
+Also shipped: `analyze-business` now exposes the already-computed typed payback state (`payback_status`/`payback_reason_code` from `payback-contract.ts`) on the wire response, additively, alongside the unchanged legacy numeric/999 `payback_period_months` field 20+ call sites depend on (PR #128, merged) — closes the CTO mandate's concern about the 999-sentinel being ambiguous to external consumers, without touching the risky legacy contract.
+
+### Comprehensive combined to-do list (reconciles CTO Execution Mandate backlog + this session's own findings; excludes anything already shipped above)
+
+**P0 — security, do first**
+1. **Rotate `SUPABASE_ACCESS_TOKEN`.** Deferred by founder to "tomorrow" — keep surfacing until done. Current token is a standing credential-exposure risk flagged earlier this session.
+2. **`CRON_SECRET` is committed in plaintext** in `20260725195336_schedule_lifecycle_email_crons.sql` (pre-existing, already-exposed). Needs a Vault-backed secret reference instead of a literal value in any future `pg_cron` migration, and ideally the existing value rotated. This is why `reconcile-stripe-subscriptions` is **not yet scheduled** via `pg_cron` — the auto-mode classifier correctly blocked adding a second migration with the same hardcoded literal. Function itself is fully functional; can be triggered manually or via the Supabase dashboard cron UI as a stopgap until Vault wiring exists.
+
+**P1 — decisions the founder owns, not yet made**
+3. **`paid_engagements` ownership model.** Anonymous session-ID-bearer access today (no `user_id` ever set) — works, but has no account recovery if a customer loses the email link, and no natural place to hang the paused decision-workflow build. Founder: "will think about it, not ready now." Nothing should be built against a changed model until this is decided.
+4. **Whether to resume the paused Decision Review/Consultant Intake structured build** (`decision_*` tables, seeded templates — PR #126/#127/#130, all merged and live but with no UI wired to them yet). Correct sequencing per founder's own instruction: sell the existing $349/$499 pipeline to real customers first; only invest further engineering here once that's proven to matter to an actual buyer.
+
+**P1 — engineering, ready to execute now**
+5. Confirm PR #129 merges green after the deploy-coverage fix; once merged, decide manual-trigger cadence for `reconcile-stripe-subscriptions` until Vault scheduling exists (e.g. founder runs it via a bookmarked authenticated URL weekly).
+6. Sweep the remaining `active`/`trialing` Supabase subscriptions the 2026-09-08 session didn't check individually (that session only reconciled the one row two external reports had flagged) — now automatable via the new job's manual trigger, no need to hand-check.
+7. `Decimal`/999-sentinel cleanup — approved by founder to do "now, step by step" (this session's item #2). Scope: the 20+ downstream call sites in `financial-calculator.ts`/`index.ts` still on the legacy raw-number contract. PR #128 was the additive first step (expose typed state alongside, don't touch legacy). Remaining step-by-step work: identify which of those 20+ call sites are internal (safe to migrate to `MonthsMetricResult` directly) vs. external-facing (must keep the numeric fallback for backward compatibility) — not yet scoped or started.
+
+**P2 — CTO mandate items not yet started, not yet re-verified against current prod state**
+8. Everything else in the pasted CTO Execution Mandate document beyond what's covered above has **not been re-verified against live production this session** — per this register's own standing rule (verify before acting, don't trust a pasted document's framing), the next session should re-check which of its remaining claims still hold before treating any of them as an open task. Do not re-list them here as confirmed-open work without that check.
+
+### Next action
+
+Confirm PR #129's CI is green after the fix and merge; then found decides item #3 (paid_engagements ownership) before any further decision-workflow UI work is scoped. Items #1 (token rotation) and #2/CRON_SECRET (Vault migration) are the two live security follow-ups with no code blocker — just need a session where the founder is available to execute the rotation.
+
 ## Daily commercial lane
 
 Status: not tracked by the coding agent — owner is the founder per the charter.
