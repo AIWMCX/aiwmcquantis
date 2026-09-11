@@ -79,27 +79,38 @@ post becomes:
 This is what makes de-dup possible going forward — the engine can't avoid
 repeating content it doesn't know already went out.
 
-### Step C — Image generation (needs a founder decision + a new API key)
-Recommendation: **Gemini** (`gemini-2.5-flash-image`, aka "Nano Banana") for
-day-to-day generation — meaningfully cheaper than OpenAI's `gpt-image-1` at
-comparable commercial-photo quality for product/lifestyle-style stills, and
-Google's own pricing puts it well below DALL-E-class pricing per image.
-OpenAI's `gpt-image-1` is the better fallback specifically when a shot needs
-sharper text-in-image rendering (e.g. a stat callout baked into the image),
-which Gemini is weaker at. Practical plan: **wire both**, default to Gemini,
-let the admin UI pick OpenAI per-post when a shot specifically needs in-image
-text.
+### Step C — Image generation (revised 2026-09-11: Gemini and Bloom both ruled out)
 
-Needs from founder: a Gemini API key (aistudio.google.com/apikey) and,
-optionally, an OpenAI API key — added as Supabase Edge Function secrets
-(`GEMINI_API_KEY`, `OPENAI_API_KEY`), same place as today's `RESEND_API_KEY`.
-I cannot generate these myself.
+**Gemini ruled out.** Google's billing-enablement flow flagged the founder's
+account as suspicious 5-7 times and billing could not be enabled. No Gemini
+key is available; do not build against it.
 
-New shared module: `supabase/functions/_shared/image-gen.ts` — one function,
-two providers, given a prompt + aspect ratio, returns an image URL/blob
-uploaded to a new `content-assets` storage bucket. `content-studio-generate`
-calls this immediately after generating `image_prompt`, instead of leaving it
-as inert text.
+**Bloom checked and also ruled out for now.** Bloom is already connected in
+this environment (an "AIWMC Quantis" brand already exists there, 4 images
+generated previously, workspace "Bogdan's Team") — but `bloom_check_credits`
+returned `balance: 0`, and topping up requires the same kind of billing step
+the founder is avoiding right now. Worth revisiting once credits are added,
+since the brand is already onboarded and ready — but not usable today.
+
+**Decision: Hugging Face free tier, running FLUX.1-schnell.** No card, no
+billing — just a free HF account and an access token. Quality is good enough
+for cinematic/commercial product stills; rate-limited on the free tier but
+sufficient for one image per product per day across 3 products (90/month).
+
+Founder action needed:
+1. Create a free account at huggingface.co (email only, no card).
+2. Go to Settings → Access Tokens → New token, "Read" scope is enough for
+   Inference API calls.
+3. Add it as a Supabase Edge Function secret: `HUGGINGFACE_API_TOKEN`, same
+   place as today's `RESEND_API_KEY`.
+
+New shared module: `supabase/functions/_shared/image-gen.ts` — calls the HF
+Inference API for `black-forest-labs/FLUX.1-schnell`, given a prompt + aspect
+ratio, returns an image blob uploaded to a new `content-assets` storage
+bucket. `content-studio-generate` calls this immediately after generating
+`image_prompt`, instead of leaving it as inert text. Built provider-adapter
+style (not hardcoded to HF) so Gemini or Bloom can be added later as
+alternate providers without restructuring anything, once either is unblocked.
 
 ### Step D — Daily engine
 A new scheduled function, `autoposter-daily-engine` (same `pg_cron` + Vault
@@ -146,9 +157,11 @@ how every other piece of today's work was done.
 
 ## 5. Open decision for the founder
 
-- Confirm Gemini-primary / OpenAI-fallback for images (or pick one only).
-- Add `GEMINI_API_KEY` and/or `OPENAI_API_KEY` to Supabase Edge Function
-  secrets when ready.
+- ~~Confirm Gemini-primary / OpenAI-fallback for images~~ — superseded, see
+  Step C above: Gemini blocked (billing flagged suspicious), Bloom blocked
+  (0 credits). Decided instead: Hugging Face free tier, FLUX.1-schnell.
+- Create a free Hugging Face account and add `HUGGINGFACE_API_TOKEN` to
+  Supabase Edge Function secrets when ready.
 - Paste the actual 3+ days of already-posted LinkedIn content (Bogdan
   personal + AIWMC page) so Step B can run for real instead of staying a
-  placeholder.
+  placeholder. Deliberately last per the founder's own ordering.
