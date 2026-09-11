@@ -19,6 +19,7 @@
 // ---------------------------------------------------------------------------
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { generateImageWithRetry, ImageGenError, resolveImageProvider } from '../_shared/image-gen.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -275,6 +276,41 @@ Deno.serve(async (req) => {
       ok: true,
     }).then(undefined, () => {});
 
+    // Image generation (Step C, 2026-09-11 spec): best-effort, never blocks
+    // caption generation. Uses the first non-empty image_prompt across
+    // variants, preferring Instagram (image-first platform) then LinkedIn.
+    let imageResult: { url: string; storagePath: string; provider: string } | null = null;
+    let imageError: string | null = null;
+    const variantsRecord = variants as Record<string, { image_prompt?: string }>;
+    const chosenPrompt =
+      variantsRecord.instagram?.image_prompt ||
+      variantsRecord.linkedin?.image_prompt ||
+      Object.values(variantsRecord).map((v) => v?.image_prompt).find((p) => p && p.trim());
+
+    if (chosenPrompt) {
+      const imageProvider = resolveImageProvider();
+      if (!imageProvider) {
+        imageError = 'No image provider configured. Set HUGGINGFACE_API_TOKEN in Supabase secrets.';
+      } else {
+        try {
+          const image = await generateImageWithRetry(imageProvider, chosenPrompt);
+          const ext = image.contentType.includes('jpeg') ? 'jpg' : image.contentType.includes('webp') ? 'webp' : 'png';
+          const storagePath = `content-studio/${crypto.randomUUID()}.${ext}`;
+          const { error: uploadError } = await supaSvc.storage
+            .from('content-assets')
+            .upload(storagePath, image.bytes, { contentType: image.contentType, upsert: false });
+          if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+          const { data: signedData, error: signError } = await supaSvc.storage
+            .from('content-assets')
+            .createSignedUrl(storagePath, 86400);
+          if (signError || !signedData?.signedUrl) throw new Error(`Signed URL failed: ${signError?.message ?? 'no URL returned'}`);
+          imageResult = { url: signedData.signedUrl, storagePath, provider: imageProvider.name };
+        } catch (e) {
+          imageError = e instanceof ImageGenError ? e.message : (e instanceof Error ? e.message : String(e));
+        }
+      }
+    }
+
     if (body.save !== false) {
       await supaSvc.from('content_studio_generations').insert({
         created_by: user.id,
@@ -290,11 +326,24 @@ Deno.serve(async (req) => {
         language: opts.language,
         model: modelUsed,
         variants,
-        meta: { elapsed_ms },
+        meta: {
+          elapsed_ms,
+          image: imageResult
+            ? { storage_path: imageResult.storagePath, provider: imageResult.provider }
+            : null,
+          image_error: imageError,
+        },
       });
     }
 
-    return j({ ok: true, variants, model: modelUsed, elapsed_ms });
+    return j({
+      ok: true,
+      variants,
+      model: modelUsed,
+      elapsed_ms,
+      image_url: imageResult?.url ?? null,
+      image_error: imageError,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return j({ error: msg }, 500);
