@@ -102,6 +102,16 @@ export const MetadataSchema = z
   .passthrough();
 
 const NumericPaybackSchema = z.number().finite().nonnegative();
+// A bare payback_period_months is ambiguous on its own: 999 means either
+// "unprofitable" or "profitable but exceeds the 60-month simulation window"
+// (two opposite conclusions), and the legacy numeric field can't say which.
+// These sibling fields carry the already-computed typed state
+// (payback-contract.ts's MonthsMetricResult) so any consumer -- including
+// the public API and PDF/CSV export, not just this codebase's own UI -- can
+// resolve it without guessing. Optional and additive: the numeric contract
+// itself is unchanged.
+const PaybackStatusSchema = z.string().nullable().optional();
+const PaybackReasonCodeSchema = z.string().nullable().optional();
 
 export const FinancialAnalysisWireSchema = z
   .object({
@@ -110,10 +120,16 @@ export const FinancialAnalysisWireSchema = z
       .passthrough()
       .optional(),
     returns: z
-      .object({ payback_period_months: NumericPaybackSchema.optional() })
+      .object({
+        payback_period_months: NumericPaybackSchema.optional(),
+        payback_status: PaybackStatusSchema,
+        payback_reason_code: PaybackReasonCodeSchema,
+      })
       .passthrough()
       .optional(),
     payback_period_months: NumericPaybackSchema.optional(),
+    payback_status: PaybackStatusSchema,
+    payback_reason_code: PaybackReasonCodeSchema,
   })
   .passthrough();
 
