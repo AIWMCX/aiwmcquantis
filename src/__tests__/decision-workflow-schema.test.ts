@@ -10,6 +10,10 @@ const hardeningSql = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260911075359_decision_workflow_schema_hardening.sql"),
   "utf8",
 );
+const reconcileSql = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260911080921_decision_workflow_reconcile_paid_engagements.sql"),
+  "utf8",
+);
 
 describe("Founder Decision Review / Consultant Intake — Day 1 schema", () => {
   const tables = [
@@ -77,5 +81,30 @@ describe("Founder Decision Review / Consultant Intake — Day 1 schema", () => {
     for (const t of tables) {
       expect(hardeningSql).toMatch(new RegExp(`revoke[^;]*on table public\\.${t} from anon`));
     }
+  });
+});
+
+describe("Reconciliation: decision_workspaces links to the existing paid_engagements pipeline, not a second entitlement system", () => {
+  // Discovered immediately after the Day 1 schema merged: a live, tested
+  // payment pipeline (Stripe Payment Links -> stripe-webhook ->
+  // paid_engagements, shipped 2026-08-30) already exists for exactly these
+  // two offers (founder_decision_review / consultant_founding_pilot).
+  // workflow_entitlements would have been a second, competing "did this
+  // person pay" record for the same purchase.
+
+  it("drops the now-redundant workflow_entitlements table", () => {
+    expect(reconcileSql).toContain("drop table public.workflow_entitlements");
+  });
+
+  it("removes decision_workspaces.entitlement_id and replaces it with paid_engagement_id -> public.paid_engagements", () => {
+    expect(reconcileSql).toMatch(/drop column entitlement_id/);
+    expect(reconcileSql).toMatch(/add column paid_engagement_id uuid references public\.paid_engagements\(id\)/);
+  });
+
+  it("does not make paid_engagement_id unique -- a Consultant Founding Pilot purchase (case_capacity=2) may back more than one workspace", () => {
+    const idx = reconcileSql.indexOf("add column paid_engagement_id");
+    const stmtEnd = reconcileSql.indexOf(";", idx);
+    const stmt = reconcileSql.slice(idx, stmtEnd);
+    expect(stmt).not.toMatch(/unique/i);
   });
 });
