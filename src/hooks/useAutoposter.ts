@@ -22,6 +22,7 @@ export interface AutoposterPost {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  archived_at: string | null;
 }
 
 export interface AutoposterPlatformRow {
@@ -58,6 +59,13 @@ export interface AutoposterWeekly {
   created_at: string;
 }
 
+/**
+ * Active (non-archived) posts only. The 42-post legacy plan was archived
+ * 2026-09-11 (see autoposter_legacy_snapshot_and_archive migration) --
+ * archived rows must stay queryable via useAutoposterArchive below, but
+ * never resurface in the Queue/Calendar/Plan views a founder actually
+ * schedules from.
+ */
 export function useAutoposterPosts() {
   return useQuery({
     queryKey: ['autoposter', 'posts'],
@@ -65,7 +73,24 @@ export function useAutoposterPosts() {
       const { data, error } = await supabase
         .from('autoposter_posts')
         .select('*')
+        .is('archived_at', null)
         .order('post_date', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AutoposterPost[];
+    },
+  });
+}
+
+/** Archived posts (legacy plan + any later superseded work) for the Archive view. */
+export function useAutoposterArchive() {
+  return useQuery({
+    queryKey: ['autoposter', 'archive'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('autoposter_posts')
+        .select('*')
+        .not('archived_at', 'is', null)
+        .order('archived_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as AutoposterPost[];
     },

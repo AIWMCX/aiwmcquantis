@@ -44,6 +44,11 @@ interface HistoryRow {
   model: string | null;
 }
 
+interface GeneratedImage {
+  url: string;
+  error: string | null;
+}
+
 const TONE_PRESETS = [
   'confident, candid, useful',
   'contrarian, sharp, evidence-first',
@@ -86,6 +91,7 @@ export default function ContentStudio() {
   const [generating, setGenerating] = useState(false);
   const [variants, setVariants] = useState<Record<string, Variant> | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [image, setImage] = useState<GeneratedImage | null>(null);
 
   useEffect(() => {
     if (!isLoading && !canAccess) navigate('/app', { replace: true });
@@ -111,6 +117,7 @@ export default function ContentStudio() {
     if (!platforms.length) { toast.error('Pick at least one platform'); return; }
     setGenerating(true);
     setVariants(null);
+    setImage(null);
     try {
       const { data, error } = await supabase.functions.invoke('content-studio-generate', {
         body: {
@@ -122,7 +129,11 @@ export default function ContentStudio() {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       setVariants((data as any).variants ?? {});
+      const imageUrl = (data as any).image_url as string | null;
+      const imgErr = (data as any).image_error as string | null;
+      if (imageUrl || imgErr) setImage({ url: imageUrl ?? '', error: imgErr });
       toast.success(`Generated ${Object.keys((data as any).variants ?? {}).length} variant(s)`);
+      if (imgErr) toast.error('Image generation failed', { description: imgErr });
       loadHistory();
     } catch (e) {
       toast.error('Generation failed', { description: e instanceof Error ? e.message : String(e) });
@@ -286,6 +297,18 @@ export default function ContentStudio() {
               <Card className="p-10 text-center text-[var(--q-text-secondary)] border-dashed">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3" />
                 Writing on-brand variants…
+              </Card>
+            )}
+            {image?.url && (
+              <Card className="p-4 space-y-2">
+                <p className="text-xs uppercase tracking-wider text-[var(--q-text-secondary)]">Generated image (Hugging Face FLUX.1-schnell)</p>
+                <img src={image.url} alt="Generated creative" className="w-full rounded-md border border-border" />
+                <p className="text-xs text-[var(--q-text-secondary)]">Signed link expires in 24h — re-open this generation from history to get a fresh one.</p>
+              </Card>
+            )}
+            {image?.error && !image.url && (
+              <Card className="p-4 border-destructive/40 bg-destructive/5">
+                <p className="text-sm text-destructive">Image generation failed: {image.error}</p>
               </Card>
             )}
             {variantList.map(([platform, v]) => {
