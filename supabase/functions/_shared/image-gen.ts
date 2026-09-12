@@ -23,46 +23,67 @@ export class ImageGenError extends Error {
 }
 
 const HF_MODEL = 'black-forest-labs/FLUX.1-schnell';
-// api-inference.huggingface.co (the legacy per-model Inference API host) no
-// longer resolves at all as of 2026-09-11 -- confirmed live via a real DNS
-// failure ("No address associated with hostname"), not a config/auth error.
-// Hugging Face consolidated serverless inference behind a single router
-// host; same request/response shape, just a different path prefix.
-const HF_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
+// Hugging Face's classic per-model Inference API (api-inference.huggingface.co,
+// then router.huggingface.co/hf-inference/models/...) no longer serves this
+// model at all -- confirmed live twice: first a DNS failure on the old host,
+// then a 410 "deprecated, no longer supported by provider hf-inference" on
+// the router path. Queried HF's own model API
+// (huggingface.co/api/models/black-forest-labs/FLUX.1-schnell?expand[]=inferenceProviderMapping)
+// and confirmed this model is still live today via three routed providers:
+// nscale, fal-ai, wavespeed (not hf-inference itself). Using nscale -- its
+// providerId matches the model id verbatim (least third-party divergence)
+// -- via HF's unified OpenAI-compatible images endpoint, which is how HF
+// documents calling any routed provider consistently.
+const HF_IMAGES_URL = 'https://router.huggingface.co/nscale/v1/images/generations';
 
 class HuggingFaceProvider implements ImageProvider {
   name = 'huggingface';
   constructor(private readonly token: string) {}
 
   async generate(prompt: string): Promise<GeneratedImage> {
-    const res = await fetch(HF_URL, {
+    const res = await fetch(HF_IMAGES_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
-        Accept: 'image/png',
       },
-      body: JSON.stringify({ inputs: prompt, options: { wait_for_model: true } }),
+      body: JSON.stringify({ model: HF_MODEL, prompt, response_format: 'b64_json' }),
     });
 
-    const contentType = res.headers.get('content-type') || '';
-
-    if (!res.ok || contentType.includes('application/json')) {
-      // HF returns JSON (not an image) on cold-start ("loading") or error --
-      // never treat a JSON body as image bytes.
+    if (!res.ok) {
       const body = await res.text().catch(() => '');
-      const retryable = res.status === 503 || /loading/i.test(body);
+      const retryable = res.status === 503 || res.status === 429 || /loading/i.test(body);
       throw new ImageGenError(
-        `Hugging Face ${res.status}: ${body.slice(0, 300) || 'no body'}`,
+        `Hugging Face (nscale) ${res.status}: ${body.slice(0, 300) || 'no body'}`,
         retryable,
       );
     }
 
-    const arrayBuffer = await res.arrayBuffer();
-    if (arrayBuffer.byteLength === 0) {
-      throw new ImageGenError('Hugging Face returned an empty image body', true);
+    const json = await res.json().catch(() => null) as { data?: Array<{ b64_json?: string; url?: string }> } | null;
+    const item = json?.data?.[0];
+    if (!item) {
+      throw new ImageGenError('Hugging Face (nscale) returned no image data', false);
     }
-    return { bytes: new Uint8Array(arrayBuffer), contentType: contentType || 'image/png' };
+
+    if (item.b64_json) {
+      const binary = atob(item.b64_json);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return { bytes, contentType: 'image/png' };
+    }
+
+    if (item.url) {
+      const imgRes = await fetch(item.url);
+      if (!imgRes.ok) throw new ImageGenError(`Hugging Face (nscale) image fetch failed: ${imgRes.status}`, true);
+      const arrayBuffer = await imgRes.arrayBuffer();
+      if (arrayBuffer.byteLength === 0) {
+        throw new ImageGenError('Hugging Face (nscale) returned an empty image body', true);
+      }
+      const contentType = imgRes.headers.get('content-type') || 'image/png';
+      return { bytes: new Uint8Array(arrayBuffer), contentType };
+    }
+
+    throw new ImageGenError('Hugging Face (nscale) response had neither b64_json nor url', false);
   }
 }
 
