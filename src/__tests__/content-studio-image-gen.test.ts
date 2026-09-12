@@ -61,4 +61,20 @@ describe("Content Studio image generation (Hugging Face FLUX.1-schnell, 2026-09-
     expect(migrationSource).toMatch(/'content-assets'.*false/);
     expect(migrationSource).toContain("has_role(auth.uid(), 'admin') or has_role(auth.uid(), 'content_admin')");
   });
+
+  it("enforces a deterministic brand-style wrapper server-side, never trusting the LLM's raw brief alone", () => {
+    const idx = generateSource.indexOf("const styledPrompt =");
+    expect(idx).toBeGreaterThan(-1);
+    const wrapperLine = generateSource.slice(idx, generateSource.indexOf(";", idx));
+    expect(wrapperLine).toContain("${chosenPrompt}");
+    expect(wrapperLine).toMatch(/no generic ai-art tropes/i);
+    expect(wrapperLine).toMatch(/no glowing abstract data streams/i);
+    // The wrapped prompt, not the raw LLM brief, is what actually gets sent.
+    expect(generateSource).toContain("generateImageWithRetry(imageProvider, styledPrompt)");
+  });
+
+  it("instructs the model to ground image_prompt in the post's real content, not generic tech cliches", () => {
+    expect(generateSource).toMatch(/grounded in the actual post content/i);
+    expect(generateSource).toMatch(/never a generic tech\/ai cliche/i);
+  });
 });

@@ -109,7 +109,7 @@ function buildUserPrompt(opts: {
     '      "hook": "first-line hook (≤140 chars)",',
     '      "body": "full post body, ready to paste, with line breaks as \\n",',
     '      "hashtags": ["#tag1","#tag2"],',
-    '      "image_prompt": "1-sentence visual brief if the platform benefits from an image, else empty string",',
+    '      "image_prompt": "1-sentence visual SCENE brief grounded in the actual post content -- a concrete real-world moment, object, or setting the post describes (e.g. \'a founder reviewing a spreadsheet with red variance highlights at a cluttered desk\'), else empty string. Never a generic tech/AI cliche (no glowing brains, circuit patterns, abstract data streams, robot hands, floating holograms). Never include any text, numbers, charts, or logos in the description -- those are rendered separately.",',
     '      "char_count": <integer>,',
     '      "notes": "1 short reason this will perform"',
     '    }',
@@ -293,7 +293,14 @@ Deno.serve(async (req) => {
         imageError = 'No image provider configured. Set HUGGINGFACE_API_TOKEN in Supabase secrets.';
       } else {
         try {
-          const image = await generateImageWithRetry(imageProvider, chosenPrompt);
+          // Brand style is enforced here, server-side, deterministically --
+          // never left to the LLM's one-sentence brief alone. Guarantees a
+          // consistent commercial/editorial AIWMC Quantis look regardless of
+          // model mood, and explicitly excludes the generic "AI slop" tropes
+          // (glowing tech abstractions, stock-photo cliches) the founder
+          // flagged as embarrassing for daily public posting.
+          const styledPrompt = `${chosenPrompt}. Cinematic commercial photography for a professional B2B SaaS brand. Clean editorial style, natural studio lighting, shallow depth of field, realistic textures, real people or real objects in a real setting. No text, no numbers, no charts, no logos, no watermarks. No illustration or cartoon style. No generic AI-art tropes: no glowing abstract data streams, no circuit-board patterns, no floating holograms, no robot hands, no neon blue gradients.`;
+          const image = await generateImageWithRetry(imageProvider, styledPrompt);
           const ext = image.contentType.includes('jpeg') ? 'jpg' : image.contentType.includes('webp') ? 'webp' : 'png';
           const storagePath = `content-studio/${crypto.randomUUID()}.${ext}`;
           const { error: uploadError } = await supaSvc.storage
