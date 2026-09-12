@@ -31,6 +31,8 @@ interface Variant {
   body: string;
   hashtags?: string[];
   image_prompt?: string;
+  card_headline?: string;
+  card_subtitle?: string;
   char_count?: number;
   notes?: string;
 }
@@ -92,6 +94,7 @@ export default function ContentStudio() {
   const [variants, setVariants] = useState<Record<string, Variant> | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [image, setImage] = useState<GeneratedImage | null>(null);
+  const [card, setCard] = useState<GeneratedImage | null>(null);
 
   useEffect(() => {
     if (!isLoading && !canAccess) navigate('/app', { replace: true });
@@ -118,6 +121,7 @@ export default function ContentStudio() {
     setGenerating(true);
     setVariants(null);
     setImage(null);
+    setCard(null);
     try {
       const { data, error } = await supabase.functions.invoke('content-studio-generate', {
         body: {
@@ -132,8 +136,12 @@ export default function ContentStudio() {
       const imageUrl = (data as any).image_url as string | null;
       const imgErr = (data as any).image_error as string | null;
       if (imageUrl || imgErr) setImage({ url: imageUrl ?? '', error: imgErr });
+      const cardUrl = (data as any).card_image_url as string | null;
+      const cardErr = (data as any).card_error as string | null;
+      if (cardUrl || cardErr) setCard({ url: cardUrl ?? '', error: cardErr });
       toast.success(`Generated ${Object.keys((data as any).variants ?? {}).length} variant(s)`);
       if (imgErr) toast.error('Image generation failed', { description: imgErr });
+      if (cardErr) toast.error('Headline card generation failed', { description: cardErr });
       loadHistory();
     } catch (e) {
       toast.error('Generation failed', { description: e instanceof Error ? e.message : String(e) });
@@ -309,6 +317,18 @@ export default function ContentStudio() {
             {image?.error && !image.url && (
               <Card className="p-4 border-destructive/40 bg-destructive/5">
                 <p className="text-sm text-destructive">Image generation failed: {image.error}</p>
+              </Card>
+            )}
+            {card?.url && (
+              <Card className="p-4 space-y-2">
+                <p className="text-xs uppercase tracking-wider text-[var(--q-text-secondary)]">Headline card (AIWMC Quantis brand template)</p>
+                <img src={card.url} alt="Generated headline card" className="w-full rounded-md border border-border" />
+                <p className="text-xs text-[var(--q-text-secondary)]">Signed link expires in 24h — re-open this generation from history to get a fresh one.</p>
+              </Card>
+            )}
+            {card?.error && !card.url && (
+              <Card className="p-4 border-destructive/40 bg-destructive/5">
+                <p className="text-sm text-destructive">Headline card generation failed: {card.error}</p>
               </Card>
             )}
             {variantList.map(([platform, v]) => {
