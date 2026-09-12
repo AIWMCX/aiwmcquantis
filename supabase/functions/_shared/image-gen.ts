@@ -23,7 +23,12 @@ export class ImageGenError extends Error {
 }
 
 const HF_MODEL = 'black-forest-labs/FLUX.1-schnell';
-const HF_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+// api-inference.huggingface.co (the legacy per-model Inference API host) no
+// longer resolves at all as of 2026-09-11 -- confirmed live via a real DNS
+// failure ("No address associated with hostname"), not a config/auth error.
+// Hugging Face consolidated serverless inference behind a single router
+// host; same request/response shape, just a different path prefix.
+const HF_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
 
 class HuggingFaceProvider implements ImageProvider {
   name = 'huggingface';
