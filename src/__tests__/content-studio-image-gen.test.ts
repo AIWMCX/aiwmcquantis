@@ -21,8 +21,18 @@ describe("Content Studio image generation (Hugging Face FLUX.1-schnell, 2026-09-
     expect(imageGenSource).not.toMatch(/GEMINI_API_KEY|BLOOM_API_KEY/);
   });
 
-  it("never treats a JSON response body as image bytes (HF cold-start returns JSON, not an image)", () => {
-    expect(imageGenSource).toMatch(/contentType\.includes\('application\/json'\)/);
+  it("calls the nscale-routed OpenAI-compatible images endpoint, not the retired hf-inference host", () => {
+    // The old hostnames are legitimately still referenced in a comment
+    // explaining why they were replaced -- assert the active fetch target
+    // specifically, not blanket string-absence across the whole file.
+    expect(imageGenSource).toMatch(/fetch\(HF_IMAGES_URL/);
+    expect(imageGenSource).toContain("const HF_IMAGES_URL = 'https://router.huggingface.co/nscale/v1/images/generations'");
+  });
+
+  it("decodes a base64 image response and falls back to fetching a returned URL, never assumes raw bytes", () => {
+    expect(imageGenSource).toContain("item.b64_json");
+    expect(imageGenSource).toContain("atob(item.b64_json)");
+    expect(imageGenSource).toMatch(/if \(item\.url\)/);
   });
 
   it("retries only on retryable (cold-start/503) failures, never on a hard error", () => {
