@@ -29,14 +29,36 @@ describe("Deterministic headline card (real SVG text, never a diffusion model, 2
     expect(fnBody).toMatch(/Promise\.all\(\[ensureWasmInit\(\), ensureFontBuffer\(\)\]\)/);
   });
 
-  it("never auto-generates a data chart from freeform text -- headline/subtitle/brand only", () => {
-    // The word "chart" legitimately appears in the docblock explaining WHY
-    // charts are deliberately excluded -- assert the SVG-building code has
-    // no chart-drawing primitives (no <rect>/<line>/<polyline> loop keyed to
-    // data values), not that the word never appears anywhere in the file.
-    const svgBuilderIdx = cardSource.indexOf("const svg = `");
-    const svgBlock = cardSource.slice(svgBuilderIdx, cardSource.indexOf("`.trim();"));
-    expect(svgBlock).not.toMatch(/polyline|<line |data-driven|barHeight/i);
+  it("only renders a chart when the caller explicitly supplies >=2 steps -- never invents data itself", () => {
+    expect(cardSource).toContain("input.chart && input.chart.steps.length >= 2");
+    // The chart draws exactly step.threshold/step.annotation as given --
+    // it must never call Math.random or synthesize a value that wasn't
+    // passed in. (Not checking for the word "invent" itself -- it
+    // legitimately appears in an explanatory comment in this function.)
+    const chartFnIdx = cardSource.indexOf("function renderChart");
+    const chartFnEnd = cardSource.indexOf("\nexport interface HeadlineCardInput");
+    const chartFnBody = cardSource.slice(chartFnIdx, chartFnEnd);
+    expect(chartFnBody).not.toMatch(/Math\.random|estimateValue|syntheticValue/i);
+  });
+
+  it("labels a rendered chart as illustrative -- never presents step data as precise fact", () => {
+    expect(cardSource).toContain("ILLUSTRATIVE EXAMPLE.");
+    expect(cardSource).toContain("Actual thresholds depend on your business.");
+    // The disclaimer is tied to input.chart being present, not always-on
+    // or always-off.
+    expect(cardSource).toMatch(/const disclaimerSvg = input\.chart\s*\n?\s*\?/);
+  });
+
+  it("content-studio-generate validates every chart field before rendering, discarding rather than guessing on any malformed field", () => {
+    expect(generateSource).toContain("typeof rawChart.x_axis_label === 'string'");
+    expect(generateSource).toContain("typeof rawChart.series_label === 'string'");
+    expect(generateSource).toMatch(/typeof s\?\.threshold === 'number' && Number\.isFinite\(s\.threshold\)/);
+    expect(generateSource).toContain("validSteps.length >= 2 && validSteps.length <= 5");
+  });
+
+  it("instructs the model that card_chart/card_callout must be null unless the post explicitly states the data -- never inferred or invented", () => {
+    expect(generateSource).toMatch(/Never invent, estimate, round, or infer thresholds/);
+    expect(generateSource).toMatch(/this MUST be null -- do not force a chart/);
   });
 
   it("escapes all user-supplied text before embedding in SVG (XSS/malformed-SVG guard)", () => {
