@@ -111,12 +111,14 @@ function buildUserPrompt(opts: {
     '      "body": "full post body, ready to paste, with line breaks as \\n",',
     '      "hashtags": ["#tag1","#tag2"],',
     '      "image_prompt": "1-sentence visual SCENE brief grounded in the actual post content -- a concrete real-world moment, object, or setting the post describes (e.g. \'a founder reviewing a spreadsheet with red variance highlights at a cluttered desk\'), else empty string. Never a generic tech/AI cliche (no glowing brains, circuit patterns, abstract data streams, robot hands, floating holograms). Never include any text, numbers, charts, or logos in the description -- those are rendered separately.",',
-    '      "card_headline": "a punchy 4-9 word headline for a text-first title card, in the post\\'s own words -- the single sharpest claim or lesson from THIS post, not a generic label. Example: \\'SMALL MISSES DON\\'T STAY SMALL\\'.",',
+    '      "card_headline": "a punchy 4-9 word headline for a text-first title card, in the post\'s own words -- the single sharpest claim or lesson from THIS post, not a generic label. Example: \'SMALL MISSES DON\'T STAY SMALL\'.",',
     '      "card_subtitle": "one supporting sentence under the headline, under 90 characters, that adds the specific mechanism or consequence -- not a restatement of the headline.",',
     '      "char_count": <integer>,',
     '      "notes": "1 short reason this will perform"',
     '    }',
-    '  }',
+    '  },',
+    '  "card_chart": null OR { "x_axis_label": "e.g. NUMBER OF CUSTOMERS", "series_label": "e.g. COSTS", "steps": [{"threshold": <number>, "annotation": "short label"}, ...] } -- ONLY populate this if the post ITSELF explicitly states a sequence of specific numeric thresholds with what happens at each one (e.g. the post literally says "at 30 customers we hired a supervisor, at 75 we bought a new system"). Never invent, estimate, round, or infer thresholds that are not explicitly stated in the post text. Minimum 2 steps, maximum 5. If the post has no such explicit numeric sequence, this MUST be null -- do not force a chart onto a post that does not contain one.',
+    '  "card_callout": null OR { "title": "the specific named concept/mechanism this post is about, 2-4 words", "body": "1 sentence plainly defining that concept, grounded in what the post actually says" } -- ONLY populate if the post centers on one specific, nameable concept (e.g. "step-fixed costs", "collection lag"). If the post is just a story or list without one central named concept, this MUST be null.',
     '}',
     '',
     'Rules:',
@@ -124,6 +126,7 @@ function buildUserPrompt(opts: {
     '- Never repeat the same opening line across platforms.',
     '- No fabricated stats. If you cite a number, make it directional (e.g. "most", "in our last 30-day cohort").',
     '- If the topic touches finance, end with a faint, single-line disclaimer ONLY on long-form (LinkedIn/Reddit/Facebook): "Not financial advice."',
+    '- card_chart and card_callout are usually null. Only populate them when the post genuinely, explicitly supports them -- a wrong or invented chart is worse than no chart.',
   ].filter(Boolean).join('\n');
 }
 
@@ -245,7 +248,11 @@ Deno.serve(async (req) => {
     }
     const elapsed_ms = Date.now() - t0;
 
-    const parsed = extractJson(rawContent) as { variants?: unknown } | null;
+    const parsed = extractJson(rawContent) as {
+      variants?: unknown;
+      card_chart?: { x_axis_label?: string; series_label?: string; steps?: Array<{ threshold?: number; annotation?: string }> } | null;
+      card_callout?: { title?: string; body?: string } | null;
+    } | null;
     if (!parsed) {
       return j({ error: 'Model returned invalid JSON. Try a shorter topic or fewer platforms.' }, 502);
     }
@@ -332,11 +339,46 @@ Deno.serve(async (req) => {
       ?? Object.values(variantsRecord as Record<string, { card_headline?: string; card_subtitle?: string }>)[0];
     const cardHeadline = cardVariant?.card_headline?.trim();
 
+    // Strict validation of the LLM-supplied chart/callout -- never render
+    // malformed or partially-invented data. Any field missing or wrong
+    // type discards the whole chart/callout rather than guessing a
+    // fallback value, since a guessed number is exactly the fabrication
+    // risk this feature exists to avoid.
+    const rawChart = parsed.card_chart;
+    const validSteps = rawChart?.steps?.filter(
+      (s): s is { threshold: number; annotation: string } =>
+        typeof s?.threshold === 'number' && Number.isFinite(s.threshold) &&
+        typeof s?.annotation === 'string' && s.annotation.trim().length > 0,
+    ) ?? [];
+    const chartInput = (
+      rawChart &&
+      typeof rawChart.x_axis_label === 'string' && rawChart.x_axis_label.trim() &&
+      typeof rawChart.series_label === 'string' && rawChart.series_label.trim() &&
+      validSteps.length >= 2 && validSteps.length <= 5
+    )
+      ? {
+          xAxisLabel: rawChart.x_axis_label.trim(),
+          seriesLabel: rawChart.series_label.trim(),
+          steps: validSteps.slice(0, 5).sort((a, b) => a.threshold - b.threshold),
+        }
+      : undefined;
+
+    const rawCallout = parsed.card_callout;
+    const calloutInput = (
+      rawCallout &&
+      typeof rawCallout.title === 'string' && rawCallout.title.trim() &&
+      typeof rawCallout.body === 'string' && rawCallout.body.trim()
+    )
+      ? { title: rawCallout.title.trim(), body: rawCallout.body.trim() }
+      : undefined;
+
     if (cardHeadline) {
       try {
         const card = await renderHeadlineCard({
           headline: cardHeadline,
           subtitle: cardVariant?.card_subtitle?.trim(),
+          chart: chartInput,
+          callout: calloutInput,
           brandTagline: 'Model the assumptions behind the decision.',
         });
         const storagePath = `content-studio/${crypto.randomUUID()}-card.png`;
