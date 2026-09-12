@@ -20,6 +20,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { generateImageWithRetry, ImageGenError, resolveImageProvider } from '../_shared/image-gen.ts';
+import { renderHeadlineCard } from '../_shared/template-card.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -110,6 +111,8 @@ function buildUserPrompt(opts: {
     '      "body": "full post body, ready to paste, with line breaks as \\n",',
     '      "hashtags": ["#tag1","#tag2"],',
     '      "image_prompt": "1-sentence visual SCENE brief grounded in the actual post content -- a concrete real-world moment, object, or setting the post describes (e.g. \'a founder reviewing a spreadsheet with red variance highlights at a cluttered desk\'), else empty string. Never a generic tech/AI cliche (no glowing brains, circuit patterns, abstract data streams, robot hands, floating holograms). Never include any text, numbers, charts, or logos in the description -- those are rendered separately.",',
+    '      "card_headline": "a punchy 4-9 word headline for a text-first title card, in the post\\'s own words -- the single sharpest claim or lesson from THIS post, not a generic label. Example: \\'SMALL MISSES DON\\'T STAY SMALL\\'.",',
+    '      "card_subtitle": "one supporting sentence under the headline, under 90 characters, that adds the specific mechanism or consequence -- not a restatement of the headline.",',
     '      "char_count": <integer>,',
     '      "notes": "1 short reason this will perform"',
     '    }',
@@ -318,6 +321,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Headline card (deterministic, no LLM/diffusion involved in rendering
+    // the actual pixels): a text-first title card matching the founder's
+    // reference asset style. Exact typography and brand mark, never
+    // hallucinated -- see template-card.ts docblock for why this is a
+    // separate deterministic renderer rather than a bigger diffusion prompt.
+    let cardResult: { url: string; storagePath: string } | null = null;
+    let cardError: string | null = null;
+    const cardVariant = (variantsRecord as Record<string, { card_headline?: string; card_subtitle?: string }>).linkedin
+      ?? Object.values(variantsRecord as Record<string, { card_headline?: string; card_subtitle?: string }>)[0];
+    const cardHeadline = cardVariant?.card_headline?.trim();
+
+    if (cardHeadline) {
+      try {
+        const card = await renderHeadlineCard({
+          headline: cardHeadline,
+          subtitle: cardVariant?.card_subtitle?.trim(),
+          brandTagline: 'Model the assumptions behind the decision.',
+        });
+        const storagePath = `content-studio/${crypto.randomUUID()}-card.png`;
+        const { error: uploadError } = await supaSvc.storage
+          .from('content-assets')
+          .upload(storagePath, card.bytes, { contentType: card.contentType, upsert: false });
+        if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+        const { data: signedData, error: signError } = await supaSvc.storage
+          .from('content-assets')
+          .createSignedUrl(storagePath, 86400);
+        if (signError || !signedData?.signedUrl) throw new Error(`Signed URL failed: ${signError?.message ?? 'no URL returned'}`);
+        cardResult = { url: signedData.signedUrl, storagePath };
+      } catch (e) {
+        cardError = e instanceof Error ? e.message : String(e);
+      }
+    }
+
     if (body.save !== false) {
       await supaSvc.from('content_studio_generations').insert({
         created_by: user.id,
@@ -339,6 +375,8 @@ Deno.serve(async (req) => {
             ? { storage_path: imageResult.storagePath, provider: imageResult.provider }
             : null,
           image_error: imageError,
+          card: cardResult ? { storage_path: cardResult.storagePath } : null,
+          card_error: cardError,
         },
       });
     }
@@ -350,6 +388,8 @@ Deno.serve(async (req) => {
       elapsed_ms,
       image_url: imageResult?.url ?? null,
       image_error: imageError,
+      card_image_url: cardResult?.url ?? null,
+      card_error: cardError,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
