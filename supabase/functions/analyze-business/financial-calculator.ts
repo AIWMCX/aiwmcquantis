@@ -467,7 +467,36 @@ export function calculateStrictFinancials(
     notes: `($${finalNetProfit} / $${mrr}) × 100 = ${finalNetMarginPercent}% (healthy: ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}%)`
   });
 
-  const grossProfit = mrr - cogs;
+  // Gross margin can never legitimately be lower than operating/net margin --
+  // gross profit only subtracts COGS, a subset of total expenses, so
+  // gross margin >= operating margin is a hard accounting law, not a
+  // benchmark judgment call. Found live 2026-09-14 (financial invariant
+  // sweep, 5 flagged analyses, all OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT):
+  // `cogs` above is a pure industry-benchmark estimate (mrr * cogs_percent),
+  // computed independently of userProvidedCosts. When a user's own reported
+  // total monthly costs come in below that benchmark-implied COGS alone,
+  // grossProfit (mrr - cogs) ends up smaller than netProfit (mrr -
+  // totalExpenses), and since operatingMargin is set equal to netMargin
+  // (operatingEqualsNetIncome, this engine has no separate opex layer),
+  // gross margin comes out lower than operating margin -- an impossibility.
+  // Per this file's own "never silently clamp a user value" precedent (the
+  // net-margin-ceiling block above), the raw benchmark `cogs` is left
+  // untouched everywhere else (expenses.cogs breakdown, marketing
+  // reconciliation above) so the assumption stays visible and auditable.
+  // Only the two margin OUTPUTS that must stay arithmetically consistent
+  // with each other -- grossProfit/grossMarginPercent here, and the `cogs`
+  // fed to calculateProfitabilityMargins below -- use this capped value.
+  let effectiveCogsForMargins = cogs;
+  if (expenseSource === 'user' && cogs > totalExpenses) {
+    effectiveCogsForMargins = totalExpenses;
+    corrections.push({
+      field: 'gross_margin_cogs',
+      original: cogs,
+      corrected: totalExpenses,
+      reason: `The industry-benchmark cost-of-goods assumption ($${cogs.toLocaleString()}) exceeds your own reported total monthly costs ($${totalExpenses.toLocaleString()}) -- which would otherwise make gross margin come out lower than operating margin, an accounting impossibility. Gross margin is capped at your reported total as a ceiling; your reported total costs may not include a COGS component in line with this industry's typical ${benchmarks.cogs_percent}%, or your business genuinely runs leaner than the benchmark.`
+    });
+  }
+  const grossProfit = mrr - effectiveCogsForMargins;
   const grossMarginPercent = mrr > 0 ? Math.round((grossProfit / mrr) * 100) : 0;
 
   // ===== STEP 4: Calculate investment metrics =====
@@ -718,7 +747,12 @@ export function calculateStrictFinancials(
   // coincide.
   const profitabilityMarginsResult: ProfitabilityMarginsResult = calculateProfitabilityMargins({
     revenue: String(mrr),
-    cogs: String(cogs),
+    // effectiveCogsForMargins, not raw cogs -- this module independently
+    // recomputes grossMargin from the cogs it's given, so it must see the
+    // same capped value used for grossProfit/grossMarginPercent above, or
+    // the OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT bug reappears here even
+    // after the fix a few lines up.
+    cogs: String(effectiveCogsForMargins),
     operatingIncome: String(finalNetProfit),
     netIncome: String(finalNetProfit),
   });
