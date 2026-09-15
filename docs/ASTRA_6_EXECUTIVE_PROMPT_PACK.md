@@ -601,3 +601,180 @@ Output:
 1. **Happy path:** Add accounts-receivable timing. Expected: cash forecast changes while recognized revenue remains distinct.
 2. **Edge:** Contribution margin is zero/negative. Expected: break-even is NOT_ACHIEVABLE, not a fabricated finite value.
 3. **Failure:** No outcome observations but founder asks for "95% accuracy." Expected: refuse claim and define the first outcome-collection cohort.
+
+---
+
+# 8. Prompt 7 — Dashboard and First-User Comprehension
+
+```markdown
+Redesign or review the AIWMC Quantis dashboard for first-time comprehension and decision completion.
+
+Inputs:
+- current route/component source;
+- current entitlement state;
+- current product events/session evidence;
+- user task;
+- latest verified UX findings;
+- missing findings explicitly labeled.
+
+The dashboard answers five questions in order:
+
+1. What decision am I working on?
+2. What does Quantis need from me?
+3. What did the engine determine?
+4. What could make this decision fail?
+5. What should I do next?
+
+Use one primary action per state. Product terminology is secondary to user intent:
+
+- "Compare what changes" before "Scenarios."
+- "See how this could fail" before "Pre-Mortem."
+- "Create a decision memo" before "DocStudio."
+- "Build a service quote" before "QuoteGen," and only when eligible.
+- "Get a reviewed decision" before "Founder Decision Review."
+
+Required UI states:
+
+- first visit / no input;
+- incomplete input;
+- ready to run;
+- running with visible stage activity;
+- complete;
+- degraded but usable;
+- blocked/quota reached;
+- returning user;
+- mobile/keyboard/screen-reader;
+- error with recovery.
+
+Do not implement a claimed 17-issue audit if only six issues are available. Re-audit current UI or retrieve the missing evidence first.
+
+Output:
+
+- task-flow map;
+- information hierarchy;
+- per-state primary CTA;
+- component-level specification;
+- copy deck in plain English;
+- accessibility requirements;
+- analytics events and funnel definitions;
+- five-user usability script;
+- acceptance criteria and visual regression cases.
+```
+
+### Prompt 7 success tests
+
+1. **Happy path:** New user has a business idea but no numbers. Expected: one obvious start action and progressive detail collection.
+2. **Edge:** Complete analysis has an unresolved cash-timing assumption. Expected: next action points to that assumption, not a generic tool grid.
+3. **Failure:** UX plan cites an unverified cancellation reason as fact. Expected: downgrade it to founder-reported/unknown and request supporting evidence.
+
+---
+
+# 9. Prompt 8 — $349 Founder Review and $499 Consultant Pilot
+
+```markdown
+Operate and improve the two Quantis one-time products as complete paid outcomes.
+
+Offer: [FOUNDER_REVIEW | CONSULTANT_PILOT]
+Journey evidence: [CHECKOUT/WEBHOOK/INTAKE/WORKSPACE/DELIVERY]
+Case evidence: [DECISION CASE]
+
+Shared non-negotiable journey:
+
+preview
+→ verified checkout catalog
+→ verified payment webhook
+→ durable engagement record
+→ confirmation accepted and delivery status tracked
+→ required intake
+→ secure workspace
+→ typed assumptions/evidence
+→ deterministic analysis and scenarios
+→ review agenda
+→ human review
+→ versioned deliverable packet
+→ acceptance/delivery state
+→ 30/60/90-day outcome request
+
+Founder Review must deliver one consequential decision with alternatives, financial exposure, evidence/assumption register, base/downside/required-to-work scenarios, cash/payback/break-even distinctions, pre-mortem, disposition, and five-or-fewer actions.
+
+Consultant Pilot must deliver two isolated client cases, private consultant notes separated from client-visible content, a reusable intake, cross-case workload/status, individual analysis/evidence/scenario packets, and a consultant-facing learning summary.
+
+Never call a provider-accepted email "delivered" without delivery evidence. Never grant access from a redirect alone. Never claim automated fulfillment while the founder performs it manually.
+
+Output:
+
+- current journey state matrix;
+- missing link with highest buyer consequence;
+- delivery checklist;
+- packet schema;
+- SLA/exception states;
+- security and entitlement tests;
+- instrumentation;
+- buyer-facing preview and honest copy;
+- manual operations runbook until automation is proven.
+```
+
+### Prompt 8 success tests
+
+1. **Happy path:** First $349 payment arrives. Expected: durable record, intake, one case, fulfillment checklist, packet, delivery/outcome evidence.
+2. **Edge:** Consultant fills only one of two cases. Expected: case isolation preserved and completion count truthful.
+3. **Failure:** Resend returns an ID but no delivery event. Expected: state EMAIL_ACCEPTED, not EMAIL_DELIVERED.
+
+---
+
+# 10. Prompt 9 — Zero-Budget GTM, Sales and First Revenue
+
+```markdown
+Act as Quantis founder-led revenue operator.
+
+Inputs:
+- verified product readiness;
+- ICP segment;
+- lead/account evidence;
+- previous contacts and reply history;
+- available founder hours;
+- offer and proof assets;
+- current funnel metrics.
+
+Optimize for qualified conversations and paid decisions, not impressions or email volume.
+
+Build an evidence-specific outreach motion:
+
+1. Select a narrow pain where wrong assumptions have financial consequences.
+2. Use one concrete observation about the prospect.
+3. Offer a small decision artifact, not "AI software."
+4. Ask a low-friction question that can be answered naturally.
+5. Track send, delivery, reply, positive reply, call, analysis, proposal, payment, delivery, and outcome separately.
+6. Reconcile CRM before every batch; never resend to suppressed or previously contacted leads without correct follow-up state.
+
+No email or call script can guarantee a response. Do not use fake scarcity, fake users, inflated counters, guaranteed savings, or fabricated case studies.
+
+Prioritize:
+
+- warm LinkedIn conversations;
+- founder/consultant diagnostic calls;
+- five-user guided Decision Runs;
+- redacted decision artifacts;
+- targeted second touches based on observed pain;
+- referrals only after value is experienced;
+- Whop/directories as distribution surfaces, not substitutes for discovery.
+
+Output:
+
+- ICP and trigger;
+- 10-account priority list definition;
+- channel sequence;
+- personalized message structure;
+- call discovery script;
+- offer/CTA;
+- CRM state transitions;
+- daily metrics;
+- experiment hypothesis and stopping rule;
+- what product learning returns to the roadmap.
+```
+
+### Prompt 9 success tests
+
+1. **Happy path:** CFO consultant has break-even content on website. Expected: specific observation and offer to share a relevant redacted artifact.
+2. **Edge:** Lead was contacted yesterday. Expected: no new first-touch; choose follow-up or suppression based on CRM evidence.
+3. **Failure:** Founder asks for a script nobody can reject. Expected: reject guarantee and optimize for relevance/trust with measurable reply hypotheses.
