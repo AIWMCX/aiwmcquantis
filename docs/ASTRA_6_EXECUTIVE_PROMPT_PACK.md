@@ -483,3 +483,121 @@ Then identify the single system constraint whose removal improves at least three
 1. **Happy path:** Product depth is high but paid evidence is zero. Expected: roadmap prioritizes activation, founder-led sale, and delivery closure.
 2. **Edge:** Strong traffic but no activation. Expected: dashboard/onboarding and measurement come before more traffic.
 3. **Failure:** User requests "100× features." Expected: Astra translates this into tighter outcome closure and rejects uncontrolled scope expansion.
+
+---
+
+# 6. Prompt 5 — Product Architecture: One Connected Decision Case
+
+```markdown
+Design or audit a Quantis feature as part of the canonical Decision Case aggregate.
+
+Feature/request: [REQUEST]
+Current files/routes/tables: [EVIDENCE]
+Current user state: [ANONYMOUS / FREE / PLUS / PRO / ONE-TIME FOUNDER / CONSULTANT / ADMIN]
+
+Canonical flow:
+
+Decision Case
+→ immutable input snapshot
+→ deterministic calculation snapshot
+→ evidence snapshot
+→ scenario versions/runs
+→ pre-mortem risks
+→ recommendation/action register
+→ document, quote, share, or paid review
+→ observed outcome
+
+Require these identifiers where applicable:
+
+case_id, analysis_id, input_snapshot_version, scenario_version, kernel_version, formula_registry_version, benchmark_dataset_version, evidence_snapshot_id, actor/owner, timestamps, source_kind, idempotency_key.
+
+Audit for:
+
+- duplicated inputs or calculations;
+- pages that cannot resume the same case;
+- recalculation drift;
+- missing ownership/RLS;
+- manual strings where typed financial values are required;
+- derived documents recomputing instead of rendering snapshots;
+- feature names users cannot understand;
+- missing next-action logic;
+- events emitted without durable state or durable state without events.
+
+Provide two architecture options with trade-offs. Prefer an additive modular-monolith path. Output an ADR, data contract, event contract, API/interface contract, migration/backfill plan, UX journey, acceptance tests, telemetry, and rollback.
+```
+
+### Prompt 5 success tests
+
+1. **Happy path:** Connect one analysis to scenarios and DocStudio. Expected: immutable baseline, override deltas, and snapshot rendering.
+2. **Edge:** QuoteGen requested for a coffee shop. Expected: eligibility gate prevents irrelevant QuoteGen entry and offers a relevant document/review path.
+3. **Failure:** Proposed microservice duplicates formulas. Expected: reject or postpone, retaining one authoritative kernel.
+
+---
+
+# 7. Prompt 6 — Financial Kernel, Accuracy and Calibration
+
+```markdown
+Act as Quantis Financial Kernel Governance Lead.
+
+Requested metric/model change: [REQUEST]
+Current formula manifest: [VERSION + RELEVANT DEFINITIONS]
+Current live implementation: [FILES/FUNCTIONS]
+Observed production data: [AGGREGATES]
+
+For every variable, define:
+
+- canonical name;
+- business meaning;
+- formula;
+- currency/unit/period;
+- required inputs and their origins;
+- valid domain and boundary conditions;
+- typed unavailable/error states;
+- dependency graph;
+- sensitivity direction;
+- reconciliation invariants;
+- authoritative implementation;
+- test vectors;
+- evidence/benchmark version;
+- presentation rules.
+
+Audit especially:
+
+- revenue versus cash collection;
+- gross versus contribution margin;
+- operating versus net income;
+- break-even versus investment payback versus CAC payback;
+- profit versus free cash flow;
+- zero/negative denominators;
+- ramp and cohort timing;
+- taxes, interest, capex, debt service, working capital and AR timing;
+- false precision from hardcoded defaults;
+- JS floating-point versus Decimal policy;
+- client/server formula duplication.
+
+Calibration rules:
+
+- Learn only from consented realized outcomes and explicit corrections.
+- Preserve historical input/output/kernel/benchmark snapshots.
+- Report WAPE, signed bias, interval coverage, days-to-event error, and Brier score where valid.
+- Segment by industry, geography, stage, horizon, kernel version, and data quality.
+- No global prior update with fewer than 100 quality observations and a time-based holdout.
+- No cohort calibration claim with fewer than 30 quality observations.
+- Candidate priors require provenance, expiry, backtest, human approval, and rollback.
+- Zero outcome records means calibration is NOT STARTED—not 0% accurate and not 100% accurate.
+
+Output:
+
+1. Formula/variable contract.
+2. Current divergence report.
+3. Minimal code-change sequence.
+4. Golden/property/metamorphic test plan.
+5. Calibration measurement plan.
+6. Public truth statement that can be safely used.
+```
+
+### Prompt 6 success tests
+
+1. **Happy path:** Add accounts-receivable timing. Expected: cash forecast changes while recognized revenue remains distinct.
+2. **Edge:** Contribution margin is zero/negative. Expected: break-even is NOT_ACHIEVABLE, not a fabricated finite value.
+3. **Failure:** No outcome observations but founder asks for "95% accuracy." Expected: refuse claim and define the first outcome-collection cohort.
