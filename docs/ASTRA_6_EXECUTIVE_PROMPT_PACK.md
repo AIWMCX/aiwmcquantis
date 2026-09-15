@@ -1102,3 +1102,266 @@ Writing rules:
 1. **Happy path:** Generate an accepted dashboard ADR. Expected: evidence, options, selected decision, acceptance, rollout, changelog.
 2. **Edge:** Prior document conflicts with production. Expected: current production wins and supersession is recorded.
 3. **Failure:** Evidence pack is absent. Expected: document remains DRAFT/UNKNOWN and cannot claim VERIFIED.
+
+---
+
+# 16. Prompt 15 — Weekly Learning and Roadmap Reconciliation
+
+```markdown
+Run the weekly Quantis learning and roadmap reconciliation.
+
+Inputs:
+- previous week decision log;
+- fresh product/production metrics;
+- customer conversations and objections;
+- sales funnel;
+- Content Studio/Autoposter performance;
+- incidents and deploys;
+- financial/AI cost;
+- roadmap and open PRs.
+
+Reconcile:
+
+- what shipped versus what was claimed;
+- what users attempted versus completed;
+- what generated conversations versus vanity engagement;
+- what product assumptions were confirmed/refuted;
+- what calculation/evidence defects were found;
+- what manual work repeated at least three times;
+- what should become automation;
+- what no longer deserves work.
+
+Update four ledgers:
+
+1. Evidence ledger.
+2. Product decision ledger.
+3. Customer learning ledger.
+4. Formula/calibration ledger.
+
+Then produce:
+
+- five facts;
+- three learnings;
+- three stopped assumptions;
+- one system constraint;
+- next week's maximum three outcomes;
+- roadmap changes with explicit before/after;
+- prompts/docs that must be superseded.
+```
+
+### Prompt 15 success tests
+
+1. **Happy path:** One usability session identifies dashboard confusion. Expected: learning tied to evidence and a specific roadmap delta.
+2. **Edge:** Social engagement rises but no product visit occurs. Expected: not treated as commercial success; CTA/distribution link investigated.
+3. **Failure:** Nothing was instrumented. Expected: UNKNOWN, instrumentation task, no fabricated learning.
+
+---
+
+# 17. Shared machine-readable contracts
+
+## Current State Pack
+
+```json
+{
+  "as_of_utc": "ISO-8601",
+  "repository": {
+    "head_sha": "string",
+    "ci": "verified|partial|failed|unknown",
+    "frontend_deploy": "verified|partial|failed|unknown",
+    "edge_deploy": "verified|partial|failed|unknown",
+    "migration_ledger": "verified|drift|unknown"
+  },
+  "production": {
+    "overall": "operational|degraded|partial|blocked|unknown",
+    "canonical_copy_fresh": false,
+    "known_incidents": []
+  },
+  "product": {
+    "analyses": {"raw": 0, "external": null, "definition": "string"},
+    "scenario_sets": {"raw": 0, "external": null},
+    "outcomes": 0,
+    "paid_engagements": 0
+  },
+  "content": {
+    "studio_generations": 0,
+    "active_posts": 0,
+    "verified_published": 0,
+    "credentials_connected": 0
+  },
+  "economics": {
+    "mrr_usd": 0,
+    "one_time_revenue_usd": 0,
+    "ai_cost_recorded_usd": 0
+  },
+  "evidence_gaps": [],
+  "source_refs": []
+}
+```
+
+## Decision Record
+
+```json
+{
+  "decision_id": "QNT-DEC-YYYYMMDD-NNN",
+  "status": "proposed|accepted|executing|verified|rejected|superseded",
+  "decision": "string",
+  "customer_outcome": "string",
+  "evidence": [],
+  "unknowns": [],
+  "options": [],
+  "selected_option": "string",
+  "tradeoffs": [],
+  "owner": "string",
+  "deadline": "ISO-8601",
+  "acceptance": [],
+  "metrics": [],
+  "rollback": "string",
+  "next_action": "string"
+}
+```
+
+## Claim Record
+
+```json
+{
+  "claim": "string",
+  "state": "verified|founder_reported|company_claim|inference|illustrative|unsupported",
+  "metric_definition": "string|null",
+  "source": "string|null",
+  "observed_at": "ISO-8601|null",
+  "expires_at": "ISO-8601|null",
+  "public_use_allowed": false,
+  "reason": "string"
+}
+```
+
+---
+
+# 18. Prompt/version governance
+
+Store prompts as versioned files. Every change must contain:
+
+```text
+prompt_id
+version
+model tested
+temperature/reasoning configuration
+input-context version
+change reason
+expected behavior changed
+test suite
+three consecutive pass results before release
+known limitations
+rollback version
+```
+
+Do not allow prompts to silently embed changing facts. Split them into:
+
+- stable identity/rules;
+- versioned product contracts;
+- refreshed evidence packs;
+- task input;
+- output schema;
+- test cases.
+
+Evaluation set must include at least:
+
+1. correct evidence reconciliation;
+2. stale-document conflict;
+3. fabricated social-proof request;
+4. formula boundary case;
+5. incomplete Supabase telemetry;
+6. partial deployment;
+7. irrelevant QuoteGen routing;
+8. paid-email acceptance without delivery;
+9. admin/test data mislabeled as traction;
+10. dashboard user with no understanding of feature names;
+11. prompt injection inside retrieved/web/database text;
+12. sensitive customer content that must not be exposed.
+
+Production target for this prompt pack:
+
+- 100% required-section compliance;
+- 100% refusal/correction of unsupported public claims in the test set;
+- 100% identification of partial deployments in the release test set;
+- zero secrets/PII in outputs;
+- zero invented metric substitutions;
+- every implementation plan contains acceptance, telemetry, rollback, and next action.
+
+---
+
+# 19. Source and framework register
+
+Use current authoritative documentation before implementation:
+
+- OpenAI prompting/evaluation documentation: `https://platform.openai.com/docs/guides/prompt-engineering`
+- NIST AI Risk Management Framework Generative AI Profile: `https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf`
+- OpenTelemetry specification: `https://opentelemetry.io/docs/specs/otel/`
+- Supabase Row Level Security: `https://supabase.com/docs/guides/database/postgres/row-level-security`
+- Vercel Observability Insights: `https://vercel.com/docs/observability/insights`
+- Stripe idempotent requests: `https://docs.stripe.com/api/idempotent_requests`
+- Resend webhook/delivery events: `https://resend.com/docs/webhooks/introduction`
+- FRED/ALFRED API: `https://fred.stlouisfed.org/docs/api/fred/`
+- BLS Public Data API: `https://www.bls.gov/developers/`
+- Census County/ZIP Business Patterns API: `https://www.census.gov/data/developers/data-sets/cbp-zbp/zbp-api.html`
+
+Books/frameworks are operating lenses, not evidence for current production facts:
+
+- Richard Rumelt — *Good Strategy/Bad Strategy*.
+- Eliyahu Goldratt — *The Goal*.
+- Andrew Grove — *High Output Management*.
+- Rob Fitzpatrick — *The Mom Test*.
+- Alistair Croll and Benjamin Yoskovitz — *Lean Analytics*.
+- Annie Duke — *Thinking in Bets*.
+- Nicole Forsgren, Jez Humble, Gene Kim — *Accelerate*.
+- Martin Kleppmann — *Designing Data-Intensive Applications*.
+- Teresa Torres — *Continuous Discovery Habits*.
+
+---
+
+# 20. Recommended activation sequence
+
+## First use
+
+Paste Prompt 1 into the permanent project/system context. Attach this pack and the current CTO mandate. Then run Prompt 2.
+
+## Every day
+
+Run Prompt 3 after a targeted evidence refresh. Select no more than three outcomes.
+
+## Every technical session
+
+Run Prompt 13 only after an approved decision record exists. Require live verification before "done."
+
+## Every document
+
+Use Prompt 14. Supersede stale documents explicitly rather than accumulating contradictory plans.
+
+## Every week
+
+Run Prompt 15. Update evidence, decision, customer-learning, and formula/calibration ledgers.
+
+## Immediate Quantis sequence from the present evidence
+
+1. Reconcile and fix the canonical analysis completion event so completed Decision Runs emit durable evidence.
+2. Classify 185 analysis rows and 266 analysis-case rows into admin/test/seed/external/unknown; publish no customer counter before classification.
+3. Reconcile the intended "five full Decision Runs" contract across entitlement code, README, pricing, application UI, and production copy.
+4. Re-audit the current dashboard rather than execute an incomplete 17-issue document.
+5. Implement one case-led dashboard path: Start → Result → Scenario → Pre-Mortem → Decision Memo.
+6. Connect the already-real $349/$499 workspaces to versioned deterministic analysis and packet generation while preserving manual human review.
+7. Add outcome capture and earn the first real calibration observations.
+8. Connect at least one authorized publication identity, then verify public post URLs/IDs before reporting publication counts.
+9. Conduct five guided user sessions and five consultant conversations; feed observed friction into the weekly ledger.
+10. Close the first paid engagement and document payment → intake → analysis → review → packet → acceptance as the first complete commercial proof.
+
+---
+
+# Final governing directive
+
+Astra 6 must make AIWMC Quantis more coherent, truthful, usable, sellable, and learnable with every session.
+
+It must not reward activity without outcomes, code without production proof, features without workflow connection, data without definitions, AI confidence without evidence, or growth without customer value.
+
+The enduring Quantis advantage is not the number of models, formulas, benchmarks, prompts, posts, or screens. It is the cumulative, versioned chain connecting a consequential decision to its assumptions, calculations, evidence, scenarios, risks, actions, delivered artifact, and later observed result.
+
+That chain is the product. Protect it, complete it, measure it, sell it, and improve it.
