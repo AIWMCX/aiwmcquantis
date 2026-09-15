@@ -385,3 +385,101 @@ Output:
 See `docs/execution/2026-09-15-fresh-evidence-reconciliation.md` for the
 first executed run of this prompt (general "what changed since the
 2026-09-12 baseline" reconciliation, no specific decision pending).
+
+### Prompt 2 success tests
+
+1. **Happy path:** CI, Vercel, Edge SHA and database agree. Expected: LIVE-VERIFIED with exact evidence times.
+2. **Edge case:** GitHub deploy succeeds but canonical copy is stale. Expected: PARTIAL, never "deployed successfully" as a complete verdict.
+3. **Failure:** Database access unavailable. Expected: UNKNOWN/MONITORING_UNAVAILABLE, no replacement zero values, and exact missing authority stated.
+
+---
+
+# 4. Prompt 3 — Daily Founder/Executive Operating Session
+
+```markdown
+Run today's AIWMC Quantis executive session.
+
+Inputs:
+- available founder hours today: [HOURS]
+- cash/spend ceiling: [AMOUNT]
+- current sales activity: [FACTS]
+- current technical incidents: [FACTS]
+- current customer conversations: [FACTS]
+- current evidence pack: [PASTE PROMPT 2 OUTPUT]
+
+Choose a maximum of three outcomes for today:
+
+- one revenue/customer action;
+- one product/production closure;
+- one evidence/learning improvement.
+
+Do not create a 30-item motivational list. Rank candidate actions using the Quantis priority function. Protect uninterrupted selling time. Distinguish founder-only work from coding-agent work and automated work.
+
+For each chosen outcome provide:
+
+- why today;
+- start condition;
+- exact action;
+- completion evidence;
+- timebox;
+- failure/stop condition;
+- what will explicitly not be done today.
+
+End with:
+
+- TODAY MUST SHIP;
+- TODAY MUST SELL;
+- TODAY MUST LEARN;
+- 10-minute shutdown reconciliation.
+```
+
+### Prompt 3 success tests
+
+1. **Happy path:** Four founder hours and one production blocker. Expected: three or fewer timeboxed outcomes with selling preserved.
+2. **Edge:** Twelve urgent tasks. Expected: Astra rejects false urgency, selects at most three, and parks the rest with reasons.
+3. **Failure:** No current evidence pack. Expected: it runs/requires Prompt 2 before recommending production changes.
+
+---
+
+# 5. Prompt 4 — Whole-Startup Strategy and Survival Review
+
+```markdown
+Evaluate AIWMC Quantis as a complete startup, not only as software.
+
+Time horizon: [7 DAYS / 30 DAYS / 90 DAYS / 12 MONTHS]
+Evidence pack: [CURRENT STATE]
+Founder constraints: solo founder, minimal budget, no paid ads, zero current paid engagements.
+
+Assess these coupled systems:
+
+1. ICP pain and decision consequence.
+2. Product promise and actual delivered outcome.
+3. Activation and dashboard comprehension.
+4. Accuracy, evidence, and financial-model integrity.
+5. Free-to-paid path.
+6. $349/$499 payment-to-delivery path.
+7. Retention and outcome capture.
+8. Direct sales and founder-led discovery.
+9. Content Studio/Autoposter distribution.
+10. Pricing, packaging, Stripe and Whop parity.
+11. Reliability, security, telemetry and cost.
+12. Founder capacity and operational sustainability.
+
+For every domain return:
+
+- current state;
+- strongest asset;
+- binding constraint;
+- evidence quality;
+- commercial consequence;
+- one intervention;
+- measurable leading indicator.
+
+Then identify the single system constraint whose removal improves at least three other domains. Build the roadmap around that constraint using Now / Next / Later. Include a stop-doing list and explicit survival thresholds. Do not recommend fundraising, hiring, or paid acquisition unless a quantified prerequisite is met.
+```
+
+### Prompt 4 success tests
+
+1. **Happy path:** Product depth is high but paid evidence is zero. Expected: roadmap prioritizes activation, founder-led sale, and delivery closure.
+2. **Edge:** Strong traffic but no activation. Expected: dashboard/onboarding and measurement come before more traffic.
+3. **Failure:** User requests "100× features." Expected: Astra translates this into tighter outcome closure and rejects uncontrolled scope expansion.
