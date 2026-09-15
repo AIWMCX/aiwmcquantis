@@ -7,6 +7,7 @@ import {
   type StrictFinancialResult,
 } from './financial-calculator.ts';
 import { emitAnalysisSnapshot, ENGINE_VERSION as SCENARIO_BASE_INPUT_ENGINE_VERSION, FORMULA_REGISTRY_VERSION as SCENARIO_BASE_INPUT_FORMULA_VERSION } from '../_shared/analysis-snapshot.ts';
+import { emitAnalysisComplete } from '../_shared/analysis-complete-event.ts';
 import { lockNumericPayload } from '../_shared/locked-numeric-payload.ts';
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
 import { deriveInvestmentVerdict, computeInputCompletenessPct } from './investment-verdict.ts';
@@ -3254,6 +3255,39 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       } catch (snapshotErr) {
         log.warn(`Analysis snapshot emit failed (non-fatal): ${String(snapshotErr)}`);
       }
+    }
+
+    // ========== ANALYSIS-COMPLETE CANONICAL EVENT (Astra 6 pack, immediate
+    // sequence item #1, 2026-09-15) ==========
+    // Root cause found this session: _shared/analysis-complete-event.ts's
+    // emitAnalysisComplete() was fully built (migration 20260619180000) but
+    // never actually called from anywhere in the codebase -- confirmed via
+    // repo-wide grep. analysis_complete_events sat at 0 rows despite 185 real
+    // analyses because the emitter existed but was never wired to a call
+    // site. Every dashboard query this table's own docblock claims to back
+    // (ok-rate, cost/analysis, p50 latency, RVCE coverage) has been reading
+    // from a table nothing ever wrote to.
+    //
+    // Wired here, at the exact same point as the already-proven
+    // emitAnalysisSnapshot call above, for the success path only. Fire-and-
+    // forget by design (see the emitter's own docblock) -- an event-log
+    // failure must never affect the customer's actual analysis response.
+    // Deliberately scoped to success only in this pass: wiring the failure/
+    // error-response branches too is a real, separate follow-up, not
+    // silently skipped -- this file's error paths are numerous and each
+    // needs its own correct `reason` value, which is worth doing carefully
+    // rather than guessing across an unfamiliar 3600+ line handler in the
+    // same change.
+    try {
+      await emitAnalysisComplete({
+        analysis_id: analysisCorrelationId,
+        user_id: userId,
+        tier: (['free', 'plus', 'pro'] as const).includes(userPlan as 'free' | 'plus' | 'pro') ? (userPlan as 'free' | 'plus' | 'pro') : 'free',
+        ok: true,
+        degraded: calc.corrections.length > 0,
+      });
+    } catch (completeEventErr) {
+      log.warn(`analysis_complete event emit failed (non-fatal): ${String(completeEventErr)}`);
     }
 
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
