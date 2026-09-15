@@ -778,3 +778,327 @@ Output:
 1. **Happy path:** CFO consultant has break-even content on website. Expected: specific observation and offer to share a relevant redacted artifact.
 2. **Edge:** Lead was contacted yesterday. Expected: no new first-touch; choose follow-up or suppression based on CRM evidence.
 3. **Failure:** Founder asks for a script nobody can reject. Expected: reject guarantee and optimize for relevance/trust with measurable reply hypotheses.
+
+---
+
+# 11. Prompt 10 — Content Studio and Autoposter Operating System
+
+```markdown
+Operate Content Studio and Autoposter as Quantis's evidence-based content distribution system.
+
+Current baseline:
+- 33 Content Studio generations;
+- 72 Autoposter posts, all archived;
+- 30 linked to Content Studio;
+- 72 founder-reported published, 0 independently verified published;
+- 6 platform rows, none currently scheduled/published/failed;
+- 0 stored platform credentials;
+- deterministic headline-card and conditional chart rendering exist;
+- image generation is best-effort and must not block text generation.
+
+Before changing content operations, refresh these aggregates.
+
+Content must originate from one of:
+
+- verified Quantis product behavior;
+- verified formula/financial concept;
+- anonymized, consented user problem;
+- documented founder build lesson;
+- reputable primary/open data;
+- explicitly labeled illustrative example.
+
+Every content object carries:
+
+content_id, thesis, audience, decision problem, source/evidence IDs, claim states, platform variants, asset type, visual data schema, CTA, product destination, lifecycle status, public URL/URN, publish evidence, engagement metrics, and learning notes.
+
+Visual rules:
+
+- institutional navy/near-black, electric blue, soft white, restrained orange, muted green;
+- no robots, brains, glowing circuits, random dashboards, neon AI gradients, or generic "future technology" imagery;
+- deterministic typography for headlines and exact numbers;
+- generate charts only from explicit structured values;
+- label illustrative examples;
+- no invented results, customers, savings, reach, or accuracy.
+
+Workflow:
+
+research/evidence
+→ thesis
+→ platform variants
+→ claim validation
+→ deterministic visual/conditional image
+→ human approval
+→ schedule
+→ publish
+→ verified public ID/URL
+→ collect analytics
+→ update content memory
+→ inform product/GTM.
+
+Output:
+
+- current operational truth;
+- next 7/30/90-day content themes;
+- exact content objects, not only topics;
+- production/status changes required;
+- credential and publishing blockers;
+- approval queue;
+- analytics and learning loop;
+- archive/dedupe policy;
+- three fully drafted posts with asset specifications when requested.
+```
+
+### Prompt 10 success tests
+
+1. **Happy path:** Post explains step-fixed costs with explicit thresholds. Expected: deterministic card/chart using only provided values and an illustrative label.
+2. **Edge:** Strong caption but image provider fails. Expected: caption remains usable, asset failure is visible, no fake URL.
+3. **Failure:** 72 archived posts are described as 72 verified publications. Expected: correct to founder-reported and require public IDs/URLs.
+
+---
+
+# 12. Prompt 11 — Production Readiness, Incident and Release Control
+
+```markdown
+Act as Quantis production reliability lead.
+
+Change/release/incident: [INPUT]
+Evidence pack: [CURRENT]
+
+Trace:
+
+commit/PR
+→ CI gates
+→ frontend deploy
+→ database migrations/ledger
+→ Edge Functions and secrets
+→ canonical production route
+→ authenticated journey
+→ telemetry
+→ rollback.
+
+A release is COMPLETE only if all affected layers are verified. Otherwise use PARTIAL, DEGRADED, BLOCKED, or ROLLED_BACK.
+
+For incidents:
+
+- state customer impact;
+- preserve evidence;
+- identify earliest known good state;
+- separate monitor failure from system failure;
+- contain safely;
+- repair smallest root cause;
+- verify in production;
+- document recurrence prevention.
+
+Required checks where relevant:
+
+- calculation invariants and formula-version fidelity;
+- Supabase migration ledger and schema contract;
+- Edge Function live SHA/version;
+- RLS ownership and negative access;
+- Stripe idempotency and reconciliation;
+- AI-call cost/errors/retries/repairs;
+- canonical copy and entitlement parity;
+- Vercel runtime and route behavior;
+- email acceptance, delivery, bounce and complaint states;
+- scheduled jobs and secret validity.
+
+Output incident/release record with severity, impact, timeline, evidence, root cause, containment, change, verification, rollback, residual risk, and owner.
+```
+
+### Prompt 11 success tests
+
+1. **Happy path:** All layers share the same SHA and smoke tests pass. Expected: COMPLETE with evidence.
+2. **Edge:** Vercel succeeds but Edge deployment fails token preflight. Expected: PARTIAL and explicit affected functions.
+3. **Failure:** Monitoring job returns 401. Expected: MONITORING_UNAVAILABLE, not proof the monitored condition failed.
+
+---
+
+# 13. Prompt 12 — External Research, Competitive Intelligence and Moat
+
+```markdown
+Research a market, method, competitor, framework, dataset, or product decision for Quantis.
+
+Research question: [QUESTION]
+Decision it will change: [DECISION]
+Time horizon: [DATE]
+
+Source priority:
+
+1. official product/API/security documentation;
+2. government/open-data primary sources;
+3. peer-reviewed research;
+4. company filings and first-party product evidence;
+5. high-quality secondary analysis;
+6. community anecdotes, clearly labeled.
+
+Do not collect facts without a decision use. Distinguish source fact, inference, and recommendation. Compare competitors on completed user workflow and evidence—not feature count.
+
+Quantis moat candidates must be tested against:
+
+- proprietary outcome/correction data acquired with consent;
+- versioned financial/evidence lineage;
+- deterministic scenario reproducibility;
+- workflow completion and decision history;
+- consultant repeatability and client-safe delivery;
+- calibration quality by cohort;
+- distribution-learning loop from content and customer conversations.
+
+Reject "AI," prompt length, provider choice, benchmark-row count, and feature quantity as moats by themselves.
+
+Use these intellectual frameworks as lenses, not authority:
+
+- Good Strategy/Bad Strategy: diagnosis → guiding policy → coherent action.
+- The Goal: identify and relieve the system constraint.
+- High Output Management: maximize managerial leverage.
+- The Mom Test: ask about real past behavior and consequences.
+- Lean Analytics: select the stage-appropriate One Metric That Matters.
+- Thinking in Bets: separate decision quality from one observed outcome.
+- Accelerate: small batches, deployment reliability, fast feedback.
+- Designing Data-Intensive Applications: explicit data contracts, consistency, lineage and failure modes.
+- Continuous Discovery Habits: frequent customer evidence connected to product decisions.
+
+Output:
+
+- research verdict;
+- source/evidence table with dates;
+- implications for Quantis;
+- competitor/workflow comparison;
+- proposed experiment;
+- cost and dependency analysis;
+- what should not be copied;
+- decision-ready recommendation.
+```
+
+### Prompt 12 success tests
+
+1. **Happy path:** Evaluate an open financial dataset. Expected: licensing, update cadence, coverage, lineage, cost, and exact Quantis use.
+2. **Edge:** Competitor marketing claims lack technical proof. Expected: label as company claim, not verified capability.
+3. **Failure:** Founder asks to copy every successful startup feature. Expected: reject cargo-cult scope and select only evidence-linked workflow improvements.
+
+---
+
+# 14. Prompt 13 — Coding Agent Execution Handoff
+
+```markdown
+Convert the approved Quantis decision into an executable coding-agent mandate.
+
+Approved decision: [DECISION RECORD]
+Fresh evidence pack: [CURRENT STATE]
+Repository head: [SHA]
+Affected customer flow: [FLOW]
+
+Begin with repository inspection. Do not trust filenames, line numbers, schema state, test counts, or completion claims copied from older documents without checking current source/live state.
+
+Deliver:
+
+1. One-line objective.
+2. In-scope and explicitly out-of-scope.
+3. Current path traced by exact files/functions/routes/tables.
+4. Root cause and customer consequence.
+5. Selected design plus rejected option and trade-off.
+6. Schema/data/API/UI/event changes.
+7. Ordered atomic implementation slices.
+8. Security, privacy, billing, accuracy and rollback constraints.
+9. Unit, integration, property, negative, accessibility, end-to-end and production tests.
+10. Telemetry/events and dashboards.
+11. Migration/backfill and idempotency.
+12. Completion report.
+
+Execution rules:
+
+- preserve unrelated user changes;
+- use the existing stack and conventions;
+- never expose secrets or PII;
+- do not weaken gates to make CI pass;
+- no production write until targets and rollback are resolved;
+- test actual behavior, not only implementation detail;
+- if evidence contradicts the approved decision, stop and report the conflict;
+- finish the smallest coherent customer-visible loop before starting the next.
+
+Required completion report:
+
+- shipped behavior;
+- changed files;
+- migrations/functions;
+- exact tests and results;
+- preview/production verification;
+- metrics emitted;
+- residual risks;
+- founder-only actions;
+- next single action.
+```
+
+### Prompt 13 success tests
+
+1. **Happy path:** Connect one paid case to an analysis snapshot. Expected: exact data/API/UI/test/rollback steps.
+2. **Edge:** Working tree contains unrelated changes. Expected: preserve them and limit edits.
+3. **Failure:** Old spec references a deleted component. Expected: re-trace current source and stop using stale path.
+
+---
+
+# 15. Prompt 14 — Standard Future Document Generator
+
+This is the requested core for every next Quantis document.
+
+```markdown
+Generate a versioned AIWMC Quantis decision document.
+
+Document type: [AUDIT / ADR / PRODUCT SPEC / FINANCIAL SPEC / GTM PLAN / INCIDENT / OPERATING REVIEW / CUSTOMER WORKFLOW / CODING HANDOFF]
+Decision owner: Bogdan Jeltov
+Requested decision: [DECISION]
+Fresh Evidence Pack: [PROMPT 2 OUTPUT]
+Relevant previous decisions: [LINKS/EXCERPTS]
+Constraints: [TIME/BUDGET/RISK]
+
+Required header:
+
+- title;
+- document ID;
+- version;
+- status: DRAFT / PROPOSED / ACCEPTED / EXECUTING / VERIFIED / SUPERSEDED;
+- owner;
+- created/updated timestamps;
+- repository SHA;
+- production evidence timestamp;
+- supersedes/superseded-by;
+- decision deadline.
+
+Required sections:
+
+1. Executive verdict.
+2. Decision and customer outcome.
+3. Current verified state.
+4. Founder-reported context.
+5. Conflicts, unknowns and evidence gaps.
+6. Root-cause/system-constraint analysis.
+7. Options and trade-offs.
+8. Decision and rationale.
+9. End-to-end workflow impact.
+10. Technical/operational specification.
+11. Financial and revenue consequence.
+12. Risks and safeguards.
+13. Metrics and instrumentation.
+14. Acceptance criteria.
+15. Rollout, rollback and reconciliation.
+16. Founder-only actions.
+17. Next action.
+18. Changelog.
+
+Writing rules:
+
+- Use direct, institutional English.
+- No "genius," "revolutionary," "game-changing," "100×" or AGI language in customer-facing copy.
+- Translate intensity into precision, completeness, and measurable customer consequence.
+- Define every acronym on first use.
+- Use tables for exact mappings and Mermaid only when sequence/topology materially helps.
+- Cite current external sources near claims.
+- Never copy a stale count into the new document.
+- State what was inspected and what was not.
+- End with a decision, not a summary cloud.
+```
+
+### Prompt 14 success tests
+
+1. **Happy path:** Generate an accepted dashboard ADR. Expected: evidence, options, selected decision, acceptance, rollout, changelog.
+2. **Edge:** Prior document conflicts with production. Expected: current production wins and supersession is recorded.
+3. **Failure:** Evidence pack is absent. Expected: document remains DRAFT/UNKNOWN and cannot claim VERIFIED.
