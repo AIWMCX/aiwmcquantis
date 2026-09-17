@@ -293,7 +293,7 @@ export function ReportFirstHero() {
               style={{ background: 'var(--aiwmc-grad-brand, hsl(var(--primary)))' }}
               aria-hidden="true"
             />
-            Deterministic Business Validation
+            Financial Stress-Test for Founders
             <span
               className="inline-block w-8 h-px"
               style={{ background: 'hsl(var(--foreground) / 0.18)' }}

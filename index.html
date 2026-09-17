@@ -3,18 +3,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    
-    <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" 
-      content="default-src 'self'; 
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://assets.apollo.io https://createcdn.com https://va.vercel-scripts.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
-      img-src 'self' data: https: blob:;
-      font-src 'self' https://fonts.gstatic.com https://cdn.fontshare.com;
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://api.lovable.dev https://*.sentry.io https://www.clarity.ms https://*.clarity.ms https://assets.apollo.io https://*.apollo.io https://aplo-evnt.com https://*.aplo-evnt.com https://va.vercel-scripts.com https://vitals.vercel-insights.com;
-      base-uri 'self';
-      form-action 'self';">
-    
+
+    <!-- Content Security Policy is set exclusively via the HTTP response header
+         (vercel.json). A second policy used to be declared here as a <meta> tag;
+         per the CSP spec, when two policies are delivered, a resource must be
+         allowed by BOTH (the browser enforces the intersection). This one's
+         script-src allowlist (gpteng.co, GTM, GA, apollo, createcdn) and the
+         header's (jsdelivr, posthog, sentry) barely overlapped, so in practice
+         almost every third-party script below was silently CSP-blocked in
+         production -- confirmed live via browser console: GA4's gtag.js and the
+         Apollo tracker were both actively blocked. Fixed 2026-09-17 by merging
+         the two allowlists into the single header-delivered policy and removing
+         this duplicate. -->
+
     <!-- Preconnect for critical third-party origins (≤4 to avoid browser contention) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,7 +121,7 @@
 
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AIWMC Quantis — Deterministic Business Validation</title>
+    <title>AIWMC Quantis — AI Business Idea Validator</title>
     <meta name="description" content="Stress-test your business idea. AI-powered financial pre-mortem with 97,500 benchmark data points. Free to start.">
     <meta name="author" content="AIWMC™ LLC" />
     <meta name="robots" content="index, follow" />
@@ -326,8 +327,8 @@
   
   
   
-  <meta property="og:title" content="AIWMC Quantis — Deterministic Business Validation">
-  <meta name="twitter:title" content="AIWMC Quantis — Deterministic Business Validation">
+  <meta property="og:title" content="AIWMC Quantis — AI Business Idea Validator">
+  <meta name="twitter:title" content="AIWMC Quantis — AI Business Idea Validator">
   <meta property="og:description" content="Stress-test your business idea. AI-powered financial pre-mortem with 97,500 benchmark data points. Free to start.">
   <meta name="twitter:description" content="Stress-test your business idea. AI-powered financial pre-mortem with 97,500 benchmark data points. Free to start.">
 </head>
@@ -369,7 +370,7 @@
               <tr style="border-bottom:2px solid #e5e7eb"><th style="text-align:left;padding:8px">Feature</th><th style="text-align:center;padding:8px">Free</th><th style="text-align:center;padding:8px">Plus — $17/mo</th></tr>
             </thead>
             <tbody>
-              <tr><td style="padding:8px">Analyses per month</td><td style="text-align:center;padding:8px">3</td><td style="text-align:center;padding:8px">Unlimited</td></tr>
+              <tr><td style="padding:8px">Analyses per month</td><td style="text-align:center;padding:8px">5</td><td style="text-align:center;padding:8px">Unlimited</td></tr>
               <tr><td style="padding:8px">Full financial report</td><td style="text-align:center;padding:8px">✓</td><td style="text-align:center;padding:8px">✓</td></tr>
               <tr><td style="padding:8px">Risk flags &amp; action plan</td><td style="text-align:center;padding:8px">✓</td><td style="text-align:center;padding:8px">✓</td></tr>
               <tr><td style="padding:8px">PDF export</td><td style="text-align:center;padding:8px">—</td><td style="text-align:center;padding:8px">✓</td></tr>
