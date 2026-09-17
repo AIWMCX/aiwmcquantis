@@ -126,42 +126,59 @@ paired with "then Monte Carlo runs") are accurate, not contradictory, and
 match the reports' own "keep: specific numerical proof points" guidance —
 only the category-tagline usage was the actual problem.
 
-## 3. Corrected assessment: the "no server-rendered content" claim was materially wrong
+## 3. Corrected assessment, revised twice: the "no server-rendered content" claim, and my own first correction of it, were both incomplete
 
 Both PDFs' second-highest-urgency finding was that non-JS crawlers see "the
 same tagline and five-question FAQ body" on every route, based on the raw
 `<div id="root">` being empty pre-hydration (confirmed independently, that
 part is true — this is a pure client-rendered SPA with no SSR).
 
-What the external, public-only audit could not see, and what a closer read
-of `index.html` found: there is already a large, deliberately-authored
-`<noscript>` block (lines 347–557) containing real static HTML — distinct
-headings, a real pricing table, ten detailed example-business writeups (with
-real numbers) plus 50+ example links, twelve blog post links with real
-descriptions, methodology detail, and site navigation. This is exactly the
-mitigation the PDFs recommended building ("publish a sample report,"
-"unique body content per template") — it already exists, just not in the
-form the reports' fetch method could detect (a plain-text HTTP fetch without
-rendering `<noscript>` semantics would miss it; a real crawler or a browser
-with JS disabled would not).
+**First pass (wrong in an important way)**: reading `index.html`'s source in
+this repo, there is a large, hand-authored `<noscript>` block containing a
+pricing table, ten detailed example-business writeups, 50+ example links,
+twelve blog post links, and site navigation. I initially reported this as
+the live crawler-visible fallback, and flagged a "3 vs 5" free-tier count
+mismatch inside it as a real, live customer-facing contradiction.
 
-This substantially changes the finding's priority, but does **not** clear it
-entirely — two real problems remain:
-- **Content drift risk, proven, not hypothetical**: the noscript pricing
-  table said "**3**" free analyses/month, while the JSON-LD `Offer`
-  description, the FAQPage answer on the very same document, and the
-  canonical tier spec all say **5**. This is a real, live, customer-facing
-  numeric contradiction about a specific paid-plan fact — fixed in PR #147 (corrected to 5)
-  — and it is direct proof that the noscript fallback and the live React
-  app can and do drift out of sync, because they are two independently
-  maintained copies of the same information.
-- **Unresolved, deferred to Day 2/3**: how much of Googlebot's actual ranking
-  signal, and how much of AI-answer-engine crawlers' indexing (which
-  frequently do not execute JavaScript at all), rely on rendered DOM vs.
-  `noscript` text is still an open, evidence-requiring question — the PDFs'
-  own recommended verification method (Google Search Console URL Inspection,
-  comparing rendered DOM to raw HTML) has not been run. Flagging rather than
-  guessing.
+**Verified against the actual deployed page after PR #147 shipped, and
+corrected**: that entire hand-authored block is **not what ships**. A
+separate build step, `scripts/generate-static-bodies.mjs`, generates its own
+different, shorter, per-route `<noscript id="q-static-content">` content at
+build time and this is what actually reaches production — confirmed by
+fetching the live homepage directly and finding a noticeably different
+noscript body (a short lede, an 8-layer pipeline list, and a three-row
+pricing table that states dollar amounts but does **not** state a specific
+free-tier analysis count at all). The "3 vs 5" contradiction I fixed in
+`index.html`'s source noscript block therefore has **no live impact today**
+— that block is dead weight for production purposes, overwritten before
+deploy every time. The fix was still correct source hygiene (in case that
+build step ever fails and the raw template ships as a fallback, or during a
+local preview that skips the full build pipeline), but I was wrong to report
+it as an active, live-hitting bug — it wasn't. Recording this plainly rather
+than quietly revising the earlier claim, per the standing instruction for
+this audit to be truthful over convenient.
+
+This also means `generate-static-bodies.mjs`'s own output is the real thing
+to evaluate for crawlability, not the source `index.html` block — and on a
+first read, it looks like a reasonable, genuinely differentiated fallback
+(distinct copy per route, not a repeated shell). A separate, smaller false
+alarm surfaced and was ruled out while checking this: a `Layer 1 — X`
+list item appeared to contain a corrupted "�" character in this session's
+own terminal output. Checked at the byte level directly against the live
+HTTP response — the actual character is a correctly-UTF-8-encoded em dash
+(U+2014); the response's `Content-Type` header correctly declares
+`charset=utf-8`. No real encoding bug — a display artifact in my own
+tooling, not production. Noted here only because it was checked and ruled
+out, not left as an unresolved suspicion.
+
+**Still open, unresolved, deferred to Day 2/3**: how much of Googlebot's
+actual ranking signal, and how much of AI-answer-engine crawlers' indexing
+(which frequently do not execute JavaScript at all), actually credit
+`generate-static-bodies.mjs`'s noscript content vs. penalizing the empty
+pre-hydration `<div id="root">` is still an open, evidence-requiring
+question — the PDFs' own recommended verification method (Google Search
+Console URL Inspection, comparing rendered DOM to raw HTML) has not been
+run. Flagging rather than guessing.
 
 ## 4. New finding, not in either PDF: bot-detection edge function was never deployed
 
@@ -221,13 +238,14 @@ set regardless).
 
 | Item | State |
 |---|---|
-| CSP conflict blocking GA4 + Apollo | Fixed, PR #147 open, pending CI/merge/deploy verification |
-| "Deterministic" positioning (4 locations: runtime PageSEO x2, static index.html, prerender-time anchor constant) | Fixed, same PR, all four kept in lockstep |
-| noscript "3 vs 5" free-tier pricing contradiction | Fixed, same PR |
+| CSP conflict blocking GA4 + Apollo | **Fixed and confirmed live** — PR #147 merged, deployed, re-verified directly against the production HTTP response: single consolidated CSP header now serves the full allowlist, duplicate `<meta>` policy is gone (0 occurrences), title tag confirmed updated |
+| "Deterministic" positioning (4 locations: runtime PageSEO x2, static index.html, prerender-time anchor constant) | Fixed and confirmed live, same PR |
+| noscript "3 vs 5" free-tier pricing contradiction | Fixed in source (correct hygiene), but **confirmed to have no live production impact** — the deployed noscript content is generated separately by `generate-static-bodies.mjs` and never reaches the block this fix touched. Corrected in this doc after checking the actual live output post-deploy; see §3 |
 | `RouteSEO.tsx` '/' entry silently unparsed (backtick description) | Identified, no visible bug (fallback produces same output) — one-line parser fix candidate for Day 2/3, not urgent |
 | bot-detection edge function never deployed | Root cause confirmed (never deployed since 2026-09-05); low customer impact (telemetry-only); deploy attempt blocked by this session's own production-deploy permission gate — needs founder go-ahead |
 | Sentry DSN never configured | Identified, not yet actioned — needs a founder decision (get a DSN, or explicitly accept no error tracking) |
 | Two unidentified 404s on homepage load | Observed, not yet triaged |
+| Suspected mojibake in generated static content | Investigated and ruled out — correctly-encoded UTF-8 em dash; a display artifact in this session's own tooling, not a production bug |
 | Googlebot rendered-DOM-vs-noscript crawlability | Still an open, unverified question (needs Search Console access) |
 
 ## 7. Blocked, needs founder decision
