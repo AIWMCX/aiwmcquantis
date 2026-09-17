@@ -449,6 +449,18 @@ jobs:
             health-check
             system-status
             warm-functions
+            # bot-detection: authored and merged in PR #107 (2026-09-05), but
+            # never added to this list -- the same defect class documented
+            # below for run-tier-qa-harness/run-accuracy-harness. Confirmed
+            # live 2026-09-17: the function has never existed on the Supabase
+            # project (list_edge_functions doesn't show it, get_edge_function
+            # returns NotFoundException), so every homepage load's
+            # useBotDetection() call has been hitting a nonexistent endpoint
+            # and failing its CORS preflight since merge. Low customer impact
+            # (telemetry-only, wrapped in try/catch, doesn't gate anything),
+            # but real and dark for ~12 days. Added here so this and any
+            # future change to supabase/functions/bot-detection/ actually ships.
+            bot-detection
             manage-benchmarks
             manage-knowledge-base
             self-learning-update
