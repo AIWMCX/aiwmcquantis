@@ -28,6 +28,13 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
+// Values ROUTE_META entries are allowed to interpolate via `${...}` in a
+// template literal. Both source files are plain config with zero React/asset
+// imports (verified before adding this), so importing them directly here is
+// safe and doesn't pull JSX/assets into this Node build script the way
+// importing RouteSEO.tsx itself would.
+import { TIERS } from '../src/config/tiers';
+import { BENCHMARK_COUNT_DISPLAY, LEGAL_ENTITY_NAME } from '../src/config/canonical-facts';
 
 const DIST = resolve('dist');
 const BASE_URL = 'https://www.aiwmcquantis.com';
@@ -50,24 +57,66 @@ interface RouteMeta {
   noIndex?: boolean;
 }
 
-/** Parse ROUTE_META out of RouteSEO.tsx without importing the TSX (pulls assets). */
+const INTERPOLATION_SCOPE: Record<string, unknown> = { BENCHMARK_COUNT_DISPLAY, LEGAL_ENTITY_NAME, TIERS };
+
+/**
+ * Resolves `${a.b.c}`-style placeholders against INTERPOLATION_SCOPE by plain
+ * dotted-path lookup only -- never eval() or Function(), so it can't execute
+ * arbitrary source even though it's reading a template literal's contents as
+ * text. Fails loud (matches this file's existing guard convention) rather
+ * than silently emitting a literal "${...}" into a shipped <title>/<meta> tag.
+ */
+function resolveInterpolations(raw: string): string {
+  return raw.replace(/\$\{([\w.]+)\}/g, (_whole, path: string) => {
+    const value = path.split('.').reduce<unknown>((acc, key) => {
+      if (acc && typeof acc === 'object' && key in (acc as Record<string, unknown>)) {
+        return (acc as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, INTERPOLATION_SCOPE);
+    if (value === undefined || (typeof value === 'object' && value !== null)) {
+      console.error(
+        `prerender-seo: RouteSEO.tsx interpolates \${${path}}, which this script's ` +
+        `INTERPOLATION_SCOPE can't resolve to a plain value -- aborting rather than ` +
+        `shipping a broken title/description. Add it to INTERPOLATION_SCOPE above.`
+      );
+      process.exit(1);
+    }
+    return String(value);
+  });
+}
+
+/**
+ * Parse ROUTE_META out of RouteSEO.tsx without importing the TSX (pulls
+ * assets). Matches both quote-delimited ('/") and template-literal (`)
+ * values -- ROUTE_META entries use backtick template literals wherever they
+ * interpolate a shared constant (BENCHMARK_COUNT_DISPLAY, TIERS.*,
+ * LEGAL_ENTITY_NAME) to avoid hardcoding facts that must stay in sync with
+ * their real source (tiers-drift.test.ts specifically forbids hardcoded
+ * "$17/mo" price literals outside src/config/tiers.ts, RouteSEO.tsx included).
+ * Backtick support was added after discovering the original quote-only regex
+ * silently failed to match 5 of ~30 entries ('/', '/consultants', '/pricing',
+ * '/research', '/privacy', '/terms'), each falling through to a generic
+ * slug-derived fallback instead of its real, more specific copy -- confirmed
+ * live in production before this fix (e.g. /pricing's title was the generic
+ * "Pricing — AIWMC Quantis" instead of stating the actual $17/mo price).
+ */
 function parseRouteMeta(): Record<string, RouteMeta> {
   const src = readFileSync(resolve('src/components/seo/RouteSEO.tsx'), 'utf8');
   const block = src.split('ROUTE_META')[1]?.split('};')[0] ?? '';
   const meta: Record<string, RouteMeta> = {};
 
-  // Match: '/path': { title: '...', description: '...', noIndex: true },
-  // The path char class now includes `/` so multi-segment paths
-  // (`/vs/liveplan`, `/blog/post-slug`) are captured — the original
-  // `[a-z0-9-]*` only matched a single segment and silently dropped every
-  // `/vs/*` entry, causing prerender-seo to fall through to slugTitle().
+  // Match: '/path': { title: '...'|"..."|`...`, description: same, noIndex: true },
+  // The path char class includes `/` so multi-segment paths (`/vs/liveplan`,
+  // `/blog/post-slug`) are captured — the original `[a-z0-9-]*` only matched
+  // a single segment and silently dropped every `/vs/*` entry.
   const entryRe =
-    /'(\/[a-z0-9\-/]*)':\s*\{\s*title:\s*(['"])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
+    /'(\/[a-z0-9\-/]*)':\s*\{\s*title:\s*(['"`])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"`])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
   let m: RegExpExecArray | null;
   while ((m = entryRe.exec(block)) !== null) {
     meta[m[1]] = {
-      title: m[3].replace(/\\'/g, "'").replace(/\\"/g, '"'),
-      description: m[5].replace(/\\'/g, "'").replace(/\\"/g, '"'),
+      title: resolveInterpolations(m[3].replace(/\\'/g, "'").replace(/\\"/g, '"')),
+      description: resolveInterpolations(m[5].replace(/\\'/g, "'").replace(/\\"/g, '"')),
       noIndex: m[6] === 'true',
     };
   }
