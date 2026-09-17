@@ -5,7 +5,6 @@ import { Zap, ArrowRight, Shield, Star, TrendingUp, AlertTriangle, Clock, Dollar
 import { trackCtaClick, trackAnalysisFunnel } from '@/lib/analytics';
 import { QuantisHeroDemo } from './QuantisHeroDemo';
 import { LiveCounter } from './LiveCounter';
-import { supabase } from '@/integrations/supabase/client';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 /* ── Animated counter for instrument panel ── */
@@ -26,19 +25,6 @@ function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { en
 
 export function MobileHero() {
   const navigate = useNavigate();
-  const [analysisCount, setAnalysisCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      try {
-        const { count, error } = await supabase
-          .from('analyses')
-          .select('*', { count: 'exact', head: true });
-        if (!error && count !== null) setAnalysisCount(count);
-      } catch {}
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handlePreMortem = () => {
     trackCtaClick('run_pre_mortem', 'hero_primary');
