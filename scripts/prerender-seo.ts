@@ -40,7 +40,7 @@ const TEMPLATE_PATH = join(DIST, 'index.html');
 // injection silently: every route falls back to the raw base title verbatim,
 // producing a mass duplicate-title regression across all ~62 non-ROUTE_META
 // routes (caught by scripts/verify-unique-meta.ts, 2026-06-30).
-const DEFAULT_TITLE = 'AIWMC Quantis — Deterministic Business Validation';
+const DEFAULT_TITLE = 'AIWMC Quantis — AI Business Idea Validator';
 const DEFAULT_DESC =
   'Stress-test your business idea. AI-powered financial pre-mortem with 97,500 benchmark data points. Free to start.';
 
