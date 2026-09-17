@@ -81,8 +81,8 @@ export default function Methodology() {
   return (
     <PublicPageShell active="methodology" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
-        title="Quantis Methodology — Deterministic Financial Engine"
-        description={`How Quantis calculates projections: deterministic math engine, ${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, multi-model consensus validation, and ${PIPELINE_LAYERS_LABEL} safety architecture.`}
+        title="Methodology — How Quantis Calculates Risk"
+        description={`Transparent methodology: 12 financial variables, Monte Carlo simulations, P10/P50/P90 percentiles, sourced benchmarks. ${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, multi-model consensus validation, and ${PIPELINE_LAYERS_LABEL} safety architecture.`}
         canonical="/methodology"
       />
 
