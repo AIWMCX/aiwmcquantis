@@ -115,7 +115,12 @@ export default function ExampleAnalysis() {
 
         {/* Hero */}
         <div className="mb-8 md:mb-12">
-          <Badge variant="secondary" className="mb-3">{data.industry} · {data.location}</Badge>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <Badge variant="secondary">{data.industry} · {data.location}</Badge>
+            <Badge variant="outline" className="text-muted-foreground border-dashed">
+              Illustrative example — not a real business
+            </Badge>
+          </div>
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
             {data.title}
           </h1>
