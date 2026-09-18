@@ -31,7 +31,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   {
     slug: '5-financial-mistakes-early-founders-make',
     title: '5 Financial Mistakes Early Founders Make (And How to Avoid Them)',
-    description: 'The most common financial blind spots that kill startups before they launch — and how structured analysis prevents them.',
+    description: 'Five financial blind spots that can weaken an early-stage business, with practical checks for costs, cash flow, pricing, and runway.',
     date: '2026-02-11',
     readTime: '6 min read',
     category: 'Finance',
@@ -67,7 +67,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   {
     slug: 'how-to-stress-test-your-startup',
     title: 'How to Stress-Test Your Startup Before Launch (2026 Guide)',
-    description: 'Run financial stress tests on your startup idea before spending money. 3-scenario analysis, risk identification, and survival planning for founders.',
+    description: 'Learn how to stress-test a startup idea with downside, base, and upside scenarios, risk signals, and cash-runway checks.',
     date: '2026-02-25',
     readTime: '8 min read',
     category: 'Validation',
@@ -93,8 +93,8 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   },
   {
     slug: 'coffee-shop-startup-costs-by-city',
-    title: 'Coffee Shop Startup Costs in 2026: Denver vs Austin vs NYC (Real Numbers)',
-    description: 'What it actually costs to open a coffee shop in Denver, Austin, and New York City. Location-adjusted startup costs, monthly expenses, and profit projections.',
+    title: 'Coffee Shop Startup Costs: Denver vs Austin vs NYC',
+    description: 'Compare modeled coffee-shop startup costs, monthly expenses, and profit scenarios across Denver, Austin, and New York City.',
     date: '2026-04-10',
     readTime: '9 min read',
     category: 'Local Analysis',
@@ -103,7 +103,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   {
     slug: 'food-truck-profit-calculator',
     title: 'Food Truck Profit Calculator: Revenue, Costs & ROI by City (2026)',
-    description: 'How much does a food truck make? Real profit projections for Austin, LA, and Miami. Startup costs, permit fees, and monthly revenue breakdowns.',
+    description: 'Explore modeled food-truck revenue, startup costs, permit fees, and profit scenarios for Austin, Los Angeles, and Miami.',
     date: '2026-04-10',
     readTime: '8 min read',
     category: 'Local Analysis',
@@ -112,7 +112,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   {
     slug: 'how-to-validate-restaurant-idea',
     title: 'How to Validate a Restaurant Idea Before Signing a Lease (2026 Guide)',
-    description: 'A data-driven framework for validating restaurant concepts. Location analysis, financial stress-testing, and the 7 metrics that predict restaurant survival.',
+    description: 'A practical framework for testing a restaurant concept through location analysis, financial stress tests, and seven metrics that shape viability.',
     date: '2026-04-10',
     readTime: '10 min read',
     category: 'Validation',
@@ -121,7 +121,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   {
     slug: 'business-validation-for-financial-clients',
     title: 'Business Validation for Financial Clients Explained',
-    description: 'What KYB actually requires: beneficial ownership mapping, risk-tiered monitoring, and the documentation gaps that produce AML fines. A compliance-officer framework for validating business clients.',
+    description: 'A compliance-focused guide to KYB, beneficial ownership, risk-tiered monitoring, documentation, and validation of business clients.',
     date: '2026-07-02',
     readTime: '11 min read',
     category: 'Compliance',
