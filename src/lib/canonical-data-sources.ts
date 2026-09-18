@@ -6,9 +6,10 @@
  * actually been created, so the Methodology page's "Verified Data
  * Sources" section was silently rendering nothing in production.
  *
- * Aggregate footprint: 97,500+ benchmarks (live in DB, BENCHMARK_COUNT) +
- * 690,074 underlying records across financial filings, SME surveys,
- * and SMB benchmark studies.
+ * Public footprint: 690,074 records across dataset-level references plus
+ * 97,500 rule-generated benchmark grid cells. The reference registry does
+ * not provide per-cell lineage; never describe those records as 1:1 inputs
+ * or the grid cells as observed businesses.
  */
 
 import { BENCHMARK_COUNT } from '@/config/canonical-facts';
@@ -30,7 +31,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     dataset_type: 'Financial statements',
     records: 500_000,
     period: '2009 → 2025',
-    usage: 'Line-item P&L, balance sheet and cash-flow distributions for benchmark derivation.',
+    usage: 'Dataset-level reference for financial-statement structure and range calibration; not linked to individual benchmark cells.',
   },
   {
     name: 'World Bank Enterprise Surveys',
@@ -38,7 +39,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     dataset_type: 'SME survey',
     records: 180_000,
     period: '2006 → 2024',
-    usage: 'Cross-country SME cost structures, employment, and sales benchmarks.',
+    usage: 'Dataset-level reference for SME cost, employment, and sales calibration; not linked to individual benchmark cells.',
   },
   {
     name: 'JPMorgan Chase Institute SME Cash Flow',
@@ -46,7 +47,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     dataset_type: 'SME survey',
     records: 10_000,
     period: '2015 → 2023',
-    usage: 'Cash buffer, runway, and revenue volatility distributions for SMBs.',
+    usage: 'Published SME cash-buffer, runway, and volatility findings used as calibration references; raw records are not redistributed.',
   },
   {
     name: 'ProjectionHub SMB Benchmarks',
@@ -54,7 +55,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     dataset_type: 'Industry benchmark',
     records: 50,
     period: '2020 → 2025',
-    usage: 'COGS, payroll, rent and profit-margin ratios across small business industries.',
+    usage: 'Public ratio reference used for reasonableness checks across common small-business categories.',
   },
   {
     name: 'Kaggle Coffee Shop Financials (CC0)',
@@ -62,15 +63,15 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     dataset_type: 'Case study',
     records: 24,
     period: '2022 → 2023',
-    usage: 'Calibration anchors for hospitality / food-service unit economics.',
+    usage: 'Small case-study reference for hospitality and food-service reasonableness checks.',
   },
   {
     name: 'AIWMC Quantis Benchmark Library',
     license: 'Proprietary derived',
     dataset_type: 'Industry benchmark',
     records: BENCHMARK_COUNT,
-    period: 'Continuously refreshed',
-    usage: 'P25/Median/P75 ranges per industry × geography × metric used in every metric badge.',
+    period: 'Grid versioned; no per-cell source date',
+    usage: 'Rule-generated coverage grid across business type, model, city tier, stage, and size. Modeled cells, not observed companies.',
   },
 ];
 
