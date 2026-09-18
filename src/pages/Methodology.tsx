@@ -295,7 +295,7 @@ export default function Methodology() {
         </GlassCard>
       </section>
 
-      {/* Golden Test Vectors */}      {/* Golden Test Vectors */}
+      {/* Golden Test Vectors */}
       <section className="py-10 space-y-6">
         <SectionHeader eyebrow="Regression testing" title="Golden test vectors" />
         <GlassCard glow="cyan" className="p-6 space-y-4 mt-8">
@@ -343,16 +343,16 @@ export default function Methodology() {
           <div className="p-4 rounded-lg" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
             <h4 className="font-semibold text-sm mb-2">Standard-run exclusions</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Operating profit is pre-tax. The standard model does not build a complete tax position,
-              depreciation or amortization schedule, debt and interest schedule, legal or regulatory
-              opinion, audited financial statement, or locally verified demand forecast. These must be
+              Operating profit is pre-tax. The standard model excludes depreciation, amortization, and interest expense;
+              it also does not build a complete tax position, debt schedule, legal or regulatory opinion,
+              audited financial statement, or locally verified demand forecast. These must be
               supplied or reviewed separately before capital is committed.
             </p>
           </div>
         </GlassCard>
       </section>
 
-      {/* System Architecture */}      {/* System Architecture */}
+      {/* System Architecture */}
       <section className="py-10 space-y-6">
         <SectionHeader eyebrow="Architecture" title="System architecture — how it's wired together" />
         <GlassCard glow="brand" className="p-6 space-y-6 mt-8">
