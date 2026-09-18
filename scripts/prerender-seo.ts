@@ -138,7 +138,7 @@ function parseAuthoredDynamicMeta(): Record<string, RouteMeta> {
   ]) {
     const src = readFileSync(resolve(relativePath), 'utf8');
     const entryRe =
-      /'([\\w-]+)'\\s*:\\s*\\{[\\s\\S]*?seo:\\s*\\{\\s*title:\\s*(['"`])((?:\\\\.|(?!\\2)[\\s\\S])*)\\2,\\s*description:\\s*(['"`])((?:\\\\.|(?!\\4)[\\s\\S])*)\\4/g;
+      /'([\w-]+)'\s*:\s*\{[\s\S]*?seo:\s*\{\s*title:\s*(['"`])((?:\\.|(?!\2)[\s\S])*)\2,\s*description:\s*(['"`])((?:\\.|(?!\4)[\s\S])*)\4/g;
     let match: RegExpExecArray | null;
     while ((match = entryRe.exec(src)) !== null) {
       meta[`/examples/${match[1]}`] = {
@@ -150,7 +150,7 @@ function parseAuthoredDynamicMeta(): Record<string, RouteMeta> {
 
   const blogSource = readFileSync(resolve('src/pages/Blog.tsx'), 'utf8');
   const blogEntryRe =
-    /\\{\\s*slug:\\s*'([^']+)',\\s*title:\\s*(['"`])((?:\\\\.|(?!\\2)[\\s\\S])*)\\2,\\s*description:\\s*(['"`])((?:\\\\.|(?!\\4)[\\s\\S])*)\\4/g;
+    /\{\s*slug:\s*'([^']+)',\s*title:\s*(['"`])((?:\\.|(?!\2)[\s\S])*)\2,\s*description:\s*(['"`])((?:\\.|(?!\4)[\s\S])*)\4/g;
   let blogMatch: RegExpExecArray | null;
   while ((blogMatch = blogEntryRe.exec(blogSource)) !== null) {
     const fullTitle = decode(blogMatch[3]);
