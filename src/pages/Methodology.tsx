@@ -170,6 +170,7 @@ export default function Methodology() {
         <GlassCard glow="cyan" className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
+              <caption className="sr-only">Quantis benchmark coverage dimensions and limitations</caption>
               <thead style={{ background: 'rgba(148,163,255,0.08)' }}>
                 <tr>
                   <th className="px-4 py-3 font-semibold">Dimension</th>
