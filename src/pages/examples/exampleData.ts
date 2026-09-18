@@ -70,7 +70,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Denver, CO',
     seo: {
       title: 'Coffee Shop Business Analysis — Denver, CO | AIWMC Quantis',
-      description: 'Full financial analysis of opening a coffee shop in Denver. Revenue projections, startup costs, risk assessment, and action plan. $4,200/mo profit, 12 month payback.',
+      description: 'Illustrative Quantis report. Modeled finances for opening a coffee shop in Denver. Revenue projections, startup costs, risk assessment, and action plan…',
     },
     metrics: {
       monthlyRevenue: '$18,500', monthlyProfit: '$4,200',
@@ -198,7 +198,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Remote (US Market)',
     seo: {
       title: 'SaaS Project Management Tool Analysis | AIWMC Quantis',
-      description: 'Business viability analysis for a B2B SaaS project management tool. $12,400/mo MRR projection, 78% gross margin, 14-month payback period.',
+      description: 'Illustrative Quantis report. Modeled business case for a B2B SaaS project management tool. $12,400/mo MRR projection, 78% gross margin, 14-month payback period.',
     },
     metrics: { monthlyRevenue: '$12,400', monthlyProfit: '$3,800', paybackMonths: '14 months', roi: '86%', startupCost: '$52,000' },
     costBreakdown: [
@@ -230,7 +230,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Miami, FL',
     seo: {
       title: 'Farm-to-Table Restaurant Analysis — Miami, FL | AIWMC Quantis',
-      description: 'Financial viability analysis for a farm-to-table restaurant in Miami Wynwood. $8,900/mo profit projection, $120K startup, 13.5-month payback.',
+      description: 'Illustrative Quantis report. Modeled financial case for a farm-to-table restaurant in Miami Wynwood. $8,900/mo profit projection, $120K startup, 13.5-month…',
     },
     metrics: { monthlyRevenue: '$62,000', monthlyProfit: '$8,900', paybackMonths: '13.5 months', roi: '89%', startupCost: '$120,000' },
     costBreakdown: [
@@ -263,7 +263,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Online (US/EU)',
     seo: {
       title: 'Sustainable Fashion E-commerce Analysis | AIWMC Quantis',
-      description: 'Business analysis for a DTC sustainable fashion brand. $6,200/mo profit, 55% gross margin, strong LTV from repeat buyers.',
+      description: 'Illustrative Quantis report. Modeled business case for a DTC sustainable fashion brand. $6,200/mo profit, 55% gross margin, strong LTV from repeat buyers.',
     },
     metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$6,200', paybackMonths: '9.7 months', roi: '124%', startupCost: '$60,000' },
     costBreakdown: [
@@ -296,7 +296,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'New York, NY',
     seo: {
       title: 'Management Consulting Firm Analysis — NYC | AIWMC Quantis',
-      description: 'Financial analysis for a boutique management consulting firm in New York. $18,500/mo profit, 68% gross margin, low startup costs.',
+      description: 'Illustrative Quantis report. Modeled finances for a boutique management consulting firm in New York. $18,500/mo profit, 68% gross margin, low startup costs.',
     },
     metrics: {
       monthlyRevenue: '$45,000', monthlyProfit: '$18,500',
@@ -337,7 +337,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Los Angeles, CA',
     seo: {
       title: 'Fitness Studio Business Analysis — Los Angeles, CA | AIWMC Quantis',
-      description: 'Financial analysis for opening a boutique fitness studio in Los Angeles. $7,800/mo profit, $95K startup cost, 12.2-month payback period.',
+      description: 'Illustrative Quantis report. Modeled finances for opening a boutique fitness studio in Los Angeles. $7,800/mo profit, $95K startup cost, 12.2-month payback…',
     },
     metrics: { monthlyRevenue: '$38,000', monthlyProfit: '$7,800', paybackMonths: '12.2 months', roi: '98%', startupCost: '$95,000' },
     costBreakdown: [
@@ -370,7 +370,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Austin, TX',
     seo: {
       title: 'Food Truck Business Analysis — Austin, TX | AIWMC Quantis',
-      description: 'Complete financial analysis for a gourmet food truck in Austin. $5,400/mo profit, $42K startup, 7.8-month payback. Revenue, costs, and risks.',
+      description: 'Illustrative Quantis report. Modeled finances for a gourmet food truck in Austin. $5,400/mo profit, $42K startup, 7.8-month payback. Revenue, costs, and risks.',
     },
     metrics: { monthlyRevenue: '$24,000', monthlyProfit: '$5,400', paybackMonths: '7.8 months', roi: '154%', startupCost: '$42,000' },
     costBreakdown: [
@@ -403,7 +403,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Online (Global)',
     seo: {
       title: 'Dropshipping Store Business Analysis | AIWMC Quantis',
-      description: 'Financial analysis for a dropshipping e-commerce store. $3,900/mo profit, $8K startup, 2.1-month payback. Low risk, high scalability.',
+      description: 'Illustrative Quantis report. Modeled finances for a dropshipping e-commerce store. $3,900/mo profit, $8K startup, 2.1-month payback. Low risk, high scalability.',
     },
     metrics: { monthlyRevenue: '$16,000', monthlyProfit: '$3,900', paybackMonths: '2.1 months', roi: '585%', startupCost: '$8,000' },
     costBreakdown: [
@@ -436,7 +436,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'San Francisco, CA',
     seo: {
       title: 'Mobile App Startup Analysis — San Francisco | AIWMC Quantis',
-      description: 'Business analysis for a fintech mobile app startup in San Francisco. $15,200/mo MRR projection, $180K startup cost, 39.1-month payback.',
+      description: 'Illustrative Quantis report. Modeled business case for a fintech mobile app startup in San Francisco. $15,200/mo MRR projection, $180K startup cost…',
     },
     metrics: { monthlyRevenue: '$15,200', monthlyProfit: '$4,600', paybackMonths: '39.1 months', roi: '102%', startupCost: '$180,000' },
     costBreakdown: [
@@ -469,7 +469,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Chicago, IL',
     seo: {
       title: 'Real Estate Agency Analysis — Chicago, IL | AIWMC Quantis',
-      description: 'Financial analysis for a boutique real estate agency in Chicago. $11,200/mo profit, $32K startup, 2.9-month payback period.',
+      description: 'Illustrative Quantis report. Modeled finances for a boutique real estate agency in Chicago. $11,200/mo profit, $32K startup, 2.9-month payback period.',
     },
     metrics: { monthlyRevenue: '$28,000', monthlyProfit: '$11,200', paybackMonths: '2.9 months', roi: '420%', startupCost: '$32,000' },
     costBreakdown: [
@@ -502,7 +502,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Atlanta, GA',
     seo: {
       title: 'Cleaning Service Business Analysis — Atlanta, GA | AIWMC Quantis',
-      description: 'Business analysis for a residential cleaning service in Atlanta. $6,800/mo profit, $15K startup, 2.2-month payback. Recurring revenue model.',
+      description: 'Illustrative Quantis report. Modeled business case for a residential cleaning service in Atlanta. $6,800/mo profit, $15K startup, 2.2-month payback…',
     },
     metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$6,800', paybackMonths: '2.2 months', roi: '544%', startupCost: '$15,000' },
     costBreakdown: [
@@ -535,7 +535,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Boston, MA',
     seo: {
       title: 'Tutoring Service Business Analysis — Boston, MA | AIWMC Quantis',
-      description: 'Financial analysis for an online tutoring service in Boston. $9,500/mo profit, $12K startup, 1.3-month payback. Premium pricing model.',
+      description: 'Illustrative Quantis report. Modeled finances for an online tutoring service in Boston. $9,500/mo profit, $12K startup, 1.3-month payback. Premium pricing…',
     },
     metrics: { monthlyRevenue: '$18,000', monthlyProfit: '$9,500', paybackMonths: '1.3 months', roi: '950%', startupCost: '$12,000' },
     costBreakdown: [
@@ -568,7 +568,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Houston, TX',
     seo: {
       title: 'Barbershop Business Analysis — Houston, TX | AIWMC Quantis',
-      description: 'Business analysis for a modern barbershop in Houston. $8,200/mo profit, $55K startup, 6.7-month payback. Membership + retail model.',
+      description: 'Illustrative Quantis report. Modeled business case for a modern barbershop in Houston. $8,200/mo profit, $55K startup, 6.7-month payback. Membership +…',
     },
     metrics: { monthlyRevenue: '$32,000', monthlyProfit: '$8,200', paybackMonths: '6.7 months', roi: '179%', startupCost: '$55,000' },
     costBreakdown: [
@@ -602,7 +602,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Portland, OR',
     seo: {
       title: 'Coworking Space Business Analysis — Portland, OR | AIWMC Quantis',
-      description: 'Financial analysis for a coworking space in Portland. $9,400/mo profit, $140K startup, 14.9-month payback. Creative niche positioning.',
+      description: 'Illustrative Quantis report. Modeled finances for a coworking space in Portland. $9,400/mo profit, $140K startup, 14.9-month payback. Creative niche…',
     },
     metrics: { monthlyRevenue: '$42,000', monthlyProfit: '$9,400', paybackMonths: '14.9 months', roi: '81%', startupCost: '$140,000' },
     costBreakdown: [
@@ -636,7 +636,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Seattle, WA',
     seo: {
       title: 'Pet Grooming Salon Analysis — Seattle, WA | AIWMC Quantis',
-      description: 'Business analysis for a pet grooming salon in Seattle. $7,100/mo profit, $38K startup, 5.4-month payback. Recurring customer model.',
+      description: 'Illustrative Quantis report. Modeled business case for a pet grooming salon in Seattle. $7,100/mo profit, $38K startup, 5.4-month payback. Recurring…',
     },
     metrics: { monthlyRevenue: '$26,000', monthlyProfit: '$7,100', paybackMonths: '5.4 months', roi: '224%', startupCost: '$38,000' },
     costBreakdown: [
