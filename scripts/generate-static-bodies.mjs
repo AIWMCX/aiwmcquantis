@@ -285,7 +285,7 @@ function renderCoreBody(routePath) {
   }[routePath] ?? "AIWMC Quantis";
 
   const layerList = `
-    <h2>The 8-layer deterministic pipeline</h2>
+    <h2>The 8-Layer deterministic pipeline</h2>
     <ol>
       <li>Layer 1 — InputSanitizer plus NAICS classification of the described business</li>
       <li>Layer 2 — BenchmarkMatcher selects from a 97,500-cell modeled coverage grid; cells are not observed companies</li>
