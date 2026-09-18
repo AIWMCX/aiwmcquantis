@@ -123,6 +123,47 @@ function parseRouteMeta(): Record<string, RouteMeta> {
   return meta;
 }
 
+/**
+ * Load the authored SEO fields for dynamic public routes. These pages already
+ * render their own PageSEO at runtime; parsing the same source here keeps the
+ * pre-hydration HTML identical instead of replacing it with slug-generated copy.
+ */
+function parseAuthoredDynamicMeta(): Record<string, RouteMeta> {
+  const meta: Record<string, RouteMeta> = {};
+  const decode = (value: string) => value.replace(/\\'/g, "'").replace(/\\"/g, '"');
+
+  for (const relativePath of [
+    'src/pages/examples/exampleData.ts',
+    'src/pages/examples/exampleDataExpanded.ts',
+  ]) {
+    const src = readFileSync(resolve(relativePath), 'utf8');
+    const entryRe =
+      /'([\\w-]+)'\\s*:\\s*\\{[\\s\\S]*?seo:\\s*\\{\\s*title:\\s*(['"`])((?:\\\\.|(?!\\2)[\\s\\S])*)\\2,\\s*description:\\s*(['"`])((?:\\\\.|(?!\\4)[\\s\\S])*)\\4/g;
+    let match: RegExpExecArray | null;
+    while ((match = entryRe.exec(src)) !== null) {
+      meta[`/examples/${match[1]}`] = {
+        title: decode(match[3]),
+        description: decode(match[5]),
+      };
+    }
+  }
+
+  const blogSource = readFileSync(resolve('src/pages/Blog.tsx'), 'utf8');
+  const blogEntryRe =
+    /\\{\\s*slug:\\s*'([^']+)',\\s*title:\\s*(['"`])((?:\\\\.|(?!\\2)[\\s\\S])*)\\2,\\s*description:\\s*(['"`])((?:\\\\.|(?!\\4)[\\s\\S])*)\\4/g;
+  let blogMatch: RegExpExecArray | null;
+  while ((blogMatch = blogEntryRe.exec(blogSource)) !== null) {
+    const fullTitle = decode(blogMatch[3]);
+    meta[`/blog/${blogMatch[1]}`] = {
+      // Mirrors BlogArticle.tsx, which shortens long titles before PageSEO.
+      title: fullTitle.length > 60 ? fullTitle.slice(0, 57) + '…' : fullTitle,
+      description: decode(blogMatch[5]),
+    };
+  }
+
+  return meta;
+}
+
 /** Title-case a slug into a readable, unique heading for unregistered routes. */
 function slugTitle(path: string): string {
   const slug = path.split('/').filter(Boolean).pop() ?? '';
@@ -242,11 +283,35 @@ function main(): void {
     process.exit(1);
   }
 
-  const routeMeta = parseRouteMeta();
+  const routeMeta = { ...parseRouteMeta(), ...parseAuthoredDynamicMeta() };
   const urls = readFileSync(resolve('public/prerender-urls.txt'), 'utf8')
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l && l.startsWith('/') && l !== '/');
+
+  // Every shipped public route must have authored metadata. A slug fallback is
+  // useful during local development, but it is not acceptable for production
+  // because it can silently diverge from the metadata users see after hydration.
+  const routesMissingAuthoredMeta = ['/', ...urls].filter((path) => !routeMeta[path]);
+  if (routesMissingAuthoredMeta.length > 0) {
+    console.error(
+      `prerender-seo: missing authored metadata for: ${routesMissingAuthoredMeta.join(', ')}`,
+    );
+    process.exit(1);
+  }
+
+  const invalidDescriptions = Object.entries(routeMeta).filter(
+    ([, value]) => value.description.length > 160,
+  );
+  if (invalidDescriptions.length > 0) {
+    console.error(
+      'prerender-seo: descriptions over 160 characters:\n' +
+        invalidDescriptions
+          .map(([path, value]) => `  ${path} (${value.description.length})`)
+          .join('\n'),
+    );
+    process.exit(1);
+  }
 
   // If scripts/prerender.mjs already ran (Puppeteer full-page capture), each
   // route's dist/<route>/index.html contains the REAL rendered body for that
@@ -276,10 +341,7 @@ function main(): void {
 
   let written = 1; // homepage counted
   for (const path of urls) {
-    const meta: RouteMeta = routeMeta[path] ?? {
-      title: slugTitle(path),
-      description: slugDescription(path),
-    };
+    const meta: RouteMeta = routeMeta[path];
     const outDir = join(DIST, ...path.split('/').filter(Boolean));
     mkdirSync(outDir, { recursive: true });
     const routeInput = readRouteInput(path, outDir);
