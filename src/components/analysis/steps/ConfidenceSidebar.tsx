@@ -76,7 +76,20 @@ export function ConfidenceSidebar({
     const cust = financialInputs.expected_customers || 0;
     const opex = financialInputs.monthly_costs || 0;
     const cac = financialInputs.cac || 0;
-    const revenue = price * cust;
+    // Prefer a directly-supplied monthly revenue figure over deriving one
+    // from price x customers. Deriving is only a reasonable approximation
+    // for a pure one-time-purchase model; for a repeat-purchase business
+    // (coffee shop, subscription, etc.) "customers" rarely means "total
+    // transactions," so price x customers silently understates revenue by
+    // whatever the real purchase frequency is -- then pairing that wrong,
+    // low revenue against the real (correct) monthly_costs produces a
+    // nonsensical negative margin even for a genuinely profitable business.
+    // Confirmed live: the built-in "Try Coffee Shop Sample" set
+    // monthly_revenue=28000 directly, but this panel ignored it entirely
+    // and computed 6.5 x 800 = 5200, then paired that against the real
+    // 22000 monthly_costs to show a -323% gross margin on the very first
+    // thing a new anonymous visitor sees.
+    const revenue = financialInputs.monthly_revenue || (price * cust);
     const profit = revenue - opex - (cac * cust / 12);
     const margin = revenue > 0 ? ((revenue - opex) / revenue) * 100 : 0;
     return { revenue, profit, margin };
