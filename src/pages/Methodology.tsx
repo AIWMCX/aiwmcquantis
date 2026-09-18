@@ -2,7 +2,7 @@ import React from 'react';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { PageSEO } from '@/components/seo/PageSEO';
-import { ShieldCheck, Database, Bot, FileCheck, Info, AlertTriangle, Wrench, Shield, Search, Lock, Layers } from 'lucide-react';
+import { ShieldCheck, Database, Bot, Info, AlertTriangle, Wrench, Shield, Search, Lock, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
 import { GOLDEN_VECTORS } from '@/lib/golden-test-vectors';
@@ -12,7 +12,6 @@ import {
   BENCHMARK_COUNT_DISPLAY,
   BENCHMARK_SECTORS,
   MONTE_CARLO_ITERATIONS_DISPLAY,
-  PIPELINE_LAYERS_LABEL,
   FINANCIAL_VARIABLES,
 } from '@/config/canonical-facts';
 
