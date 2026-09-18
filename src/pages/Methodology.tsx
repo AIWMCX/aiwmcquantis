@@ -26,8 +26,6 @@ const QSL_LEVELS = [
   { level: 'QSL-1', name: 'Speculative / Invalid', glow: 'none' as const, desc: 'The input conflicts with an economic constraint, lacks enough support, or could not be matched safely. Hard warnings should govern the decision.' },
 ];
 
-// Titles mirror];
-
 // Titles mirror /how-it-works ENGINE_LAYERS exactly — same 8 layers, same
 // order, kept as short labels here since this page links out for detail
 // rather than duplicating the full descriptions on two pages.
@@ -49,8 +47,6 @@ const PIPELINE_STAGES = [
   { icon: Search, title: 'External Check', desc: 'RVCE can compare selected outputs with current external evidence when the service and relevant sources are available; otherwise it reports a skipped or unavailable state.' },
 ];
 
-const LIMITATIONS];
-
 const LIMITATIONS = [
   { id: 'DATA-001', title: 'Modeled, Not Observed', desc: 'The 97,500-entry corpus is a rule-generated coverage grid. Its cells are not 97,500 measured companies or independent source observations.', status: 'Disclosed' },
   { id: 'DATA-002', title: 'No Per-Cell Lineage', desc: 'Reference datasets are documented at dataset level, but an individual grid cell does not currently carry its own source, period, or quality grade.', status: 'Open' },
@@ -60,8 +56,6 @@ const LIMITATIONS = [
   { id: 'MODEL-002', title: 'Interactive Lever Approximation', desc: 'The in-report lever preview is a directional approximation, not a complete rerun of the canonical financial engine.', status: 'Disclosed' },
   { id: 'TEST-001', title: 'Regression Coverage', desc: `The golden-vector suite covers ${GOLDEN_VECTORS.length} canonical archetypes and checks engine ranges in CI. Passing these tests guards regressions; it does not prove real-world predictive accuracy.`, status: 'Tested' },
 ];
-
-export default function Methodology()];
 
 export default function Methodology() {
   const licenseColor = (license: string) => {
@@ -75,7 +69,6 @@ export default function Methodology() {
     return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
   };
 
-  return (
   return (
     <PublicPageShell active="methodology" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
