@@ -28,6 +28,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'AIWMC Quantis — AI Business Idea Validator',
     description: `Stress-test your business idea. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points. Free to start.`,
   },
+  '/app': {
+    title: 'Run a Business Decision Pre-Mortem — AIWMC Quantis',
+    description: `Run a free Decision Run: test assumptions, compare downside scenarios, and see what could reverse the decision using ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`,
+  },
   '/how-it-works': {
     title: 'How Quantis Works — 3 Steps to Financial Clarity',
     description: 'See how Quantis turns your idea into a stress-tested financial model: input, benchmarks, risk report.',
@@ -38,19 +42,19 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/consultants': {
     title: 'Quantis for Consultants — Client Pre-Screening',
-    description: `A client pre-screen under your own brand. ${BENCHMARK_COUNT_DISPLAY} benchmark data points and 1,000 Monte Carlo iterations behind every deliverable. For consultants, fractional CFOs, and M&A advisors.`,
+    description: `Stress-test a client recommendation with cited assumptions, downside scenarios, and a decision-ready report for consultants, fractional CFOs, and advisors.`,
   },
   '/examples': {
     title: 'Example Analyses — See Quantis in Action',
-    description: 'Browse real Quantis analyses across industries. See risk flags, scenarios, and unit economics on actual business ideas.',
+    description: 'Explore clearly labeled illustrative Quantis reports with modeled revenue, costs, risks, scenarios, and action plans across industries.',
   },
   '/pricing': {
     title: `Pricing — Free Plan & Plus at $${TIERS.plus.priceMonthly}/mo`,
-    description: `Quantis pricing: ${TIERS.free.limits.analysesPerMonth} free analyses or unlimited Plus at $${TIERS.plus.priceMonthly}/mo with PDF export, Doc Studio, and location comparison.`,
+    description: `Start with ${TIERS.free.limits.analysesPerMonth} free Decision Runs. Plus is $${TIERS.plus.priceMonthly}/month with unlimited analyses, PDF export, scenarios, and decision tools.`,
   },
   '/risk-gallery': {
     title: 'Risk Gallery — How Real Businesses Fail',
-    description: 'Curated gallery of business failure patterns Quantis detects: weak unit economics, runway gaps, churn spirals.',
+    description: 'Explore common business failure patterns Quantis tests for, including weak unit economics, runway gaps, and churn pressure.',
   },
   '/methodology': {
     title: 'Methodology — How Quantis Calculates Risk',
@@ -62,15 +66,15 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/blog': {
     title: 'Blog — Founder Lessons & Validation Tactics',
-    description: 'Brutally honest essays on financial validation, fundraising, and the math behind why most startups fail.',
+    description: 'Practical guides to financial validation, startup costs, unit economics, scenario analysis, and business decision-making.',
   },
   '/leaderboard': {
     title: 'Leaderboard — Top Validated Ideas This Week',
-    description: 'Live leaderboard of the most-validated business ideas on Quantis. Updated every 5 minutes.',
+    description: 'Explore ranked business ideas and compare their validation activity, financial signals, and community engagement.',
   },
   '/cases': {
     title: 'Case Browser — 440+ Reference Analyses',
-    description: 'Browse 440+ canonical financial analysis cases across P&L, DCF, DSCR, Monte Carlo and more.',
+    description: 'Browse 440+ reference cases spanning P&L, DCF, DSCR, Monte Carlo, unit economics, runway, and scenario analysis.',
   },
   '/status': {
     title: 'Status — Quantis System Health',
@@ -82,7 +86,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/security': {
     title: 'Security — How Quantis Protects Your Data',
-    description: 'Quantis security posture: RLS, encryption at rest, GDPR-compliant deletion, SOC 2-aligned controls.',
+    description: 'Review how Quantis protects account and analysis data with access controls, encryption, deletion workflows, and security monitoring.',
   },
   '/privacy': {
     title: 'Privacy Policy',
@@ -116,27 +120,27 @@ const ROUTE_META: Record<string, RouteMeta> = {
   // title so the crawler and the F8-hardened SEO gate see the same intent.
   '/vs/liveplan': {
     title: 'Quantis vs LivePlan — Which financial validator wins?',
-    description: 'Side-by-side: Quantis (97,500 benchmarks + Monte Carlo) vs LivePlan for stress-testing a business idea.',
+    description: 'Compare Quantis and LivePlan for assumption testing, financial scenarios, business planning, and decision-ready outputs.',
   },
   '/vs/upmetrics': {
-    title: 'Quantis vs Upmetrics — 90-second financial pre-mortem',
-    description: 'Side-by-side: Quantis vs Upmetrics for founders who need a defensible unit-economics model before spending capital.',
+    title: 'Quantis vs Upmetrics — Financial Pre-Mortem Comparison',
+    description: 'Compare Quantis and Upmetrics for unit economics, scenario testing, business planning, and pre-investment decision support.',
   },
   '/vs/bizplanr': {
     title: 'Quantis vs Bizplanr — Deterministic engine vs AI plan writer',
-    description: 'Side-by-side: Quantis (deterministic engine + Monte Carlo + RVCE) vs Bizplanr for pre-launch financial validation.',
+    description: 'Compare Quantis and Bizplanr for deterministic calculations, scenario testing, AI-assisted planning, and pre-launch validation.',
   },
   '/vs/foundra': {
     title: 'Quantis vs Foundra — Strategy cards vs a financial verdict',
-    description: "Side-by-side: Quantis (deterministic engine + Monte Carlo + cited benchmarks) vs Foundra's conversational strategy-card system.",
+    description: "Compare Quantis and Foundra across financial modeling, cited assumptions, scenario testing, and conversational strategy guidance.",
   },
   '/vs/aicofounder': {
     title: 'Quantis vs AI Co-Founder — Companion vs validation verdict',
-    description: "Side-by-side: Quantis's cited financial verdict vs AI Co-Founder's conversational planning and research guidance.",
+    description: "Compare Quantis and AI Co-Founder for cited financial analysis, scenario testing, conversational planning, and research guidance.",
   },
   '/vs/chatgpt': {
     title: "Quantis vs ChatGPT — Why a general LLM can't cite its own numbers",
-    description: "Side-by-side: Quantis's deterministic, source-cited engine vs asking ChatGPT to validate a business idea directly.",
+    description: "Compare Quantis and ChatGPT for calculation traceability, cited assumptions, financial scenarios, and business decision support.",
   },
   // Auth / transactional — noIndex
   '/auth': { title: 'Sign In', description: 'Sign in or create your AIWMC Quantis account.', noIndex: true },

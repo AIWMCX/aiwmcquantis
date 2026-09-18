@@ -51,6 +51,7 @@ const DESC_RE = /<meta\s+name=["']description["']\s+content=(["'])((?:(?!\1)[\s\
 const byTitle = new Map<string, string[]>();
 const byDesc = new Map<string, string[]>();
 const missing: string[] = [];
+const overlongDescriptions: Array<{ route: string; length: number }> = [];
 
 for (const route of routes) {
   const html = readHtml(route);
@@ -63,6 +64,16 @@ for (const route of routes) {
   if (!title || !desc) {
     missing.push(`${route} (title="${title}" desc="${desc.slice(0, 40)}")`);
     continue;
+  }
+  // Count the human-readable value rather than encoded HTML entities.
+  const readableDesc = desc
+    .replace(/&quot;/g, '"')
+    .replace(/&#(?:39|x27);/gi, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+  if (readableDesc.length > 160) {
+    overlongDescriptions.push({ route, length: readableDesc.length });
   }
   if (!byTitle.has(title)) byTitle.set(title, []);
   if (!byDesc.has(desc)) byDesc.set(desc, []);
@@ -96,10 +107,17 @@ if (missing.length) {
   console.error('\n❌ Routes missing prerendered HTML or head tags:');
   for (const r of missing) console.error(`   - ${r}`);
 }
+if (overlongDescriptions.length) {
+  failed = true;
+  console.error('\n❌ Meta descriptions over 160 characters:');
+  for (const item of overlongDescriptions) {
+    console.error(`   - ${item.route} (${item.length})`);
+  }
+}
 
 if (failed) {
   console.error(
-    `\n[verify-unique-meta] FAIL — ${dupTitles.length} dup titles, ${dupDescs.length} dup descs, ${missing.length} missing.`,
+    `\n[verify-unique-meta] FAIL — ${dupTitles.length} dup titles, ${dupDescs.length} dup descs, ${missing.length} missing, ${overlongDescriptions.length} overlong descriptions.`,
   );
   process.exit(1);
 }

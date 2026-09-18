@@ -21,10 +21,9 @@
  *
  * SOURCE OF TRUTH
  * ---------------
- * Titles/descriptions are parsed straight out of `src/components/seo/RouteSEO.tsx`
- * (the same ROUTE_META the runtime uses) so the two can never drift. Routes in
- * `public/prerender-urls.txt` that aren't in ROUTE_META get a unique
- * slug-derived title (still far better for SEO than the duplicate default).
+ * Static metadata comes from `RouteSEO.tsx`; dynamic article and example
+ * metadata comes from their authored data registries. The build fails if any
+ * public route lacks an authored entry, so crawler and runtime copy cannot drift.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
@@ -123,30 +122,45 @@ function parseRouteMeta(): Record<string, RouteMeta> {
   return meta;
 }
 
-/** Title-case a slug into a readable, unique heading for unregistered routes. */
-function slugTitle(path: string): string {
-  const slug = path.split('/').filter(Boolean).pop() ?? '';
-  const words = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  return `${words} — AIWMC Quantis`;
-}
+/**
+ * Load the authored SEO fields for dynamic public routes. These pages already
+ * render their own PageSEO at runtime; parsing the same source here keeps the
+ * pre-hydration HTML identical instead of replacing it with slug-generated copy.
+ */
+function parseAuthoredDynamicMeta(): Record<string, RouteMeta> {
+  const meta: Record<string, RouteMeta> = {};
+  const decode = (value: string) => value.replace(/\\'/g, "'").replace(/\\"/g, '"');
 
-/** Per-route fallback description so unregistered routes don't share the homepage meta. */
-function slugDescription(path: string): string {
-  const segments = path.split('/').filter(Boolean);
-  const slug = segments[segments.length - 1] ?? '';
-  const human = slug.replace(/-/g, ' ');
-  const section = segments[0] ?? '';
-  if (section === 'blog') {
-    return `${human.charAt(0).toUpperCase() + human.slice(1)} — a Quantis guide for founders. Data-informed benchmarks, brutal honesty, zero filler. Read free at AIWMC Quantis.`;
+  for (const relativePath of [
+    'src/pages/examples/exampleData.ts',
+    'src/pages/examples/exampleDataExpanded.ts',
+  ]) {
+    const src = readFileSync(resolve(relativePath), 'utf8');
+    const entryRe =
+      /'([\w-]+)'\s*:\s*\{[\s\S]*?seo:\s*\{\s*title:\s*(['"`])((?:\\.|(?!\2)[\s\S])*)\2,\s*description:\s*(['"`])((?:\\.|(?!\4)[\s\S])*)\4/g;
+    let match: RegExpExecArray | null;
+    while ((match = entryRe.exec(src)) !== null) {
+      meta[`/examples/${match[1]}`] = {
+        title: decode(match[3]),
+        description: decode(match[5]),
+      };
+    }
   }
-  if (section === 'examples') {
-    // Kept short even for the longest real slug (mobile-app-startup-san-
-    // francisco, 33 chars) -- technical SEO audit 2026-07-29 found the prior
-    // template ran 166-174 chars once combined with multi-word slugs,
-    // past Google's practical snippet-truncation length.
-    return `Worked example: ${human}. Revenue, costs, and verdict from 97,500 benchmark data points. Free to inspect.`;
+
+  const blogSource = readFileSync(resolve('src/pages/Blog.tsx'), 'utf8');
+  const blogEntryRe =
+    /\{\s*slug:\s*'([^']+)',\s*title:\s*(['"`])((?:\\.|(?!\2)[\s\S])*)\2,\s*description:\s*(['"`])((?:\\.|(?!\4)[\s\S])*)\4/g;
+  let blogMatch: RegExpExecArray | null;
+  while ((blogMatch = blogEntryRe.exec(blogSource)) !== null) {
+    const fullTitle = decode(blogMatch[3]);
+    meta[`/blog/${blogMatch[1]}`] = {
+      // Mirrors BlogArticle.tsx, which shortens long titles before PageSEO.
+      title: fullTitle.length > 60 ? fullTitle.slice(0, 57) + '…' : fullTitle,
+      description: decode(blogMatch[5]),
+    };
   }
-  return `${human.charAt(0).toUpperCase() + human.slice(1)} on AIWMC Quantis — AI-powered financial pre-mortem for founders, informed by 97,500 benchmark data points.`;
+
+  return meta;
 }
 
 function htmlEscape(s: string): string {
@@ -242,11 +256,34 @@ function main(): void {
     process.exit(1);
   }
 
-  const routeMeta = parseRouteMeta();
+  const routeMeta = { ...parseRouteMeta(), ...parseAuthoredDynamicMeta() };
   const urls = readFileSync(resolve('public/prerender-urls.txt'), 'utf8')
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l && l.startsWith('/') && l !== '/');
+
+  // Every shipped public route must have authored metadata. This prevents the
+  // pre-hydration HTML from diverging from what users see after React loads.
+  const routesMissingAuthoredMeta = ['/', ...urls].filter((path) => !routeMeta[path]);
+  if (routesMissingAuthoredMeta.length > 0) {
+    console.error(
+      `prerender-seo: missing authored metadata for: ${routesMissingAuthoredMeta.join(', ')}`,
+    );
+    process.exit(1);
+  }
+
+  const invalidDescriptions = Object.entries(routeMeta).filter(
+    ([, value]) => value.description.length > 160,
+  );
+  if (invalidDescriptions.length > 0) {
+    console.error(
+      'prerender-seo: descriptions over 160 characters:\n' +
+        invalidDescriptions
+          .map(([path, value]) => `  ${path} (${value.description.length})`)
+          .join('\n'),
+    );
+    process.exit(1);
+  }
 
   // If scripts/prerender.mjs already ran (Puppeteer full-page capture), each
   // route's dist/<route>/index.html contains the REAL rendered body for that
@@ -276,10 +313,7 @@ function main(): void {
 
   let written = 1; // homepage counted
   for (const path of urls) {
-    const meta: RouteMeta = routeMeta[path] ?? {
-      title: slugTitle(path),
-      description: slugDescription(path),
-    };
+    const meta: RouteMeta = routeMeta[path];
     const outDir = join(DIST, ...path.split('/').filter(Boolean));
     mkdirSync(outDir, { recursive: true });
     const routeInput = readRouteInput(path, outDir);

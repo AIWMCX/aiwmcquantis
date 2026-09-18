@@ -73,7 +73,7 @@ export const PUBLIC_ROUTES = [
   ].map((slug) => ({ path: `/examples/${slug}`, title: "AIWMC Quantis" })),
 
   // ---- 12 blog posts --------------------------------------------------------
-  { path: "/blog/how-to-stress-test-your-startup",        title: "Stress Test" },
+  { path: "/blog/how-to-stress-test-your-startup",        title: "Stress-Test" },
   { path: "/blog/startup-validation-checklist",            title: "Validation Checklist" },
   { path: "/blog/ai-vs-spreadsheets-startup-planning",     title: "Spreadsheets" },
   { path: "/blog/validate-startup-idea-using-ai",          title: "Validate" },
