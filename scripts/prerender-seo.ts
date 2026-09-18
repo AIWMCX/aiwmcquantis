@@ -21,10 +21,9 @@
  *
  * SOURCE OF TRUTH
  * ---------------
- * Titles/descriptions are parsed straight out of `src/components/seo/RouteSEO.tsx`
- * (the same ROUTE_META the runtime uses) so the two can never drift. Routes in
- * `public/prerender-urls.txt` that aren't in ROUTE_META get a unique
- * slug-derived title (still far better for SEO than the duplicate default).
+ * Static metadata comes from `RouteSEO.tsx`; dynamic article and example
+ * metadata comes from their authored data registries. The build fails if any
+ * public route lacks an authored entry, so crawler and runtime copy cannot drift.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
@@ -164,32 +163,6 @@ function parseAuthoredDynamicMeta(): Record<string, RouteMeta> {
   return meta;
 }
 
-/** Title-case a slug into a readable, unique heading for unregistered routes. */
-function slugTitle(path: string): string {
-  const slug = path.split('/').filter(Boolean).pop() ?? '';
-  const words = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  return `${words} — AIWMC Quantis`;
-}
-
-/** Per-route fallback description so unregistered routes don't share the homepage meta. */
-function slugDescription(path: string): string {
-  const segments = path.split('/').filter(Boolean);
-  const slug = segments[segments.length - 1] ?? '';
-  const human = slug.replace(/-/g, ' ');
-  const section = segments[0] ?? '';
-  if (section === 'blog') {
-    return `${human.charAt(0).toUpperCase() + human.slice(1)} — a Quantis guide for founders. Data-informed benchmarks, brutal honesty, zero filler. Read free at AIWMC Quantis.`;
-  }
-  if (section === 'examples') {
-    // Kept short even for the longest real slug (mobile-app-startup-san-
-    // francisco, 33 chars) -- technical SEO audit 2026-07-29 found the prior
-    // template ran 166-174 chars once combined with multi-word slugs,
-    // past Google's practical snippet-truncation length.
-    return `Worked example: ${human}. Revenue, costs, and verdict from 97,500 benchmark data points. Free to inspect.`;
-  }
-  return `${human.charAt(0).toUpperCase() + human.slice(1)} on AIWMC Quantis — AI-powered financial pre-mortem for founders, informed by 97,500 benchmark data points.`;
-}
-
 function htmlEscape(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -289,9 +262,8 @@ function main(): void {
     .map((l) => l.trim())
     .filter((l) => l && l.startsWith('/') && l !== '/');
 
-  // Every shipped public route must have authored metadata. A slug fallback is
-  // useful during local development, but it is not acceptable for production
-  // because it can silently diverge from the metadata users see after hydration.
+  // Every shipped public route must have authored metadata. This prevents the
+  // pre-hydration HTML from diverging from what users see after React loads.
   const routesMissingAuthoredMeta = ['/', ...urls].filter((path) => !routeMeta[path]);
   if (routesMissingAuthoredMeta.length > 0) {
     console.error(
