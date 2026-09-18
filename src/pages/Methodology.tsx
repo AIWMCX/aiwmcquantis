@@ -174,6 +174,28 @@ export default function Methodology() {
           </ul>
         </GlassCard>
 
+        <GlassCard glow="none" className="p-6 space-y-3" style={{ borderColor: 'rgba(245,158,11,0.25)' }}>
+          <h4 className="font-semibold text-sm flex items-center gap-2" style={{ color: 'hsl(var(--foreground))' }}>
+            <AlertTriangle className="w-4 h-4 text-amber-500" /> Coverage and freshness, plainly
+          </h4>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            The upstream date ranges shown per source below are real and current. This provenance
+            registry — the record of which sources exist, their license, and their coverage — was
+            itself last compiled July 21, 2026; it is not a live-refreshing feed today, so treat the
+            per-source ranges as the honest last-known state rather than a real-time indicator.
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Coverage is not even across sources. <strong>ProjectionHub</strong> (50 records) and{' '}
+            <strong>Kaggle Coffee Shop Financials</strong> (24 records) are genuinely thin — useful as
+            calibration anchors for a narrow slice of small-business archetypes, not broad statistical
+            samples. <strong>JPMorgan Chase Institute</strong>'s cash-flow data ends in 2023 and{' '}
+            <strong>World Bank Enterprise Surveys</strong> data ends in 2024 — both still the most
+            relevant public data of their kind available, but neither reflects anything that happened
+            after those dates. The <strong>SEC XBRL</strong> dataset (500,000 records, 2009–2025) is
+            the deepest and most current source in the corpus.
+          </p>
+        </GlassCard>
+
         {sourcesLoading ? (
           <div className="space-y-3 mt-4">
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
@@ -347,6 +369,12 @@ export default function Methodology() {
                 what: 'Industry-specific financial ratio benchmarks (COGS %, payroll %, rent %, profit margin) for ~50 common small business types, maintained by ProjectionHub.',
                 how: 'This is the "sanity check" layer. After the deterministic engine computes your projected expenses, we compare each ratio against the ProjectionHub median. If your food truck\'s payroll is 45% of revenue but the industry median is 28%, the Reconciliation Engine flags it as a QSL-2 "Plausible Extrapolation" and surfaces a correction suggestion.',
                 license: 'Public reference. Ratios are publicly cited; no raw data redistribution.',
+              },
+              {
+                title: 'Kaggle Coffee Shop Financials (CC0)',
+                what: 'A small, public dataset of 24 real coffee-shop financial records (2022–2023), used only as a calibration anchor for hospitality and food-service unit economics.',
+                how: 'This is genuinely thin coverage — 24 records is a spot-check, not a statistical sample. It refines unit-economics ratios for coffee-shop-style businesses specifically; it does not drive benchmarks for any other sector, and the confidence badge reflects that narrow scope rather than treating it as broad evidence.',
+                license: 'CC0 (public domain). No restrictions on commercial use.',
               },
               {
                 title: 'AIWMC Quantis Benchmark Library',
