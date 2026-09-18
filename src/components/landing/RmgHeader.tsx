@@ -175,7 +175,7 @@ export function RmgHeader() {
                   Sign In
                 </Link>
                 <Link
-                  to="/auth?mode=signup"
+                  to="/app"
                   className="inline-flex items-center gap-1.5 font-semibold transition-opacity hover:opacity-90"
                   style={{
                     fontFamily: 'var(--q-font-mono)',
