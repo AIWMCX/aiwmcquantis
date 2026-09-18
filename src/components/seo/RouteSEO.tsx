@@ -58,7 +58,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/methodology': {
     title: 'Methodology — How Quantis Calculates Risk',
-    description: 'Transparent methodology: 12 financial variables, Monte Carlo simulations, P10/P50/P90 percentiles, sourced benchmarks.',
+    description: 'How Quantis separates deterministic formulas, modeled benchmark cells, reference datasets, scenarios, confidence levels, and known limitations.',
   },
   '/research': {
     title: 'Research — Data Behind Quantis',
