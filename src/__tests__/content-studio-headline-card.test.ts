@@ -89,3 +89,39 @@ describe("Deterministic headline card (real SVG text, never a diffusion model, 2
     expect(returnBlock).toContain("card_image_url: cardResult?.url ?? null");
   });
 });
+
+describe("Brand spec compliance (2026-09-19 Commercial Social Asset System)", () => {
+  it("uses the exact spec hex values for Accent 1 (electric blue) and Accent 2 (orange-red)", () => {
+    expect(cardSource).toContain('BRAND_ACCENT = "#2B7FFF"');
+    expect(cardSource).toContain('BRAND_WARN = "#FF4B2B"');
+    // The prior approximations must not linger anywhere in this file.
+    expect(cardSource).not.toContain("#3b82f6");
+    expect(cardSource).not.toContain("#f59e0b");
+  });
+
+  it("renders a top-left masthead (AIWMC QUANTIS / DECISION NOTE) per asset structure item 1", () => {
+    expect(cardSource).toContain("mastheadSvg");
+    expect(cardSource).toContain(">AIWMC QUANTIS<");
+    expect(cardSource).toContain(">DECISION NOTE<");
+  });
+
+  it("renders the AIWMC parent mark in the bottom-left footer rail, not the old bottom-right wordmark", () => {
+    expect(cardSource).toContain("footerSvg");
+    expect(cardSource).toContain(">AIWMC<");
+    // The old placement anchored the mark to the right edge -- confirm that
+    // pattern is gone from the footer, not just present somewhere else.
+    const footerIdx = cardSource.indexOf("const footerSvg");
+    const footerBody = cardSource.slice(footerIdx, cardSource.indexOf("const svg = `"));
+    expect(footerBody).not.toMatch(/text-anchor="end"/);
+  });
+
+  it("keeps the chart disclaimer clear of the footer rail (both left-anchored at MARGIN_X)", () => {
+    // Regression guard: moving the footer mark to the left (to match the
+    // spec) put it in the same horizontal lane as the chart disclaimer,
+    // which was previously safe only because the old footer was right-
+    // anchored. Both must resolve to different fixed Y offsets from
+    // CARD_HEIGHT so they can never visually collide.
+    expect(cardSource).toContain("CARD_HEIGHT - 186");
+    expect(cardSource).toContain("CARD_HEIGHT - 116");
+  });
+});
