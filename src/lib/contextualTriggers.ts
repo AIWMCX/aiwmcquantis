@@ -15,6 +15,7 @@
  */
 
 import type { ActivationEventType } from './activationTracking';
+import { MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
 
 export interface UpgradeTrigger {
   id: string;
@@ -71,7 +72,7 @@ export const TRIGGERS: UpgradeTrigger[] = [
     priority: 7,
     delayMs: 2500,
     headline: 'Stress-testing assumptions? Plus is built for that.',
-    body: 'Inline assumption editor + Monte Carlo gives you 10,000 scenarios per analysis — not just 3.',
+    body: `Inline assumption editor + Monte Carlo gives you ${MONTE_CARLO_ITERATIONS_DISPLAY} scenarios per analysis — not just 3.`,
     cta: 'Unlock Monte Carlo',
     condition: (e, isPlus) => !isPlus && c(e, 'scenario_edited') >= 2,
   },
