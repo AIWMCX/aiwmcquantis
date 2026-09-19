@@ -37,7 +37,7 @@ const TOOLS = [
     badge: 'INCLUDED',
   },
   {
-    title: 'Scenario Lab',
+    title: 'Compare Outcomes',
     question: 'Which assumption changes the decision?',
     description: 'Recalculate the same model under controlled changes and find the point where profit reaches zero.',
     icon: GitBranch,
@@ -46,7 +46,7 @@ const TOOLS = [
     badge: '1 SET / RUN',
   },
   {
-    title: 'Quote Builder',
+    title: 'Client Proposal',
     question: 'What should this job cost?',
     description: 'Build a traceable service quote from scope, labor, materials, overhead, risk, and margin.',
     icon: Zap,
@@ -55,7 +55,7 @@ const TOOLS = [
     badge: 'BETA',
   },
   {
-    title: 'Document Studio',
+    title: 'Decision Report',
     question: 'How do I turn the model into a usable document?',
     description: 'Create invoices, summaries, agreements, and decision documents without retyping the analysis.',
     icon: FileText,

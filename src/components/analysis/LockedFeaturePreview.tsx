@@ -10,7 +10,7 @@ const LOCKED_FEATURES = [
   // "12-page" dropped -- unverified specific figure; see LockedAnalysisPaywall.tsx.
   { icon: FileText, label: 'Export PDF Report', description: 'Investor-grade report' },
   { icon: Layers, label: 'Unlimited Scenarios', description: 'Test pessimistic, optimistic & custom' },
-  { icon: BarChart3, label: 'Document Studio', description: 'Business plans, pitch decks, NDAs' },
+  { icon: BarChart3, label: 'Decision Report', description: 'Business plans, pitch decks, NDAs' },
 ];
 
 export function LockedFeaturePreview({ onUpgrade }: LockedFeaturePreviewProps) {

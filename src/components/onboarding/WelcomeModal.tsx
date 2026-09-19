@@ -36,7 +36,7 @@ export const WelcomeModal = React.memo(function WelcomeModal({
     },
     {
       icon: GitBranch,
-      title: 'Scenario Lab',
+      title: 'Compare Outcomes',
       description: 'One saved scenario set with every complimentary Decision Run',
     },
   ];

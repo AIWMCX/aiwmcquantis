@@ -125,7 +125,7 @@ export function ResultsAccordionSections({
                 </div>
                 <Link to={`/docs?analysis=${analysisId}`}>
                   <Button size="sm" className="gap-1.5 text-xs q-btn-ai text-[var(--q-text-inverse)]">
-                    Open Docs Studio
+                    Open Decision Report
                   </Button>
                 </Link>
               </div>

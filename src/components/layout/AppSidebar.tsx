@@ -60,14 +60,14 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: 'Decision Analysis', url: '/app', icon: LayoutDashboard, badge: '5 FREE' },
       { title: 'Failure Pre-Mortem', url: '/app/pre-mortem', icon: Zap, badge: 'INCLUDED' },
-      { title: 'Quote Builder', url: '/quote', icon: Receipt, badge: 'BETA', flag: 'service_job' },
+      { title: 'Client Proposal', url: '/quote', icon: Receipt, badge: 'BETA', flag: 'service_job' },
       { title: 'Decision History', url: '/app?tab=history', icon: Clock },
     ],
   },
   {
     label: 'DOCUMENTS',
     items: [
-      { title: 'Document Studio', url: '/docs', icon: FileText },
+      { title: 'Decision Report', url: '/docs', icon: FileText },
       { title: 'Document Templates', url: '/docs?view=templates', icon: FolderOpen },
     ],
   },
@@ -81,7 +81,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'INTELLIGENCE',
     items: [
       { title: 'Benchmarks', url: '/admin/benchmarks', icon: BarChart3, adminOnly: true },
-      { title: 'Scenario Lab', url: '/app/scenarios', icon: GitBranch, badge: 'INCLUDED' },
+      { title: 'Compare Outcomes', url: '/app/scenarios', icon: GitBranch, badge: 'INCLUDED' },
       { title: 'My Stats', url: '/app/stats', icon: Trophy },
       { title: 'Progress', url: '/leaderboard', icon: TrendingUp },
     ],
