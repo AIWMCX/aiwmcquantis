@@ -61,6 +61,40 @@ function loadExampleData() {
 
 const EXAMPLES = loadExampleData();
 
+/** Read the small set of commercial facts this static renderer needs from the
+ * canonical tier config. The renderer runs as plain Node, so importing the TS
+ * module directly is not available in the production build container. Fail
+ * loudly if the authored config shape changes instead of publishing stale copy. */
+function loadTierFacts() {
+  const source = readFileSync(path.join(ROOT, "src/config/tiers.ts"), "utf8");
+  const section = (tier, nextTier) => {
+    const start = source.indexOf(`  ${tier}: {`);
+    const end = nextTier ? source.indexOf(`  ${nextTier}: {`, start) : source.indexOf("\n} as const;", start);
+    if (start < 0 || end < 0) throw new Error(`generate-static-bodies: cannot parse ${tier} tier`);
+    return source.slice(start, end);
+  };
+  const number = (text, key) => {
+    const match = text.match(new RegExp(`${key}:\\\\s*(\\\\d+)`));
+    if (!match) throw new Error(`generate-static-bodies: missing ${key}`);
+    return Number(match[1]);
+  };
+
+  const free = section("free", "plus");
+  const plus = section("plus", "pro");
+  const pro = section("pro", null);
+  return {
+    freeRuns: number(free, "analysesPerMonth"),
+    plusMonthly: number(plus, "priceMonthly"),
+    plusAnnual: number(plus, "priceAnnual"),
+    plusScenarioSets: number(plus, "scenarioSetsPerAnalysis"),
+    proMonthly: number(pro, "priceMonthly"),
+    proAnnual: number(pro, "priceAnnual"),
+    proSeats: number(pro, "teamSeats"),
+  };
+}
+
+const TIER_FACTS = loadTierFacts();
+
 // Blog post metadata — keyed by slug, used to render informative blog bodies.
 // This is authored data (not fetched from a CMS) so it lives here alongside
 // the route registry.
@@ -224,7 +258,7 @@ function renderExampleBody(slug) {
         <tr><td>Modeled payback period</td><td><strong>${escapeHtml(ex.paybackMonths)}</strong></td></tr>
         <tr><td>Modeled startup cost</td><td><strong>${escapeHtml(ex.startupCost)}</strong></td></tr>
       </table>
-      <p class="q-note">All figures are modeled by the Quantis deterministic engine using 97,500 real industry benchmarks across 46 sectors. Not a forecast — a stress-test on a set of stated assumptions. See <a href="/methodology">Methodology</a> for the full derivation.</p>
+      <p class="q-note">All figures are illustrative outputs from the Quantis deterministic engine using a 97,500-cell rule-generated benchmark grid. The cells are modeled combinations, not observed businesses. This is a stress test of stated assumptions, not a forecast. See <a href="/methodology">Methodology</a> for the construction and limitations.</p>
     `
     : `<p>Modeled example page. Detailed figures render after JavaScript loads.</p>`;
 
@@ -234,8 +268,8 @@ function renderExampleBody(slug) {
       <p class="q-lede">${escapeHtml(description)}</p>
       ${metrics}
       <h2>What Quantis does with this idea</h2>
-      <p>The 8-layer analysis pipeline runs deterministic financial modeling first, then applies AI narration on top of numbers that were computed — never invented. Layer 8 (Reality Validation and Calibration Engine, RVCE) cross-checks the modeled projections against live market data before the report is returned.</p>
-      <p>Free plan users get the full modeled scenario and the top three risks. Plus at $17/mo adds the 36-month P&amp;L, Monte Carlo simulation, and the Document Studio. Pro at $49/mo adds the 5-year projection and white-label PDF export.</p>
+      <p>The analysis pipeline separates repeatable financial formulas, modeled benchmark ranges, scenario simulation, and AI narration. External evidence checks run when suitable evidence is available; they do not make the result a forecast.</p>
+      <p>Free users receive ${TIER_FACTS.freeRuns} complete Decision Runs each month. Plus at ${TIER_FACTS.plusMonthly}/mo adds unlimited runs, additional saved scenarios, Document Studio, and custom-branded exports that retain Quantis attribution. Pro at ${TIER_FACTS.proMonthly}/mo adds a 5-year model, ${TIER_FACTS.proSeats} seats, API access, and fully white-label exports.</p>
       <p><a href="/app">Run your own analysis</a> · <a href="/pricing">See pricing</a> · <a href="/examples">Browse other examples</a></p>
     </article>
   `;
@@ -263,7 +297,7 @@ function renderCoreBody(routePath) {
     "/use-cases": "Who uses AIWMC Quantis — founders, consultants, builders",
     "/pricing": "AIWMC Quantis pricing — Free, Plus $17/mo, Pro $49/mo",
     "/methodology": "The Quantis methodology — 8-layer deterministic pipeline",
-    "/examples": "Worked examples — real modeled analyses across 51 business types",
+    "/examples": "Worked examples — illustrative modeled analyses across 51 business types",
     "/blog": "AIWMC Quantis — writing on validation, unit economics, financial modeling",
     "/risk-gallery": "Risk gallery — the failure modes Quantis models for",
     "/leaderboard": "Public leaderboard of stress-tested ideas",
@@ -285,41 +319,41 @@ function renderCoreBody(routePath) {
   }[routePath] ?? "AIWMC Quantis";
 
   const layerList = `
-    <h2>The 8-layer deterministic pipeline</h2>
+    <h2>The 8-layer analysis pipeline</h2>
     <ol>
-      <li>Layer 1 — InputSanitizer plus NAICS classification of the described business</li>
-      <li>Layer 2 — BenchmarkMatcher across 97,500 real industry data points, 46 sectors</li>
-      <li>Layer 3 — CityMultiplierEngine adjusts for 51+ cities' cost bases</li>
-      <li>Layer 4 — DeterministicFinancialEngine calculates 12 financial variables through 12 quality gates</li>
-      <li>Layer 5 — MonteCarloEngine runs 1,000 iterations with P10/P50/P90 percentile projections</li>
-      <li>Layer 6 — Edge Function model layer (classify, narrative, action plan, adversarial review)</li>
-      <li>Layer 7 — SourceAttributor tags every number with the benchmark row it derived from</li>
-      <li>Layer 8 — Reality Validation and Calibration Engine (RVCE): cross-checks projections against live market data</li>
+      <li>Layer 1 — Input sanitization and business classification</li>
+      <li>Layer 2 — Benchmark matching against a 97,500-cell modeled coverage grid; cells are not observed companies</li>
+      <li>Layer 3 — Coarse location adjustment where supported</li>
+      <li>Layer 4 — Deterministic financial calculations and quality checks</li>
+      <li>Layer 5 — 1,000 scenario iterations with P10/P50/P90 modeled ranges</li>
+      <li>Layer 6 — Classification, bounded narrative, action plan, and adversarial review</li>
+      <li>Layer 7 — Reconciliation of supported numeric claims; dataset-level references exist, but per-cell source lineage does not</li>
+      <li>Layer 8 — External evidence checks for selected metrics when suitable evidence is available</li>
     </ol>
   `;
 
   const pricing = `
     <h2>Pricing</h2>
     <table>
-      <tr><th>Plan</th><th>Price</th><th>Included</th></tr>
-      <tr><td>Free</td><td>$0</td><td>Base modeled scenario, top three risks, JSON export</td></tr>
-      <tr><td>Plus</td><td>$17/mo</td><td>Unlimited analyses, 36-month P&amp;L, Monte Carlo, Document Studio (10 templates)</td></tr>
-      <tr><td>Pro</td><td>$49/mo</td><td>Everything in Plus, 5-year projection, white-label PDF export, API access</td></tr>
+      <tr><th>Plan</th><th>Price</th><th>Outcome and continuity</th></tr>
+      <tr><td>Free</td><td>$0</td><td>${TIER_FACTS.freeRuns} complete Decision Runs each month, including the financial model, pre-mortem, and one saved scenario set per run</td></tr>
+      <tr><td>Plus</td><td>${TIER_FACTS.plusMonthly}/mo or ${TIER_FACTS.plusAnnual}/yr</td><td>Unlimited runs, ${TIER_FACTS.plusScenarioSets} scenario sets per analysis, Document Studio, clean exports, and custom branding with Quantis attribution retained</td></tr>
+      <tr><td>Pro</td><td>${TIER_FACTS.proMonthly}/mo or ${TIER_FACTS.proAnnual}/yr</td><td>Everything in Plus, 5-year model, ${TIER_FACTS.proSeats} seats, API access, and fully white-label exports</td></tr>
     </table>
-    <p>All plans include a 14-day free trial. Cancel any time from the billing portal.</p>
+    <p>Plus and Pro checkouts include a 14-day trial. Free requires no card. Paid subscribers can manage cancellation from the billing portal.</p>
   `;
 
   const routeSpecific = {
-    "/pricing": `${pricing}<p>Every plan runs the same 8-layer deterministic pipeline, including Layer 8 (Reality Validation and Calibration Engine, RVCE) — the plans differ only in analysis volume and export features, never in how the numbers are calculated. See <a href="/how-it-works">how it works</a> for the full pipeline.</p><p><a href="/app">Start free — no card required</a></p>`,
+    "/pricing": `${pricing}<p>Every plan uses the same core financial-analysis path. Paid plans add continuity, saved capacity, professional delivery, and verified advanced capabilities rather than withholding the first complete result. See <a href="/how-it-works">how it works</a> for the pipeline.</p><p><a href="/app">Start free — no card required</a></p>`,
     "/decision-review": `<p class="q-lede">Choose a founder-assisted engagement for a real decision with a deadline. Quantis structures the assumptions, reconciles the financial model, stress-tests the downside, and delivers an inspectable decision memo.</p><h2>Founder Decision Review — $349</h2><ul><li>One active founder decision</li><li>Structured intake and fact-versus-assumption register</li><li>Base, downside, and upside scenarios</li><li>Reconciled revenue, contribution, cash, break-even, and payback</li><li>Five fragile assumptions, decision memo, review call, and one revision</li></ul><h2>Consultant Founding Pilot — $499</h2><ul><li>Two client cases completed within 30 days</li><li>Founder-led setup and quality review</li><li>One inspectable decision memo and review per case</li><li>One revision per case</li></ul><p>These engagements provide decision support, not accounting, tax, investment, lending, or legal advice. Payment is collected before work begins. The delivery clock begins after a complete intake.</p><p><a href="/terms">Terms</a> · <a href="/refund-policy">Refund policy</a> · <a href="/privacy">Privacy</a></p>`,
-    "/how-it-works": `<p class="q-lede">Describe your business in one sentence. Quantis runs the 8-layer deterministic pipeline and returns a modeled financial scenario with sourced numbers, top risks, and an action plan.</p>${layerList}${pricing}`,
-    "/methodology": `<p class="q-lede">Quantis calculates numbers deterministically before AI ever runs. AI writes the narrative around those numbers; it does not invent them. Layer 8 (RVCE) cross-validates the model against live market data before the report is returned.</p>${layerList}<p><a href="/research">See the research</a> · <a href="/security">Security posture</a></p>`,
+    "/how-it-works": `<p class="q-lede">Describe the decision and its assumptions. Quantis returns a modeled financial scenario with visible inputs, limitations, top risks, and an action plan.</p>${layerList}${pricing}`,
+    "/methodology": `<p class="q-lede">Quantis separates deterministic formulas, modeled benchmark ranges, scenario simulation, and AI narration. Its 97,500 benchmark cells are a rule-generated grid—not 97,500 observed companies—and dataset references are not linked one-to-one to individual cells.</p><h2>Coverage and limitations</h2><ul><li>Five tables of 19,500 modeled cells: core ratios, unit economics, geography, risk, and invoicing</li><li>Country and region coverage is uneven; local conditions require direct evidence</li><li>Grid cells have no per-row source, period, or quality-grade lineage</li><li>Standard outputs do not constitute audited accounting, tax, investment, lending, or legal advice</li></ul>${layerList}<p><a href="/research">See the research</a> · <a href="/security">Security posture</a></p>`,
     "/use-cases": `<p class="q-lede">AIWMC Quantis is built for founders stress-testing their own ideas, consultants validating client ideas, and small teams building financial models faster than a spreadsheet allows.</p><h2>Common uses</h2><ul><li>Pre-launch stress test on a business idea before signing a lease or writing code</li><li>Financial-consulting client intake and modeled projections</li><li>Investor-facing base case with sourced benchmarks and honest downside</li><li>Sensitivity analysis on the two or three variables that make or break the model</li></ul>${pricing}`,
     "/consultants": `<p class="q-lede">Run a client pre-screen. Deliver it under your own brand. A manual feasibility study costs 15 to 25 hours before a consultant bills a dollar; AIWMC Quantis replaces the mechanical work — 97,500 benchmarks, 1,000 Monte Carlo iterations, RVCE cross-validation via the 8-Layer deterministic pipeline — so those hours can go to judgment instead of spreadsheet construction.</p><h2>How consultants use it</h2><ul><li>Client pre-screening — know which engagements are viable before committing billable hours</li><li>Board-deck stress test — deterministic, reproducible numbers, built to be questioned line by line; the engine computes every financial number, the AI narrative layer never originates one</li><li>Quarterly re-validation — benchmarks move, so client plans should be re-run against current market data</li></ul><h2>Your brand on the cover</h2><p>Pro exports replace Quantis branding with the consultant firm's own — logo, company name, header, footer. Every number traces back to its benchmark citation, Monte Carlo distribution, or RVCE validation status underneath.</p>${layerList}${pricing}<p>A consultant charges $1,500-$25,000 (or $350/hr) for one stress-test. This is the one you can afford to run before you write the invoice.</p><p><a href="/examples/coffee-shop-denver">See a sample dossier</a> · <a href="/methodology">Read the methodology</a></p>`,
-    "/": `<p class="q-lede">Describe a business idea. Get a modeled financial scenario with sourced numbers, top risks, and an action plan. Not AI-generated numbers dressed up as analysis: a deterministic engine that runs the math first, then uses AI only for narration.</p>${layerList}${pricing}<p><a href="/app">Try a free analysis</a> · <a href="/examples">See worked examples</a></p>`,
-    "/vs/liveplan": `<p class="q-lede">LivePlan is a document-focused business-plan tool. AIWMC Quantis is a deterministic financial pre-mortem engine. Different jobs.</p><h2>Where LivePlan is stronger</h2><ul><li>Long-form document formatting for lenders</li><li>Template variety for traditional business plans</li></ul><h2>Where Quantis is stronger</h2><ul><li>Numbers informed by 97,500 benchmark data points instead of user-provided assumptions</li><li>Monte Carlo and Pre-Mortem stress tests as first-class features</li><li>Full audit trail — every number links to its benchmark source</li></ul>${pricing}`,
-    "/vs/upmetrics": `<p class="q-lede">Upmetrics is an AI-first business plan writer. AIWMC Quantis is a deterministic financial engine with AI narration on top. The distinction matters when the numbers matter.</p><h2>Trade-offs</h2><ul><li>Upmetrics: fast AI-generated narrative, financial numbers depend on user input</li><li>Quantis: modeled numbers informed by benchmark data, AI narrates numbers it did not invent</li></ul>${pricing}`,
-    "/vs/bizplanr": `<p class="q-lede">Bizplanr is an inexpensive AI business-plan generator. AIWMC Quantis is a financial pre-mortem tool with a different job.</p><h2>Which one you want depends on the job</h2><ul><li>Bizplanr: fastest path to a formatted document</li><li>Quantis: fastest path to a defensible modeled scenario with sourced numbers</li></ul>${pricing}`,
+    "/": `<p class="q-lede">Describe a business decision. Get a modeled financial scenario with visible assumptions, top risks, limitations, and an action plan. The financial engine runs before AI narration.</p>${layerList}${pricing}<p><a href="/app">Try a free analysis</a> · <a href="/examples">See worked examples</a></p>`,
+    "/vs/liveplan": `<p class="q-lede">LivePlan combines business planning, forecasts, scenarios, accounting integrations, and performance tracking. Quantis focuses on financial pre-mortem and assumption stress-testing. Different jobs.</p><h2>Where LivePlan is established</h2><ul><li>Full forecast statements and lender-oriented planning</li><li>QuickBooks and Xero integrations</li><li>A large sample-plan library, human onboarding, and support</li></ul><h2>Quantis focus</h2><ul><li>Expose which assumptions control the decision</li><li>Model scenario ranges and failure conditions</li><li>Keep inputs, calculations, modeled ranges, evidence, and limitations visibly distinct</li></ul>${pricing}`,
+    "/vs/upmetrics": `<p class="q-lede">Upmetrics combines business-plan drafting, financial forecasting, pitch creation, collaboration, research, and professional services. Quantis focuses on financial pre-mortem and decision thresholds.</p><h2>Trade-offs</h2><ul><li>Upmetrics emphasizes a broad planning and presentation workflow</li><li>Quantis emphasizes explicit assumptions, scenario fragility, and the conditions required for a decision to work</li></ul>${pricing}`,
+    "/vs/bizplanr": `<p class="q-lede">Bizplanr and Quantis address different stages of business planning. Compare the current product pages before choosing.</p><h2>Which workflow do you need?</h2><ul><li>Choose a plan generator when the main job is drafting a formatted narrative</li><li>Choose Quantis when the main job is stress-testing assumptions and finding the financial threshold that changes a decision</li></ul>${pricing}`,
     "/state-of-quantis": `<p class="q-lede">An honest account of what Quantis does, what it does not guarantee, and where the deterministic engine ends and AI narration begins.</p><h2>What Quantis does</h2><p>Quantis runs a deterministic financial engine — 1,000-iteration Monte Carlo simulation across an 8-layer pipeline — against a 97,500-row benchmark corpus, and produces a financial verdict plus an AI-authored narrative layered on top of those numbers.</p><h2>What Quantis does not guarantee</h2><ul><li>Quantis does not guarantee any business outcome — it models plausible ranges against comparable-business benchmarks, it does not predict what will happen to your specific business.</li><li>AI-generated commentary is not independently guaranteed to match the underlying numbers on every run; an automated integrity check exists specifically because this has happened and been caught.</li></ul><h2>Where the deterministic engine ends and AI narration begins</h2><p>Every dollar figure, ratio, and verdict is computed by the deterministic financial engine — the AI narrator never invents or recomputes a number, it writes prose around numbers it is handed.</p><p><a href="/status">Reliability history</a> · <a href="/security">Security posture</a></p>`,
   }[routePath];
 
