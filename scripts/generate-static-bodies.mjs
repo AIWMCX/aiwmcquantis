@@ -74,7 +74,7 @@ function loadTierFacts() {
     return source.slice(start, end);
   };
   const number = (text, key) => {
-    const match = text.match(new RegExp(`${key}:\\\\s*(\\\\d+)`));
+    const match = text.match(new RegExp(`${key}:\\s*(\\d+)`));
     if (!match) throw new Error(`generate-static-bodies: missing ${key}`);
     return Number(match[1]);
   };
