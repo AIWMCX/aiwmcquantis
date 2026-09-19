@@ -372,9 +372,9 @@ export default function ScenarioWorkspace() {
 
   if (!analysisId) {
     return (
-      <AppLayout title="Scenario Lab">
+      <AppLayout title="Compare Outcomes">
         <PageSEO
-          title="Scenario Lab — Quantis"
+          title="Compare Outcomes — Quantis"
           description="Change one assumption at a time, find break-even points, and compare the financial effect against a completed Decision Run."
           canonical="/app/scenarios"
         />
@@ -389,7 +389,7 @@ export default function ScenarioWorkspace() {
 
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-primary shrink-0" />
-            <h1 className="text-xl font-semibold">Scenario Lab</h1>
+            <h1 className="text-xl font-semibold">Compare Outcomes</h1>
           </div>
           <p className="text-sm text-muted-foreground -mt-4">
             Pick a Decision Run, change the assumptions that matter, and see exactly what moves the outcome.
@@ -450,9 +450,9 @@ export default function ScenarioWorkspace() {
   }
 
   return (
-      <AppLayout title="Scenario Lab">
+      <AppLayout title="Compare Outcomes">
         <PageSEO
-        title="Scenario Lab — Quantis"
+        title="Compare Outcomes — Quantis"
         description="Change assumptions, find break-even points, and compare their financial effect using the same validated engine as your Decision Run."
         canonical="/app/scenarios"
       />
@@ -467,7 +467,7 @@ export default function ScenarioWorkspace() {
 
         <div className="flex items-center gap-3">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-semibold">Scenario Lab</h1>
+          <h1 className="text-xl font-semibold">Compare Outcomes</h1>
         </div>
 
         {tier === 'free' && (

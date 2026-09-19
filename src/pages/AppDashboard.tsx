@@ -860,7 +860,7 @@ export default function Index() {
                             <div>
                               <p className="text-sm font-semibold text-foreground">Your failure pre-mortem is included in this report.</p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                Next, change the fragile assumptions in Scenario Lab and find the break-even point.
+                                Next, change the fragile assumptions in Compare Outcomes and find the break-even point.
                               </p>
                             </div>
                           </div>
@@ -872,7 +872,7 @@ export default function Index() {
                             onClick={() => navigate(`/app/scenarios?analysisId=${currentAnalysisId ?? analysisId}`)}
                           >
                             <GitBranch className="h-4 w-4" />
-                            Open Scenario Lab
+                            Open Compare Outcomes
                           </Button>
                         </div>
                         {showNextSteps && (

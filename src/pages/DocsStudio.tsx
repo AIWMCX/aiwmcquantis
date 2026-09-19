@@ -382,7 +382,7 @@ export default function DocsStudio() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-sm text-muted-foreground">Loading Docs Studio...</p>
+          <p className="text-sm text-muted-foreground">Loading Decision Report...</p>
         </div>
       </div>
     );
@@ -397,7 +397,7 @@ export default function DocsStudio() {
             <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-bold mb-2">Sign in Required</h2>
             <p className="text-muted-foreground mb-6">
-              Sign in to access Docs Studio and create professional documents.
+              Sign in to access Decision Report and create professional documents.
             </p>
             <Button onClick={() => navigate('/auth')}>Sign In</Button>
           </CardContent>
@@ -659,7 +659,7 @@ export default function DocsStudio() {
                 <FileText className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Docs Studio</h1>
+                <h1 className="text-3xl font-bold text-foreground">Decision Report</h1>
                 <p className="text-muted-foreground">
                   {isPlus 
                     ? 'Create, edit, and manage professional documents — unlimited access' 
