@@ -269,7 +269,7 @@ function renderExampleBody(slug) {
       ${metrics}
       <h2>What Quantis does with this idea</h2>
       <p>The analysis pipeline separates repeatable financial formulas, modeled benchmark ranges, scenario simulation, and AI narration. External evidence checks run when suitable evidence is available; they do not make the result a forecast.</p>
-      <p>Free users receive ${TIER_FACTS.freeRuns} complete Decision Runs each month. Plus at ${TIER_FACTS.plusMonthly}/mo adds unlimited runs, additional saved scenarios, Document Studio, and custom-branded exports that retain Quantis attribution. Pro at ${TIER_FACTS.proMonthly}/mo adds a 5-year model, ${TIER_FACTS.proSeats} seats, API access, and fully white-label exports.</p>
+      <p>Free users receive ${TIER_FACTS.freeRuns} complete Decision Runs each month. Plus at $${TIER_FACTS.plusMonthly}/mo adds unlimited runs, additional saved scenarios, Document Studio, and custom-branded exports that retain Quantis attribution. Pro at $${TIER_FACTS.proMonthly}/mo adds a 5-year model, ${TIER_FACTS.proSeats} seats, API access, and fully white-label exports.</p>
       <p><a href="/app">Run your own analysis</a> · <a href="/pricing">See pricing</a> · <a href="/examples">Browse other examples</a></p>
     </article>
   `;
@@ -337,8 +337,8 @@ function renderCoreBody(routePath) {
     <table>
       <tr><th>Plan</th><th>Price</th><th>Outcome and continuity</th></tr>
       <tr><td>Free</td><td>$0</td><td>${TIER_FACTS.freeRuns} complete Decision Runs each month, including the financial model, pre-mortem, and one saved scenario set per run</td></tr>
-      <tr><td>Plus</td><td>${TIER_FACTS.plusMonthly}/mo or ${TIER_FACTS.plusAnnual}/yr</td><td>Unlimited runs, ${TIER_FACTS.plusScenarioSets} scenario sets per analysis, Document Studio, clean exports, and custom branding with Quantis attribution retained</td></tr>
-      <tr><td>Pro</td><td>${TIER_FACTS.proMonthly}/mo or ${TIER_FACTS.proAnnual}/yr</td><td>Everything in Plus, 5-year model, ${TIER_FACTS.proSeats} seats, API access, and fully white-label exports</td></tr>
+      <tr><td>Plus</td><td>$${TIER_FACTS.plusMonthly}/mo or $${TIER_FACTS.plusAnnual}/yr</td><td>Unlimited runs, ${TIER_FACTS.plusScenarioSets} scenario sets per analysis, Document Studio, clean exports, and custom branding with Quantis attribution retained</td></tr>
+      <tr><td>Pro</td><td>$${TIER_FACTS.proMonthly}/mo or $${TIER_FACTS.proAnnual}/yr</td><td>Everything in Plus, 5-year model, ${TIER_FACTS.proSeats} seats, API access, and fully white-label exports</td></tr>
     </table>
     <p>Plus and Pro checkouts include a 14-day trial. Free requires no card. Paid subscribers can manage cancellation from the billing portal.</p>
   `;
