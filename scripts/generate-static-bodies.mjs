@@ -319,7 +319,7 @@ function renderCoreBody(routePath) {
   }[routePath] ?? "AIWMC Quantis";
 
   const layerList = `
-    <h2>The 8-layer analysis pipeline</h2>
+    <h2>The 8-Layer analysis pipeline</h2>
     <ol>
       <li>Layer 1 — Input sanitization and business classification</li>
       <li>Layer 2 — Benchmark matching against a 97,500-cell modeled coverage grid; cells are not observed companies</li>
