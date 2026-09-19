@@ -22,7 +22,12 @@ export interface UpgradeTrigger {
   priority: number;
   delayMs: number;
   headline: string;
-  body: string;
+  // A plain string, or a function of the live event counts for copy that
+  // quotes a number back to the user (e.g. "you've run N analyses"). A
+  // static string here silently goes stale once the referenced count moves
+  // past whatever the trigger's condition first fired on -- the same class
+  // of bug fixed 2026-09-18 for T4's hardcoded Monte Carlo scenario count.
+  body: string | ((events: Record<string, number>) => string);
   cta: string;
   condition: (events: Record<string, number>, isPlus: boolean) => boolean;
 }
@@ -49,7 +54,7 @@ export const TRIGGERS: UpgradeTrigger[] = [
     priority: 8,
     delayMs: 2000,
     headline: 'You\'re on a roll. Stop hitting limits.',
-    body: 'You\'ve run 3 analyses — most founders need 5–10 before they\'re confident. Plus removes the ceiling.',
+    body: (e) => `You've run ${c(e, 'calculation_completed')} analyses — most founders need 5–10 before they're confident. Plus removes the ceiling.`,
     cta: 'Upgrade to unlimited',
     condition: (e, isPlus) => !isPlus && c(e, 'calculation_completed') >= 3,
   },
