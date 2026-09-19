@@ -250,8 +250,19 @@ export async function renderHeadlineCard(input: HeadlineCardInput): Promise<Rend
     cursorY = endY;
   }
 
+  // Bug found 2026-09-19 by actually rendering a card with both a chart AND
+  // a callout: the callout is placed dynamically right after the chart's
+  // endY, but the disclaimer/footer below it are pinned to fixed
+  // CARD_HEIGHT-186/150/116 offsets with no bounds check between them. A
+  // chart's endY (~cursorY 1050+) leaves no room for a callout before that
+  // fixed zone, so the callout, disclaimer, and footer text all render on
+  // top of each other -- illegible, unusable for commercial content. Chart
+  // takes priority: never render both on one card. This mirrors this
+  // module's existing philosophy elsewhere (a wrong/colliding element is
+  // worse than a missing one) rather than trying to squeeze both into a
+  // fixed 1080x1350 canvas.
   let calloutSvg = "";
-  if (input.callout) {
+  if (input.callout && !(input.chart && input.chart.steps.length >= 2)) {
     const calloutTitleLines = wrapText(input.callout.title.toUpperCase(), 40, 1);
     const calloutBodyLines = wrapText(input.callout.body, 70, 3);
     const calloutY = cursorY;
