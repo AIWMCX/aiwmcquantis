@@ -26,8 +26,9 @@ const CARD_HEIGHT = 1350;
 const MARGIN_X = 72;
 // Palette per the 2026-09-19 "AIWMC Quantis -- Commercial Social Asset
 // System" spec (permanent instruction for Content Studio). Accent 1/2 are
-// exact spec hex values, not approximations -- a prior blue (#3b82f6) and
-// amber (#f59e0b) were close but not the specified electric blue / orange-red.
+// exact spec hex values, not approximations -- the prior blue and amber
+// tones were visually close but did not match the specified electric blue
+// / orange-red values.
 const BRAND_BG = "#0b0f1a"; // within spec's #09111F-#101827 dark navy range
 const BRAND_ACCENT = "#2B7FFF"; // Accent 1: electric blue -- data, sources, scenarios
 const BRAND_WARN = "#FF4B2B"; // Accent 2: orange-red -- key risk/threshold/CTA only
