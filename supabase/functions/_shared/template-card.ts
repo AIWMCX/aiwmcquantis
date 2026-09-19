@@ -24,10 +24,15 @@ import { Resvg, initWasm } from "npm:@resvg/resvg-wasm@2.6.2";
 const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1350;
 const MARGIN_X = 72;
-const BRAND_BG = "#0b0f1a";
-const BRAND_ACCENT = "#3b82f6";
-const BRAND_WARN = "#f59e0b";
-const BRAND_TEXT = "#f5f7fa";
+// Palette per the 2026-09-19 "AIWMC Quantis -- Commercial Social Asset
+// System" spec (permanent instruction for Content Studio). Accent 1/2 are
+// exact spec hex values, not approximations -- a prior blue (#3b82f6) and
+// amber (#f59e0b) were close but not the specified electric blue / orange-red.
+const BRAND_BG = "#0b0f1a"; // within spec's #09111F-#101827 dark navy range
+const BRAND_ACCENT = "#2B7FFF"; // Accent 1: electric blue -- data, sources, scenarios
+const BRAND_WARN = "#FF4B2B"; // Accent 2: orange-red -- key risk/threshold/CTA only
+const BRAND_GOOD = "#34D399"; // Accent 3: muted green -- supported positive/clear status only. Not yet wired to a render path; reserved for a future "positive" callout/marker variant.
+const BRAND_TEXT = "#F7F4EE"; // spec: soft white
 const BRAND_SUBTLE = "#9aa4b2";
 const BRAND_BORDER = "#232a3a";
 const FONT_FAMILY = "Inter";
@@ -203,7 +208,9 @@ export async function renderHeadlineCard(input: HeadlineCardInput): Promise<Rend
   const headlineLines = wrapText(input.headline.toUpperCase(), 20, 5);
   const headlineFontSize = headlineLines.length > 3 ? 64 : 76;
   const headlineLineHeight = headlineFontSize * 1.12;
-  const headlineStartY = 210;
+  // Room reserved above the headline for the top-left masthead (asset
+  // structure item 1 in the brand spec: "AIWMC QUANTIS / DECISION NOTE").
+  const headlineStartY = 268;
 
   const headlineTspans = headlineLines
     .map((line, i) => {
@@ -247,18 +254,39 @@ export async function renderHeadlineCard(input: HeadlineCardInput): Promise<Rend
     cursorY = calloutY + 40 + calloutBodyLines.length * 26 + 30;
   }
 
+  // Kept clear of the CARD_HEIGHT-150 boundary and above it -- the footer
+  // brand rail (AIWMC mark + tagline) now occupies everything below that
+  // line, left-anchored at the same MARGIN_X as this disclaimer, so the two
+  // must not share vertical space.
   const disclaimerSvg = input.chart
     ? `
-  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 150}" font-family="${FONT_FAMILY}" font-weight="700" font-size="15" fill="${BRAND_SUBTLE}" letter-spacing="1">ILLUSTRATIVE EXAMPLE.</text>
-  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 128}" font-family="${FONT_FAMILY}" font-weight="400" font-size="15" fill="${BRAND_SUBTLE}">Actual thresholds depend on your business.</text>`
+  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 186}" font-family="${FONT_FAMILY}" font-weight="700" font-size="15" fill="${BRAND_SUBTLE}" letter-spacing="1">ILLUSTRATIVE EXAMPLE.</text>
+  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 164}" font-family="${FONT_FAMILY}" font-weight="400" font-size="15" fill="${BRAND_SUBTLE}">Actual thresholds depend on your business.</text>`
     : "";
 
   const tagline = input.brandTagline ? escapeXml(input.brandTagline) : "";
 
+  // Masthead (top-left) and footer brand rail (bottom-left) per the brand
+  // spec's "Logo integration" and "Asset structure" sections. No official
+  // logo vector/image asset exists in this repo (checked public/ -- none
+  // found), and the spec explicitly forbids asking an image model to
+  // recreate a logo, so both marks are precise deterministic SVG text
+  // (same no-fabrication approach as the rest of this file), not a
+  // synthesized graphic. Swap these for real embedded logo assets once
+  // AIWMC/AIWMC Quantis vector files are added to the repo.
+  const mastheadSvg = `
+  <text x="${MARGIN_X}" y="64" font-family="${FONT_FAMILY}" font-weight="700" font-size="24" fill="${BRAND_TEXT}" letter-spacing="0.5">AIWMC QUANTIS</text>
+  <text x="${MARGIN_X}" y="88" font-family="${FONT_FAMILY}" font-weight="600" font-size="14" fill="${BRAND_ACCENT}" letter-spacing="2">DECISION NOTE</text>
+  <rect x="${MARGIN_X}" y="112" width="88" height="6" fill="${BRAND_ACCENT}" />`;
+
+  const footerSvg = `
+  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 116}" font-family="${FONT_FAMILY}" font-weight="700" font-size="24" fill="${BRAND_TEXT}" opacity="0.88">AIWMC</text>
+  ${tagline ? `<text x="${MARGIN_X}" y="${CARD_HEIGHT - 88}" font-family="${FONT_FAMILY}" font-weight="400" font-size="20" fill="${BRAND_SUBTLE}">${tagline}</text>` : ""}`;
+
   const svg = `
 <svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${BRAND_BG}" />
-  <rect x="${MARGIN_X}" y="96" width="88" height="6" fill="${BRAND_ACCENT}" />
+  ${mastheadSvg}
   <text x="${MARGIN_X}" y="${headlineStartY}" font-family="${FONT_FAMILY}" font-weight="800" font-size="${headlineFontSize}" fill="${BRAND_TEXT}">${headlineTspans}</text>
   ${subtitleLines.length ? `<text x="${MARGIN_X}" y="${subtitleStartY}" font-family="${FONT_FAMILY}" font-weight="400" font-size="30" fill="${BRAND_SUBTLE}">${subtitleTspans}</text>` : ""}
   <line x1="${MARGIN_X}" y1="${dividerY}" x2="${CARD_WIDTH - MARGIN_X}" y2="${dividerY}" stroke="${BRAND_BORDER}" stroke-width="1" />
@@ -266,8 +294,7 @@ export async function renderHeadlineCard(input: HeadlineCardInput): Promise<Rend
   ${calloutSvg}
   ${disclaimerSvg}
   <line x1="${MARGIN_X}" y1="${CARD_HEIGHT - 150}" x2="${CARD_WIDTH - MARGIN_X}" y2="${CARD_HEIGHT - 150}" stroke="${BRAND_BORDER}" stroke-width="1" opacity="${input.chart ? 0 : 1}" />
-  <text x="${CARD_WIDTH - MARGIN_X}" y="${CARD_HEIGHT - 116}" text-anchor="end" font-family="${FONT_FAMILY}" font-weight="700" font-size="30" fill="${BRAND_TEXT}">AIWMC QUANTIS</text>
-  ${tagline ? `<text x="${CARD_WIDTH - MARGIN_X}" y="${CARD_HEIGHT - 82}" text-anchor="end" font-family="${FONT_FAMILY}" font-weight="400" font-size="20" fill="${BRAND_SUBTLE}">${tagline}</text>` : ""}
+  ${footerSvg}
 </svg>`.trim();
 
   const resvg = new Resvg(svg, {
