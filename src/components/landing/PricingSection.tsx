@@ -10,7 +10,6 @@ import { PricingCard } from './PricingCard';
 import { GuaranteeBanner } from './GuaranteeBanner';
 import { TIERS } from '@/config/tiers';
 import { DOC_TEMPLATE_COUNT, MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
-import { FEATURE_MANIFEST } from '@/lib/tier-spec';
 import { PricingFAQ } from './PricingFAQ';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { SectionHeader } from '@/components/ui/glass-card';
@@ -329,14 +328,18 @@ function FeatureComparisonTable() {
     { name: 'API access', free: 'no', plus: 'no', pro: 'yes' },
     {
       name: 'Team seats',
-      // Team access is a Pro-only, server-enforced feature (team-invite edge
-      // function + enforce_team_seat_cap DB trigger, spec S11.1). This row
-      // previously hardcoded "1 / 1 / 3", falsely promising Free and Plus
-      // visitors team access that FEATURE_MANIFEST (CI-guarded by
-      // tier-matrix.test.ts) has always gated to PRO only.
-      free: String(FEATURE_MANIFEST.FREE.team_seats),
-      plus: String(FEATURE_MANIFEST.PLUS.team_seats),
-      pro: String(FEATURE_MANIFEST.PRO.team_seats),
+      // Sourced from TIERS.*.limits.teamSeats (config/tiers.ts), which is
+      // drift-tested (tiers-drift.test.ts) against the real server-enforced
+      // value in supabase/functions/_shared/entitlements.ts: Free=0, Plus=1,
+      // Pro=3. This row previously hardcoded "1 / 1 / 3" -- correct for
+      // Plus/Pro, but wrong for Free (was 1, should be 0; Free has no team
+      // access at all per entitlements.ts). Do not source this from
+      // tier-spec.ts's FEATURE_MANIFEST -- that file's team_seats values
+      // (FREE=0, PLUS=0, PRO=3) disagree with the actual enforced server
+      // entitlements and are themselves stale.
+      free: String(TIERS.free.limits.teamSeats),
+      plus: String(TIERS.plus.limits.teamSeats),
+      pro: String(TIERS.pro.limits.teamSeats),
     },
     { name: 'Support', free: 'Email', plus: 'Priority', pro: 'Priority' },
   ];
