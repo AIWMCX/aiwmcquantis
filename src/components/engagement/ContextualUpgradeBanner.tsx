@@ -11,7 +11,7 @@ import { Sparkles, X } from 'lucide-react';
  * based on the user's activation event matrix. Auto-hides for Plus members.
  */
 export function ContextualUpgradeBanner() {
-  const { trigger, isPlus } = useActivation();
+  const { trigger, isPlus, score } = useActivation();
   const { user } = useAuth();
   const { createCheckout } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +63,7 @@ export function ContextualUpgradeBanner() {
             {trigger.headline}
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-            {trigger.body}
+            {typeof trigger.body === 'function' ? trigger.body(score.event_counts) : trigger.body}
           </p>
           <Button size="sm" onClick={handleUpgrade} disabled={isLoading}>
             {trigger.cta}
