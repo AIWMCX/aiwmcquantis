@@ -124,4 +124,16 @@ describe("Brand spec compliance (2026-09-19 Commercial Social Asset System)", ()
     expect(cardSource).toContain("CARD_HEIGHT - 186");
     expect(cardSource).toContain("CARD_HEIGHT - 116");
   });
+
+  it("wraps the headline at a character budget verified not to overflow the 1080px canvas", () => {
+    // Verified 2026-09-19 by actually rendering the founder's own reference
+    // headline ("COSTS DO NOT GROW IN STRAIGHT LINES") as real SVG and
+    // measuring the text element's getBBox() in a browser: at the old
+    // budget (20 chars/line, this weight/size), the widest wrapped line's
+    // right edge measured ~1114px against a 1080px canvas -- a real
+    // overflow of the founder's own flagship asset. 17 chars/line measured
+    // ~997px, safely inside. Not pixel-exact font metrics, just a
+    // regression guard against the budget silently loosening back up.
+    expect(cardSource).toContain('wrapText(input.headline.toUpperCase(), 17, 5)');
+  });
 });

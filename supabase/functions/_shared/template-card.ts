@@ -206,7 +206,16 @@ function renderChart(chart: ChartInput, startY: number): { svg: string; endY: nu
 export async function renderHeadlineCard(input: HeadlineCardInput): Promise<RenderedCard> {
   const [, fontBuffer] = await Promise.all([ensureWasmInit(), ensureFontBuffer()]);
 
-  const headlineLines = wrapText(input.headline.toUpperCase(), 20, 5);
+  // 20 chars/line was verified (2026-09-19, rendering the actual founder
+  // reference headline "COSTS DO NOT GROW IN STRAIGHT LINES" and measuring
+  // the real SVG text bounding box) to overflow the 1080px canvas at this
+  // weight/size -- the widest wrapped line measured ~1114px wide. Tightened
+  // to 17, which keeps that same headline safely within the canvas with
+  // margin to spare. wrapText is still a character-count heuristic, not
+  // pixel-exact (see its own docblock) -- this budget is calibrated against
+  // the actual bold/800-weight/76px headline case, the tightest one in
+  // practice, not derived analytically.
+  const headlineLines = wrapText(input.headline.toUpperCase(), 17, 5);
   const headlineFontSize = headlineLines.length > 3 ? 64 : 76;
   const headlineLineHeight = headlineFontSize * 1.12;
   // Room reserved above the headline for the top-left masthead (asset
