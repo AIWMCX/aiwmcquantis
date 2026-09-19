@@ -1,20 +1,17 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { PageSEO } from '@/components/seo/PageSEO';
-import { ShieldCheck, Database, Bot, FileCheck, Info, AlertTriangle, TestTube, Wrench, ExternalLink, Shield, Brain, ArrowRight, Zap, Scale, Award, Workflow, Search, Lock, Layers } from 'lucide-react';
+import { ShieldCheck, Database, Bot, Info, AlertTriangle, Wrench, Shield, Search, Lock, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
 import { GOLDEN_VECTORS } from '@/lib/golden-test-vectors';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { CANONICAL_DATA_SOURCES } from '@/lib/canonical-data-sources';
 import {
   BENCHMARK_COUNT_DISPLAY,
   BENCHMARK_SECTORS,
   MONTE_CARLO_ITERATIONS_DISPLAY,
-  PIPELINE_LAYERS_LABEL,
   FINANCIAL_VARIABLES,
 } from '@/config/canonical-facts';
 
@@ -22,10 +19,10 @@ const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as cons
 const PANEL: React.CSSProperties = { background: 'rgba(12,16,32,0.55)', border: '1px solid rgba(148,163,255,0.14)' };
 
 const QSL_LEVELS = [
-  { level: 'QSL-4', name: 'Deterministic Verification', glow: 'cyan' as const, desc: 'Mathematical certainty. Outputs are calculated using absolute formulas (e.g., Gross Profit = Revenue - COGS) with strict bounds.' },
-  { level: 'QSL-3', name: 'Golden Benchmark Aligned', glow: 'violet' as const, desc: 'High confidence. The model\'s assumptions fall well within the P25-P75 interquartile range of verified industry data.' },
-  { level: 'QSL-2', name: 'Plausible Extrapolation', glow: 'brand' as const, desc: 'Moderate confidence. Some inputs deviate from typical benchmarks, triggering stress tests. Manual review is recommended.' },
-  { level: 'QSL-1', name: 'Speculative Warning', glow: 'none' as const, desc: 'Low confidence. Assumptions break physical or economic constraints (e.g., negative CAC, >100% market capture). Hard warnings apply.' },
+  { level: 'QSL-4', name: 'Formula Verified', glow: 'cyan' as const, desc: 'The arithmetic is deterministic and reconciles to the stated inputs and formulas. This is certainty about calculation consistency, not certainty about the business outcome.' },
+  { level: 'QSL-3', name: 'Within Modeled Range', glow: 'violet' as const, desc: 'The assumption falls inside the modeled benchmark range for the selected segment. The range is a rule-generated calibration aid, not an observed sample of comparable companies.' },
+  { level: 'QSL-2', name: 'Extrapolated', glow: 'brand' as const, desc: 'The input sits outside or between available modeled ranges, or a broader fallback was used. Treat the result as a hypothesis requiring manual evidence.' },
+  { level: 'QSL-1', name: 'Speculative / Invalid', glow: 'none' as const, desc: 'The input conflicts with an economic constraint, lacks enough support, or could not be matched safely. Hard warnings should govern the decision.' },
 ];
 
 // Titles mirror /how-it-works ENGINE_LAYERS exactly — same 8 layers, same
@@ -43,38 +40,31 @@ const ENGINE_LAYER_LABELS = [
 ];
 
 const PIPELINE_STAGES = [
-  { icon: ShieldCheck, title: 'Input Guardrails', desc: 'Sanitizes and classifies the request, checks it against abuse and rate-limit thresholds, and rejects out-of-scope or injection-shaped input — before any AI call is made.' },
-  { icon: Database, title: 'Deterministic Engine', desc: 'The only step that produces a financial number. Pure math against the benchmark library (engine v2.0.0-precision) — no language model touches this step.' },
-  { icon: Bot, title: 'Narrate + Verify', desc: 'A language model explains what the engine calculated. Every dollar figure it writes is extracted and checked against the engine\'s own computed metrics before the report ships.' },
-  { icon: Search, title: 'RVCE Check', desc: 'A separate, independently-invoked pass that cross-references your results against current external sources and reports back honestly — including when it can\'t run.' },
+  { icon: ShieldCheck, title: 'Input Guardrails', desc: 'Sanitizes and classifies the request, enforces scope and rate limits, and rejects unsafe input before analysis.' },
+  { icon: Database, title: 'Deterministic Core', desc: 'Calculates canonical financial outputs from stated inputs, formulas, and modeled benchmark ranges.' },
+  { icon: Bot, title: 'Narrate + Reconcile', desc: 'A language model explains the result. Numeric claims are checked where a canonical engine value exists; unsupported narrative remains a limitation.' },
+  { icon: Search, title: 'External Check', desc: 'RVCE can compare selected outputs with current external evidence when the service and relevant sources are available; otherwise it reports a skipped or unavailable state.' },
 ];
 
 const LIMITATIONS = [
-  { id: 'GOV-001', title: 'Safety Governance', desc: 'Research Agent lacks formal veto authority over deployments. QSL gates being implemented.', status: 'In Progress' },
-  { id: 'UX-001', title: 'Confidence Theater', desc: 'Confidence badges now connected to systematic safety_evaluations pipeline as of v2.0.0.', status: 'Resolved' },
-  { id: 'DATA-001', title: 'Benchmark Staleness', desc: 'Staleness-decay scoring is live: full weight under 6 months, decaying through 12 and 18 months, flagged stale beyond 18 months.', status: 'Resolved' },
-  { id: 'DATA-002', title: 'Multi-Source Provenance', desc: 'Data provenance registry now tracks 5+ open data sources with license compliance and freshness indicators.', status: 'Resolved' },
-  { id: 'TEST-001', title: 'Regression Coverage', desc: `Golden test vector suite covers ${GOLDEN_VECTORS.length} canonical archetypes, each run through the real deterministic engine and checked against expected ranges on every CI build (src/__tests__/golden-vectors-live-engine.test.ts) — not a scheduled production job yet, but no longer just defined data.`, status: 'Resolved' },
-  { id: 'FB-001', title: 'User Feedback Loop', desc: 'Realism feedback widget now captures per-dimension scoring for model calibration.', status: 'Resolved' },
+  { id: 'DATA-001', title: 'Modeled, Not Observed', desc: 'The 97,500-entry corpus is a rule-generated coverage grid. Its cells are not 97,500 measured companies or independent source observations.', status: 'Disclosed' },
+  { id: 'DATA-002', title: 'No Per-Cell Lineage', desc: 'Reference datasets are documented at dataset level, but an individual grid cell does not currently carry its own source, period, or quality grade.', status: 'Open' },
+  { id: 'DATA-003', title: 'Uneven Geographic Coverage', desc: 'Country and region fields are not independently crossed across the full grid. City-tier multipliers are coarse; local rent, wage, regulation, and demand require direct validation.', status: 'Open' },
+  { id: 'DATA-004', title: 'Refresh Cadence', desc: 'Reference periods vary by dataset. The modeled grid has a library version label but no independently verifiable per-cell refresh timestamp or automatic public refresh cadence.', status: 'Open' },
+  { id: 'MODEL-001', title: 'Financial Scope', desc: 'Core outputs are pre-tax operating estimates. The standard run does not model a full debt schedule, tax position, depreciation, amortization, or professional accounting adjustments.', status: 'Disclosed' },
+  { id: 'MODEL-002', title: 'Interactive Lever Approximation', desc: 'The in-report lever preview is a directional approximation, not a complete rerun of the canonical financial engine.', status: 'Disclosed' },
+  { id: 'TEST-001', title: 'Regression Coverage', desc: `The golden-vector suite covers ${GOLDEN_VECTORS.length} canonical archetypes and checks engine ranges in CI. Passing these tests guards regressions; it does not prove real-world predictive accuracy.`, status: 'Tested' },
 ];
 
 export default function Methodology() {
-  const { data: provenanceSources, isLoading: sourcesLoading } = useQuery({
-    queryKey: ['methodology-provenance'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('data_provenance')
-        .select('*')
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-
   const licenseColor = (license: string) => {
-    if (['public_domain', 'cc0'].includes(license)) return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
-    if (license === 'cc_by_4.0') return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
+    const normalized = license.toLowerCase();
+    if (normalized.includes('public domain') || normalized === 'cc0') {
+      return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
+    }
+    if (normalized.includes('cc by')) {
+      return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
+    }
     return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
   };
 
@@ -82,7 +72,7 @@ export default function Methodology() {
     <PublicPageShell active="methodology" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title="Methodology — How Quantis Calculates Risk"
-        description={`Transparent methodology: 12 financial variables, Monte Carlo simulations, P10/P50/P90 percentiles, sourced benchmarks. ${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, multi-model consensus validation, and ${PIPELINE_LAYERS_LABEL} safety architecture.`}
+        description="How Quantis separates deterministic formulas, modeled benchmark cells, reference datasets, scenarios, confidence levels, and known limitations."
         canonical="/methodology"
       />
 
@@ -92,7 +82,7 @@ export default function Methodology() {
         </div>
         <SectionHeader
           title="Accuracy & safety methodology"
-          subtitle="Transparency is at the core of Quantis. Discover how we source our data, validate assumptions, and assign safety levels to our financial models."
+          subtitle="See what Quantis calculates, what the benchmark library actually contains, where reference data enters, and which limits still require human judgment."
         />
         <div className="flex justify-center mt-4">
           <Badge variant="outline" className="text-xs font-mono">Engine Version: 2.0.0-precision</Badge>
@@ -104,7 +94,7 @@ export default function Methodology() {
         <SectionHeader
           eyebrow="Architecture"
           title="The 8-layer analysis engine"
-          subtitle="Every analysis passes through 8 sequential layers, in order. Nothing is skipped."
+          subtitle="The production workflow separates input controls, modeled ranges, financial calculation, narration, reconciliation, and external checks."
         />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
           {ENGINE_LAYER_LABELS.map(({ layer, title }) => (
@@ -141,176 +131,179 @@ export default function Methodology() {
 
       {/* Data provenance */}
       <section className="py-10 space-y-6">
-        <SectionHeader eyebrow="Sources" title="Data provenance & sources" />
+        <SectionHeader
+          eyebrow="Benchmark coverage"
+          title="What the 97,500 figure actually means"
+          subtitle="Coverage breadth is useful only when its construction and limits are visible."
+        />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+        <GlassCard glow="none" className="p-5 flex items-start gap-3" style={{ borderColor: 'rgba(245,158,11,0.3)' }}>
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <h3 className="font-semibold text-sm" style={{ color: 'hsl(var(--foreground))' }}>
+              97,500 does not mean 97,500 observed companies.
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              It is the row count across five rule-generated benchmark tables. Each table contains
+              19,500 modeled cells: 52 sub-industry labels × 5 company stages × 5 size buckets ×
+              3 city tiers × 5 business models. Region and country fields are distributed across
+              that grid; they are not a complete, independently crossed set of local observations.
+            </p>
+          </div>
+        </GlassCard>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <GlassCard glow="cyan" className="p-5 text-center">
             <p className="text-2xl font-bold mb-1" style={MONO}>{BENCHMARK_COUNT_DISPLAY}</p>
-            <p className="text-xs text-muted-foreground">Industry benchmarks</p>
+            <p className="text-xs text-muted-foreground">Modeled grid cells</p>
           </GlassCard>
           <GlassCard glow="violet" revealDelay={60} className="p-5 text-center">
-            <p className="text-2xl font-bold mb-1" style={MONO}>{BENCHMARK_SECTORS}</p>
-            <p className="text-xs text-muted-foreground">Sectors covered</p>
+            <p className="text-2xl font-bold mb-1" style={MONO}>5 × 19,500</p>
+            <p className="text-xs text-muted-foreground">Metric-family tables</p>
           </GlassCard>
           <GlassCard glow="brand" revealDelay={120} className="p-5 text-center">
-            <p className="text-2xl font-bold mb-1" style={MONO}>{FINANCIAL_VARIABLES}</p>
-            <p className="text-xs text-muted-foreground">Financial variables per analysis, projected 36–60 months by tier</p>
+            <p className="text-2xl font-bold mb-1" style={MONO}>{BENCHMARK_SECTORS}</p>
+            <p className="text-xs text-muted-foreground">User-facing sector taxonomy</p>
           </GlassCard>
         </div>
 
-        <GlassCard glow="cyan" className="p-6 space-y-4">
-          <p className="text-muted-foreground leading-relaxed">
-            Our financial baseline is built on multiple verified data sources. Every dataset is tracked with license type, allowed uses, and freshness indicators for full audit compliance.
-          </p>
-          <ul className="space-y-3">
-            <li className="flex items-start gap-3 text-sm">
-              <FileCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#4ade80' }} />
-              <span><strong>Staleness-Aware Confidence:</strong> Every benchmark's age discounts its weight in the confidence score automatically — full weight under 6 months, decaying steadily, and flagged stale after 18 months.</span>
-            </li>
-            <li className="flex items-start gap-3 text-sm">
-              <FileCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#4ade80' }} />
-              <span><strong>Location Calibration:</strong> Base metrics are adjusted using cost-of-living indices, typical rent variations, and salary expectations for over 50 global hubs.</span>
-            </li>
-          </ul>
-        </GlassCard>
-
-        <GlassCard glow="none" className="p-6 space-y-3" style={{ borderColor: 'rgba(245,158,11,0.25)' }}>
-          <h4 className="font-semibold text-sm flex items-center gap-2" style={{ color: 'hsl(var(--foreground))' }}>
-            <AlertTriangle className="w-4 h-4 text-amber-500" /> Coverage and freshness, plainly
-          </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            The upstream date ranges shown per source below are real and current. This provenance
-            registry — the record of which sources exist, their license, and their coverage — was
-            itself last compiled July 21, 2026; it is not a live-refreshing feed today, so treat the
-            per-source ranges as the honest last-known state rather than a real-time indicator.
-          </p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Coverage is not even across sources. <strong>ProjectionHub</strong> (50 records) and{' '}
-            <strong>Kaggle Coffee Shop Financials</strong> (24 records) are genuinely thin — useful as
-            calibration anchors for a narrow slice of small-business archetypes, not broad statistical
-            samples. <strong>JPMorgan Chase Institute</strong>'s cash-flow data ends in 2023 and{' '}
-            <strong>World Bank Enterprise Surveys</strong> data ends in 2024 — both still the most
-            relevant public data of their kind available, but neither reflects anything that happened
-            after those dates. The <strong>SEC XBRL</strong> dataset (500,000 records, 2009–2025) is
-            the deepest and most current source in the corpus.
-          </p>
-        </GlassCard>
-
-        {sourcesLoading ? (
-          <div className="space-y-3 mt-4">
-            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
+        <GlassCard glow="cyan" className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <caption className="sr-only">Quantis benchmark coverage dimensions and limitations</caption>
+              <thead style={{ background: 'rgba(148,163,255,0.08)' }}>
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Dimension</th>
+                  <th className="px-4 py-3 font-semibold">Current coverage</th>
+                  <th className="px-4 py-3 font-semibold">Interpretation / limit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                <tr>
+                  <td className="px-4 py-3 font-medium">Metric families</td>
+                  <td className="px-4 py-3 text-muted-foreground">Core ratios, unit economics, geography, risk, invoicing</td>
+                  <td className="px-4 py-3 text-muted-foreground">Five separate tables; row count is additive across them.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium">Business segmentation</td>
+                  <td className="px-4 py-3 text-muted-foreground">52 sub-industry labels, 5 models, 5 stages, 5 sizes, 3 city tiers</td>
+                  <td className="px-4 py-3 text-muted-foreground">A fully enumerated rule grid, not a statistical sample of 19,500 peers per table.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium">Geography</td>
+                  <td className="px-4 py-3 text-muted-foreground">Region, country, and city-tier fields</td>
+                  <td className="px-4 py-3 text-muted-foreground">Uneven and coarse. A city-tier multiplier is not local rent, wage, demand, tax, or regulatory evidence.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium">Reference periods</td>
+                  <td className="px-4 py-3 text-muted-foreground">Dataset-level periods vary from 2006–2025</td>
+                  <td className="px-4 py-3 text-muted-foreground">Grid cells have no per-row source date; no automatic public refresh cadence is claimed.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium">Lineage</td>
+                  <td className="px-4 py-3 text-muted-foreground">Dataset-level reference registry</td>
+                  <td className="px-4 py-3 text-muted-foreground">No 1:1 mapping from a displayed percentile to a named source record, period, or quality grade.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium">Financial scope</td>
+                  <td className="px-4 py-3 text-muted-foreground">{FINANCIAL_VARIABLES} core variables, projected by tier</td>
+                  <td className="px-4 py-3 text-muted-foreground">Pre-tax operating decision support; not audited accounts, tax advice, or a complete debt model.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        ) : provenanceSources && provenanceSources.length > 0 ? (
-          <div className="space-y-3 mt-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Verified Data Sources</h3>
-            {provenanceSources.map((source: any) => (
-              <div key={source.id} className="flex items-start gap-3 p-4 rounded-lg" style={PANEL}>
-                <Shield className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium" style={{ color: 'hsl(var(--foreground))' }}>{source.source_name}</span>
-                    <Badge variant="outline" className={`text-xs ${licenseColor(source.license_type)}`}>
-                      {source.license_type.replace(/_/g, ' ')}
-                    </Badge>
-                    {source.source_url && (
-                      <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                  {source.coverage_description && <p className="text-xs text-muted-foreground mt-1">{source.coverage_description}</p>}
-                  <div className="flex gap-3 mt-1 text-xs text-muted-foreground/70">
-                    {source.record_count && <span>{source.record_count.toLocaleString()} records</span>}
-                    {source.date_range_start && <span>{source.date_range_start} → {source.date_range_end}</span>}
-                  </div>
+        </GlassCard>
+
+        <SectionHeader eyebrow="References" title="Dataset-level sources" />
+        <GlassCard glow="cyan" className="p-6 space-y-3">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            These datasets and published studies inform financial structure, plausibility ranges,
+            and calibration decisions at dataset level. They are not currently linked to individual
+            grid cells, so “reference source” must not be read as per-number provenance.
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Product taxonomy currently exposes {BENCHMARK_SECTORS} sectors while the grid contains
+            52 sub-industry labels. The mapping is a classification layer, not evidence that every
+            sector-location combination has equal source depth.
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Coverage is materially uneven. ProjectionHub contributes 50 reference records and Kaggle
+            Coffee Shop Financials contributes 24, so both are narrow calibration anchors rather than
+            broad statistical samples. JPMorgan Chase Institute data ends in 2023, World Bank Enterprise
+            Surveys data ends in 2024, and SEC XBRL is the deepest source at 500,000 records covering
+            2009–2025.
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            The provenance registry was seeded on July 21, 2026 and is not an automatically refreshing
+            public feed. Source periods below are the last documented coverage, not a promise of real-time
+            freshness.
+          </p>
+        </GlassCard>
+
+        <div className="space-y-3">
+          {CANONICAL_DATA_SOURCES.map((source) => (
+            <div key={source.name} className="flex items-start gap-3 p-4 rounded-lg" style={PANEL}>
+              <Shield className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium" style={{ color: 'hsl(var(--foreground))' }}>{source.name}</span>
+                  <Badge variant="outline" className={`text-xs ${licenseColor(source.license)}`}>
+                    {source.license}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{source.usage}</p>
+                <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground/70">
+                  <span>{source.records.toLocaleString()} {source.name.includes('Benchmark Library') ? 'modeled cells' : 'reference records'}</span>
+                  <span>{source.period}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : null}
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* Multi-Model Consensus */}
+      {/* Multi-model checks */}
       <section className="py-10 space-y-6">
-        <SectionHeader eyebrow="Architecture" title="Multi-model consensus" />
+        <SectionHeader eyebrow="Architecture" title="Model checks reduce risk; they do not prove truth" />
         <GlassCard glow="violet" className="p-6 space-y-4 mt-8">
           <p className="text-muted-foreground leading-relaxed">
-            To eliminate single-model bias, Quantis employs a multi-agent architecture:
+            Quantis separates financial calculation from language-model narration. A reconciliation
+            step can catch contradictions between narrative claims and canonical engine values where
+            a matching value exists. Agreement between models is still not independent evidence and
+            is never presented as predictive accuracy.
           </p>
-          <div className="grid sm:grid-cols-2 gap-4 mt-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-lg" style={PANEL}>
-              <h4 className="font-medium mb-1" style={{ color: 'hsl(var(--foreground))' }}>Generative Engine</h4>
-              <p className="text-xs text-muted-foreground">Extracts qualitative nuances from the user's idea, matching it to sub-industries and identifying unique value propositions.</p>
+              <h4 className="font-medium mb-1">What the check can do</h4>
+              <p className="text-xs text-muted-foreground">Detect mismatched numbers, impossible signs, broken identities, and narrative claims that disagree with available engine outputs.</p>
             </div>
             <div className="p-4 rounded-lg" style={PANEL}>
-              <h4 className="font-medium mb-1" style={{ color: 'hsl(var(--foreground))' }}>Reconciliation Engine</h4>
-              <p className="text-xs text-muted-foreground">Acts as an adversarial critic. It compares the Generative Engine's assumptions against the Golden Test Vectors, strictly bounding outputs.</p>
+              <h4 className="font-medium mb-1">What the check cannot do</h4>
+              <p className="text-xs text-muted-foreground">Prove that a user assumption, modeled benchmark cell, market estimate, or future business outcome is correct.</p>
             </div>
           </div>
         </GlassCard>
       </section>
 
-      {/* QIM Explainer */}
+      {/* QIM research disclosure */}
       <section className="py-10 space-y-6">
-        <SectionHeader eyebrow="Theory" title="Quantis Information Metric (QIM)" />
-
+        <SectionHeader eyebrow="Research concept" title="Quantis Information Metric (QIM)" />
         <GlassCard glow="cyan" className="p-6 space-y-4 mt-8">
+          <Badge variant="outline" className="font-mono text-xs">Theoretical framework</Badge>
           <p className="text-muted-foreground leading-relaxed">
-            The Quantis Information Metric is a theoretical framework developed by the{' '}
-            <Link to="/research" className="underline underline-offset-2" style={{ color: 'var(--aiwmc-grad-cyan)' }}>AIWMC Research Foundation</Link>{' '}
-            to quantify the reliability of AI-generated financial outputs. It combines two orthogonal signals into a single score:
+            QIM is an AIWMC Research Foundation concept for studying whether a model response is both
+            strongly activated and causally influential. It is not an independently validated accuracy
+            measure, not a probability that a business will succeed, and not a substitute for source
+            quality or real-world evidence.
           </p>
-          <div className="rounded-lg p-6 text-center space-y-3" style={PANEL}>
-            <p className="text-2xl font-bold tracking-wider" style={{ ...MONO, color: 'hsl(var(--foreground))' }}>QIM = A × C</p>
-            <div className="grid sm:grid-cols-2 gap-4 text-left mt-4">
-              <div className="p-3 rounded-lg" style={{ background: 'rgba(148,163,255,0.05)' }}>
-                <p className="text-sm font-semibold mb-1" style={{ color: 'hsl(var(--foreground))' }}>A — Activation Magnitude</p>
-                <p className="text-xs text-muted-foreground">How strongly the model responds to the input. High activation indicates the model has a strong "opinion" — but not necessarily a correct one.</p>
-              </div>
-              <div className="p-3 rounded-lg" style={{ background: 'rgba(148,163,255,0.05)' }}>
-                <p className="text-sm font-semibold mb-1" style={{ color: 'hsl(var(--foreground))' }}>C — Causal Leverage</p>
-                <p className="text-xs text-muted-foreground font-mono mb-1">C<sub>i</sub> = ‖ ∂L / ∂A<sub>i</sub> ‖₂</p>
-                <p className="text-xs text-muted-foreground">The L2 norm of the gradient of the objective function with respect to a given internal state. Measures actual influence on outputs.</p>
-              </div>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard glow="brand" className="p-6 space-y-5">
-          <div className="flex items-center gap-2">
-            <Badge className="font-mono text-xs" style={{ background: 'rgba(79,70,229,0.14)', color: 'var(--aiwmc-grad-cyan)', border: 'none' }}>Proto-QIM Active</Badge>
-            <span className="text-sm text-muted-foreground">How Quantis already implements QIM principles</span>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-4 items-stretch">
-            <div className="p-4 rounded-lg space-y-2 flex flex-col" style={PANEL}>
-              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
-                <Zap className="w-4 h-4" style={{ color: 'var(--aiwmc-grad-cyan)' }} /> Activation (A)
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
-              <p className="text-xs text-muted-foreground flex-1">Multi-Model Consensus measures how strongly both models "activate" on the same conclusion. High agreement = high A.</p>
-              <Badge variant="outline" className="text-xs w-fit mt-auto">Consensus Agreement Score</Badge>
-            </div>
-            <div className="p-4 rounded-lg space-y-2 flex flex-col" style={PANEL}>
-              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
-                <Scale className="w-4 h-4" style={{ color: 'var(--aiwmc-grad-violet)' }} /> Causal Leverage (C)
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
-              <p className="text-xs text-muted-foreground flex-1">The 5-rule Anti-BS Sanity Check Engine tests whether each output actually influences the bottom line. Margins that don't affect P&L have near-zero C.</p>
-              <Badge variant="outline" className="text-xs w-fit mt-auto">Reconciliation Rules</Badge>
-            </div>
-            <div className="p-4 rounded-lg space-y-2 flex flex-col" style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(148,163,255,0.18)' }}>
-              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
-                <Award className="w-4 h-4" style={{ color: 'var(--aiwmc-grad-brand)' }} /> QIM Score
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
-              <p className="text-xs text-muted-foreground flex-1">The final Confidence Badge (QSL 1–4) is the product of both signals: outputs must be both strongly supported (high A) and causally grounded (high C).</p>
-              <Badge variant="outline" className="text-xs w-fit mt-auto">QSL Confidence Badge</Badge>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground text-center italic">
-            AIWMC Research Foundation ·{' '}
-            <Link to="/research" className="underline underline-offset-2" style={{ color: 'var(--aiwmc-grad-cyan)' }}>Read the full theoretical framework →</Link>
+          <p className="text-sm text-muted-foreground">
+            Product confidence labels use practical signals such as formula reconciliation, modeled-range
+            fit, fallback depth, and warning conditions. They should be read as evidence-quality cues,
+            not as certification.
           </p>
+          <Link to="/research" className="text-sm font-medium hover:underline" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
+            Read the research framework →
+          </Link>
         </GlassCard>
       </section>
 
@@ -319,7 +312,7 @@ export default function Methodology() {
         <SectionHeader eyebrow="Regression testing" title="Golden test vectors" />
         <GlassCard glow="cyan" className="p-6 space-y-4 mt-8">
           <p className="text-muted-foreground leading-relaxed">
-            Every engine update is regression-tested against canonical business archetypes. These vectors define expected financial outcomes with ±15% tolerance.
+            Every engine update is regression-tested against canonical business archetypes with defined tolerance bands. These tests detect implementation drift; they do not validate forecasts against observed future outcomes.
           </p>
           <div className="grid gap-3">
             {GOLDEN_VECTORS.map((vector) => (
@@ -336,74 +329,37 @@ export default function Methodology() {
         </GlassCard>
       </section>
 
-      {/* How We Source & Calculate */}
+      {/* How numbers are produced */}
       <section className="py-10 space-y-6">
-        <SectionHeader eyebrow="Data pipeline" title="How we source & calculate every number" />
+        <SectionHeader eyebrow="Calculation path" title="How a number becomes a decision signal" />
         <GlassCard glow="violet" className="p-6 space-y-6 mt-8">
-          <p className="text-muted-foreground leading-relaxed">
-            Every metric badge, projection, and risk score in a Quantis report traces back to a specific data source and a deterministic formula. Below is the exact pipeline — no black boxes.
-          </p>
-
-          <div className="space-y-4">
+          <ol className="space-y-4">
             {[
-              {
-                title: 'SEC XBRL Financial Statement Dataset',
-                what: 'Machine-readable financial filings (10-K, 10-Q) from every US public company, published by the SEC. ~500,000 records spanning 2009–2025.',
-                how: 'We extract line-item distributions (revenue, COGS, SG&A, net income) per NAICS sector code, then compute P25 / median / P75 ranges. These become the "industry benchmark" bands shown on every metric badge. When your coffee shop\'s gross margin is 62%, the badge shows whether that falls within or outside the interquartile range for food-service businesses.',
-                license: 'Public Domain (US Government work product). No restrictions on commercial use.',
-              },
-              {
-                title: 'World Bank Enterprise Surveys',
-                what: 'Firm-level survey data from 180,000+ small and medium enterprises across 150+ countries. Covers employment, cost structures, revenue, and business environment.',
-                how: 'This is the backbone of our international location calibration. When you enter "bakery in Paris", we pull median employee costs, rent-to-revenue ratios, and utility spend for Western European food businesses, then apply location multipliers (salary ×1.3, rent ×1.6, etc.) relative to the US baseline. The confidence badge drops to QSL-2 if your country has fewer than 50 surveyed firms in the relevant sector.',
-                license: 'CC BY 4.0. Attribution required; commercial use permitted.',
-              },
-              {
-                title: 'JPMorgan Chase Institute SME Cash Flow',
-                what: 'Anonymized transaction-level data from ~10,000 small business checking accounts, published as an academic research series by JPMorgan Chase Institute.',
-                how: 'We calibrate three critical assumptions: (1) median cash buffer in days, which feeds the "runway" projection; (2) revenue volatility coefficient of variation, which seeds the Monte Carlo standard deviation; (3) seasonal revenue patterns by sector, which adjust month-over-month projections. These distributions make the Monte Carlo stress test realistic — not just random noise.',
-                license: 'Academic reference. Published findings used for calibration; raw data is not redistributed.',
-              },
-              {
-                title: 'ProjectionHub SMB Benchmarks',
-                what: 'Industry-specific financial ratio benchmarks (COGS %, payroll %, rent %, profit margin) for ~50 common small business types, maintained by ProjectionHub.',
-                how: 'This is the "sanity check" layer. After the deterministic engine computes your projected expenses, we compare each ratio against the ProjectionHub median. If your food truck\'s payroll is 45% of revenue but the industry median is 28%, the Reconciliation Engine flags it as a QSL-2 "Plausible Extrapolation" and surfaces a correction suggestion.',
-                license: 'Public reference. Ratios are publicly cited; no raw data redistribution.',
-              },
-              {
-                title: 'Kaggle Coffee Shop Financials (CC0)',
-                what: 'A small, public dataset of 24 real coffee-shop financial records (2022–2023), used only as a calibration anchor for hospitality and food-service unit economics.',
-                how: 'This is genuinely thin coverage — 24 records is a spot-check, not a statistical sample. It refines unit-economics ratios for coffee-shop-style businesses specifically; it does not drive benchmarks for any other sector, and the confidence badge reflects that narrow scope rather than treating it as broad evidence.',
-                license: 'CC0 (public domain). No restrictions on commercial use.',
-              },
-              {
-                title: 'AIWMC Quantis Benchmark Library',
-                what: `Our derived benchmark corpus — ${BENCHMARK_COUNT_DISPLAY} datapoints synthesized from all upstream sources, continuously refreshed. Each datapoint is a (industry × geography × metric × percentile) tuple.`,
-                how: `This is the lookup table the deterministic engine queries at runtime. For any (industry, location) pair, it returns the P25/median/P75 range for every financial metric: gross margin, CAC, LTV, churn rate, average check, startup costs, etc. The ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo draws from these distributions to generate pessimistic / base / optimistic scenarios across ${BENCHMARK_SECTORS} sectors.`,
-                license: 'Proprietary derived. Built from open datasets; the composite library is AIWMC intellectual property.',
-              },
-            ].map((src) => (
-              <div key={src.title} className="p-4 rounded-lg space-y-2" style={PANEL}>
-                <h4 className="font-semibold text-sm flex items-center gap-2" style={{ color: 'hsl(var(--foreground))' }}>
-                  <FileCheck className="w-4 h-4" style={{ color: '#4ade80' }} /> {src.title}
-                </h4>
-                <p className="text-xs text-muted-foreground leading-relaxed"><strong>What it is:</strong> {src.what}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed"><strong>How we use it:</strong> {src.how}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed"><strong>License:</strong> {src.license}</p>
-              </div>
+              ['1', 'User inputs', 'Quantis begins with the business, location, and financial assumptions supplied by the user. Missing values may be filled with modeled defaults and should be reviewed.'],
+              ['2', 'Segment and fallback', 'The request is mapped to a sector, business model, stage, size, and city tier. If an exact cell is unavailable, the lookup broadens through a documented fallback ladder. Broader matches carry less specificity.'],
+              ['3', 'Deterministic formulas', 'Revenue, operating costs, margins, runway, break-even, and payback are calculated from the selected assumptions using explicit formulas. Deterministic means repeatable for the same inputs—not guaranteed correct inputs.'],
+              ['4', 'Scenario sampling', `${MONTE_CARLO_ITERATIONS_DISPLAY} iterations vary selected assumptions within configured ranges to show downside, base, and upside sensitivity. The bands depend on those ranges; they are not promises or observed probabilities.`],
+              ['5', 'Narration and reconciliation', 'AI explains the calculation. Numeric claims are compared with canonical outputs where a matching metric exists; unsupported qualitative claims still require judgment.'],
+              ['6', 'External evidence when available', 'RVCE may add current external observations for selected metrics. If the check cannot run or finds no suitable evidence, the unavailable state must remain visible.'],
+            ].map(([step, title, description]) => (
+              <li key={step} className="flex gap-3 p-4 rounded-lg" style={PANEL}>
+                <span className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-mono" style={{ background: 'rgba(79,70,229,0.18)', color: 'var(--aiwmc-grad-cyan)' }}>{step}</span>
+                <div>
+                  <h4 className="font-semibold text-sm">{title}</h4>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{description}</p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
 
-          <div className="p-4 rounded-lg space-y-3" style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(148,163,255,0.18)' }}>
-            <h4 className="font-semibold text-sm" style={{ color: 'hsl(var(--foreground))' }}>How a Benchmark Number Becomes a Projection</h4>
-            <ol className="list-decimal list-inside text-xs text-muted-foreground space-y-2 leading-relaxed">
-              <li><strong>Industry detection:</strong> Your business idea is matched to one of {BENCHMARK_SECTORS} sectors via keyword + AI classification. If no strong match, the "general" sector fallback (cross-sector medians) is used — never a hallucinated number.</li>
-              <li><strong>Location calibration:</strong> Base US metrics are multiplied by location-specific factors (salary, rent, utility, marketing) derived from World Bank + cost-of-living indices for 50+ global hubs.</li>
-              <li><strong>Deterministic calculation:</strong> Revenue = average check × orders/month. Expenses = rent + payroll + COGS + marketing + utilities + insurance. All from the benchmark P50 (median). Operating profit, margins, CAC, LTV, payback — all computed from these inputs via standard financial formulas. <strong>Operating profit is pre-tax and excludes depreciation, amortization, and interest expense</strong> — this engine does not model a depreciation schedule, debt structure, or tax rate, so it does not report a true post-tax bottom-line net income figure.</li>
-              <li><strong>Monte Carlo stress test (Plus/Pro):</strong> {MONTE_CARLO_ITERATIONS_DISPLAY} iterations sample from the P25–P75 range with realistic variance (JPMorgan volatility coefficients). Output: pessimistic (P10), base (P50), optimistic (P90) bands.</li>
-              <li><strong>Reconciliation gate:</strong> The multi-model Reconciliation Engine cross-checks every output against Golden Test Vectors (±15% tolerance). Outputs that fail are auto-corrected or flagged QSL-1.</li>
-              <li><strong>Confidence assignment:</strong> Each metric gets a QSL badge (4 = deterministic certainty, 3 = benchmark-aligned, 2 = extrapolated, 1 = speculative) based on how close the user's inputs are to the benchmark IQR.</li>
-            </ol>
+          <div className="p-4 rounded-lg" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+            <h4 className="font-semibold text-sm mb-2">Standard-run exclusions</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Operating profit is pre-tax. The standard model excludes depreciation, amortization, and interest expense;
+              it also does not build a complete tax position, debt schedule, legal or regulatory opinion,
+              audited financial statement, or locally verified demand forecast. These must be
+              supplied or reviewed separately before capital is committed.
+            </p>
           </div>
         </GlassCard>
       </section>
@@ -443,7 +399,7 @@ export default function Methodology() {
               <Lock className="w-4 h-4" style={{ color: 'var(--aiwmc-grad-violet)' }} /> Why the engine is protected — the financial firewall
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Every projection, margin, and risk score you see traces back to the deterministic engine described in the section above — never to a language model's guess. This is checked, not assumed: after the narration model writes your executive summary and recommendation, every dollar figure and percentage in that text is extracted and compared against the engine's own computed metrics, either as an exact match or within a tight tolerance of a real, derived value. Anything that doesn't trace back — an invented number — is flagged and the report's trust score drops accordingly. If the AI narration layer fails or times out entirely, the engine's numbers still ship on their own, clearly marked, rather than being replaced with a fabricated explanation. <strong>One explicit exception:</strong> TAM/SAM/SOM market-size figures have no deterministic-engine equivalent to reconcile against (Quantis has no market-research data source), so they are not covered by this numeric firewall — they're labeled as AI-modeled estimates everywhere they appear, not verified figures.
+              Canonical financial projections and margins trace back to the deterministic engine described above rather than being generated as free-form language-model guesses. This is checked, not assumed: after the narration model writes your executive summary and recommendation, every dollar figure and percentage in that text is extracted and compared against the engine's own computed metrics, either as an exact match or within a tight tolerance of a real, derived value. Anything that doesn't trace back — an invented number — is flagged and the report's trust score drops accordingly. If the AI narration layer fails or times out entirely, the engine's numbers still ship on their own, clearly marked, rather than being replaced with a fabricated explanation. <strong>One explicit exception:</strong> TAM/SAM/SOM market-size figures have no deterministic-engine equivalent to reconcile against (Quantis has no market-research data source), so they are not covered by this numeric firewall — they're labeled as AI-modeled estimates everywhere they appear, not verified figures.
             </p>
           </div>
 
@@ -506,7 +462,7 @@ export default function Methodology() {
       <GlassCard glow="cyan" className="p-4 flex items-start gap-3 mb-8">
         <Info className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
         <p className="text-sm" style={{ color: 'hsl(var(--foreground))' }}>
-          <strong>Disclaimer:</strong> Quantis is a stress-testing tool intended to validate hypotheses. While our methodology minimizes hallucinations, real-world execution carries inherent risks. Always consult with certified financial advisors before deploying capital.
+          <strong>Disclaimer:</strong> Quantis is a stress-testing tool intended to validate hypotheses. Quantis tests assumptions and calculation consistency; it does not predict outcomes or verify every input. Real decisions require current local evidence and, where appropriate, qualified financial, legal, tax, or industry advice.
         </p>
       </GlassCard>
     </PublicPageShell>
