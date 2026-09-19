@@ -6,6 +6,8 @@ import { AccuracyTransparentResults } from '@/components/analysis/AccuracyTransp
 import { ProJobProgressPanel } from '@/components/analysis/ProJobProgressPanel';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useFeature } from '@/hooks/useTier';
+import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, ShieldAlert, TrendingDown, Activity, ArrowLeft } from 'lucide-react';
@@ -23,6 +25,8 @@ import { PageSEO } from '@/components/seo/PageSEO';
  */
 export default function PreMortem() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { isPlus, isPro } = useSubscription();
   const {
     idea, setIdea, location, setLocation,
     financialInputs, setFinancialInputs,
@@ -131,6 +135,8 @@ export default function PreMortem() {
               allowedExtensions={allowedExtensions}
               onUploadFiles={uploadFiles}
               onRemoveFile={removeFile}
+              isAuthenticated={isAuthenticated}
+              isPlus={isPlus || isPro}
             />
           </div>
         )}
