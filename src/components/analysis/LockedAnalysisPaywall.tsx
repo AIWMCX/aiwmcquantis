@@ -69,7 +69,11 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
         gatedItems: [
           { icon: Target, label: 'Prioritized Action Plan', desc: 'Critical / This Week / This Month — sequenced for execution' },
           { icon: CheckCircle2, label: 'Risk Mitigation Tactics', desc: 'Step-by-step fixes for every red flag, with effort + cost' },
-          { icon: FileText, label: 'PDF Export', desc: 'Investor-ready 12-page report with your branding' },
+          // "12-page" was an unverified specific figure -- PDF generation is
+          // client-side and content-length-dependent (see useDocumentDownload.ts),
+          // not a fixed page count. Same false-precision class as the retired
+          // PROCESSING_TIME_CLAIM ("under 90 seconds") in canonical-facts.ts.
+          { icon: FileText, label: 'PDF Export', desc: 'Investor-ready report with your branding' },
         ],
       };
 

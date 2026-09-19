@@ -326,7 +326,21 @@ function FeatureComparisonTable() {
     { name: 'Strategic roadmap', free: 'no', plus: 'no', pro: 'yes' },
     { name: 'White-label PDF export', free: 'no', plus: 'no', pro: 'yes' },
     { name: 'API access', free: 'no', plus: 'no', pro: 'yes' },
-    { name: 'Team seats', free: '1', plus: '1', pro: '3' },
+    {
+      name: 'Team seats',
+      // Sourced from TIERS.*.limits.teamSeats (config/tiers.ts), which is
+      // drift-tested (tiers-drift.test.ts) against the real server-enforced
+      // value in supabase/functions/_shared/entitlements.ts: Free=0, Plus=1,
+      // Pro=3. This row previously hardcoded "1 / 1 / 3" -- correct for
+      // Plus/Pro, but wrong for Free (was 1, should be 0; Free has no team
+      // access at all per entitlements.ts). Do not source this from
+      // tier-spec.ts's FEATURE_MANIFEST -- that file's team_seats values
+      // (FREE=0, PLUS=0, PRO=3) disagree with the actual enforced server
+      // entitlements and are themselves stale.
+      free: String(TIERS.free.limits.teamSeats),
+      plus: String(TIERS.plus.limits.teamSeats),
+      pro: String(TIERS.pro.limits.teamSeats),
+    },
     { name: 'Support', free: 'Email', plus: 'Priority', pro: 'Priority' },
   ];
 
