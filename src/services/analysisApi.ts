@@ -29,16 +29,18 @@ function isCompletedAnalysisResponse(data: AnalysisAPIResponse): data is Complet
   return data.success === true && !!data.data && typeof data.data === 'object' && 'financial_analysis' in data.data;
 }
 
-// Free/anonymous depth response — the backend intentionally omits
-// `financial_analysis` for this tier (see analyze-business/index.ts
-// isFreeOrAnon wirePayload), so this is a genuine success, not the absence
-// of one. Must be checked before isCompletedAnalysisResponse rejects it.
-function isFreeTierResponse(data: AnalysisAPIResponse): boolean {
+// Legacy free/anonymous slim response retained only for backward compatibility.
+// Current complimentary Decision Runs also carry `_tier: 'free'`, but include
+// `financial_analysis` and must continue through the complete-result path.
+// Checking only the tier silently discarded the full report, prevented
+// persistence/history, and stranded the user before Scenario Lab.
+export function isLegacyFreeTierResponse(data: AnalysisAPIResponse): boolean {
   return (
     data.success === true &&
     !!data.data &&
     typeof data.data === 'object' &&
-    (data.data as unknown as Record<string, unknown>)._tier === 'free'
+    (data.data as unknown as Record<string, unknown>)._tier === 'free' &&
+    !('financial_analysis' in data.data)
   );
 }
 
@@ -310,11 +312,10 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         throw new Error(`TIER_GATE: ${message} | upgrade_url=${upgradeUrl}`);
       }
 
-      // Free/anonymous depth — genuine success with the deliberately slim
-      // shape. Must be checked before the isCompletedAnalysisResponse gate
-      // below, which would otherwise reject it (no `financial_analysis`)
-      // and burn two more full backend retries before ultimately failing.
-      if (isFreeTierResponse(data)) {
+      // Legacy free/anonymous slim response. Current complimentary free
+      // Decision Runs contain `financial_analysis` and therefore bypass this
+      // compatibility branch and persist like every other complete result.
+      if (isLegacyFreeTierResponse(data)) {
         const d = data.data as unknown as Record<string, unknown>;
         logger.info('Free-tier analysis summary received', { metadata: { request_id: requestId } });
         try {

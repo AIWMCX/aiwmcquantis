@@ -240,6 +240,14 @@ export default function Index() {
   // report. `freeTierSummary` remains only for legacy cached responses.
   const hasAnyResult = !!result || !!freeTierSummary;
 
+  // The server consumes the complimentary quota before returning the report.
+  // Refresh as soon as persistence assigns this run an ID so the visible
+  // counter matches the completed action without requiring a page reload.
+  useEffect(() => {
+    if (!analysisId || !isAuthenticated) return;
+    void refetchSubscription();
+  }, [analysisId, isAuthenticated, refetchSubscription]);
+
   useEffect(() => {
     if (hasAnyResult && shouldShowFirstAnalysisCelebration) {
       setShowCelebration(true);
