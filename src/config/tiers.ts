@@ -88,7 +88,11 @@ export const TIERS = {
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 36,
       monteCarloScenarios: MONTE_CARLO_ITERATIONS,
-      teamSeats: 1,
+      // Team access is Pro-only (tier-spec.ts FEATURE_MANIFEST.PLUS.team_seats
+      // = 0, CI-guarded by tier-matrix.test.ts). This was 1, contradicting
+      // that canonical, enforced source -- an unused field today, but a
+      // landmine for whoever wires a team-seats UI to this config next.
+      teamSeats: 0,
       templates: DOC_TEMPLATE_COUNT,
       scenarioSetsPerAnalysis: 10,
     },

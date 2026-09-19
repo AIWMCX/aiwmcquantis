@@ -10,6 +10,7 @@ import { PricingCard } from './PricingCard';
 import { GuaranteeBanner } from './GuaranteeBanner';
 import { TIERS } from '@/config/tiers';
 import { DOC_TEMPLATE_COUNT, MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
+import { FEATURE_MANIFEST } from '@/lib/tier-spec';
 import { PricingFAQ } from './PricingFAQ';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { SectionHeader } from '@/components/ui/glass-card';
@@ -326,7 +327,17 @@ function FeatureComparisonTable() {
     { name: 'Strategic roadmap', free: 'no', plus: 'no', pro: 'yes' },
     { name: 'White-label PDF export', free: 'no', plus: 'no', pro: 'yes' },
     { name: 'API access', free: 'no', plus: 'no', pro: 'yes' },
-    { name: 'Team seats', free: '1', plus: '1', pro: '3' },
+    {
+      name: 'Team seats',
+      // Team access is a Pro-only, server-enforced feature (team-invite edge
+      // function + enforce_team_seat_cap DB trigger, spec S11.1). This row
+      // previously hardcoded "1 / 1 / 3", falsely promising Free and Plus
+      // visitors team access that FEATURE_MANIFEST (CI-guarded by
+      // tier-matrix.test.ts) has always gated to PRO only.
+      free: String(FEATURE_MANIFEST.FREE.team_seats),
+      plus: String(FEATURE_MANIFEST.PLUS.team_seats),
+      pro: String(FEATURE_MANIFEST.PRO.team_seats),
+    },
     { name: 'Support', free: 'Email', plus: 'Priority', pro: 'Priority' },
   ];
 

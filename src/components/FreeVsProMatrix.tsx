@@ -11,7 +11,10 @@ const features = [
   { label: 'Decision Runs', free: '5 / month', pro: 'Unlimited' },
   { label: 'Financial analysis', free: 'Full', pro: 'Full' },
   { label: 'Pre-mortem + scenarios', free: true, pro: true },
-  { label: 'PDF & exports', free: false, pro: true },
+  // Free already gets 5 watermarked PDF downloads/day (see PricingSection.tsx
+  // FREE_FEATURES) -- this previously said `false`, falsely telling a free
+  // user mid-upgrade-decision that they have zero export capability at all.
+  { label: 'PDF & exports', free: '5/day, watermarked', pro: 'Unlimited' },
   { label: 'Monte Carlo', free: true, pro: true },
   { label: 'Custom branding', free: false, pro: true },
   { label: 'Priority support', free: false, pro: true },
