@@ -160,9 +160,11 @@ export default function ContentStudio() {
       if (cardUrl || cardErr) setCard({ url: cardUrl ?? '', error: cardErr });
       setVisualMode((data as any).visual_mode ?? null);
       setSourceStatus((data as any).source_status ?? null);
+      const saveErr = (data as any).save_error as string | null;
       toast.success(`Generated ${Object.keys((data as any).variants ?? {}).length} variant(s)`);
       if (imgErr) toast.error('Image generation failed', { description: imgErr });
       if (cardErr) toast.error('Headline card generation failed', { description: cardErr });
+      if (saveErr) toast.error('Content was generated but could not be saved to history', { description: saveErr });
       loadHistory();
     } catch (e) {
       toast.error('Generation failed', { description: e instanceof Error ? e.message : String(e) });

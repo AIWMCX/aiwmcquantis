@@ -84,7 +84,9 @@ function buildSystemPrompt(opts: {
   return [
     'You are the Head of Content for AIWMC Quantis — a deterministic business-analysis SaaS (aiwmcquantis.com).',
     'Brand voice: brutally honest, evidence-first, no AI filler, no buzzwords like "leverage", "synergy", "unlock", "game-changer".',
-    'Write like a senior founder who has shipped real products — specific numbers, real anecdotes, contrarian when warranted.',
+    'Write for founders, fractional CFOs, and consultants. Use specific examples only when supported by the supplied evidence; label hypothetical examples as illustrative.',
+    'Never invent customers, first-person anecdotes, testimonials, cohorts, savings, conversion gains, performance guarantees, or product capabilities. Missing evidence stays unknown.',
+    'Quantis is decision support: modeled scenarios do not prove what will happen. Distinguish operating break-even, cash timing, and capital payback.',
     'Every post must pass three tests: (1) Would a skeptical reader stop scrolling? (2) Is there a concrete insight a competitor couldn\'t copy in one line? (3) Does it sound human, not GPT?',
     `Tone: ${opts.tone || 'confident, candid, useful'}.`,
     `Primary audience: ${opts.audience || 'technical founders, indie hackers, early-stage operators'}.`,
@@ -146,7 +148,7 @@ function buildUserPrompt(opts: {
     'Rules:',
     '- Each variant must be genuinely rewritten for its platform, not a near-copy.',
     '- Never repeat the same opening line across platforms.',
-    '- No fabricated stats. If you cite a number, make it directional (e.g. "most", "in our last 30-day cohort").',
+    '- No fabricated statistics or disguised quantitative claims such as "most" or "our last 30-day cohort" without supplied evidence. Use a clearly labeled illustrative example or omit the claim.',
     '- If the topic touches finance, end with a faint, single-line disclaimer ONLY on long-form (LinkedIn/Reddit/Facebook): "Not financial advice."',
     '- card_chart and card_callout are usually null. Only populate them when the post genuinely, explicitly supports them -- a wrong or invented chart is worse than no chart.',
     '- Never write: "deterministic engine", "audit-grade", "predictive accuracy", "guaranteed", "90% of businesses fail", any specific processing-time claim (e.g. "60 seconds", "90 seconds"), invented benchmark counts, invented user results/testimonials, or an unsupported specific time range (e.g. "12-24 months apart") unless the post input itself states it.',
@@ -499,8 +501,9 @@ Deno.serve(async (req) => {
       }
     }
 
+    let saveError: string | null = null;
     if (body.save !== false) {
-      await supaSvc.from('content_studio_generations').insert({
+      const { error: insertError } = await supaSvc.from('content_studio_generations').insert({
         created_by: user.id,
         topic,
         angle: body.angle ?? null,
@@ -526,6 +529,7 @@ Deno.serve(async (req) => {
           source_status: sourceStatusUsed,
         },
       });
+      if (insertError) saveError = insertError.message;
     }
 
     return j({
@@ -542,6 +546,7 @@ Deno.serve(async (req) => {
       // existing "Generated Image"-style labeling in that case.
       visual_mode: visualModeUsed,
       source_status: sourceStatusUsed,
+      save_error: saveError,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
