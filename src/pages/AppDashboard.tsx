@@ -20,7 +20,6 @@ import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/can
 import { RateLimitBanner } from '@/components/analysis/RateLimitBanner';
 import { QuickStartWizard } from '@/components/onboarding/QuickStartWizard';
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
-import { FirstAnalysisCelebration } from '@/components/onboarding/FirstAnalysisCelebration';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
@@ -94,7 +93,6 @@ export default function Index() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  const [showCelebration, setShowCelebration] = useState(false);
   const [hasPrefill, setHasPrefill] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -248,12 +246,21 @@ export default function Index() {
     void refetchSubscription();
   }, [analysisId, isAuthenticated, refetchSubscription]);
 
+  // Do not interrupt the first completed report with a blocking celebration,
+  // social-share prompt, or upgrade pitch. The activation moment is reviewing
+  // the decision and continuing into Scenario Lab; make those actions visible
+  // immediately and record the one-time onboarding milestone silently.
   useEffect(() => {
-    if (hasAnyResult && shouldShowFirstAnalysisCelebration) {
-      setShowCelebration(true);
-      incrementAnalysisCount();
-    }
-  }, [hasAnyResult, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
+    if (!hasAnyResult || !shouldShowFirstAnalysisCelebration) return;
+    incrementAnalysisCount();
+    markFirstAnalysisCelebrationSeen();
+    setShowNextSteps(true);
+  }, [
+    hasAnyResult,
+    shouldShowFirstAnalysisCelebration,
+    incrementAnalysisCount,
+    markFirstAnalysisCelebrationSeen,
+  ]);
 
   // Auto-scroll & banner when result appears
   useEffect(() => {
@@ -1082,16 +1089,6 @@ export default function Index() {
         </>
       )}
 
-      <FirstAnalysisCelebration
-        open={showCelebration}
-        onClose={() => {
-          setShowCelebration(false);
-          markFirstAnalysisCelebrationSeen();
-          setShowNextSteps(true);
-        }}
-        analysisCount={1}
-        remainingFreeAnalyses={remainingAnalyses}
-      />
     </AppLayout>
   );
 }
