@@ -155,3 +155,57 @@ describe("Brand spec compliance (2026-09-19 Commercial Social Asset System)", ()
     expect(cardSource).toContain('wrapText(input.headline.toUpperCase(), 17, 5)');
   });
 });
+
+describe('financial_chart / two_thresholds renderer (Quantis Visual System, part 2)', () => {
+  it('exports renderFinancialChartCard, additive to renderHeadlineCard, not a replacement', () => {
+    expect(cardSource).toContain('export async function renderFinancialChartCard');
+    expect(cardSource).toContain('export async function renderHeadlineCard');
+  });
+
+  it('draws exactly the series/markers it is given -- no interpolation, no invented values', () => {
+    const idx = cardSource.indexOf('function renderTwoThresholdsChart');
+    const end = cardSource.indexOf('export async function renderFinancialChartCard');
+    const body = cardSource.slice(idx, end);
+    expect(body).not.toMatch(/Math\.random|estimateValue|syntheticValue/i);
+    // Linear interpolation only -- explicitly no bezier/smoothing, which
+    // would visually imply more precision than a handful of caller-supplied
+    // points actually has.
+    expect(body).not.toMatch(/bezier|smooth|curveTo/i);
+  });
+
+  it('sizes the chart plot dynamically against the fixed disclaimer boundary, not a hardcoded height', () => {
+    // Regression guard: found 2026-09-20 by actually rendering the
+    // acceptance-test fixture -- a fixed 380px plot height let the chart's
+    // own bottom axis line render at y=1174 on a 1350px canvas while the
+    // disclaimer's fixed zone starts at CARD_HEIGHT-186 (=1164), drawing
+    // the axis line directly through the disclaimer text. The plot height
+    // must be derived from the caller-supplied boundary, never a constant.
+    expect(cardSource).toContain('maxBottomY - AXIS_LABEL_CLEARANCE - plotTop');
+    expect(cardSource).toContain('CARD_HEIGHT - 186');
+  });
+
+  it('omits the CTA rather than force it into a position that could overlap the chart or disclaimer', () => {
+    // Regression guard: found 2026-09-20 by actually rendering the
+    // acceptance-test fixture -- capping the CTA's Y independently of the
+    // chart's real height let it render ABOVE the chart's own axis label
+    // and left only ~6px clearance above the disclaimer. Omitting the CTA
+    // when there isn't genuinely safe room is the same "no chart at all is
+    // better than a wrong chart" philosophy already applied elsewhere in
+    // this file.
+    expect(cardSource).toMatch(/input\.cta\s*&&\s*ctaY\s*<=\s*CARD_HEIGHT\s*-\s*220/);
+  });
+
+  it('uses edge-aware label anchoring for chart markers -- the same overflow class as the 2026-09-19 headline fix', () => {
+    const idx = cardSource.indexOf('const anchorFor');
+    expect(idx).toBeGreaterThan(-1);
+    const body = cardSource.slice(idx, idx + 300);
+    expect(body).toContain("return 'start'");
+    expect(body).toContain("return 'end'");
+  });
+
+  it('uses the exact spec colors for series (cyan/amber/muted mapped to the brand palette)', () => {
+    expect(cardSource).toMatch(/CHART_COLOR.*cyan:\s*BRAND_ACCENT/s);
+    expect(cardSource).toMatch(/amber:\s*BRAND_WARN/);
+    expect(cardSource).toMatch(/muted:\s*BRAND_SUBTLE/);
+  });
+});
