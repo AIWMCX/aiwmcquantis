@@ -51,6 +51,18 @@ interface GeneratedImage {
   error: string | null;
 }
 
+type VisualFormat = 'auto' | 'financial_chart' | 'editorial_headline' | 'product_proof';
+const VISUAL_FORMATS: { id: VisualFormat; label: string; disabled?: boolean }[] = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'financial_chart', label: 'Financial chart' },
+  { id: 'editorial_headline', label: 'Editorial headline' },
+  // Backend has no renderer for this yet (needs a real, human-supplied
+  // screenshot -- never a generated one, per the brief's "never generate
+  // fake dashboards" rule). Listed so the field's shape matches the spec,
+  // disabled so it can't silently produce nothing.
+  { id: 'product_proof', label: 'Product proof (coming soon)', disabled: true },
+];
+
 const TONE_PRESETS = [
   'confident, candid, useful',
   'contrarian, sharp, evidence-first',
@@ -90,11 +102,15 @@ export default function ContentStudio() {
   const [emojiEnabled, setEmojiEnabled] = useState(true);
   const [model, setModel] = useState('deepseek-v4-flash');
 
+  const [visualFormat, setVisualFormat] = useState<VisualFormat>('auto');
+
   const [generating, setGenerating] = useState(false);
   const [variants, setVariants] = useState<Record<string, Variant> | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [card, setCard] = useState<GeneratedImage | null>(null);
+  const [visualMode, setVisualMode] = useState<string | null>(null);
+  const [sourceStatus, setSourceStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !canAccess) navigate('/app', { replace: true });
@@ -122,11 +138,14 @@ export default function ContentStudio() {
     setVariants(null);
     setImage(null);
     setCard(null);
+    setVisualMode(null);
+    setSourceStatus(null);
     try {
       const { data, error } = await supabase.functions.invoke('content-studio-generate', {
         body: {
           topic, angle, tone, audience, cta, length, platforms, model,
           hashtags_enabled: hashtagsEnabled, emoji_enabled: emojiEnabled,
+          visual_format: visualFormat,
           save: true,
         },
       });
@@ -139,6 +158,8 @@ export default function ContentStudio() {
       const cardUrl = (data as any).card_image_url as string | null;
       const cardErr = (data as any).card_error as string | null;
       if (cardUrl || cardErr) setCard({ url: cardUrl ?? '', error: cardErr });
+      setVisualMode((data as any).visual_mode ?? null);
+      setSourceStatus((data as any).source_status ?? null);
       toast.success(`Generated ${Object.keys((data as any).variants ?? {}).length} variant(s)`);
       if (imgErr) toast.error('Image generation failed', { description: imgErr });
       if (cardErr) toast.error('Headline card generation failed', { description: cardErr });
@@ -241,6 +262,21 @@ export default function ContentStudio() {
             </div>
 
             <div>
+              <Label htmlFor="visual-format">Visual format</Label>
+              <Select value={visualFormat} onValueChange={(v) => setVisualFormat(v as VisualFormat)}>
+                <SelectTrigger id="visual-format" className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {VISUAL_FORMATS.map((f) => (
+                    <SelectItem key={f.id} value={f.id} disabled={f.disabled}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-[var(--q-text-secondary)] mt-1">
+                Auto picks a financial chart for break-even/payback/revenue/cost/retention topics, an editorial headline card otherwise.
+              </p>
+            </div>
+
+            <div>
               <Label htmlFor="audience">Audience</Label>
               <Input id="audience" value={audience} onChange={(e) => setAudience(e.target.value)} className="mt-1" />
             </div>
@@ -307,28 +343,59 @@ export default function ContentStudio() {
                 Writing on-brand variants…
               </Card>
             )}
-            {image?.url && (
-              <Card className="p-4 space-y-2">
-                <p className="text-xs uppercase tracking-wider text-[var(--q-text-secondary)]">Generated image (Hugging Face FLUX.1-schnell)</p>
-                <img src={image.url} alt="Generated creative" className="w-full rounded-md border border-border" />
-                <p className="text-xs text-[var(--q-text-secondary)]">Signed link expires in 24h — re-open this generation from history to get a fresh one.</p>
-              </Card>
-            )}
-            {image?.error && !image.url && (
-              <Card className="p-4 border-destructive/40 bg-destructive/5">
-                <p className="text-sm text-destructive">Image generation failed: {image.error}</p>
-              </Card>
-            )}
             {card?.url && (
               <Card className="p-4 space-y-2">
-                <p className="text-xs uppercase tracking-wider text-[var(--q-text-secondary)]">Headline card (AIWMC Quantis brand template)</p>
-                <img src={card.url} alt="Generated headline card" className="w-full rounded-md border border-border" />
-                <p className="text-xs text-[var(--q-text-secondary)]">Signed link expires in 24h — re-open this generation from history to get a fresh one.</p>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <p className="text-xs uppercase tracking-wider text-[var(--q-text-secondary)]">Quantis social asset preview</p>
+                  <div className="flex items-center gap-1.5">
+                    {visualMode === 'financial_chart' && (
+                      <Badge variant="secondary" className="text-[10px]">Financial chart</Badge>
+                    )}
+                    {sourceStatus === 'illustrative' && (
+                      <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-600 dark:text-amber-400">
+                        Illustrative example
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                {/* Deterministically rendered by Quantis code (SVG -> PNG), never
+                    by the image model -- see template-card.ts. Alt text names
+                    the actual headline for a real screen-reader description,
+                    not a generic label (brief SF.7 accessibility requirement). */}
+                <img
+                  src={card.url}
+                  alt={`AIWMC Quantis social asset: ${topic || 'generated post'}`}
+                  className="w-full rounded-md border border-border"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-[var(--q-text-secondary)]">Signed link expires in 24h — re-open this generation from history to get a fresh one.</p>
+                  <a
+                    href={card.url}
+                    download={`quantis-social-asset-${Date.now()}.png`}
+                    className="text-xs font-medium text-primary underline underline-offset-2 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary rounded-sm"
+                  >
+                    Download PNG
+                  </a>
+                </div>
               </Card>
             )}
             {card?.error && !card.url && (
               <Card className="p-4 border-destructive/40 bg-destructive/5">
-                <p className="text-sm text-destructive">Headline card generation failed: {card.error}</p>
+                <p className="text-sm text-destructive">Quantis social asset generation failed: {card.error}</p>
+              </Card>
+            )}
+            {image?.url && (
+              <Card className="p-4 space-y-2 opacity-90">
+                <p className="text-xs uppercase tracking-wider text-[var(--q-text-secondary)]">
+                  Optional background texture{card?.url ? ' (not the main asset)' : ''}
+                </p>
+                <img src={image.url} alt="Abstract navy background texture" className="w-full rounded-md border border-border" />
+                <p className="text-xs text-[var(--q-text-secondary)]">Signed link expires in 24h — re-open this generation from history to get a fresh one.</p>
+              </Card>
+            )}
+            {image?.error && !image.url && !card?.url && (
+              <Card className="p-4 border-destructive/40 bg-destructive/5">
+                <p className="text-sm text-destructive">Background texture generation failed (non-blocking): {image.error}</p>
               </Card>
             )}
             {variantList.map(([platform, v]) => {
