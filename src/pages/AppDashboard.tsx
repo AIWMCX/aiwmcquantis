@@ -594,6 +594,17 @@ export default function Index() {
                       setLocation('Austin, TX');
                       setFinancialInputs((prev) => ({
                         ...prev,
+                        // Found 2026-09-20 (master operating prompt's
+                        // first-user acceptance test, run against live
+                        // production): this handler never set
+                        // selected_industry, so requiredReady stayed false
+                        // and "Start Free Analysis" silently did nothing --
+                        // the site's own flagship one-click demo button was
+                        // non-functional for every anonymous visitor who
+                        // clicked it. Confirmed via the live DOM
+                        // (aria-checked="false" on every industry chip after
+                        // clicking Try Coffee Shop Sample), not assumed.
+                        selected_industry: 'coffee_shop',
                         startup_investment: 85000,
                         monthly_revenue: 28000,
                         average_price: 6.5,
