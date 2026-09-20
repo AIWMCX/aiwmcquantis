@@ -20,7 +20,13 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { generateImageWithRetry, ImageGenError, resolveImageProvider } from '../_shared/image-gen.ts';
-import { renderHeadlineCard } from '../_shared/template-card.ts';
+import { renderHeadlineCard, renderFinancialChartCard } from '../_shared/template-card.ts';
+import { selectVisualMode, validateVisualSpec, VisualSpecError, type VisualSpec } from '../_shared/visual-spec.ts';
+
+/** Fixed, brief-specified footer for financial_chart cards -- never model-
+ *  supplied, matching how the legacy card's brandTagline is already a
+ *  server-side constant, not something the LLM writes. */
+const FINANCIAL_CHART_FOOTER = 'AIWMC QUANTIS | Model the decision before you fund it.';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -92,6 +98,7 @@ function buildSystemPrompt(opts: {
 
 function buildUserPrompt(opts: {
   topic: string; angle: string; cta: string; length: string; platforms: Platform[];
+  visualMode: 'financial_chart' | 'editorial_headline';
 }) {
   const guides = opts.platforms.map((p) => `- ${p}: ${PLATFORM_GUIDE[p]}`).join('\n');
   return [
@@ -119,6 +126,21 @@ function buildUserPrompt(opts: {
     '  },',
     '  "card_chart": null OR { "x_axis_label": "e.g. NUMBER OF CUSTOMERS", "series_label": "e.g. COSTS", "steps": [{"threshold": <number>, "annotation": "short label"}, ...] } -- ONLY populate this if the post ITSELF explicitly states a sequence of specific numeric thresholds with what happens at each one (e.g. the post literally says "at 30 customers we hired a supervisor, at 75 we bought a new system"). Never invent, estimate, round, or infer thresholds that are not explicitly stated in the post text. Minimum 2 steps, maximum 5. If the post has no such explicit numeric sequence, this MUST be null -- do not force a chart onto a post that does not contain one.',
     '  "card_callout": null OR { "title": "the specific named concept/mechanism this post is about, 2-4 words", "body": "1 sentence plainly defining that concept, grounded in what the post actually says" } -- ONLY populate if the post centers on one specific, nameable concept (e.g. "step-fixed costs", "collection lag"). If the post is just a story or list without one central named concept, this MUST be null.',
+    opts.visualMode === 'financial_chart' ? [
+      '  "visual_spec_hint": null OR {',
+      '    "headline": "max 7 words, ALL CAPS not required, the single sharpest claim",',
+      '    "subhead": "max 22 words, one supporting sentence",',
+      '    "sourceStatus": "illustrative" | "product_verified" | "externally_cited" -- use "illustrative" unless the post cites a real, verifiable external source,',
+      '    "illustrativeNote": "Illustrative example. Actual thresholds depend on your business." -- REQUIRED verbatim when sourceStatus is illustrative,',
+      '    "chart": {',
+      '      "type": "two_thresholds" | "two_lines" | "three_scenarios",',
+      '      "xAxisLabel": "e.g. Time (months)",',
+      '      "yAxisLabel": "e.g. Amount ($)",',
+      '      "series": [ { "label": "e.g. Monthly operating profit", "color": "cyan" | "amber" | "muted", "points": [{"x": <number>, "y": <number>}, ...] }, ... ] -- exactly 2 series for two_thresholds/two_lines, exactly 3 for three_scenarios. Points are ILLUSTRATIVE shape only (a believable curve for the concept), never claimed as real measured data.',
+      '      "markers": [ { "x": <number>, "label": "SHORT LABEL", "description": "one clause", "color": "cyan" | "amber" }, ... ] -- optional, max 6, only for two_thresholds (e.g. BREAK-EVEN / PAYBACK)',
+      '    }',
+      '  } -- This is a FINANCIAL topic (break-even, payback, revenue, cash, cost, retention, acquisition, capacity, scenario, runway, contribution margin, churn, pricing). Populate this so the post gets an illustrative deterministic chart instead of a generic headline card. Never claim the chart shape is real measured data -- it illustrates the CONCEPT the post describes, hence sourceStatus "illustrative" and the required note. If you cannot construct a sensible chart for this topic, use null and a headline card will be used instead.',
+    ].join('\n') : '',
     '}',
     '',
     'Rules:',
@@ -127,6 +149,7 @@ function buildUserPrompt(opts: {
     '- No fabricated stats. If you cite a number, make it directional (e.g. "most", "in our last 30-day cohort").',
     '- If the topic touches finance, end with a faint, single-line disclaimer ONLY on long-form (LinkedIn/Reddit/Facebook): "Not financial advice."',
     '- card_chart and card_callout are usually null. Only populate them when the post genuinely, explicitly supports them -- a wrong or invented chart is worse than no chart.',
+    '- Never write: "deterministic engine", "audit-grade", "predictive accuracy", "guaranteed", "90% of businesses fail", any specific processing-time claim (e.g. "60 seconds", "90 seconds"), invented benchmark counts, invented user results/testimonials, or an unsupported specific time range (e.g. "12-24 months apart") unless the post input itself states it.',
   ].filter(Boolean).join('\n');
 }
 
@@ -185,6 +208,18 @@ Deno.serve(async (req) => {
       return j({ error: 'No AI provider configured. Set DEEPSEEK_API_KEY in Supabase secrets.' }, 500);
     }
 
+    // Visual format (Quantis Visual System brief SD): 'auto' (default) uses
+    // the topic-keyword classifier; an explicit choice from the UI's
+    // Visual format selector overrides it. product_proof never asks the
+    // model for a chart hint -- it needs a real, human-supplied screenshot,
+    // not model-generated chart data (see visual-spec.ts's own rule that
+    // product_proof can never be auto-selected).
+    const requestedFormat = String(body.visual_format ?? 'auto');
+    const promptVisualMode: 'financial_chart' | 'editorial_headline' =
+      requestedFormat === 'financial_chart' ? 'financial_chart'
+      : requestedFormat === 'editorial_headline' || requestedFormat === 'product_proof' ? 'editorial_headline'
+      : selectVisualMode(topic);
+
     const system = buildSystemPrompt(opts);
     const userPrompt = buildUserPrompt({
       topic,
@@ -192,6 +227,7 @@ Deno.serve(async (req) => {
       cta: String(body.cta ?? ''),
       length: String(body.length ?? ''),
       platforms,
+      visualMode: promptVisualMode,
     });
 
     const t0 = Date.now();
@@ -252,6 +288,7 @@ Deno.serve(async (req) => {
       variants?: unknown;
       card_chart?: { x_axis_label?: string; series_label?: string; steps?: Array<{ threshold?: number; annotation?: string }> } | null;
       card_callout?: { title?: string; body?: string } | null;
+      visual_spec_hint?: unknown;
     } | null;
     if (!parsed) {
       return j({ error: 'Model returned invalid JSON. Try a shorter topic or fewer platforms.' }, 502);
@@ -303,13 +340,17 @@ Deno.serve(async (req) => {
         imageError = 'No image provider configured. Set HUGGINGFACE_API_TOKEN in Supabase secrets.';
       } else {
         try {
+          // CORRECTED 2026-09-20 (Quantis Visual System brief SC): the
+          // previous version of this prompt explicitly invited a
+          // photographic human subject in the scene -- a direct cause of
+          // the reported "irrelevant AI image of a sad man with a pixel
+          // robot" bug. FLUX is background-only now: a low-detail navy
+          // paper-grain / abstract financial texture, never a photographic
+          // subject, and never asked to draw text/charts/logos/UI (those
+          // are the deterministic renderer's job -- see template-card.ts).
           // Brand style is enforced here, server-side, deterministically --
-          // never left to the LLM's one-sentence brief alone. Guarantees a
-          // consistent commercial/editorial AIWMC Quantis look regardless of
-          // model mood, and explicitly excludes the generic "AI slop" tropes
-          // (glowing tech abstractions, stock-photo cliches) the founder
-          // flagged as embarrassing for daily public posting.
-          const styledPrompt = `${chosenPrompt}. Cinematic commercial photography for a professional B2B SaaS brand. Clean editorial style, natural studio lighting, shallow depth of field, realistic textures, real people or real objects in a real setting. No text, no numbers, no charts, no logos, no watermarks. No illustration or cartoon style. No generic AI-art tropes: no glowing abstract data streams, no circuit-board patterns, no floating holograms, no robot hands, no neon blue gradients.`;
+          // never left to the LLM's one-sentence brief alone.
+          const styledPrompt = `Abstract background texture only, subtly inspired by: ${chosenPrompt}. Deep midnight navy near-black base (#0b0f1a range), fine paper grain, soft low-contrast abstract financial field -- faint ledger-line or grid texture, subtle light gradients. No people, no faces, no hands, no robots, no mascots, no characters, no animals. No text, no numbers, no letters, no charts, no graphs, no axes, no logos, no watermarks, no UI elements, no app screenshots, no icons, no QR codes. No illustration or cartoon style, no photorealistic subjects. No generic AI-art tropes: no glowing abstract data streams, no circuit-board patterns, no floating holograms, no neon gradients, no cyberpunk. Purely atmospheric background texture, nothing depicted.`;
           const image = await generateImageWithRetry(imageProvider, styledPrompt);
           const ext = image.contentType.includes('jpeg') ? 'jpg' : image.contentType.includes('webp') ? 'webp' : 'png';
           const storagePath = `content-studio/${crypto.randomUUID()}.${ext}`;
@@ -372,7 +413,68 @@ Deno.serve(async (req) => {
       ? { title: rawCallout.title.trim(), body: rawCallout.body.trim() }
       : undefined;
 
-    if (cardHeadline) {
+    // financial_chart path (Quantis Visual System, part 3): attempted first
+    // when the model returned a visual_spec_hint AND the topic classifies
+    // (or was explicitly requested) as financial_chart. Validated through
+    // the same VisualSpecError-throwing validator the acceptance test
+    // exercises directly (visual-spec.test.ts) -- on ANY validation failure,
+    // this falls through to the existing headline-card path below rather
+    // than failing the whole generation, matching the spec's own S5 rule
+    // ("on VisualSpecError, fall back to today's existing behavior").
+    let visualModeUsed: VisualSpec['mode'] | null = null;
+    let sourceStatusUsed: VisualSpec['sourceStatus'] | null = null;
+    if (promptVisualMode === 'financial_chart' && parsed.visual_spec_hint) {
+      try {
+        const hint = parsed.visual_spec_hint as Record<string, unknown>;
+        const candidate = {
+          mode: 'financial_chart' as const,
+          topic,
+          headline: hint.headline,
+          subhead: hint.subhead,
+          sourceStatus: hint.sourceStatus ?? 'illustrative',
+          chart: hint.chart,
+          footer: FINANCIAL_CHART_FOOTER,
+          illustrativeNote: hint.illustrativeNote,
+          cta: body.cta ? String(body.cta) : undefined,
+        };
+        const spec = validateVisualSpec(candidate);
+        if (spec.chart) {
+          const card = await renderFinancialChartCard({
+            headline: spec.headline,
+            subhead: spec.subhead,
+            chart: spec.chart,
+            illustrativeNote: spec.illustrativeNote ?? 'Illustrative example. Actual thresholds depend on your business.',
+            footer: spec.footer,
+            cta: spec.cta,
+          });
+          const storagePath = `content-studio/${crypto.randomUUID()}-chart.png`;
+          const { error: uploadError } = await supaSvc.storage
+            .from('content-assets')
+            .upload(storagePath, card.bytes, { contentType: card.contentType, upsert: false });
+          if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+          const { data: signedData, error: signError } = await supaSvc.storage
+            .from('content-assets')
+            .createSignedUrl(storagePath, 86400);
+          if (signError || !signedData?.signedUrl) throw new Error(`Signed URL failed: ${signError?.message ?? 'no URL returned'}`);
+          cardResult = { url: signedData.signedUrl, storagePath };
+          visualModeUsed = 'financial_chart';
+          sourceStatusUsed = spec.sourceStatus;
+        }
+      } catch (e) {
+        // Swallowed deliberately -- an invalid/malformed visual_spec_hint
+        // (VisualSpecError) or a render failure both fall through to the
+        // legacy headline-card path below, never to a hard error. Recorded
+        // in cardError only if the legacy path ALSO fails, so a successful
+        // fallback doesn't look like an error in the response.
+        cardError = e instanceof VisualSpecError
+          ? `visual_spec_hint invalid (${e.field}): ${e.message} -- used headline card instead`
+          : (e instanceof Error ? e.message : String(e));
+      }
+    }
+
+    if (!cardResult && cardHeadline) {
+      const financialChartError = cardError; // preserved only if this fallback also fails
+      cardError = null;
       try {
         const card = await renderHeadlineCard({
           headline: cardHeadline,
@@ -392,7 +494,8 @@ Deno.serve(async (req) => {
         if (signError || !signedData?.signedUrl) throw new Error(`Signed URL failed: ${signError?.message ?? 'no URL returned'}`);
         cardResult = { url: signedData.signedUrl, storagePath };
       } catch (e) {
-        cardError = e instanceof Error ? e.message : String(e);
+        const legacyError = e instanceof Error ? e.message : String(e);
+        cardError = financialChartError ? `${financialChartError}; headline card also failed: ${legacyError}` : legacyError;
       }
     }
 
@@ -419,6 +522,8 @@ Deno.serve(async (req) => {
           image_error: imageError,
           card: cardResult ? { storage_path: cardResult.storagePath } : null,
           card_error: cardError,
+          visual_mode: visualModeUsed,
+          source_status: sourceStatusUsed,
         },
       });
     }
@@ -432,6 +537,11 @@ Deno.serve(async (req) => {
       image_error: imageError,
       card_image_url: cardResult?.url ?? null,
       card_error: cardError,
+      // Quantis Visual System (2026-09-20): null when the legacy headline-
+      // card path was used (or no card at all) -- UI falls back to its
+      // existing "Generated Image"-style labeling in that case.
+      visual_mode: visualModeUsed,
+      source_status: sourceStatusUsed,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
