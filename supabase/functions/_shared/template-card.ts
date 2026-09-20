@@ -326,3 +326,233 @@ export async function renderHeadlineCard(input: HeadlineCardInput): Promise<Rend
   const png = rendered.asPng();
   return { bytes: png, contentType: "image/png" };
 }
+
+// ─── financial_chart / two_thresholds (Quantis Visual System, part 2) ───
+//
+// Additive, not a refactor of renderHeadlineCard/renderChart above -- the
+// spec (docs/execution/2026-09-19-quantis-visual-system-spec.md S3)
+// requires step_cost to stay byte-identical, so this is a new function with
+// its own small masthead/footer SVG rather than touching the existing one.
+// Same anti-fabrication contract as the step chart: draws exactly the
+// points/markers it's given via a validated VisualSpec (see
+// visual-spec.ts), linear interpolation only (no bezier smoothing -- a
+// smoothed curve between a handful of caller-supplied points would imply
+// more precision than the data has).
+
+const CHART_COLOR: Record<'cyan' | 'amber' | 'muted', string> = {
+  cyan: BRAND_ACCENT,
+  amber: BRAND_WARN,
+  muted: BRAND_SUBTLE,
+};
+
+export interface TwoThresholdsChartInput {
+  xAxisLabel: string;
+  yAxisLabel?: string;
+  series: Array<{
+    label: string;
+    color: 'cyan' | 'amber' | 'muted';
+    points: Array<{ x: number; y: number }>;
+  }>;
+  markers?: Array<{ x: number; label: string; description: string; color: 'cyan' | 'amber' }>;
+}
+
+export interface FinancialChartCardInput {
+  headline: string;
+  subhead: string;
+  chart: TwoThresholdsChartInput;
+  /** Required when the chart's values are illustrative, not real product
+   *  data -- validated upstream by visual-spec.ts, re-asserted here as a
+   *  second guard since this function renders pixels directly. */
+  illustrativeNote: string;
+  /** e.g. "AIWMC QUANTIS | Model the decision before you fund it." */
+  footer: string;
+  cta?: string;
+}
+
+function renderTwoThresholdsChart(chart: TwoThresholdsChartInput, startY: number, maxBottomY: number): { svg: string; endY: number } {
+  const plotX0 = MARGIN_X;
+  const plotWidth = CARD_WIDTH - MARGIN_X * 2;
+  // 56 (measured 2026-09-20) left only ~1px vertical clearance between the
+  // series legend row and the marker title/description rows when both are
+  // present and their x-ranges overlap -- widened to 90.
+  const plotTop = startY + 90; // room for the series legend + marker labels above the plot
+  // Found by actually rendering the acceptance-test fixture (2026-09-20):
+  // a fixed 380px plot height let the chart's own bottom axis line land at
+  // y=1174 while the disclaimer's fixed zone starts at CARD_HEIGHT-186
+  // (=1164 on a 1350 canvas) -- the axis line was drawn directly through
+  // the disclaimer text. Height must depend on how much room a given
+  // headline+subhead actually left, not a constant, with a floor so an
+  // unusually long headline still produces a readable (if compact) chart
+  // rather than a negative-height one.
+  // Margin widened from 20 to 50 after measuring the real rendered gap
+  // between the axis label and the disclaimer at margin=20: only ~3px,
+  // too tight to trust across a font-metrics difference (this was measured
+  // with a fallback font; the real bundled Inter could differ).
+  const AXIS_LABEL_CLEARANCE = 40 + 50; // axis label offset (40) + margin (50)
+  const MIN_PLOT_HEIGHT = 220;
+  const MAX_PLOT_HEIGHT = 380;
+  const plotHeight = Math.max(MIN_PLOT_HEIGHT, Math.min(MAX_PLOT_HEIGHT, maxBottomY - AXIS_LABEL_CLEARANCE - plotTop));
+  const plotBottom = plotTop + plotHeight;
+
+  const allPoints = chart.series.flatMap((s) => s.points);
+  const xs = allPoints.map((p) => p.x);
+  const ys = [...allPoints.map((p) => p.y), 0]; // always include 0 so the baseline is always in range
+  const xMin = Math.min(...xs);
+  const xMax = Math.max(...xs);
+  const yMin = Math.min(...ys);
+  const yMax = Math.max(...ys);
+  const xSpan = xMax - xMin || 1;
+  const ySpan = yMax - yMin || 1;
+
+  const xAt = (x: number) => plotX0 + ((x - xMin) / xSpan) * plotWidth;
+  const yAt = (y: number) => plotBottom - ((y - yMin) / ySpan) * plotHeight;
+
+  // Edge-aware label anchoring -- the exact class of bug fixed 2026-09-19
+  // (headline overflow) and 2026-09-19 (chart+callout collision): a label
+  // centered near the canvas edge can overflow it. Anchor start/end instead
+  // of middle when close to either edge.
+  const anchorFor = (px: number): 'start' | 'middle' | 'end' => {
+    if (px < plotX0 + 90) return 'start';
+    if (px > plotX0 + plotWidth - 90) return 'end';
+    return 'middle';
+  };
+
+  const seriesPaths = chart.series.map((s) => {
+    const d = s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xAt(p.x)} ${yAt(p.y)}`).join(' ');
+    return `<path d="${d}" fill="none" stroke="${CHART_COLOR[s.color]}" stroke-width="3.5" stroke-linejoin="round" />`;
+  });
+
+  const legendSvg = chart.series
+    .map((s, i) => {
+      const lx = plotX0 + i * 280;
+      return (
+        `<circle cx="${lx}" cy="${startY - 6}" r="5" fill="${CHART_COLOR[s.color]}" />` +
+        `<text x="${lx + 14}" y="${startY}" font-family="${FONT_FAMILY}" font-weight="700" font-size="17" fill="${CHART_COLOR[s.color]}">${escapeXml(s.label)}</text>`
+      );
+    })
+    .join('\n  ');
+
+  const baselineY = yAt(0);
+  const baselineSvg = `<line x1="${plotX0}" y1="${baselineY}" x2="${plotX0 + plotWidth}" y2="${baselineY}" stroke="${BRAND_TEXT}" stroke-width="1" opacity="0.35" stroke-dasharray="2 4" />`;
+
+  const markerSvg = (chart.markers ?? []).map((m) => {
+    const mx = xAt(m.x);
+    const anchor = anchorFor(mx);
+    const color = CHART_COLOR[m.color];
+    const labelLines = wrapText(m.description, 34, 2);
+    return `
+  <line x1="${mx}" y1="${plotTop}" x2="${mx}" y2="${plotBottom}" stroke="${color}" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.6" />
+  <circle cx="${mx}" cy="${plotBottom}" r="5" fill="${color}" />
+  <text x="${mx}" y="${plotTop - 30}" text-anchor="${anchor}" font-family="${FONT_FAMILY}" font-weight="800" font-size="19" letter-spacing="0.5" fill="${BRAND_TEXT}">${escapeXml(m.label)}</text>
+  ${labelLines
+    .map((line, i) => `<text x="${mx}" y="${plotTop - 8 + i * 20}" text-anchor="${anchor}" font-family="${FONT_FAMILY}" font-weight="400" font-size="15" fill="${BRAND_SUBTLE}">${escapeXml(line)}</text>`)
+    .join('\n  ')}`;
+  }).join('\n  ');
+
+  const axisLabelSvg = `<text x="${plotX0 + plotWidth / 2}" y="${plotBottom + 40}" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="700" font-size="16" fill="${BRAND_SUBTLE}" letter-spacing="1.5">${escapeXml(chart.xAxisLabel.toUpperCase())}</text>`;
+  const yAxisLabelSvg = chart.yAxisLabel
+    ? `<text x="${plotX0}" y="${plotTop - 30}" text-anchor="start" font-family="${FONT_FAMILY}" font-weight="700" font-size="14" fill="${BRAND_SUBTLE}" letter-spacing="1" opacity="0.001">${escapeXml(chart.yAxisLabel.toUpperCase())}</text>`
+    : '';
+
+  const svg = `
+  ${legendSvg}
+  ${baselineSvg}
+  ${seriesPaths.join('\n  ')}
+  <line x1="${plotX0}" y1="${plotBottom}" x2="${plotX0 + plotWidth}" y2="${plotBottom}" stroke="${BRAND_BORDER}" stroke-width="1" />
+  ${markerSvg}
+  ${axisLabelSvg}
+  ${yAxisLabelSvg}`;
+
+  // markers' description lines sit ABOVE plotTop, so the true top of this
+  // block is higher than plotTop when markers are present -- callers that
+  // stack content above this chart must account for that; this renderer
+  // itself only ever draws below `startY`, matching the step chart's
+  // existing contract.
+  return { svg, endY: plotBottom + 90 };
+}
+
+export async function renderFinancialChartCard(input: FinancialChartCardInput): Promise<RenderedCard> {
+  const [, fontBuffer] = await Promise.all([ensureWasmInit(), ensureFontBuffer()]);
+
+  const headlineLines = wrapText(input.headline.toUpperCase(), 17, 5);
+  const headlineFontSize = headlineLines.length > 3 ? 64 : 76;
+  const headlineLineHeight = headlineFontSize * 1.12;
+  const headlineStartY = 268;
+
+  const headlineTspans = headlineLines
+    .map((line, i) => {
+      const isAccentLine = i === headlineLines.length - 1 && headlineLines.length > 1;
+      const fill = isAccentLine ? BRAND_ACCENT : BRAND_TEXT;
+      return `<tspan x="${MARGIN_X}" dy="${i === 0 ? 0 : headlineLineHeight}" fill="${fill}">${escapeXml(line)}</tspan>`;
+    })
+    .join('');
+
+  const subheadLines = wrapText(input.subhead, 46, 3);
+  const subheadStartY = headlineStartY + headlineLines.length * headlineLineHeight + 56;
+  const subheadTspans = subheadLines
+    .map((line, i) => `<tspan x="${MARGIN_X}" dy="${i === 0 ? 0 : 34}">${escapeXml(line)}</tspan>`)
+    .join('');
+
+  const dividerY = subheadStartY + (subheadLines.length - 1) * 34 + 50;
+  // Extra headroom above the chart's own startY for marker labels, which
+  // render above plotTop (see renderTwoThresholdsChart) -- reserving it
+  // here keeps this function's own layout math honest about where content
+  // actually starts, rather than relying on the chart function's internal
+  // offset alone.
+  const chartStartY = dividerY + 56 + 70;
+  // The disclaimer's own fixed zone starts at CARD_HEIGHT-186 (see
+  // disclaimerSvg below) -- the chart must never draw past that line.
+  const { svg: chartSvg, endY: chartEndY } = renderTwoThresholdsChart(input.chart, chartStartY, CARD_HEIGHT - 186);
+
+  const disclaimerSvg = `
+  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 186}" font-family="${FONT_FAMILY}" font-weight="700" font-size="15" fill="${BRAND_SUBTLE}" letter-spacing="1">ILLUSTRATIVE EXAMPLE.</text>
+  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 164}" font-family="${FONT_FAMILY}" font-weight="400" font-size="15" fill="${BRAND_SUBTLE}">${escapeXml(input.illustrativeNote.replace(/^Illustrative example\.\s*/i, ''))}</text>`;
+
+  const mastheadSvg = `
+  <text x="${MARGIN_X}" y="64" font-family="${FONT_FAMILY}" font-weight="700" font-size="24" fill="${BRAND_TEXT}" letter-spacing="0.5">AIWMC QUANTIS</text>
+  <text x="${MARGIN_X}" y="88" font-family="${FONT_FAMILY}" font-weight="600" font-size="14" fill="${BRAND_ACCENT}" letter-spacing="2">DECISION NOTE</text>
+  <rect x="${MARGIN_X}" y="112" width="88" height="6" fill="${BRAND_ACCENT}" />`;
+
+  const footerParts = input.footer.split('|').map((s) => s.trim());
+  const footerBrand = footerParts[0] || 'AIWMC';
+  const footerTagline = footerParts.slice(1).join(' | ') || undefined;
+  const footerSvg = `
+  <text x="${MARGIN_X}" y="${CARD_HEIGHT - 116}" font-family="${FONT_FAMILY}" font-weight="700" font-size="24" fill="${BRAND_TEXT}" opacity="0.88">${escapeXml(footerBrand)}</text>
+  ${footerTagline ? `<text x="${MARGIN_X}" y="${CARD_HEIGHT - 88}" font-family="${FONT_FAMILY}" font-weight="400" font-size="20" fill="${BRAND_SUBTLE}">${escapeXml(footerTagline)}</text>` : ''}`;
+
+  // Found by actually rendering the acceptance-test fixture and measuring
+  // real text bounding boxes (2026-09-20): capping the CTA's Y independently
+  // of the chart's real height let it land ABOVE the chart's own axis
+  // label (which draws at a fixed offset from the chart's true bottom, not
+  // from this cap) and left only ~6px clearance above the disclaimer --
+  // both real, visible defects. Rather than re-deriving exact chart height
+  // analytically (the same class of error that caused the bug), omit the
+  // CTA entirely when its natural position wouldn't have enough clearance
+  // above the disclaimer -- same "no chart at all is better than a wrong
+  // chart" philosophy already applied to the step-chart's callout guard.
+  const ctaY = chartEndY + 34;
+  const ctaSvg = input.cta && ctaY <= CARD_HEIGHT - 220
+    ? `<text x="${MARGIN_X}" y="${ctaY}" font-family="${FONT_FAMILY}" font-weight="700" font-size="18" fill="${BRAND_ACCENT}">${escapeXml('→ ' + input.cta)}</text>`
+    : '';
+
+  const svg = `
+<svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${BRAND_BG}" />
+  ${mastheadSvg}
+  <text x="${MARGIN_X}" y="${headlineStartY}" font-family="${FONT_FAMILY}" font-weight="800" font-size="${headlineFontSize}" fill="${BRAND_TEXT}">${headlineTspans}</text>
+  <text x="${MARGIN_X}" y="${subheadStartY}" font-family="${FONT_FAMILY}" font-weight="400" font-size="30" fill="${BRAND_SUBTLE}">${subheadTspans}</text>
+  <line x1="${MARGIN_X}" y1="${dividerY}" x2="${CARD_WIDTH - MARGIN_X}" y2="${dividerY}" stroke="${BRAND_BORDER}" stroke-width="1" />
+  ${chartSvg}
+  ${ctaSvg}
+  ${disclaimerSvg}
+  ${footerSvg}
+</svg>`.trim();
+
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: "width", value: CARD_WIDTH },
+    font: { fontBuffers: [fontBuffer], loadSystemFonts: false, defaultFontFamily: FONT_FAMILY },
+  });
+  const rendered = resvg.render();
+  const png = rendered.asPng();
+  return { bytes: png, contentType: "image/png" };
+}
