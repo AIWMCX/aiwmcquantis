@@ -91,7 +91,11 @@ describe("Deterministic headline card (real SVG text, never a diffusion model, 2
   });
 
   it("renders the card best-effort -- a card failure never blocks the caption/photo response", () => {
-    const idx = generateSource.indexOf("if (cardHeadline)");
+    // Updated 2026-09-20: the legacy headline-card path is now guarded by
+    // "if (!cardResult && cardHeadline)" (it only runs when the newer
+    // financial_chart attempt didn't already produce a card), not the bare
+    // "if (cardHeadline)" this test originally checked for.
+    const idx = generateSource.indexOf("if (!cardResult && cardHeadline)");
     expect(idx).toBeGreaterThan(-1);
     const block = generateSource.slice(idx, generateSource.indexOf("if (body.save !== false)"));
     expect(block).toContain("catch (e)");
