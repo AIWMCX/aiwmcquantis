@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { TIERS } from '@/config/tiers';
 import {
@@ -88,6 +88,21 @@ export function CompactAnalysisForm({
   const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(
     financialInputs.selected_industry
   );
+  // useState's initializer only runs on mount -- it does not re-read
+  // financialInputs.selected_industry on later prop updates. Found
+  // 2026-09-20: a caller that sets financialInputs.selected_industry
+  // externally after mount (e.g. AppDashboard.tsx's "Try Coffee Shop
+  // Sample" quick-fill) had no effect on this local state, so the industry
+  // chip never showed as selected and requiredReady (which reads this
+  // local state, not the prop) stayed false -- the button silently did
+  // nothing. Re-sync whenever the prop changes to a value this state
+  // doesn't already reflect.
+  useEffect(() => {
+    if (financialInputs.selected_industry && financialInputs.selected_industry !== selectedIndustry) {
+      setSelectedIndustry(financialInputs.selected_industry);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [financialInputs.selected_industry]);
   const [depth, setDepth] = useState('full');
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(
     new Set(['bi', 'premortem'])
