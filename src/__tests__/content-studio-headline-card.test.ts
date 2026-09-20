@@ -41,6 +41,24 @@ describe("Deterministic headline card (real SVG text, never a diffusion model, 2
     expect(chartFnBody).not.toMatch(/Math\.random|estimateValue|syntheticValue/i);
   });
 
+  it("never renders a callout alongside a chart -- found 2026-09-19 by actually rendering both together and observing real overlap", () => {
+    // The callout is positioned dynamically at cursorY (right after the
+    // chart's endY), while the disclaimer/footer below are pinned to fixed
+    // CARD_HEIGHT-186/150/116 offsets with no bounds check between them.
+    // Rendering a real card with both present produced illegible, colliding
+    // text -- reproduced with a Node-adapted copy of this exact file against
+    // the founder's own reference fixture (chart: 4 steps, callout:
+    // "STEP-FIXED COSTS"). No existing test in this suite would have caught
+    // this, since none of them actually render a PNG. Chart takes priority:
+    // never both. If this guard is ever loosened, re-verify by rendering
+    // this file's own founder-reference fixture with both chart AND
+    // callout populated and visually inspecting the output PNG -- do not
+    // trust this string check alone as sufficient evidence.
+    const idx = cardSource.indexOf("let calloutSvg");
+    const calloutBlock = cardSource.slice(idx, idx + 200);
+    expect(calloutBlock).toMatch(/input\.callout\s*&&\s*!\(input\.chart\s*&&\s*input\.chart\.steps\.length\s*>=\s*2\)/);
+  });
+
   it("labels a rendered chart as illustrative -- never presents step data as precise fact", () => {
     expect(cardSource).toContain("ILLUSTRATIVE EXAMPLE.");
     expect(cardSource).toContain("Actual thresholds depend on your business.");
