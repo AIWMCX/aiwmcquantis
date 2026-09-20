@@ -209,3 +209,77 @@ describe('financial_chart / two_thresholds renderer (Quantis Visual System, part
     expect(cardSource).toMatch(/muted:\s*BRAND_SUBTLE/);
   });
 });
+
+describe('FLUX prompt is background-only (Quantis Visual System brief SC, 2026-09-20)', () => {
+  it('no longer asks for real people or real objects -- the direct cause of the "sad man with a robot" bug', () => {
+    expect(generateSource).not.toMatch(/real people or real objects/);
+  });
+
+  it('explicitly forbids every category the brief lists: people, robots, text, charts, logos, UI', () => {
+    const idx = generateSource.indexOf('const styledPrompt');
+    expect(idx).toBeGreaterThan(-1);
+    const promptLine = generateSource.slice(idx, generateSource.indexOf('\n', idx + 1) + 400);
+    for (const forbidden of ['No people', 'no robots', 'No text', 'no charts', 'no logos', 'no UI elements', 'no app screenshots']) {
+      expect(promptLine).toContain(forbidden);
+    }
+  });
+
+  it('describes only an atmospheric background texture, not a depicted scene', () => {
+    const idx = generateSource.indexOf('const styledPrompt');
+    const promptLine = generateSource.slice(idx, idx + 900);
+    expect(promptLine).toMatch(/[Bb]ackground texture/);
+  });
+});
+
+describe('financial_chart wiring in content-studio-generate (Quantis Visual System, part 3)', () => {
+  it('imports and uses the validated VisualSpec pipeline, not an ad-hoc shape', () => {
+    expect(generateSource).toContain("import { selectVisualMode, validateVisualSpec, VisualSpecError");
+    expect(generateSource).toContain('renderFinancialChartCard');
+  });
+
+  it('only requests visual_spec_hint from the model when the topic classifies as financial_chart', () => {
+    expect(generateSource).toMatch(/opts\.visualMode === 'financial_chart' \? \[/);
+  });
+
+  it('never auto-selects financial_chart for a topic the model/UI didn\'t indicate is financial -- delegates to selectVisualMode, not a hardcoded true', () => {
+    expect(generateSource).toContain('selectVisualMode(topic)');
+  });
+
+  it('falls back to the legacy headline-card path on VisualSpecError or a missing chart, rather than failing generation', () => {
+    expect(generateSource).toContain('if (!cardResult && cardHeadline)');
+  });
+
+  it('does not leak the financial_chart attempt\'s error once the legacy fallback succeeds', () => {
+    // Regression guard for a bug caught before shipping: cardError set by
+    // the financial_chart attempt's catch block must be cleared before the
+    // legacy fallback runs, or a successful fallback render would still
+    // report an error in the response.
+    const idx = generateSource.indexOf('const financialChartError = cardError');
+    expect(idx).toBeGreaterThan(-1);
+    const body = generateSource.slice(idx, idx + 200);
+    expect(body).toContain('cardError = null;');
+  });
+
+  it('the financial_chart attempt does not depend on FLUX/image generation succeeding or failing (brief SC: independent paths)', () => {
+    const idx = generateSource.indexOf('financial_chart path (Quantis Visual System');
+    const end = generateSource.indexOf('if (!cardResult && cardHeadline)');
+    const body = generateSource.slice(idx, end);
+    expect(body).not.toMatch(/imageResult|imageError|imageProvider/);
+  });
+
+  it('validates the model-supplied visual_spec_hint through validateVisualSpec before rendering -- never renders raw model output', () => {
+    const idx = generateSource.indexOf('financial_chart path (Quantis Visual System');
+    const end = generateSource.indexOf('if (!cardResult && cardHeadline)');
+    const body = generateSource.slice(idx, end);
+    expect(body).toMatch(/validateVisualSpec\(candidate\)/);
+  });
+
+  it('sources the footer from a fixed server-side constant, never the model', () => {
+    expect(generateSource).toContain("const FINANCIAL_CHART_FOOTER = 'AIWMC QUANTIS | Model the decision before you fund it.'");
+  });
+
+  it('returns visual_mode/source_status in the response for the UI to display (brief SD)', () => {
+    expect(generateSource).toContain('visual_mode: visualModeUsed');
+    expect(generateSource).toContain('source_status: sourceStatusUsed');
+  });
+});
