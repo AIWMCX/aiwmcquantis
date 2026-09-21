@@ -90,8 +90,10 @@ export function ReportFirstHero() {
   }, [isLoading]);
 
   useEffect(() => {
+    // 'analysis_complete' is already fired by analysisApi.ts's
+    // trackAnalysisCompleted() when handleSubmit's request resolves --
+    // this was a second, duplicate write of the same canonical event.
     if (analysisId && result && !isLoading) {
-      recordFunnelEvent('analysis_complete', { source: 'report_first_hero' });
       navigate(`/r/${analysisId}`, { replace: false });
     }
   }, [analysisId, result, isLoading, navigate]);
@@ -100,9 +102,11 @@ export function ReportFirstHero() {
     e.preventDefault();
     if (idea.trim().length < 10) return;
     trackCtaClick('report_first_hero_submit', 'hero');
+    // idea_submitted is the only genuinely distinct pre-request stage here --
+    // analysis_start is already fired downstream by handleSubmit's call into
+    // analysisApi.ts's trackAnalysisStarted(), so firing it again here (twice,
+    // under two aliases) was pure duplication.
     recordFunnelEvent('idea_submitted', { source: 'report_first_hero', idea_length: idea.length });
-    recordFunnelEvent('analysis_start', { source: 'report_first_hero', idea_length: idea.length });
-    recordFunnelEvent('analysis_started', { source: 'report_first_hero', idea_length: idea.length });
     handleSubmit(e, 'quick');
   }, [idea, handleSubmit]);
 

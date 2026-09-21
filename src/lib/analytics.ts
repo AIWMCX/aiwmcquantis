@@ -323,14 +323,14 @@ export function recordFunnelEvent(
  * Track when user starts an analysis
  */
 export function trackAnalysisStarted(idea: string, location: string): void {
-  trackEvent('analysis_started', {
+  // Canonical funnel event (the only name /admin/funnel reads). Previously
+  // this also fired the "Prompt 3" alias 'analysis_started' as a second,
+  // separate funnel_events row and a second GA4 event for the same action --
+  // pure duplication with no dashboard reading the alias. One write, one name.
+  recordFunnelEvent('analysis_start', {
     idea_category: idea.substring(0, 50), // Truncate for privacy
-    location: location,
+    location,
   });
-  // SOW canonical alias
-  recordFunnelEvent('analysis_start', { location });
-  // Prompt 3 canonical
-  recordFunnelEvent('analysis_started', { location });
 }
 
 /**
@@ -341,19 +341,9 @@ export function trackAnalysisCompleted(
   paybackMonths: number,
   confidenceScore: number
 ): void {
-  trackEvent('analysis_completed', {
-    monthly_profit_range: getProfitRange(monthlyProfit),
-    payback_months: paybackMonths,
-    confidence_score: confidenceScore,
-  });
-  // SOW canonical alias
+  // Canonical funnel event only -- see trackAnalysisStarted for why the
+  // second 'analysis_completed' alias write was removed.
   recordFunnelEvent('analysis_complete', {
-    monthly_profit_range: getProfitRange(monthlyProfit),
-    payback_months: paybackMonths,
-    confidence_score: confidenceScore,
-  });
-  // Prompt 3 canonical (north-star activation event)
-  recordFunnelEvent('analysis_completed', {
     monthly_profit_range: getProfitRange(monthlyProfit),
     payback_months: paybackMonths,
     confidence_score: confidenceScore,

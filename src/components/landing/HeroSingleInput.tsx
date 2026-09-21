@@ -62,8 +62,10 @@ export function HeroSingleInput() {
 
   // Navigate to result page once we have an id
   useEffect(() => {
+    // 'analysis_complete' is already fired by analysisApi.ts's
+    // trackAnalysisCompleted() when handleSubmit's request resolves --
+    // this was a second, duplicate write of the same canonical event.
     if (analysisId && result && !isLoading) {
-      recordFunnelEvent('analysis_complete', { source: 'hero_single_input' });
       navigate(`/r/${analysisId}`, { replace: false });
     }
   }, [analysisId, result, isLoading, navigate]);
@@ -72,10 +74,11 @@ export function HeroSingleInput() {
     e.preventDefault();
     if (idea.trim().length < 10) return;
     trackCtaClick('hero_single_input_submit', 'hero');
-    // Canonical Prompt 3 funnel: north-star starts at idea_submitted.
+    // idea_submitted is the only genuinely distinct pre-request stage here --
+    // analysis_start is already fired downstream by handleSubmit's call into
+    // analysisApi.ts's trackAnalysisStarted(), so firing it again here (twice,
+    // under two aliases) was pure duplication.
     recordFunnelEvent('idea_submitted', { source: 'hero_single_input', idea_length: idea.length });
-    recordFunnelEvent('analysis_start', { source: 'hero_single_input', idea_length: idea.length });
-    recordFunnelEvent('analysis_started', { source: 'hero_single_input', idea_length: idea.length });
     handleSubmit(e, 'quick');
   }, [idea, handleSubmit]);
 
