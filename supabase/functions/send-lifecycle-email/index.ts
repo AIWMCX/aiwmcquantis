@@ -149,6 +149,39 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
       </div>
     `,
   },
+  // Sent by check-lifecycle-emails' Sequence 5 (every Monday, to users with
+  // >=1 analysis) -- that caller logic has existed and run on schedule since
+  // it was written, but this template was never added, so every weekly run
+  // has thrown "Unknown template: weekly_pulse" and sent zero emails.
+  weekly_pulse: {
+    subject: "Your weekly Quantis check-in",
+    html: (data) => `
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #1a1a1a; font-size: 24px;">Hi ${data.first_name || 'there'},</h1>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          A quick weekly check-in from AIWMC Quantis.
+        </p>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          If a decision has changed since your last analysis -- new numbers, a new assumption, a new option on the table -- it's worth a fresh run.
+        </p>
+        ${data.remaining_analyses !== undefined ? `
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          You have <strong>${data.remaining_analyses} free analyses</strong> left this month.
+        </p>
+        ` : ''}
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app"
+             style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+            Run a Decision
+          </a>
+        </div>
+        <p style="color: #888; font-size: 14px;">
+          If you have any questions or feedback, just reply to this email.
+        </p>
+        ${unsubscribeFooter(data)}
+      </div>
+    `,
+  },
   achievement: {
     subject: "You've earned a new badge! 🏆",
     html: (data) => `
