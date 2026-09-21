@@ -56,12 +56,23 @@ export function ReportFirstHero() {
   const {
     idea, setIdea,
     location, setLocation,
+    errors,
     handleSubmit, isLoading, analysisId, result,
     freeTierSummary, reset,
   } = useAnalysis();
 
   const [progressStep, setProgressStep] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+
+  // The LOCATION field only shows "Austin, TX" as a placeholder -- it is not
+  // a real value. Without this, a visitor who doesn't retype a location over
+  // that placeholder submits an empty string, useAnalysis().validate() fails
+  // silently (this component never rendered `errors`), and the button just
+  // does nothing with zero feedback. Mirrors HeroSingleInput.tsx's identical
+  // fix: default it once so the edge function's ≥2-char requirement passes.
+  useEffect(() => {
+    if (!location) setLocation('Global');
+  }, [location, setLocation]);
 
   useEffect(() => {
     if (!isLoading) { setProgressStep(0); setElapsed(0); return; }
@@ -884,6 +895,12 @@ export function ReportFirstHero() {
                     <>Generate my report <ArrowRight className="w-4 h-4" /></>
                   )}
                 </Button>
+
+                {(errors.idea || errors.location) && !isLoading && (
+                  <p role="alert" className="text-xs" style={{ color: 'hsl(var(--destructive))' }}>
+                    {errors.idea || errors.location}
+                  </p>
+                )}
 
                 {isLoading && (
                   <div
