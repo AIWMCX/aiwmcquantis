@@ -49,11 +49,24 @@ export interface AcquisitionCampaign {
   endMonth: number;
 }
 
+/** A services business's fixed monthly delivery capacity: how many
+ *  customers it can actually serve, independent of how many it acquires. */
+export interface CapacityConstraint {
+  hoursPerCustomerMonthly: number;
+  availableHoursMonthly: number;
+}
+
 export interface FinancialModelParams {
   /** Omitted: identical to the organic-growth-only model. Set: each active
    *  campaign adds monthlySpend / cac new customers (subject to the same
    *  saturation cap as organic growth) and monthlySpend of marketing opex. */
   acquisition?: AcquisitionCampaign[];
+  /** Omitted: identical to the uncapped model. Set: active customer count
+   *  is additionally capped at availableHoursMonthly / hoursPerCustomerMonthly
+   *  every month -- demand (organic + paid) above that ceiling is not served
+   *  and earns no revenue, rather than being silently counted as customers
+   *  the business has no capacity to deliver to. */
+  capacity?: CapacityConstraint;
   initialCustomers: number;
   growthRateMoM: number;
   marketSaturationPct: number;
@@ -187,11 +200,14 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
     initialCustomers, growthRateMoM, marketSaturationPct, addressableMarket,
     avgTicketSize, grossMarginPct, churnRateMonthly, upsellRevenuePct,
     cogsPct, rent, salaries, marketingSpend, softwareAndTools, otherOpex,
-    discountRefundPct, geoSlug, industry, acquisition,
+    discountRefundPct, geoSlug, industry, acquisition, capacity,
   } = params;
 
   for (const c of acquisition ?? []) {
     if (!(c.cac > 0)) throw new RangeError(`Acquisition campaign CAC must be > 0 (got ${c.cac})`);
+  }
+  if (capacity && !(capacity.hoursPerCustomerMonthly > 0)) {
+    throw new RangeError(`Capacity hoursPerCustomerMonthly must be > 0 (got ${capacity.hoursPerCustomerMonthly})`);
   }
 
   // Geo-calibrate rent & salaries
@@ -235,7 +251,10 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
     const newCapped = Q.min(newRaw, Q.subtract(maxCustomers, activeStart));
     const newCustomers = Q.max(newCapped, 0);
     const churned = Q.multiply(activeStart, churnRateMonthly);
-    const activeEnd = Q.max(Q.subtract(Q.add(activeStart, newCustomers), churned), 0);
+    const activeBeforeCapacity = Q.max(Q.subtract(Q.add(activeStart, newCustomers), churned), 0);
+    const activeEnd = capacity
+      ? Q.min(activeBeforeCapacity, Q.divide(capacity.availableHoursMonthly, capacity.hoursPerCustomerMonthly))
+      : activeBeforeCapacity;
 
     // Revenue
     const revenuePerCustomer = Q.multiply(avgTicketSize, Q.add(1, upsellRevenuePct));
