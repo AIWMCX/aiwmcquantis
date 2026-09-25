@@ -39,7 +39,21 @@ export interface UnitEconomicsResult {
   };
 }
 
+/** A paid acquisition campaign: spend buys customers at a blended CAC. */
+export interface AcquisitionCampaign {
+  monthlySpend: number;
+  cac: number;
+  /** 1-based, inclusive. */
+  startMonth: number;
+  /** Inclusive. */
+  endMonth: number;
+}
+
 export interface FinancialModelParams {
+  /** Omitted: identical to the organic-growth-only model. Set: each active
+   *  campaign adds monthlySpend / cac new customers (subject to the same
+   *  saturation cap as organic growth) and monthlySpend of marketing opex. */
+  acquisition?: AcquisitionCampaign[];
   initialCustomers: number;
   growthRateMoM: number;
   marketSaturationPct: number;
@@ -173,8 +187,12 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
     initialCustomers, growthRateMoM, marketSaturationPct, addressableMarket,
     avgTicketSize, grossMarginPct, churnRateMonthly, upsellRevenuePct,
     cogsPct, rent, salaries, marketingSpend, softwareAndTools, otherOpex,
-    discountRefundPct, geoSlug, industry,
+    discountRefundPct, geoSlug, industry, acquisition,
   } = params;
+
+  for (const c of acquisition ?? []) {
+    if (!(c.cac > 0)) throw new RangeError(`Acquisition campaign CAC must be > 0 (got ${c.cac})`);
+  }
 
   // Geo-calibrate rent & salaries
   let geoRent = rent;
@@ -201,9 +219,19 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
 
     // Customer dynamics
     let activeStart = m === 1 ? Q.multiply(1, initialCustomers) : prevActive;
-    const newRaw = m === 1
+    const organicNew = m === 1
       ? Q.multiply(1, 0) // month 1 starts with initialCustomers, no new
       : Q.multiply(activeStart, growthRateMoM);
+
+    let paidNew = Q.multiply(1, 0);
+    let campaignSpend = Q.multiply(1, 0);
+    for (const c of acquisition ?? []) {
+      if (m < c.startMonth || m > c.endMonth) continue;
+      paidNew = Q.add(paidNew, Q.divide(c.monthlySpend, c.cac));
+      campaignSpend = Q.add(campaignSpend, c.monthlySpend);
+    }
+    const newRaw = acquisition ? Q.add(organicNew, paidNew) : organicNew;
+    const monthMarketing = acquisition ? Q.add(marketingSpend, campaignSpend) : marketingSpend;
     const newCapped = Q.min(newRaw, Q.subtract(maxCustomers, activeStart));
     const newCustomers = Q.max(newCapped, 0);
     const churned = Q.multiply(activeStart, churnRateMonthly);
@@ -224,7 +252,7 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
 
     // OpEx
     const totalOpex = Q.add(
-      Q.add(Q.add(geoRent, geoSalaries), Q.add(marketingSpend, softwareAndTools)),
+      Q.add(Q.add(geoRent, geoSalaries), Q.add(monthMarketing, softwareAndTools)),
       otherOpex,
     );
 
@@ -250,7 +278,7 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
       grossMarginPct: n(grossMargin),
       rent: n(Q.multiply(1, geoRent)),
       salaries: n(Q.multiply(1, geoSalaries)),
-      marketingSpend: n(Q.multiply(1, marketingSpend)),
+      marketingSpend: n(Q.multiply(1, monthMarketing)),
       softwareAndTools: n(Q.multiply(1, softwareAndTools)),
       otherOpex: n(Q.multiply(1, otherOpex)),
       totalOpex: n(totalOpex),
