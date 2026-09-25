@@ -133,6 +133,14 @@ export default function DecisionReview() {
                   </Button>
                 </Link>
               )}
+              {offer.code === 'consultant_founding_pilot' && (
+                <Link to="/demo/consultant-founding-pilot" className="mt-6">
+                  <Button variant="outline" size="lg" className="w-full gap-2">
+                    <PlayCircle className="h-4 w-4" />
+                    See the interactive demo first
+                  </Button>
+                </Link>
+              )}
               <Button
                 size="lg"
                 className="w-full mt-3 gap-2 py-6"

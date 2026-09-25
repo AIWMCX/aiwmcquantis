@@ -72,6 +72,7 @@ const Security = lazy(() => import("./pages/Security"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const DecisionReview = lazy(() => import("./pages/DecisionReview"));
 const FounderDecisionDemo = lazy(() => import("./pages/FounderDecisionDemo"));
+const ConsultantCapacityDemo = lazy(() => import("./pages/ConsultantCapacityDemo"));
 const EngagementIntake = lazy(() => import("./pages/EngagementIntake"));
 const PaidWorkspace = lazy(() => import("./pages/PaidWorkspace"));
 const Changelog = lazy(() => import("./pages/Changelog"));
@@ -183,6 +184,7 @@ const App = () => {
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/decision-review" element={<DecisionReview />} />
                 <Route path="/demo/founder-decision-review" element={<FounderDecisionDemo />} />
+                <Route path="/demo/consultant-founding-pilot" element={<ConsultantCapacityDemo />} />
                 <Route path="/engagement-intake" element={<EngagementIntake />} />
                 <Route path="/engagement-workspace" element={<PaidWorkspace />} />
                 <Route path="/changelog" element={<Changelog />} />
