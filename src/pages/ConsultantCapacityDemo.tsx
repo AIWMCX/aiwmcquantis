@@ -96,7 +96,7 @@ export default function ConsultantCapacityDemo() {
       </section>
 
       <GlassCard className="p-5 mb-6 text-sm text-muted-foreground">
-        <strong className="text-foreground">Illustrative Quantis demonstration.</strong> Values are a fixed example services business, not a forecast for your business. Company: {fixture.startingCustomers} existing customers already consuming capacity, ${fixture.avgTicketSize}/mo average ticket, {fixture.grossMargin * 100}% gross margin.
+        <strong className="text-foreground">Illustrative Quantis demonstration.</strong> Values are a fixed example services business, not a forecast for your business. Company: {fixture.startingCustomers} existing customers already consuming capacity, ${fixture.avgTicketSize}/mo average ticket, {Math.round(fixture.grossMargin * 100)}% gross margin.
       </GlassCard>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
