@@ -35,6 +35,7 @@
     { "source": "/connect", "destination": "/index.html" },
     { "source": "/directory-tracker", "destination": "/index.html" },
     { "source": "/quote", "destination": "/index.html" },
+    { "source": "/demo/(.*)", "destination": "/index.html" },
     { "source": "/viral-content", "destination": "/index.html" },
     { "source": "/viral-posts", "destination": "/index.html" },
     { "source": "/__maintenance", "destination": "/index.html" }
