@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, Clock3, FileCheck2, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, Check, Clock3, FileCheck2, PlayCircle, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { StructuredData } from '@/components/seo/StructuredData';
@@ -125,9 +125,17 @@ export default function DecisionReview() {
                   </li>
                 ))}
               </ul>
+              {offer.code === 'founder_decision_review' && (
+                <Link to="/demo/founder-decision-review" className="mt-6">
+                  <Button variant="outline" size="lg" className="w-full gap-2">
+                    <PlayCircle className="h-4 w-4" />
+                    See the interactive demo first
+                  </Button>
+                </Link>
+              )}
               <Button
                 size="lg"
-                className="w-full mt-8 gap-2 py-6"
+                className="w-full mt-3 gap-2 py-6"
                 disabled={loading !== null}
                 onClick={() => startCheckout(offer.code)}
               >

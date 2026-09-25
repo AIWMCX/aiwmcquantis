@@ -41,7 +41,7 @@ const ALLOWED_ORPHANS = new Set([
 // are legitimate href targets. The registry-vs-SPA boundary.
 const ALLOWED_SPA_PATHS = new Set([
   "/auth", "/login", "/signup", "/reset-password",
-  "/dashboard", "/account", "/checkout", "/thank-you",
+  "/dashboard", "/account", "/checkout", "/thank-you", "/demo",
   "/admin", "/pro-settings", "/plus-settings",
   "/r", // analysis result viewer /r/<id>
   "/share", // shared analysis viewer
