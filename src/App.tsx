@@ -61,6 +61,7 @@ const VsComparePage = lazy(() => import("./pages/vs/VsComparePage"));
 const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
 const PreMortem = lazy(() => import("./pages/PreMortem"));
+const FirstDecisionExperience = lazy(() => import("./pages/FirstDecisionExperience"));
 const ScenarioWorkspace = lazy(() => import("./pages/ScenarioWorkspace"));
 const Status = lazy(() => import("./pages/Status"));
 const StateOfQuantis = lazy(() => import("./pages/StateOfQuantis"));
@@ -236,6 +237,14 @@ const App = () => {
                 <Route path="/app/pre-mortem" element={
                   <ProtectedRoute>
                     <PreMortem />
+                  </ProtectedRoute>
+                } />
+                {/* First Decision Experience, Wave 1: reachable directly for QA/founder
+                    review. Not yet wired into the post-login redirect -- that is a
+                    later wave, per the spec's own "no routing change" instruction. */}
+                <Route path="/app/start" element={
+                  <ProtectedRoute>
+                    <FirstDecisionExperience />
                   </ProtectedRoute>
                 } />
                 {/* Decision tools stay discoverable. Server entitlements protect

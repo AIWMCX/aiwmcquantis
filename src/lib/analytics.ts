@@ -214,7 +214,20 @@ export type SowFunnelEvent =
   // all -- no way to see whether someone actually engages with scenario
   // comparison or edits an assumption before converting or churning.
   | 'scenario_compared'
-  | 'assumption_changed';
+  | 'assumption_changed'
+  // First Decision Experience (2026-09-25, Wave 1): replaces the dead
+  // OnboardingTour.tsx with an interactive walkthrough of the SAME
+  // production founder-demo fixture/engine used at /demo/founder-decision-review,
+  // so a new authenticated user learns the product's actual mental model
+  // (facts vs. assumptions -> connected economics -> stress test ->
+  // sensitivity -> decision gate) instead of a feature tour. `context`
+  // distinguishes this from real product usage so it never counts toward
+  // commercial activation.
+  | 'first_experience_demo_started'
+  | 'first_experience_demo_step_viewed'
+  | 'first_experience_variable_inspected'
+  | 'first_experience_demo_completed'
+  | 'first_experience_own_decision_started';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
