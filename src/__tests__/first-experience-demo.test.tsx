@@ -1,11 +1,19 @@
 /**
- * First Decision Experience state machine (Wave 1).
+ * First Decision Experience state machine (Wave 1) and its Wave 2
+ * server-persistence wiring.
  *
  * The engine math itself (runFounderDemo / solveRequiredToWork) is already
  * covered by founder-decision-demo.test.ts -- this suite only proves the
  * state machine wired around it: step transitions, evidence-inspection
- * tracking, and that every emitted event carries `context: 'demo'` so it
- * can never be double-counted as real product activation.
+ * tracking, that every emitted event carries `context: 'demo'` so it can
+ * never be double-counted as real product activation, and that the Wave 2
+ * persistence hook is called at the right moments (started once on mount,
+ * completed when reaching the decision gate).
+ *
+ * useFirstExperienceDemoState (Supabase/React Query) is mocked here --
+ * it's a thin persistence wrapper, and its own read/write correctness is
+ * covered by the RPC functions themselves (SQL, not TS) plus manual/CI
+ * verification against the real database.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
@@ -15,12 +23,43 @@ vi.mock('@/lib/analytics', () => ({
   recordFunnelEvent: (...args: unknown[]) => mockRecordFunnelEvent(...args),
 }));
 
+const mockMarkStarted = vi.fn();
+const mockMarkCompleted = vi.fn();
+vi.mock('@/hooks/useFirstExperienceDemoState', () => ({
+  useFirstExperienceDemoState: () => ({
+    state: null,
+    isLoading: false,
+    hasStartedBefore: false,
+    hasCompletedBefore: false,
+    markStarted: mockMarkStarted,
+    markCompleted: mockMarkCompleted,
+  }),
+}));
+
 import { useFirstExperienceDemo, DEMO_STEPS } from '@/hooks/useFirstExperienceDemo';
 import { FOUNDER_DEMO_FIXTURE } from '@/lib/demo/founder-decision-demo';
 
 describe('useFirstExperienceDemo', () => {
   beforeEach(() => {
     mockRecordFunnelEvent.mockClear();
+    mockMarkStarted.mockClear();
+    mockMarkCompleted.mockClear();
+  });
+
+  it('calls the Wave 2 persistence markStarted once, with the fixture version', async () => {
+    renderHook(() => useFirstExperienceDemo());
+    // markStarted fires from a useEffect, so it lands after the initial render.
+    await act(async () => {});
+    expect(mockMarkStarted).toHaveBeenCalledTimes(1);
+    expect(mockMarkStarted).toHaveBeenCalledWith(FOUNDER_DEMO_FIXTURE.version);
+  });
+
+  it('calls the Wave 2 persistence markCompleted exactly when completeDemo runs', () => {
+    const { result } = renderHook(() => useFirstExperienceDemo());
+    expect(mockMarkCompleted).not.toHaveBeenCalled();
+    act(() => result.current.completeDemo());
+    expect(mockMarkCompleted).toHaveBeenCalledTimes(1);
+    expect(mockMarkCompleted).toHaveBeenCalledWith(FOUNDER_DEMO_FIXTURE.version);
   });
 
   it('starts on INTRO and fires first_experience_demo_started exactly once, tagged as demo', () => {
