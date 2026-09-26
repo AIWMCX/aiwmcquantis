@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { recordFunnelEvent } from '@/lib/analytics';
+import { useFirstExperienceDemoState } from '@/hooks/useFirstExperienceDemoState';
 import {
   FOUNDER_DEMO_FIXTURE,
   LEVER_SEARCH,
@@ -41,11 +42,21 @@ export function useFirstExperienceDemo() {
   const [inspectedVariables, setInspectedVariables] = useState<Set<string>>(new Set());
   const [changedVariables, setChangedVariables] = useState<Set<string>>(new Set());
   const startedRef = useRef(false);
+  const persisted = useFirstExperienceDemoState();
 
   if (!startedRef.current) {
     startedRef.current = true;
     recordFunnelEvent('first_experience_demo_started', { demo_version: fixture.version, context: 'demo' });
   }
+
+  // Server-side persistence (Wave 2): idempotent upsert, never overwrites an
+  // earlier real demo_started_at. In a useEffect, not the render body above
+  // -- unlike the plain recordFunnelEvent call, react-query's mutate()
+  // triggers its own internal state update and must not run during render.
+  useEffect(() => {
+    persisted.markStarted(fixture.version);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const result = useMemo(() => runFounderDemo(assumptions, fixture), [assumptions, fixture]);
   const requiredToWork = useMemo(() => solveRequiredToWork(assumptions, fixture), [assumptions, fixture]);
@@ -87,6 +98,7 @@ export function useFirstExperienceDemo() {
   }
 
   function completeDemo() {
+    persisted.markCompleted(fixture.version);
     recordFunnelEvent('first_experience_demo_completed', {
       demo_version: fixture.version,
       context: 'demo',
@@ -121,6 +133,10 @@ export function useFirstExperienceDemo() {
     resetToBase,
     completeDemo,
     startOwnDecision,
+    // Wave 2: server-persisted progress, exposed for later waves (e.g. a
+    // first-login resolver) to read without duplicating the fetch.
+    hasStartedBefore: persisted.hasStartedBefore,
+    hasCompletedBefore: persisted.hasCompletedBefore,
   };
 }
 
