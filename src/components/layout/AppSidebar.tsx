@@ -35,6 +35,7 @@ import {
   Crown,
   Megaphone,
   Radio,
+  Handshake,
 } from 'lucide-react';
 import { isEnabled } from '@/lib/flags';
 
@@ -46,7 +47,7 @@ interface NavItem {
   contentAdminOnly?: boolean;
   external?: boolean;
   badge?: string;
-  flag?: 'service_job';
+  flag?: 'service_job' | 'commercial_workflow';
 }
 
 interface NavSection {
@@ -91,6 +92,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, contentAdminOnly: true },
       { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, contentAdminOnly: true },
+      { title: 'Commercial Ops', url: '/admin/commercial', icon: Handshake, adminOnly: true, flag: 'commercial_workflow' },
     ],
   },
   {
