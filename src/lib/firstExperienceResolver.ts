@@ -75,13 +75,20 @@ export function destinationToPath(destination: FirstExperienceDestination): stri
  * Feature flag (spec section 17): one switch, no DB revert needed to roll
  * back. This codebase has no DB-backed frontend flag system (audited before
  * writing this) -- the closest existing pattern is a VITE_* build-time env
- * var (src/services/analysisApi.ts's VITE_ALLOW_CLIENT_FALLBACK). Enabled
- * by default so no new required env var is needed to ship; set
- * VITE_FIRST_EXPERIENCE_ROUTING_V1=false in Vercel + redeploy to disable
- * without touching database state or reverting the PR.
+ * var (src/services/analysisApi.ts's VITE_ALLOW_CLIENT_FALLBACK).
+ *
+ * Fails CLOSED, not open: this is the highest-regression-risk change in the
+ * whole First Decision Experience effort (it touches every sign-in), so an
+ * absent env var must mean "off", never "on". Set
+ * VITE_FIRST_EXPERIENCE_ROUTING_V1=true explicitly (Preview environment for
+ * acceptance testing; Production only once the founder has verified it) to
+ * enable. This was flipped from fail-open during code review -- an earlier
+ * version defaulted to enabled, which would have activated this for every
+ * production user the moment the PR merged, regardless of acceptance
+ * testing outcome.
  */
 export function isFirstExperienceRoutingEnabled(): boolean {
-  return import.meta.env.VITE_FIRST_EXPERIENCE_ROUTING_V1 !== 'false';
+  return import.meta.env.VITE_FIRST_EXPERIENCE_ROUTING_V1 === 'true';
 }
 
 /**

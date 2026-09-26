@@ -76,5 +76,11 @@ export function useFirstExperienceDemoState() {
     markStarted: markStarted.mutate,
     markCompleted: markCompleted.mutate,
     markSkipped: markSkipped.mutate,
+    // Skipping must be awaited before navigating away (spec's skip contract
+    // requires the preference to actually be saved, not fire-and-forget --
+    // caught in code review: a fire-and-forget skip that fails leaves the
+    // server thinking the user is still mid-demo, so the resolver would
+    // wrongly resume them into it on their next sign-in).
+    markSkippedAsync: markSkipped.mutateAsync,
   };
 }

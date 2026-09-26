@@ -83,12 +83,18 @@ describe('resolveFirstExperience: precedence and state derivation', () => {
     }
   });
 
-  it('every branch is total -- every one of the 2 (admin) x 2 (real analysis) x 4 (demo state) combinations resolves without throwing', () => {
+  it('every branch is total -- all 2 (admin) x 2 (real analysis) x 5 (demo state, including explicitly skipped) combinations resolve without throwing', () => {
+    // Corrected during code review: this matrix previously omitted the
+    // hasSkippedBefore:true state (it was only covered by the separate
+    // dedicated skip test above), so the earlier "exhaustive" claim in this
+    // file's own status reporting was slightly stronger than the code --
+    // this is now the actual full cross-product.
     const demoStates: Array<FirstExperienceResolverInput['demoState']> = [
       null,
       { hasStartedBefore: false, hasCompletedBefore: false, hasSkippedBefore: false },
       { hasStartedBefore: true, hasCompletedBefore: false, hasSkippedBefore: false },
       { hasStartedBefore: true, hasCompletedBefore: true, hasSkippedBefore: false },
+      { hasStartedBefore: true, hasCompletedBefore: false, hasSkippedBefore: true },
     ];
     for (const isAdmin of [true, false]) {
       for (const hasCompletedRealAnalysis of [true, false]) {

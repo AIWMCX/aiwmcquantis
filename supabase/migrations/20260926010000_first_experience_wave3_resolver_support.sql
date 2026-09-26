@@ -42,6 +42,12 @@ $function$;
 -- the resolver and the useFirstExperienceDemoState hook can't see it.
 -- Postgres cannot CREATE OR REPLACE a function into a new return type
 -- (RETURNS TABLE shape changed) -- the old signature must be dropped first.
+-- DROP FUNCTION replaces the function object entirely rather than editing
+-- it in place; empirically verified (inside a rolled-back transaction,
+-- before writing this) that Postgres's default EXECUTE grants to
+-- PUBLIC/anon/authenticated/service_role are preserved across the drop+
+-- recreate here, but granting explicitly below removes any dependency on
+-- that default behavior rather than relying on it silently.
 DROP FUNCTION IF EXISTS public.get_first_experience_demo_state();
 
 CREATE FUNCTION public.get_first_experience_demo_state()
@@ -73,6 +79,15 @@ AS $function$
     SELECT 1 FROM public.analyses WHERE user_id = auth.uid()
   );
 $function$;
+
+-- Explicit grants for every new/recreated function, rather than relying on
+-- Postgres's default EXECUTE-to-PUBLIC behavior (empirically verified to be
+-- preserved across the drop+recreate above, inside a rolled-back
+-- transaction, before writing this -- but explicit is safer than implicit
+-- for anything auth-adjacent).
+GRANT EXECUTE ON FUNCTION public.get_first_experience_demo_state() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.mark_first_experience_demo_skipped(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.has_completed_real_analysis() TO anon, authenticated, service_role;
 
 -- 3. New funnel events for the resolver itself (spec section 14) --
 -- extending the existing canonical allowlist, not a parallel store.
@@ -123,5 +138,6 @@ ALTER TABLE public.funnel_events
     'first_experience_demo_completed',
     'first_experience_own_decision_started',
     'first_experience_resolved',
-    'first_experience_redirected'
+    'first_experience_redirected',
+    'first_experience_demo_skipped'
   ));

@@ -231,7 +231,12 @@ export type SowFunnelEvent =
   // First Decision Experience Wave 3 (2026-09-26): the routing resolver's
   // own telemetry -- did it run, and did it actually redirect anyone.
   | 'first_experience_resolved'
-  | 'first_experience_redirected';
+  | 'first_experience_redirected'
+  // Distinct from first_experience_own_decision_started: skipping the demo
+  // means the user declined onboarding, not that they have started a real
+  // decision yet -- conflating the two would make the event name lie about
+  // what actually happened (caught in code review).
+  | 'first_experience_demo_skipped';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
