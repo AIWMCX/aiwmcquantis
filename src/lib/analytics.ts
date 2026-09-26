@@ -227,7 +227,11 @@ export type SowFunnelEvent =
   | 'first_experience_demo_step_viewed'
   | 'first_experience_variable_inspected'
   | 'first_experience_demo_completed'
-  | 'first_experience_own_decision_started';
+  | 'first_experience_own_decision_started'
+  // First Decision Experience Wave 3 (2026-09-26): the routing resolver's
+  // own telemetry -- did it run, and did it actually redirect anyone.
+  | 'first_experience_resolved'
+  | 'first_experience_redirected';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 

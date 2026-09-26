@@ -25,14 +25,17 @@ vi.mock('@/lib/analytics', () => ({
 
 const mockMarkStarted = vi.fn();
 const mockMarkCompleted = vi.fn();
+const mockMarkSkipped = vi.fn();
 vi.mock('@/hooks/useFirstExperienceDemoState', () => ({
   useFirstExperienceDemoState: () => ({
     state: null,
     isLoading: false,
     hasStartedBefore: false,
     hasCompletedBefore: false,
+    hasSkippedBefore: false,
     markStarted: mockMarkStarted,
     markCompleted: mockMarkCompleted,
+    markSkipped: mockMarkSkipped,
   }),
 }));
 
@@ -44,6 +47,24 @@ describe('useFirstExperienceDemo', () => {
     mockRecordFunnelEvent.mockClear();
     mockMarkStarted.mockClear();
     mockMarkCompleted.mockClear();
+    mockMarkSkipped.mockClear();
+  });
+
+  it('Wave 3: resume option skips the INTRO card and starts on EVIDENCE', () => {
+    const { result } = renderHook(() => useFirstExperienceDemo({ resume: true }));
+    expect(result.current.step).toBe('EVIDENCE');
+  });
+
+  it('Wave 3: skipDemo persists the skip and records it as an own-decision-started event', () => {
+    const { result } = renderHook(() => useFirstExperienceDemo());
+    act(() => result.current.skipDemo());
+    expect(mockMarkSkipped).toHaveBeenCalledTimes(1);
+    expect(mockMarkSkipped).toHaveBeenCalledWith(FOUNDER_DEMO_FIXTURE.version);
+    const skipEvent = mockRecordFunnelEvent.mock.calls.find(
+      (c) => c[0] === 'first_experience_own_decision_started' && c[1]?.entry === 'skip',
+    );
+    expect(skipEvent).toBeTruthy();
+    expect(skipEvent?.[1]).toMatchObject({ context: 'demo' });
   });
 
   it('calls the Wave 2 persistence markStarted once, with the fixture version', async () => {

@@ -1,3 +1,4 @@
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -26,7 +27,8 @@ const PREV: Partial<Record<DemoStep, DemoStep>> = {
 };
 
 export default function FirstDecisionExperience() {
-  const demo = useFirstExperienceDemo();
+  const [searchParams] = useSearchParams();
+  const demo = useFirstExperienceDemo({ resume: searchParams.get('resume') === '1' });
   const { step, stepIndex, totalSteps, goToStep, fixture } = demo;
 
   function next() {
@@ -62,6 +64,12 @@ export default function FirstDecisionExperience() {
             <Button size="lg" onClick={next}>
               Start 5-step demo
             </Button>
+            <p className="text-xs text-muted-foreground mt-4">
+              Already know Quantis?{' '}
+              <Link to="/app" onClick={demo.skipDemo} className="underline hover:text-foreground">
+                Start my own decision
+              </Link>
+            </p>
           </GlassCard>
         ) : (
           <>

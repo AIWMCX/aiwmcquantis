@@ -35,9 +35,17 @@ const EVIDENCE_LEDGER: EvidenceItem[] = [
   { id: 'churnMonthly', label: 'Monthly churn', value: '4.1%', type: 'ASSUMPTION', why: 'Assumes the current cohort\'s churn holds for new customers too.' },
 ];
 
-export function useFirstExperienceDemo() {
+export interface UseFirstExperienceDemoOptions {
+  /** Wave 3: user is resuming a previously-started, not-yet-finished demo
+   *  (routed here as /app/start?resume=1) -- skip the intro card and land
+   *  straight on the first real step. Only step position is skipped, since
+   *  Wave 2 persists start/complete/skip timestamps, not a step index. */
+  resume?: boolean;
+}
+
+export function useFirstExperienceDemo(options: UseFirstExperienceDemoOptions = {}) {
   const fixture = FOUNDER_DEMO_FIXTURE;
-  const [step, setStep] = useState<DemoStep>('INTRO');
+  const [step, setStep] = useState<DemoStep>(options.resume ? 'EVIDENCE' : 'INTRO');
   const [assumptions, setAssumptions] = useState<FounderDemoAssumptions>(fixture.base);
   const [inspectedVariables, setInspectedVariables] = useState<Set<string>>(new Set());
   const [changedVariables, setChangedVariables] = useState<Set<string>>(new Set());
@@ -112,6 +120,15 @@ export function useFirstExperienceDemo() {
     recordFunnelEvent('first_experience_own_decision_started', { demo_version: fixture.version, context: 'demo' });
   }
 
+  function skipDemo() {
+    persisted.markSkipped(fixture.version);
+    recordFunnelEvent('first_experience_own_decision_started', {
+      demo_version: fixture.version,
+      context: 'demo',
+      entry: 'skip',
+    });
+  }
+
   const stepIndex = DEMO_STEPS.indexOf(step);
 
   return {
@@ -133,10 +150,12 @@ export function useFirstExperienceDemo() {
     resetToBase,
     completeDemo,
     startOwnDecision,
-    // Wave 2: server-persisted progress, exposed for later waves (e.g. a
-    // first-login resolver) to read without duplicating the fetch.
+    skipDemo,
+    // Wave 2/3: server-persisted progress, exposed for the resolver and any
+    // other consumer to read without duplicating the fetch.
     hasStartedBefore: persisted.hasStartedBefore,
     hasCompletedBefore: persisted.hasCompletedBefore,
+    hasSkippedBefore: persisted.hasSkippedBefore,
   };
 }
 
