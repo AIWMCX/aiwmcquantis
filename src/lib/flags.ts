@@ -8,10 +8,14 @@
  * before rendering and redirect / show 404 if the flag is off.
  */
 
-type FlagKey = 'service_job';
+type FlagKey = 'service_job' | 'commercial_workflow';
 
 const FLAG_ENV_KEYS: Record<FlagKey, string> = {
   service_job: 'VITE_FLAG_SERVICE_JOB',
+  // Commercial Ops workflow (Phase F UI). Fails closed -- no default-ON
+  // branch below, unlike service_job -- this is internal admin tooling,
+  // not something that should light up unannounced (spec section 17).
+  commercial_workflow: 'VITE_FLAG_COMMERCIAL_WORKFLOW',
 };
 
 function readEnv(key: string): string | undefined {
