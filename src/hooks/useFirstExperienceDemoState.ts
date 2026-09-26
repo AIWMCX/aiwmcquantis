@@ -6,6 +6,7 @@ export interface FirstExperienceDemoState {
   demo_version: string;
   demo_started_at: string;
   demo_completed_at: string | null;
+  demo_skipped_at: string | null;
 }
 
 /**
@@ -55,12 +56,31 @@ export function useFirstExperienceDemoState() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
+  const markSkipped = useMutation({
+    mutationFn: async (demoVersion: string) => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await (supabase as any).rpc('mark_first_experience_demo_skipped', {
+        _demo_version: demoVersion,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+  });
+
   return {
     state,
     isLoading,
     hasStartedBefore: !!state,
     hasCompletedBefore: !!state?.demo_completed_at,
+    hasSkippedBefore: !!state?.demo_skipped_at,
     markStarted: markStarted.mutate,
     markCompleted: markCompleted.mutate,
+    markSkipped: markSkipped.mutate,
+    // Skipping must be awaited before navigating away (spec's skip contract
+    // requires the preference to actually be saved, not fire-and-forget --
+    // caught in code review: a fire-and-forget skip that fails leaves the
+    // server thinking the user is still mid-demo, so the resolver would
+    // wrongly resume them into it on their next sign-in).
+    markSkippedAsync: markSkipped.mutateAsync,
   };
 }

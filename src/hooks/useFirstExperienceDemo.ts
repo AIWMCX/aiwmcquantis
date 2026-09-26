@@ -35,9 +35,17 @@ const EVIDENCE_LEDGER: EvidenceItem[] = [
   { id: 'churnMonthly', label: 'Monthly churn', value: '4.1%', type: 'ASSUMPTION', why: 'Assumes the current cohort\'s churn holds for new customers too.' },
 ];
 
-export function useFirstExperienceDemo() {
+export interface UseFirstExperienceDemoOptions {
+  /** Wave 3: user is resuming a previously-started, not-yet-finished demo
+   *  (routed here as /app/start?resume=1) -- skip the intro card and land
+   *  straight on the first real step. Only step position is skipped, since
+   *  Wave 2 persists start/complete/skip timestamps, not a step index. */
+  resume?: boolean;
+}
+
+export function useFirstExperienceDemo(options: UseFirstExperienceDemoOptions = {}) {
   const fixture = FOUNDER_DEMO_FIXTURE;
-  const [step, setStep] = useState<DemoStep>('INTRO');
+  const [step, setStep] = useState<DemoStep>(options.resume ? 'EVIDENCE' : 'INTRO');
   const [assumptions, setAssumptions] = useState<FounderDemoAssumptions>(fixture.base);
   const [inspectedVariables, setInspectedVariables] = useState<Set<string>>(new Set());
   const [changedVariables, setChangedVariables] = useState<Set<string>>(new Set());
@@ -112,6 +120,31 @@ export function useFirstExperienceDemo() {
     recordFunnelEvent('first_experience_own_decision_started', { demo_version: fixture.version, context: 'demo' });
   }
 
+  /**
+   * Skipping must be atomic from the user's perspective: persist first,
+   * THEN record telemetry, THEN let the caller navigate. Awaited (not
+   * fire-and-forget) so a failed write is never silently treated as a
+   * saved preference -- caught in code review: a fire-and-forget skip that
+   * fails would leave the server thinking the user is still mid-demo, so
+   * the resolver would wrongly resume them into it on their next sign-in,
+   * violating the exact contract this was added to support. Returns
+   * whether persistence actually succeeded so the caller can show a
+   * recoverable error instead of navigating on a false premise.
+   */
+  async function skipDemo(): Promise<boolean> {
+    try {
+      await persisted.markSkippedAsync(fixture.version);
+    } catch {
+      return false;
+    }
+    // Distinct from first_experience_own_decision_started: skipping means
+    // the user declined onboarding, not that they've started a real
+    // decision yet -- those are different, and conflating them would make
+    // the event name lie about what happened (caught in code review).
+    recordFunnelEvent('first_experience_demo_skipped', { demo_version: fixture.version, context: 'demo' });
+    return true;
+  }
+
   const stepIndex = DEMO_STEPS.indexOf(step);
 
   return {
@@ -133,10 +166,12 @@ export function useFirstExperienceDemo() {
     resetToBase,
     completeDemo,
     startOwnDecision,
-    // Wave 2: server-persisted progress, exposed for later waves (e.g. a
-    // first-login resolver) to read without duplicating the fetch.
+    skipDemo,
+    // Wave 2/3: server-persisted progress, exposed for the resolver and any
+    // other consumer to read without duplicating the fetch.
     hasStartedBefore: persisted.hasStartedBefore,
     hasCompletedBefore: persisted.hasCompletedBefore,
+    hasSkippedBefore: persisted.hasSkippedBefore,
   };
 }
 

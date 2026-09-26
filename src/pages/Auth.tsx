@@ -14,6 +14,7 @@ import { trackPageView, trackEvent, recordFunnelEvent } from '@/lib/analytics';
 import { sendWelcomeEmail, isNewUser, wasWelcomeEmailSent, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 import { consumeShareOrigin } from '@/lib/shareOrigin';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { isFirstExperienceRoutingEnabled, resolveFirstExperienceForUser, destinationToPath } from '@/lib/firstExperienceResolver';
 
 import { logger } from '@/lib/logger';
 export default function Auth() {
@@ -103,10 +104,21 @@ export default function Auth() {
             localStorage.removeItem('pending_checkout_plan');
             const [planOnly, billing] = plan.split('_') as ['plus' | 'pro', 'monthly' | 'annual'];
             createCheckout(planOnly, undefined, billing).catch(() => setIsProcessingCheckout(false));
+          } else if (returnUrl) {
+            // Explicit deep link -- the highest-precedence destination
+            // (spec section 9/10). Bypasses the first-experience resolver
+            // entirely, by construction: it is never even called here.
+            navigate(decodeURIComponent(returnUrl));
+          } else if (isFirstExperienceRoutingEnabled()) {
+            // First Decision Experience, Wave 3: the ONE routing authority
+            // for a fresh sign-in with no explicit destination. Never runs
+            // when a returnUrl/checkout is present (handled above), so it
+            // can never hijack a deep link, checkout callback, or paid
+            // workspace return.
+            const destination = await resolveFirstExperienceForUser(user.id);
+            navigate(destinationToPath(destination));
           } else {
-            // Redirect to returnUrl if provided, otherwise to /app
-            const destination = returnUrl ? decodeURIComponent(returnUrl) : '/app';
-            navigate(destination);
+            navigate('/app');
           }
         } else if (shouldCheckout) {
           setIsProcessingCheckout(false);

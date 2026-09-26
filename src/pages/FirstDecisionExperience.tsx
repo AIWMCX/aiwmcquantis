@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -26,8 +28,12 @@ const PREV: Partial<Record<DemoStep, DemoStep>> = {
 };
 
 export default function FirstDecisionExperience() {
-  const demo = useFirstExperienceDemo();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const demo = useFirstExperienceDemo({ resume: searchParams.get('resume') === '1' });
   const { step, stepIndex, totalSteps, goToStep, fixture } = demo;
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [skipError, setSkipError] = useState(false);
 
   function next() {
     const target = NEXT[step];
@@ -39,6 +45,21 @@ export default function FirstDecisionExperience() {
   function back() {
     const target = PREV[step];
     if (target) goToStep(target);
+  }
+
+  // Atomic from the user's perspective: persist the skip, THEN navigate.
+  // Never navigate on an unconfirmed write -- a failed skip must not look
+  // like a successful one (see useFirstExperienceDemo.skipDemo's comment).
+  async function handleSkip() {
+    setSkipError(false);
+    setIsSkipping(true);
+    const succeeded = await demo.skipDemo();
+    setIsSkipping(false);
+    if (succeeded) {
+      navigate('/app');
+    } else {
+      setSkipError(true);
+    }
   }
 
   return (
@@ -62,6 +83,22 @@ export default function FirstDecisionExperience() {
             <Button size="lg" onClick={next}>
               Start 5-step demo
             </Button>
+            <p className="text-xs text-muted-foreground mt-4">
+              Already know Quantis?{' '}
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={isSkipping}
+                className="underline hover:text-foreground disabled:opacity-60 disabled:cursor-wait"
+              >
+                {isSkipping ? 'One moment…' : 'Start my own decision'}
+              </button>
+            </p>
+            {skipError && (
+              <p className="text-xs text-destructive mt-2">
+                Couldn't save that — please try again.
+              </p>
+            )}
           </GlassCard>
         ) : (
           <>

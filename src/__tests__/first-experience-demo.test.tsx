@@ -25,14 +25,19 @@ vi.mock('@/lib/analytics', () => ({
 
 const mockMarkStarted = vi.fn();
 const mockMarkCompleted = vi.fn();
+const mockMarkSkipped = vi.fn();
+const mockMarkSkippedAsync = vi.fn().mockResolvedValue(undefined);
 vi.mock('@/hooks/useFirstExperienceDemoState', () => ({
   useFirstExperienceDemoState: () => ({
     state: null,
     isLoading: false,
     hasStartedBefore: false,
     hasCompletedBefore: false,
+    hasSkippedBefore: false,
     markStarted: mockMarkStarted,
     markCompleted: mockMarkCompleted,
+    markSkipped: mockMarkSkipped,
+    markSkippedAsync: mockMarkSkippedAsync,
   }),
 }));
 
@@ -44,6 +49,47 @@ describe('useFirstExperienceDemo', () => {
     mockRecordFunnelEvent.mockClear();
     mockMarkStarted.mockClear();
     mockMarkCompleted.mockClear();
+    mockMarkSkipped.mockClear();
+    mockMarkSkippedAsync.mockClear();
+    mockMarkSkippedAsync.mockResolvedValue(undefined);
+  });
+
+  it('Wave 3: resume option skips the INTRO card and starts on EVIDENCE', () => {
+    const { result } = renderHook(() => useFirstExperienceDemo({ resume: true }));
+    expect(result.current.step).toBe('EVIDENCE');
+  });
+
+  it('Wave 3: skipDemo awaits persistence, records a distinct skip event (not own_decision_started), and resolves true on success', async () => {
+    const { result } = renderHook(() => useFirstExperienceDemo());
+    let succeeded: boolean = false;
+    await act(async () => {
+      succeeded = await result.current.skipDemo();
+    });
+    expect(succeeded).toBe(true);
+    expect(mockMarkSkippedAsync).toHaveBeenCalledTimes(1);
+    expect(mockMarkSkippedAsync).toHaveBeenCalledWith(FOUNDER_DEMO_FIXTURE.version);
+    // Distinct event name: skipping declines onboarding, it does not mean
+    // the user has started a real decision yet -- those must not share an
+    // event name (caught in code review).
+    const skipEvent = mockRecordFunnelEvent.mock.calls.find((c) => c[0] === 'first_experience_demo_skipped');
+    expect(skipEvent).toBeTruthy();
+    expect(skipEvent?.[1]).toMatchObject({ context: 'demo' });
+    const wronglyNamedEvent = mockRecordFunnelEvent.mock.calls.find(
+      (c) => c[0] === 'first_experience_own_decision_started',
+    );
+    expect(wronglyNamedEvent).toBeUndefined();
+  });
+
+  it('Wave 3: skipDemo resolves false and does NOT record telemetry when persistence fails -- never pretend a failed save succeeded', async () => {
+    mockMarkSkippedAsync.mockRejectedValueOnce(new Error('network error'));
+    const { result } = renderHook(() => useFirstExperienceDemo());
+    let succeeded: boolean = true;
+    await act(async () => {
+      succeeded = await result.current.skipDemo();
+    });
+    expect(succeeded).toBe(false);
+    const skipEvent = mockRecordFunnelEvent.mock.calls.find((c) => c[0] === 'first_experience_demo_skipped');
+    expect(skipEvent).toBeUndefined();
   });
 
   it('calls the Wave 2 persistence markStarted once, with the fixture version', async () => {
