@@ -328,15 +328,17 @@ function FeatureComparisonTable() {
     { name: 'API access', free: 'no', plus: 'no', pro: 'yes' },
     {
       name: 'Team seats',
-      // Sourced from TIERS.*.limits.teamSeats (config/tiers.ts), which is
-      // drift-tested (tiers-drift.test.ts) against the real server-enforced
-      // value in supabase/functions/_shared/entitlements.ts: Free=0, Plus=1,
-      // Pro=3. This row previously hardcoded "1 / 1 / 3" -- correct for
-      // Plus/Pro, but wrong for Free (was 1, should be 0; Free has no team
-      // access at all per entitlements.ts). Do not source this from
-      // tier-spec.ts's FEATURE_MANIFEST -- that file's team_seats values
-      // (FREE=0, PLUS=0, PRO=3) disagree with the actual enforced server
-      // entitlements and are themselves stale.
+      // Sourced from TIERS.*.limits.teamSeats (config/tiers.ts). Corrected
+      // 2026-09-27 audit: Plus was 1 here (and in entitlements.ts), which
+      // this comment previously (incorrectly) called the real server-
+      // enforced value -- it was not. The actual gate (team-invite/index.ts
+      // + the enforce_team_seat_cap DB trigger) hard-requires the team
+      // owner to hold a PRO subscription unconditionally; there is no path
+      // for a Plus owner to create a team or invite anyone. That is exactly
+      // what tier-spec.ts's FEATURE_MANIFEST already had (FREE=0, PLUS=0,
+      // PRO=3) -- this file's old comment wrongly called tier-spec.ts stale
+      // when tiers.ts/entitlements.ts were the ones out of sync with the
+      // real enforcement. Now Free=0, Plus=0, Pro=3 everywhere.
       free: String(TIERS.free.limits.teamSeats),
       plus: String(TIERS.plus.limits.teamSeats),
       pro: String(TIERS.pro.limits.teamSeats),
