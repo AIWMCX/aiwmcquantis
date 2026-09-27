@@ -19,7 +19,7 @@ const AccuracyTransparentResults = lazy(() =>
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
 import { AnalysisTopBar } from '@/components/analysis/AnalysisTopBar';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
-import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
+
 import { RateLimitBanner } from '@/components/analysis/RateLimitBanner';
 import { QuickStartWizard } from '@/components/onboarding/QuickStartWizard';
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
@@ -540,7 +540,7 @@ export default function Index() {
     <AppLayout title="Dashboard">
       <PageSEO
         title="Run a free business idea analysis | AIWMC Quantis"
-        description={`Run five complete Decision Runs each month: financial analysis, failure pre-mortem, and scenarios informed by ${BENCHMARK_COUNT_DISPLAY} benchmark data points from ${BENCHMARK_SOURCES_DISPLAY}.`}
+        description="Run five complete Decision Runs each month: explicit assumptions, deterministic financial analysis, a failure pre-mortem, and downside scenarios before you commit capital."
         canonical="/app"
       />
 

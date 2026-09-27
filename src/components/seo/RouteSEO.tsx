@@ -26,11 +26,11 @@ interface RouteMeta {
 const ROUTE_META: Record<string, RouteMeta> = {
   '/': {
     title: 'AIWMC Quantis — AI Business Idea Validator',
-    description: `Stress-test your business idea. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points. Free to start.`,
+    description: 'Test a business decision before committing capital: explicit assumptions, deterministic cash, break-even and payback math, downside scenarios. Free to start.',
   },
   '/app': {
     title: 'Run a Business Decision Pre-Mortem — AIWMC Quantis',
-    description: `Run a free Decision Run: test assumptions, compare downside scenarios, and see what could reverse the decision using ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`,
+    description: `Run a free Decision Run: test assumptions, compare downside scenarios, and see what could reverse the decision before you commit capital.`,
   },
   '/how-it-works': {
     title: 'How Quantis Works — 3 Steps to Financial Clarity',
@@ -62,7 +62,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/research': {
     title: 'Research — Data Behind Quantis',
-    description: `Research and primary sources powering Quantis: ${BENCHMARK_COUNT_DISPLAY} benchmark data points, location indices, and validation studies.`,
+    description: `Research and public sources behind Quantis: a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid, location indices, and methodology notes.`,
   },
   '/blog': {
     title: 'Blog — Founder Lessons & Validation Tactics',
@@ -165,7 +165,7 @@ export function RouteSEO({ path, titleOverride, descriptionOverride, noIndex }: 
   const description =
     descriptionOverride ??
     meta?.description ??
-    `Stress-test your business idea. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`;
+    'Test a business decision before committing capital: explicit assumptions, deterministic cash, break-even and payback math, downside scenarios. Free to start.';
   const shouldNoIndex = noIndex ?? meta?.noIndex ?? false;
 
   return <PageMeta title={title} description={description} path={resolvedPath} noIndex={shouldNoIndex} />;

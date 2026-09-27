@@ -8,7 +8,7 @@ interface LockedFeaturePreviewProps {
 
 const LOCKED_FEATURES = [
   // "12-page" dropped -- unverified specific figure; see LockedAnalysisPaywall.tsx.
-  { icon: FileText, label: 'Export PDF Report', description: 'Investor-grade report' },
+  { icon: FileText, label: 'Export PDF Report', description: 'Decision memo and full report' },
   { icon: Layers, label: 'Unlimited Scenarios', description: 'Test pessimistic, optimistic & custom' },
   { icon: BarChart3, label: 'Decision Report', description: 'Business plans, pitch decks, NDAs' },
 ];

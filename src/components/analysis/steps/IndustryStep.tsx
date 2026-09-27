@@ -120,7 +120,7 @@ export function IndustryStep({
               style={{ background: 'var(--q-bg-input)', border: '1px solid var(--q-border-subtle)', color: 'var(--q-text-primary)' }}
             />
           )}
-          <span className="q-form-hint mt-1 block">We'll rewrite this into investor-grade language</span>
+          <span className="q-form-hint mt-1 block">We'll turn this into a clear, structured decision statement</span>
           {errors.idea && <span className="text-[12px] mt-1 block" style={{ color: 'var(--q-status-red)' }}>{errors.idea}</span>}
         </div>
 

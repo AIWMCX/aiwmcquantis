@@ -17,9 +17,7 @@ const FLAG_ENV_KEYS: Record<FlagKey, string> = {
   // not something that should light up unannounced (spec section 17).
   commercial_workflow: 'VITE_FLAG_COMMERCIAL_WORKFLOW',
   // Activation-to-revenue Wave 4: /app/new-decision intent-capture step.
-  // Fails closed -- this changes where every first-time real user lands
-  // after sign-in (via firstExperienceResolver's START_DECISION case), so
-  // an absent env var must mean "unchanged existing behavior", not "on".
+  // Default ON (see isEnabled below) -- it is the primary CTA target.
   new_decision_v1: 'VITE_FLAG_NEW_DECISION_V1',
 };
 
@@ -48,5 +46,12 @@ export function isEnabled(flag: FlagKey): boolean {
   // and at /quote without extra setup. Override with VITE_FLAG_SERVICE_JOB=false
   // or localStorage["flag:service_job"]="0" to disable.
   if (flag === 'service_job') return true;
+  // Default-ON for new_decision_v1 (2026-09-27): the remodeled IA made
+  // "+ New Decision" the primary CTA (sidebar + Home), but production never
+  // had VITE_FLAG_NEW_DECISION_V1 set -- so /app/new-decision immediately
+  // redirected back to /app and the main button did nothing. The page is a
+  // thin intent step that hands off to the same analysis form at /app, so
+  // ON is the safe default. Kill switch: VITE_FLAG_NEW_DECISION_V1=false.
+  if (flag === 'new_decision_v1') return true;
   return false;
 }

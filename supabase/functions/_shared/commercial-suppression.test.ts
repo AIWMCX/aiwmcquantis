@@ -120,7 +120,7 @@ Deno.test("checkSuppression: contacted 31 days ago (outside the 30-day default w
 Deno.test("checkSuppression: a custom recentContactWindowDays overrides the 30-day default", () => {
   const result = checkSuppression(
     baseProspect(),
-    baseContext({ lastContactedAt: "2026-09-25T00:00:00.000Z", recentContactWindowDays: 3 }),
+    baseContext({ lastContactedAt: "2026-09-25T00:00:00.000Z", recentContactWindowDays: 3, now: new Date("2026-09-30T00:00:00.000Z") }),
   );
   assertEquals(result.suppressed, false);
 });
