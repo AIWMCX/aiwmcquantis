@@ -48,7 +48,7 @@ export function ModelConfidenceBadge({ confidence }: ModelConfidenceBadgeProps) 
     },
     high_risk: {
       icon: ShieldAlert,
-      label: 'High Risk',
+      label: 'Low Confidence',
       color: 'text-destructive',
       bg: 'bg-destructive/10 border-destructive/30',
       ring: 'text-destructive',

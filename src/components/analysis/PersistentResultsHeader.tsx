@@ -195,7 +195,7 @@ export function PersistentResultsHeader({
             isFirst
           />
           <KPIChip
-            label="Break-Even"
+            label="Payback"
             value={animatedBreakEven > 24 ? 'Mo. 24+' : `Mo. ${Math.round(animatedBreakEven)}`}
             color={breakEvenColor}
           />
@@ -206,7 +206,7 @@ export function PersistentResultsHeader({
             warning={cashRunway < 8}
           />
           <KPIChip
-            label="Confidence"
+            label="Data Confidence"
             value={<TrafficLightBadge confidenceScore={confidenceScore} size="sm" showTooltip={false} />}
           />
         </div>
