@@ -2,7 +2,6 @@ import React from 'react';
 import { Zap, LogIn, UserPlus, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 interface AnonymousUsageNoticeProps {
   className?: string;
@@ -25,12 +24,11 @@ export function AnonymousUsageNotice({ className }: AnonymousUsageNoticeProps) {
               Preview Mode
             </p>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-              1 free analysis
+              1 preview run
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-            See how Quantis grades your plan against <strong className="text-foreground">{BENCHMARK_COUNT_DISPLAY} benchmark data points</strong>.
-            Sign in to save your free analysis and unlock the path to the <strong className="text-foreground">full report (Monte Carlo, P&L, action plan)</strong>.
+            Try one run without an account. A <strong className="text-foreground">free account</strong> gives you 5 complete Decision Runs a month (full report, scenarios, pre-mortem) and saves your work. No card required.
           </p>
           <div className="flex items-center gap-2 mt-3">
             <Button asChild size="sm" variant="default" className="h-8 text-xs gap-1.5">

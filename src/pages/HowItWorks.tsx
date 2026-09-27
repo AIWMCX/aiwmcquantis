@@ -90,7 +90,7 @@ const REPORT_SECTIONS = [
   { icon: Activity, title: 'Cash Flow & Runway', desc: 'Month-by-month cash position, burn rate, break-even month, and runway calculation. See exactly when (or if) the business becomes self-sustaining.', tier: 'Included in every Decision Run' },
   { icon: Shield, title: 'Action Plan', desc: 'Top 5 prioritized next steps tied to your specific risks. What to cut, where to double down, and whether to proceed — based on your numbers, not generic advice.', tier: 'Included in every Decision Run' },
   { icon: Globe, title: 'RVCE Validation Results', desc: `External cross-referencing of ${FINANCIAL_VARIABLES} metrics against live web data. Each metric tagged: OK, WARN, or OUTLIER — with sources, evidence samples, and recommended corrections.`, tier: 'Included in every Decision Run' },
-  { icon: Database, title: 'Benchmark Insights & Confidence', desc: `Every metric shows its benchmark source, percentile position, and confidence level. You see exactly where your numbers sit relative to ${BENCHMARK_COUNT_DISPLAY} data points.`, tier: 'All tiers' },
+  { icon: Database, title: 'Benchmark Insights & Confidence', desc: `Benchmark-backed inputs are labeled as defaults, with their percentile position, so you can see where your numbers sit relative to a ${BENCHMARK_COUNT_DISPLAY}-cell modeled grid and replace any default.`, tier: 'All tiers' },
 ];
 
 const TOOLS = [

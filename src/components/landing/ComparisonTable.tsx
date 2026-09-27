@@ -13,7 +13,7 @@ const comparisons = [
   {
     aspect: 'Data Source',
     generic: 'Training data only',
-    quantis: `${BENCHMARK_COUNT_DISPLAY} benchmark data points`,
+    quantis: `${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid`,
     genericStatus: 'poor',
     quantisStatus: 'good',
   },

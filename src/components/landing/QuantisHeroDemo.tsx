@@ -246,7 +246,7 @@ const METRIC_INFO: Record<string, { title: string; desc: string; crit: string }>
   },
   risk: {
     title: 'Risk Score (0–100)',
-    desc: `Composite of LTV:CAC, churn, saturation, runway, margin — benchmarked against ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`,
+    desc: `Composite of LTV:CAC, churn, saturation, runway, margin — benchmarked against a ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid.`,
     crit: '<40 Proceed · 40–70 Pivot · >70 High Risk.',
   },
 };

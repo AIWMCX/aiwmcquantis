@@ -117,7 +117,7 @@ export default function Leaderboard() {
     <PublicPageShell backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title="Quantis Leaderboard — Top-scoring validated business ideas"
-        description={`Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`}
+        description={`Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against a ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid.`}
         canonical="/leaderboard"
       />
       <div className="py-4 md:py-8">

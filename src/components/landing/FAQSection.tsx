@@ -12,7 +12,7 @@ import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/can
 const faqItems = [
   {
     question: 'What is AIWMC Quantis?',
-    answer: `AIWMC Quantis is a deterministic financial stress-testing engine with an AI narrator layer. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`
+    answer: `AIWMC Quantis is a deterministic financial stress-testing engine with an AI narrator layer. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using a ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid.`
   },
   {
     question: 'How is this different from ChatGPT?',
@@ -20,11 +20,11 @@ const faqItems = [
   },
   {
     question: 'What data do you use?',
-    answer: `${BENCHMARK_COUNT_DISPLAY} benchmark data points covering 50+ sectors — informed by ${BENCHMARK_SOURCES_DISPLAY} — plus cost indices for 50+ global cities. The engine uses the same financial frameworks that VCs and accelerators rely on.`
+    answer: `A ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid covering 50+ sectors, informed by ${BENCHMARK_SOURCES_DISPLAY}, plus cost indices for 50+ cities. The cells are modeled combinations, not observed companies, and they are used only as labeled defaults you can replace with your own numbers.`
   },
   {
     question: 'How accurate are the financial projections?',
-    answer: `Our projections are based on ${BENCHMARK_COUNT_DISPLAY} benchmark data points and real market data. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. Projections are estimates — we include confidence scores so you can calibrate.`
+    answer: `Our projections are based on your inputs, with labeled benchmark defaults from a ${BENCHMARK_COUNT_DISPLAY}-cell modeled grid where you leave a value blank. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. Projections are estimates, not predictions; each assumption is labeled so you can see what drives the result.`
   },
   {
     question: 'Can I try AIWMC Quantis for free?',

@@ -255,7 +255,7 @@ export function CompactAnalysisForm({
             Stress-test your business idea
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--q-text-secondary)' }}>
-            Fill in what you know. We validate with {BENCHMARK_COUNT_DISPLAY} benchmark data points.
+            Fill in what you know. We validate with a {BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid.
           </p>
           {/* Domain 4 audit (Q40): nothing in this form previously named the
               decision or the capital behind it — every field below fed
