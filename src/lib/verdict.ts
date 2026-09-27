@@ -45,7 +45,7 @@ export function computeVerdict(result: BusinessAnalysisResult): Verdict {
         : payback >= 36
           ? `Payback is ${Math.round(payback)} months — capital won't return on a normal horizon.`
           : `LTV:CAC ${ltvCac.toFixed(1)} — you spend more to acquire than each customer is worth.`,
-      subline: `Monthly net: ${fmtUsd(monthly)} · Payback: ${payback >= 999 ? 'never' : `${Math.round(payback)} mo`} · Confidence ${confidence}%`,
+      subline: `Monthly net: ${fmtUsd(monthly)} · Payback: ${payback >= 999 ? 'never' : `${Math.round(payback)} mo`} · Data confidence ${confidence}%`,
     };
   }
 
@@ -55,7 +55,7 @@ export function computeVerdict(result: BusinessAnalysisResult): Verdict {
       toneLabel: 'Viable',
       toneColor: 'var(--q-status-green, #22c55e)',
       headline: `Profitable from month ${Math.max(1, Math.round(payback))} — unit economics hold up.`,
-      subline: `Monthly net: ${fmtUsd(monthly)} · LTV:CAC ${ltvCac.toFixed(1)} · Confidence ${confidence}%`,
+      subline: `Monthly net: ${fmtUsd(monthly)} · LTV:CAC ${ltvCac.toFixed(1)} · Data confidence ${confidence}%`,
     };
   }
 
@@ -68,7 +68,7 @@ export function computeVerdict(result: BusinessAnalysisResult): Verdict {
       : ltvCac < 3
         ? `LTV:CAC ${ltvCac.toFixed(1)} — margins are too thin for ad-driven growth.`
         : `Marginal: profitable on paper, sensitive to assumption changes.`,
-    subline: `Monthly net: ${fmtUsd(monthly)} · Payback: ${payback >= 999 ? 'never' : `${Math.round(payback)} mo`} · Confidence ${confidence}%`,
+    subline: `Monthly net: ${fmtUsd(monthly)} · Payback: ${payback >= 999 ? 'never' : `${Math.round(payback)} mo`} · Data confidence ${confidence}%`,
   };
 }
 

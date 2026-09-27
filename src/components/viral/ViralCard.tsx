@@ -17,13 +17,17 @@ const fmt = (v: number) => {
 
 const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
 
+// Guards against a 0-1 fraction slipping through unscaled (e.g. gross_margin),
+// which would otherwise render as a fraction-of-a-percent instead of a percent.
+const normalizePercent = (v: number) => (v > 0 && v <= 1 ? v * 100 : v);
+
 export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
   ({ result, variant }, ref) => {
     const profit = getMonthlyProfit(result.financial_analysis);
     const revenue = getMonthlyRevenue(result.financial_analysis);
     const payback = getPaybackMonths(result.financial_analysis);
     const roi = result.financial_analysis.returns?.roi_year_1 ?? result.financial_analysis.roi_year_1 ?? 0;
-    const grossMargin = result.financial_analysis.scenarios?.base?.gross_margin ?? 0;
+    const grossMargin = normalizePercent(result.financial_analysis.scenarios?.base?.gross_margin ?? 0);
     const confidence = result.confidence_score;
     const idea = result.metadata.idea;
     const location = result.metadata.location;
