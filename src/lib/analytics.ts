@@ -245,7 +245,21 @@ export type SowFunnelEvent =
   // would violate the founder's own "no coexisting synonyms" rule.
   | 'new_decision_viewed'
   | 'decision_type_selected'
-  | 'decision_input_started';
+  | 'decision_input_started'
+  // Activation-to-revenue Wave 5 (PR B, 2026-09-27): First Result
+  // Activation. result_rendered fires once DecisionSummary mounts;
+  // result_viewed fires once it actually scrolls into view (a real
+  // IntersectionObserver signal, not just "existed in the DOM") --
+  // ACTIVATED = analysis_completed AND result_viewed. driver_inspected
+  // fires when a "what has to be true" row is expanded; next_action_selected
+  // fires when a "test before committing capital" item is toggled.
+  // STRONG_ACTIVATION = ACTIVATED AND (driver_inspected OR
+  // assumption_changed OR scenario_compared) -- the latter two already
+  // existed before this wave (Domain 14 activation ladder).
+  | 'result_rendered'
+  | 'result_viewed'
+  | 'driver_inspected'
+  | 'next_action_selected';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
