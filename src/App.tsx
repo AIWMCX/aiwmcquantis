@@ -62,6 +62,7 @@ const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
 const PreMortem = lazy(() => import("./pages/PreMortem"));
 const FirstDecisionExperience = lazy(() => import("./pages/FirstDecisionExperience"));
+const NewDecision = lazy(() => import("./pages/NewDecision"));
 const ScenarioWorkspace = lazy(() => import("./pages/ScenarioWorkspace"));
 const Status = lazy(() => import("./pages/Status"));
 const StateOfQuantis = lazy(() => import("./pages/StateOfQuantis"));
@@ -246,6 +247,15 @@ const App = () => {
                 <Route path="/app/start" element={
                   <ProtectedRoute>
                     <FirstDecisionExperience />
+                  </ProtectedRoute>
+                } />
+                {/* Activation-to-revenue Wave 4: intent-capture step, hands off into
+                    the existing /app analysis workflow via router state -- no second
+                    analysis engine. Behind VITE_FLAG_NEW_DECISION_V1 (page redirects
+                    to /app itself when off, so this route always exists safely). */}
+                <Route path="/app/new-decision" element={
+                  <ProtectedRoute>
+                    <NewDecision />
                   </ProtectedRoute>
                 } />
                 {/* Decision tools stay discoverable. Server entitlements protect

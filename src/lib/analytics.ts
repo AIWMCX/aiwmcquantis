@@ -236,7 +236,16 @@ export type SowFunnelEvent =
   // means the user declined onboarding, not that they have started a real
   // decision yet -- conflating the two would make the event name lie about
   // what actually happened (caught in code review).
-  | 'first_experience_demo_skipped';
+  | 'first_experience_demo_skipped'
+  // Activation-to-revenue Wave 4 (2026-09-26): /app/new-decision's own
+  // intent-capture telemetry. Deliberately does NOT add a "real analysis
+  // started" event here -- 'analysis_started' (Prompt 3 canonical, above)
+  // already means exactly that and already fires from the existing
+  // useAnalysis() submit handoff; adding a synonym for the same moment
+  // would violate the founder's own "no coexisting synonyms" rule.
+  | 'new_decision_viewed'
+  | 'decision_type_selected'
+  | 'decision_input_started';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
