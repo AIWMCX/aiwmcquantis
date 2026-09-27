@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
 import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
+import { DecisionSummary } from '@/components/analysis/DecisionSummary';
 import { detectQuoteGenTrade } from '@/lib/quotegen-eligibility';
 import { Receipt } from 'lucide-react';
 // Lazy: pulls @react-pdf/renderer (~1.5 MB). Keep off the dashboard entry bundle.
@@ -873,6 +874,7 @@ export default function Index() {
                           setHasPrefill(false);
                         }}
                       >
+                        <DecisionSummary result={result} analysisId={currentAnalysisId || undefined} />
                         <Suspense
                           fallback={
                             <div className="space-y-3 p-6">
