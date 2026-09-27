@@ -348,7 +348,7 @@ export const HERO_HEADLINES: Record<(typeof EXPERIMENTS)['hero_headline']['varia
   },
   numbers_first: {
     title: 'ROI, Payback, Revenue — Calculated in 2 Minutes',
-    subtitle: `Stop guessing. Get precise financial projections backed by ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`,
+    subtitle: `Stop guessing. See which assumptions control cash, break-even and payback before you commit.`,
   },
   action_focused: {
     title: 'Turn Your Business Idea Into a Funded Plan',
