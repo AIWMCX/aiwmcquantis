@@ -25,7 +25,6 @@ import { LastAuditedBadge } from './LastAuditedBadge';
 import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
 import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsBlock';
 import { FallbackModeBanner } from './FallbackModeBanner';
-import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
 import { ModelApplicabilityBanner } from './ModelApplicabilityBanner';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
@@ -500,12 +499,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
               {/* RIGHT: Metric Grid + Audit Trail (sticky) */}
               <div className="lg:sticky lg:top-[120px] space-y-5 self-start">
-                {/* F4 — Disambiguate CAC payback vs project payback before the grid */}
-                <MetricDisambiguationBanner
-                  cacPaybackMonths={typeof cacPaybackMonths === 'number' ? cacPaybackMonths : 0}
-                  projectPaybackYears={projectPaybackMonths >= 999 ? 999 : projectPaybackMonths / 12}
-                  initialInvestment={result.financial_analysis?.startup_investment?.total ?? 0}
-                />
+                {/* Metric disambiguation (CAC Payback vs Project Payback) now lives
+                    cleanly in the Model/Scenarios tabs per the tabbed-shell remodel;
+                    kept off Overview so Overview stays the single clean verdict
+                    surface. MetricDisambiguationBanner itself is untouched for reuse
+                    in Full Report/Evidence contexts. */}
                 {/* 2x3 Metric Grid — Free users see only Revenue + Break-even + Runway; advanced metrics blurred */}
                 <div className="grid grid-cols-2 gap-3">
                   <SimpleMetricCard 

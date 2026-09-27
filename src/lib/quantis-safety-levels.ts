@@ -58,7 +58,7 @@ export const QSL_CONFIG: Record<QSL, QSLConfig> = {
   },
   [QSL.LOAN]: {
     badge: 'QSL-4',
-    label: 'Loan Grade',
+    label: 'CPA-Review Grade',
     sub: 'Expert validation required',
     disclaimer: 'Requires CPA validation before loan applications.',
     color: 'hsl(var(--q-accent-primary-hsl, 216 90% 60%))',
