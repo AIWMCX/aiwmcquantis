@@ -30,6 +30,15 @@ import {
 import { deriveReportVerdict, deriveDegradedFlags } from './pdf-verdict';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { buildBenchmarkCitationsSummary } from './pdf-benchmark-summary';
+import { computeVerdict } from '@/lib/verdict';
+import {
+  selectCriticalAssumptions,
+  selectWhatBreaksFirst,
+  selectNextActions,
+  computeRunwayLabel,
+  normalizePercent,
+  PROBABILITY_LABEL,
+} from '@/lib/decision-memo-data';
 import {
   QUALITY_STATUS_LABEL,
   QUALITY_STATUS_COLOR,
@@ -855,6 +864,12 @@ export interface EngagementMemoContext {
   decisionQuestion?: string;
   consultantNotes?: string;
 }
+
+// Stage 4 (Reports Consolidation): 'memo' is the new default export -- a
+// 3-5 page Decision Memo. 'full' is the pre-existing, unchanged detailed
+// report (the "17-page report" / appendix), still fully available as a
+// secondary option. See createDecisionMemoReport() below.
+export type PdfVariant = 'memo' | 'full';
 
 export const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = [], engagementContext?: EngagementMemoContext) => {
   // Sanitize data to ensure all fields have safe defaults
@@ -1866,6 +1881,317 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
 };
 
 // ============================================
+// DECISION MEMO (Stage 4, Reports Consolidation)
+// ============================================
+// A 3-5 page, client-meeting-ready alternative to the report above. Every
+// figure below is read from the SAME sanitized result / financial fields
+// createExecutiveReport already reads (prepareSafeResult, financial
+// destructuring, deriveDegradedFlags, detectPdfContradictions,
+// buildBenchmarkCitationsSummary) plus the SAME dashboard selectors
+// DecisionSummary.tsx uses (decision-memo-data.ts) -- no second
+// calculation path exists for any number in this document. The Assessment
+// section deliberately uses computeVerdict() from lib/verdict.ts (the
+// same function that drives the on-screen "Decision" tab), not the
+// separate deriveReportVerdict() tone used by the legacy/full report's
+// cover banner below -- so the memo's headline is byte-identical to what
+// the user already saw on the result page before exporting.
+export const createDecisionMemoReport = (
+  rawResult: BusinessAnalysisResult,
+  branding: BrandingConfig = defaultBranding,
+  benchmarkRows: PdfBenchmarkRow[] = [],
+  engagementContext?: EngagementMemoContext,
+) => {
+  const result = prepareSafeResult(rawResult);
+  const brandedColors = createColors(branding);
+  const { isDegraded, integrityBlocked } = deriveDegradedFlags(rawResult);
+  const reconciliationFlags = detectPdfContradictions(result.financial_analysis);
+  if (isDegraded) {
+    reconciliationFlags.push(
+      'AI narrative generation failed for this analysis — figures below remain fully calculated by the deterministic engine.'
+    );
+  }
+  if (integrityBlocked) {
+    reconciliationFlags.push('This report failed a critical financial-accounting check and should be reviewed before use.');
+  }
+
+  const financial = result.financial_analysis;
+  const monthlyProfit = financial.scenarios?.base?.net_profit ?? financial.monthly_profit ?? 0;
+  const paybackMonths = financial.returns?.payback_period_months ?? financial.payback_period_months ?? 0;
+  const monthlyRevenue = financial.mrr ?? financial.monthly_revenue?.realistic ?? 0;
+  const runwayLabel = computeRunwayLabel(financial, monthlyProfit);
+
+  // Reuse the exact dashboard verdict — not a new vocabulary.
+  const verdict = computeVerdict(rawResult);
+  const verdictToneColor: Record<typeof verdict.tone, string> = {
+    pass: brandedColors.success,
+    caution: brandedColors.warning,
+    fail: brandedColors.danger,
+  };
+  const verdictColor = verdictToneColor[verdict.tone];
+
+  const criticalAssumptions = selectCriticalAssumptions(rawResult, 5);
+  const breaksFirst = selectWhatBreaksFirst(rawResult, 3);
+  const nextActions = selectNextActions(rawResult, breaksFirst, 3);
+  const risks = result.business_plan.risks || [];
+  const pessimistic = financial.scenarios?.pessimistic;
+
+  const generatedDate = new Date(result.metadata.generated_at).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const currentDate = new Date().toLocaleDateString('en-US');
+  const brandName = branding.companyName || 'AIWMC Quantis';
+  const showQuantisBranding = !branding.hideQuantisBranding;
+  const displayBrandName = showQuantisBranding ? brandName : brandName.replace('AIWMC Quantis', brandName);
+  const footerText = branding.footerText || `${brandName} - ${branding.headerText || 'AI Business Intelligence Platform'}`;
+  const brandedHeaderLogo = { ...styles.pageHeaderLogo, color: brandedColors.primary };
+  const truncatePdfHeaderText = (value: string, maxChars: number): string => {
+    const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+    return normalized.length > maxChars ? `${normalized.slice(0, Math.max(0, maxChars - 1))}…` : normalized;
+  };
+  const headerIdea = truncatePdfHeaderText(result.metadata.idea, 58);
+  const headerSection = (value: string) => truncatePdfHeaderText(value, 22);
+
+  const pageHeader = (sectionLabel: string) => React.createElement(
+    View,
+    { style: styles.pageHeader },
+    React.createElement(
+      View,
+      { style: styles.pageHeaderLeft },
+      React.createElement(View, { style: styles.pageHeaderTitleWrap },
+        React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
+      ),
+      React.createElement(Text, { style: styles.separator }, ' | '),
+      React.createElement(View, { style: styles.pageHeaderSectionWrap },
+        React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection(sectionLabel))
+      )
+    ),
+    React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
+  );
+  const pageFooter = (label: string) => React.createElement(
+    View,
+    { style: styles.pageFooter },
+    React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
+    React.createElement(Text, null, ''),
+    label === 'last' ? pageNumFooter() : React.createElement(Text, null, label)
+  );
+
+  const sectionHeading = (title: string) =>
+    React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, title);
+
+  return React.createElement(
+    Document,
+    null,
+    // Page 1 — Decision, Assessment, Financial consequence
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      pageHeader('Decision Memo'),
+      React.createElement(Text, { style: { fontSize: 9, letterSpacing: 2, color: brandedColors.textMuted, marginBottom: 4, textTransform: 'uppercase' } }, 'DECISION MEMO'),
+      React.createElement(Text, { style: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: brandedColors.textPrimary, marginBottom: 6, lineHeight: 1.25 } }, result.metadata.idea),
+      React.createElement(Text, { style: { fontSize: 10, color: brandedColors.textSecondary, marginBottom: 4 } }, result.metadata.location),
+      engagementContext?.decisionQuestion && React.createElement(Text, { style: { fontSize: 10, color: brandedColors.textSecondary, marginBottom: 4 } }, `Decision under review: ${engagementContext.decisionQuestion}`),
+      engagementContext?.preparedFor && React.createElement(Text, { style: { fontSize: 9, color: brandedColors.textMuted, marginBottom: 10 } }, `Prepared for: ${engagementContext.preparedFor}`),
+
+      sectionHeading('Assessment'),
+      React.createElement(
+        View,
+        { style: { ...styles.verdictBanner, borderColor: verdictColor } },
+        React.createElement(Text, { style: styles.verdictLabel }, verdict.toneLabel),
+        React.createElement(Text, { style: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: verdictColor, textAlign: 'center', lineHeight: 1.3 } }, verdict.headline),
+        React.createElement(Text, { style: { fontSize: 10, color: brandedColors.textSecondary, marginTop: 8, textAlign: 'center' } }, verdict.subline)
+      ),
+
+      sectionHeading('Financial Consequence'),
+      React.createElement(
+        View,
+        { style: styles.metricsGrid },
+        React.createElement(
+          View, { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Monthly Revenue'),
+          React.createElement(Text, { style: styles.metricCardValue }, formatCurrency(monthlyRevenue))
+        ),
+        React.createElement(
+          View, { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Monthly Profit'),
+          React.createElement(Text, { style: { ...styles.metricCardValue, color: getProfitColor(monthlyProfit) } }, formatCurrency(monthlyProfit))
+        ),
+        React.createElement(
+          View, { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Payback Period'),
+          React.createElement(Text, { style: styles.metricCardValue }, monthlyProfit <= 0 || paybackMonths >= 999 ? 'N/A (unprofitable)' : paybackMonths < 12 ? `${paybackMonths} months` : `${(paybackMonths / 12).toFixed(1)} years`)
+        ),
+        React.createElement(
+          View, { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Cash Runway'),
+          React.createElement(Text, { style: { ...styles.metricCardValue, fontSize: 11 } }, runwayLabel)
+        )
+      ),
+      reconciliationFlags.length > 0 && React.createElement(
+        View,
+        { style: { backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#f59e0b', borderRadius: 6, padding: 10, marginTop: 6 } },
+        ...reconciliationFlags.map((flag) =>
+          React.createElement(Text, { key: flag, style: { fontSize: 8, color: '#78350f', lineHeight: 1.5, marginBottom: 2 } }, `⚠  ${flag}`)
+        )
+      ),
+      pageFooter('Page 1')
+    ),
+
+    // Page 2 — Critical assumptions, Downside case, What changes the answer
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      pageHeader('Assumptions & Downside'),
+      sectionHeading('Critical Assumptions'),
+      criticalAssumptions.length > 0
+        ? React.createElement(
+            View,
+            { style: { marginBottom: 16 } },
+            ...criticalAssumptions.map((d, i) =>
+              React.createElement(
+                View,
+                { key: d.id ?? i, style: styles.listItem },
+                React.createElement(
+                  View, { style: { ...styles.listBullet, backgroundColor: brandedColors.primary } },
+                  React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
+                ),
+                React.createElement(
+                  View, { style: { flex: 1 } },
+                  React.createElement(Text, { style: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: brandedColors.textPrimary } }, `${d.metric_name}: ${d.current_value} → ${d.target_value}`),
+                  React.createElement(Text, { style: styles.listText }, d.why_it_matters || d.explanation)
+                )
+              )
+            )
+          )
+        : React.createElement(Text, { style: styles.emptyText }, 'Not available for this analysis.'),
+
+      sectionHeading('Downside Case'),
+      pessimistic
+        ? React.createElement(
+            View,
+            { style: styles.metricsGrid },
+            React.createElement(
+              View, { style: styles.metricCard },
+              React.createElement(Text, { style: styles.metricCardLabel }, 'Pessimistic Revenue'),
+              React.createElement(Text, { style: styles.metricCardValue }, formatCurrency(pessimistic.revenue))
+            ),
+            React.createElement(
+              View, { style: styles.metricCard },
+              React.createElement(Text, { style: styles.metricCardLabel }, 'Pessimistic Net Profit'),
+              React.createElement(Text, { style: { ...styles.metricCardValue, color: getProfitColor(pessimistic.net_profit) } }, formatCurrency(pessimistic.net_profit))
+            ),
+            React.createElement(
+              View, { style: styles.metricCard },
+              React.createElement(Text, { style: styles.metricCardLabel }, 'Pessimistic Net Margin'),
+              React.createElement(Text, { style: styles.metricCardValue }, `${formatNumber(pessimistic.net_margin)}%`)
+            )
+          )
+        : React.createElement(Text, { style: styles.emptyText }, 'Pessimistic scenario not modeled for this analysis.'),
+
+      sectionHeading('What Changes the Answer'),
+      // Lighter treatment: reuses the same assumption_graph.criticalPath /
+      // risk_analysis fallback DecisionSummary.tsx's "What breaks first"
+      // renders — no new sensitivity/breakpoint calculation is performed
+      // here. If neither exists on this result, this section states that
+      // plainly rather than inventing a number.
+      breaksFirst
+        ? React.createElement(
+            View,
+            null,
+            ...breaksFirst.items.map((item: any, i: number) =>
+              React.createElement(
+                View, { key: i, style: { marginBottom: 8, flexDirection: 'row' } },
+                React.createElement(Text, { style: { fontSize: 9, color: brandedColors.textMuted, marginRight: 6 } }, `${i + 1}.`),
+                breaksFirst.source === 'assumption_graph'
+                  ? React.createElement(Text, { style: { fontSize: 10, color: brandedColors.textSecondary, flex: 1 } },
+                      `${item.assumption} — breaks below ${item.breakingThreshold} (currently ${item.currentValue})`)
+                  : React.createElement(Text, { style: { fontSize: 10, color: brandedColors.textSecondary, flex: 1 } },
+                      `${item.label} → resulting profit ${formatCurrency(item.resulting_profit)}${item.probability ? ` (${PROBABILITY_LABEL[item.probability] ?? item.probability} probability)` : ''}`)
+              )
+            )
+          )
+        : React.createElement(Text, { style: styles.emptyText }, 'Sensitivity data not available for this analysis.'),
+      pageFooter('Page 2')
+    ),
+
+    // Page 3 — Risks, Recommended validation, Financial summary
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      pageHeader('Risks & Next Steps'),
+      sectionHeading('Risks'),
+      risks.length > 0
+        ? React.createElement(
+            View,
+            { style: { marginBottom: 16 } },
+            ...risks.slice(0, 6).map((risk: any, i: number) => {
+              const riskName = risk?.risk || risk?.name || 'Unknown Risk';
+              const mitigation = risk?.mitigation || risk?.description;
+              return React.createElement(
+                View,
+                { key: i, style: styles.highlightBox },
+                React.createElement(Text, { style: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: brandedColors.textPrimary, marginBottom: 4 } }, String(riskName)),
+                mitigation && React.createElement(Text, { style: styles.highlightText }, `Mitigation: ${mitigation}`)
+              );
+            })
+          )
+        : React.createElement(Text, { style: styles.emptyText }, 'No risks listed for this analysis.'),
+
+      sectionHeading('Recommended Validation / Next Action'),
+      nextActions.length > 0
+        ? React.createElement(
+            View,
+            { style: { marginBottom: 16 } },
+            ...nextActions.map((action, i) =>
+              React.createElement(
+                View,
+                { key: i, style: styles.listItem },
+                React.createElement(
+                  View, { style: { ...styles.listBullet, backgroundColor: brandedColors.accent } },
+                  React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
+                ),
+                React.createElement(Text, { style: styles.listText }, action)
+              )
+            )
+          )
+        : React.createElement(Text, { style: styles.emptyText }, 'Not available for this analysis.'),
+
+      sectionHeading('Financial Summary'),
+      React.createElement(
+        View,
+        { style: styles.table },
+        React.createElement(
+          View, { style: styles.tableHeader },
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Metric'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Value')
+        ),
+        [
+          ['Total Investment Required', formatCurrency(financial.startup_investment.total)],
+          ['Monthly Revenue (MRR)', formatCurrency(monthlyRevenue)],
+          ['Monthly Operating Profit', formatCurrency(monthlyProfit)],
+          ['Payback Period', monthlyProfit <= 0 || paybackMonths >= 999 ? 'N/A (unprofitable)' : paybackMonths < 12 ? `${paybackMonths} months` : `${(paybackMonths / 12).toFixed(1)} years`],
+          ['Gross Margin (base case)', `${formatNumber(normalizePercent(financial.scenarios?.base?.gross_margin))}%`],
+        ].map(([label, value], i) =>
+          React.createElement(
+            View, { key: i, style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCellBold }, label),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, value)
+          )
+        )
+      ),
+
+      sectionHeading('Evidence & Methodology'),
+      React.createElement(Text, { style: styles.paragraph },
+        buildBenchmarkCitationsSummary(benchmarkRows, BENCHMARK_COUNT_DISPLAY)
+      ),
+      React.createElement(Text, { style: { fontSize: 8, color: brandedColors.textMuted, fontStyle: 'italic', marginTop: 4 } },
+        `Analysis date: ${generatedDate}. This memo summarizes the same deterministic engine output as the Full Report — see the Full Report for benchmark-by-benchmark detail, scenario tables, market analysis, and full risk register.`
+      ),
+      pageFooter('last')
+    )
+  );
+};
+
+// ============================================
 // PDF EXPORT HOOK
 // ============================================
 
@@ -1910,7 +2236,7 @@ export function usePdfExport() {
     fetchBrandingSettings().then(setBranding);
   }, []);
 
-  const generatePdf = useCallback(async (result: BusinessAnalysisResult, customBranding?: BrandingConfig, engagementContext?: EngagementMemoContext) => {
+  const generatePdf = useCallback(async (result: BusinessAnalysisResult, customBranding?: BrandingConfig, engagementContext?: EngagementMemoContext, variant: PdfVariant = 'memo') => {
     setIsGenerating(true);
     let exportJobId: string | null = null;
 
@@ -1935,7 +2261,8 @@ export function usePdfExport() {
         .replace(/[^a-zA-Z0-9]/g, '_')
         .substring(0, 30);
       const date = new Date().toISOString().split('T')[0];
-      const filename = `${brandPrefix}_Executive_Report_${sanitizedIdea}_${date}.pdf`;
+      const reportLabel = variant === 'full' ? 'Executive_Report' : 'Decision_Memo';
+      const filename = `${brandPrefix}_${reportLabel}_${sanitizedIdea}_${date}.pdf`;
 
       // Persist a "My Documents" row so the user has a visible history of
       // this download even before Supabase Storage upload lands (Wave 2 of
@@ -2009,9 +2336,15 @@ export function usePdfExport() {
           : ({ status: 'no_match', metric: d.metric } as unknown as BenchmarkResult),
       }));
 
-      // Generate PDF blob using @react-pdf/renderer with timeout
-      const doc = createExecutiveReport(result, activeBranding, benchmarkRows, engagementContext);
-      
+      // Generate PDF blob using @react-pdf/renderer with timeout.
+      // Stage 4 (Reports Consolidation): 'memo' (the new default) produces
+      // the short Decision Memo; 'full' produces the existing, unchanged
+      // detailed/"appendix" report. Both read the same result object and
+      // the same benchmarkRows computed above -- no second data-fetch path.
+      const doc = variant === 'full'
+        ? createExecutiveReport(result, activeBranding, benchmarkRows, engagementContext)
+        : createDecisionMemoReport(result, activeBranding, benchmarkRows, engagementContext);
+
       const blobPromise = pdf(doc).toBlob();
       const timeoutPromise = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('PDF_TIMEOUT: Generation took too long')), PDF_GENERATION_TIMEOUT)
@@ -2031,6 +2364,7 @@ export function usePdfExport() {
 
       void trackActivationEvent('pdf_exported', {
         idea: result.metadata?.idea?.slice(0, 50),
+        variant,
       });
       void logExportComplete(exportJobId, 'succeeded');
 

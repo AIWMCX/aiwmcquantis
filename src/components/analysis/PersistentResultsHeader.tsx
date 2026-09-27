@@ -11,7 +11,10 @@ interface PersistentResultsHeaderProps {
   currentStep: number;
   onStepChange: (step: number) => void;
   onBack?: () => void;
+  /** Primary export action — Stage 4 (Reports Consolidation): the 3-5 page Decision Memo, now the default. */
   onExportPDF?: () => void;
+  /** Secondary export action — the pre-existing, unchanged detailed/appendix report. */
+  onExportFullReport?: () => void;
   onNewAnalysis?: () => void;
   isGeneratingPdf?: boolean;
   analysisTime?: number;
@@ -99,6 +102,7 @@ export function PersistentResultsHeader({
   onStepChange,
   onBack,
   onExportPDF,
+  onExportFullReport,
   onNewAnalysis,
   isGeneratingPdf,
   analysisTime = 2.4,
@@ -238,16 +242,35 @@ export function PersistentResultsHeader({
             )}
           </div>
 
+          {/* Stage 4 (Reports Consolidation): the Decision Memo (short,
+              client-meeting-ready) is now the primary/default export.
+              The existing full/detailed report stays one click away as a
+              clearly-labeled secondary action -- not removed, not hidden. */}
           <Button
             variant="outline"
             size="sm"
             onClick={onExportPDF}
             disabled={isGeneratingPdf}
             className="gap-1.5 h-8 px-3"
+            title="Download the short Decision Memo (3-5 pages)"
           >
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">PDF</span>
+            <span className="hidden sm:inline">Decision Memo</span>
+            <span className="sm:hidden">PDF</span>
           </Button>
+
+          {onExportFullReport && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onExportFullReport}
+              disabled={isGeneratingPdf}
+              className="hidden md:inline-flex gap-1.5 h-8 px-2 text-xs text-muted-foreground"
+              title="Download the full detailed report"
+            >
+              Full Report
+            </Button>
+          )}
 
           <Button
             size="sm"

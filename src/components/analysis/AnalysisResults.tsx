@@ -114,7 +114,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     const toastId = 'pdf-generation';
     try {
       toast.loading('Generating your Executive Report...', { id: toastId, description: 'This may take up to 30 seconds.' });
-      await generatePdf(result);
+      // Pinned to 'full' -- this view's copy promises the (full) "Executive
+      // Report"; usePdfExport's generatePdf() default changed to 'memo' as
+      // part of Stage 4 (Reports Consolidation).
+      await generatePdf(result, undefined, undefined, 'full');
       toast.success('Executive Report downloaded!', { id: toastId, description: 'Your professional PDF report is ready.' });
     } catch (error) {
       logger.error('PDF export failed:', error);
