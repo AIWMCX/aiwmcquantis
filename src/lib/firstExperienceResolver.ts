@@ -53,11 +53,18 @@ export function resolveFirstExperience(input: FirstExperienceResolverInput): Fir
 }
 
 /**
- * /app/new-decision (the founder's fuller spec's dedicated real-intake
- * route) does not exist yet -- building it is explicitly out of scope for
- * this routing-only wave. START_DECISION resolves to the existing real
- * destination for starting a decision today: /app itself, where the
- * idea/location/analyze workflow already lives.
+ * Wave 4 (2026-09-26): /app/new-decision now exists -- a lightweight
+ * "what decision are you trying to make?" intent-capture step that hands
+ * off into the same real analysis workflow at /app (no second analysis
+ * engine). START_DECISION and NORMAL_APP are no longer the same
+ * destination: NORMAL_APP (an existing, already-active user) still goes
+ * straight to /app; START_DECISION (a user who has never run a real
+ * analysis) is routed through the intent step first. Gated by
+ * isEnabled('new_decision_v1') by the /app/new-decision PAGE itself (it
+ * redirects straight to /app when the flag is off), not here -- this
+ * function stays a pure destination->path mapping with no env reads, so
+ * when the flag is off the net behavior is unchanged even though this
+ * function still resolves to the new path.
  */
 export function destinationToPath(destination: FirstExperienceDestination): string {
   switch (destination) {
@@ -66,6 +73,7 @@ export function destinationToPath(destination: FirstExperienceDestination): stri
     case 'RESUME_DEMO':
       return '/app/start?resume=1';
     case 'START_DECISION':
+      return '/app/new-decision';
     case 'NORMAL_APP':
       return '/app';
   }

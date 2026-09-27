@@ -8,7 +8,7 @@
  * before rendering and redirect / show 404 if the flag is off.
  */
 
-type FlagKey = 'service_job' | 'commercial_workflow';
+type FlagKey = 'service_job' | 'commercial_workflow' | 'new_decision_v1';
 
 const FLAG_ENV_KEYS: Record<FlagKey, string> = {
   service_job: 'VITE_FLAG_SERVICE_JOB',
@@ -16,6 +16,11 @@ const FLAG_ENV_KEYS: Record<FlagKey, string> = {
   // branch below, unlike service_job -- this is internal admin tooling,
   // not something that should light up unannounced (spec section 17).
   commercial_workflow: 'VITE_FLAG_COMMERCIAL_WORKFLOW',
+  // Activation-to-revenue Wave 4: /app/new-decision intent-capture step.
+  // Fails closed -- this changes where every first-time real user lands
+  // after sign-in (via firstExperienceResolver's START_DECISION case), so
+  // an absent env var must mean "unchanged existing behavior", not "on".
+  new_decision_v1: 'VITE_FLAG_NEW_DECISION_V1',
 };
 
 function readEnv(key: string): string | undefined {

@@ -111,10 +111,10 @@ describe('destinationToPath', () => {
   it('maps each destination to its expected route, including the resume query param', () => {
     expect(destinationToPath('FIRST_DEMO')).toBe('/app/start');
     expect(destinationToPath('RESUME_DEMO')).toBe('/app/start?resume=1');
-    // /app/new-decision does not exist yet (out of scope for this routing-only
-    // wave) -- START_DECISION deliberately resolves to the existing real
-    // destination for starting a decision, not a page that would 404.
-    expect(destinationToPath('START_DECISION')).toBe('/app');
+    // Wave 4: /app/new-decision now exists. START_DECISION and NORMAL_APP
+    // are no longer the same destination -- the page itself redirects to
+    // /app when VITE_FLAG_NEW_DECISION_V1 is off, so this stays safe dark.
+    expect(destinationToPath('START_DECISION')).toBe('/app/new-decision');
     expect(destinationToPath('NORMAL_APP')).toBe('/app');
   });
 });

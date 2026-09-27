@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense, lazy } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation as useRouterLocation } from 'react-router-dom';
+import type { NewDecisionRouterState } from '@/pages/NewDecision';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
@@ -233,6 +234,25 @@ export default function Index() {
     },
     [markQuickStartComplete, setIdea, setLocation]
   );
+
+  // Activation-to-revenue Wave 4: /app/new-decision hands off here via
+  // router state (same pattern ScenarioWorkspace -> DocsStudio already
+  // uses) rather than a new table or a second analysis engine. Pre-fills
+  // the SAME idea field the real analysis form already uses; the actual
+  // analysis is still built and run entirely by this existing workflow.
+  // Read once on mount -- react-router keeps `state` across re-renders of
+  // the same navigation, so a ref guard prevents re-applying it on every
+  // unrelated state update this component makes afterward.
+  const routerLocation = useRouterLocation();
+  const appliedNewDecisionState = useRef(false);
+  useEffect(() => {
+    if (appliedNewDecisionState.current) return;
+    const incoming = routerLocation.state as NewDecisionRouterState | null;
+    if (incoming?.decisionStatement) {
+      appliedNewDecisionState.current = true;
+      setIdea(incoming.decisionStatement);
+    }
+  }, [routerLocation.state, setIdea]);
 
   // New complimentary Decision Runs populate `result` with the complete
   // report. `freeTierSummary` remains only for legacy cached responses.
