@@ -29,6 +29,7 @@ export type DecisionType =
   | 'pricing'
   | 'marketing'
   | 'client_evaluation'
+  | 'new_client_capacity'
   | 'expansion'
   | 'other';
 
@@ -46,6 +47,7 @@ const DECISION_TYPES: { value: DecisionType; label: string }[] = [
   { value: 'pricing', label: 'Change pricing' },
   { value: 'marketing', label: 'Increase marketing spend' },
   { value: 'client_evaluation', label: 'Evaluate a client business' },
+  { value: 'new_client_capacity', label: 'Take on a new client' },
   { value: 'expansion', label: 'Compare an expansion' },
   { value: 'other', label: 'Other' },
 ];
