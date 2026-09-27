@@ -60,7 +60,6 @@ import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
-import { QuantisWorkspaceGuide } from '@/components/dashboard/QuantisWorkspaceGuide';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
@@ -555,16 +554,6 @@ export default function Index() {
                   </Button>
                 </div>
               </div>
-            )}
-
-            {isAuthenticated && (
-              <QuantisWorkspaceGuide
-                isFree={isFree}
-                remainingAnalyses={remainingAnalyses}
-                onStartAnalysis={() =>
-                  formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }
-              />
             )}
 
             {/* Subscription Status Bar — slim */}
