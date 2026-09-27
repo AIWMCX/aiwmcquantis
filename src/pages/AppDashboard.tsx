@@ -62,8 +62,9 @@ import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgra
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
 import { QuantisWorkspaceGuide } from '@/components/dashboard/QuantisWorkspaceGuide';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
+import { useClients } from '@/hooks/useClients';
 import { format } from 'date-fns';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -116,6 +117,27 @@ export default function Index() {
   // already read; no new table, no new fetch.
   const { history: recentDecisions, isLoaded: recentDecisionsLoaded } = useAnalysisHistory();
 
+  // Client workspace (Stage 5): reuses the same "Recent Decisions" data --
+  // no second fetch of the analyses table. Groups by client_id (present only
+  // on decisions run via the New Decision "select a client" step) so the
+  // most recently active clients surface with their own recent decisions.
+  const { clients } = useClients();
+  const recentClients = useMemo(() => {
+    if (!recentDecisionsLoaded || clients.length === 0) return [];
+    const byClient = new Map<string, { client: (typeof clients)[number]; decisions: typeof recentDecisions }>();
+    for (const entry of recentDecisions) {
+      if (!entry.client_id) continue;
+      const client = clients.find((c) => c.id === entry.client_id);
+      if (!client) continue;
+      const bucket = byClient.get(client.id) ?? { client, decisions: [] };
+      bucket.decisions.push(entry);
+      byClient.set(client.id, bucket);
+    }
+    return Array.from(byClient.values())
+      .sort((a, b) => (a.decisions[0]?.created_at < b.decisions[0]?.created_at ? 1 : -1))
+      .slice(0, 3);
+  }, [recentDecisionsLoaded, clients, recentDecisions]);
+
   // Soft "welcome back" nudge for recognized returning visitors who already ran a
   // free analysis on this device but never created an account. Non-blocking (they
   // can still run another) — it just invites the +1 sign-in. Computed in an effect
@@ -166,6 +188,8 @@ export default function Index() {
     setLocation,
     financialInputs,
     setFinancialInputs,
+    clientId,
+    setClientId,
     errors,
     clearError,
     result,
@@ -291,6 +315,23 @@ export default function Index() {
   const [pendingCapacityCheckFocus, setPendingCapacityCheckFocus] = useState(false);
   useEffect(() => {
     if (appliedNewDecisionState.current) return;
+    // Client workspace (Stage 5): ClientDetail's decision list hands off an
+    // already-completed result the same way Recent Decisions/
+    // ReturningDecisionBanner open one in-page -- no second fetch, no new
+    // route param scheme.
+    const openState = routerLocation.state as
+      | { openAnalysisId?: string; openAnalysisResult?: unknown }
+      | null;
+    if (openState?.openAnalysisId && openState.openAnalysisResult) {
+      appliedNewDecisionState.current = true;
+      setResult(normalizeAnalysisResult(openState.openAnalysisResult as any));
+      setCurrentAnalysisId(openState.openAnalysisId);
+      setActiveTab('analyze');
+      requestAnimationFrame(() =>
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      );
+      return;
+    }
     const incoming = routerLocation.state as NewDecisionRouterState | null;
     if (incoming?.decisionStatement) {
       appliedNewDecisionState.current = true;
@@ -298,8 +339,31 @@ export default function Index() {
       if (incoming.decisionType === 'new_client_capacity') {
         setPendingCapacityCheckFocus(true);
       }
+      // Client workspace (Stage 5): thread the optional client selection
+      // through so the eventual saveAnalysis() call links this decision to
+      // it, and pre-fill industry/location from the client's stored values
+      // -- never overriding anything the user has already typed here.
+      if (incoming.clientId) {
+        setClientId(incoming.clientId);
+      }
+      if (incoming.prefillLocation) {
+        setLocation((prev) => prev || incoming.prefillLocation!);
+      }
+      if (incoming.prefillIndustry) {
+        setFinancialInputs((prev) =>
+          prev.selected_industry ? prev : { ...prev, selected_industry: incoming.prefillIndustry }
+        );
+      }
     }
-  }, [routerLocation.state, setIdea]);
+  }, [
+    routerLocation.state,
+    setIdea,
+    setClientId,
+    setLocation,
+    setFinancialInputs,
+    setResult,
+    setCurrentAnalysisId,
+  ]);
 
   // Once the analysis this hand-off triggered comes back, jump straight to
   // the Capacity Check card rather than making the user scroll past the
@@ -838,6 +902,61 @@ export default function Index() {
                   resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
               />
+            )}
+
+            {/* Recent Clients — Stage 5. Same card/list styling as Recent
+                Decisions below (Stage 1's established visual language), just
+                grouped by client with a compact list of that client's own
+                recent decisions underneath its name. Only shown once at
+                least one decision has ever been linked to a client. */}
+            {isAuthenticated && !result && !freeTierSummary && recentClients.length > 0 && (
+              <div className="mb-4 rounded-xl border border-border bg-card overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Recent Clients
+                  </span>
+                </div>
+                <ul>
+                  {recentClients.map(({ client, decisions }) => (
+                    <li key={client.id} className="border-b border-border last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/app/clients/${client.id}`)}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-accent/50 transition-colors min-h-[44px]"
+                      >
+                        <span className="truncate font-medium text-foreground text-sm">{client.name}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {decisions.length} decision{decisions.length === 1 ? '' : 's'}
+                        </span>
+                      </button>
+                      <ul className="pb-1.5">
+                        {decisions.slice(0, 3).map((entry) => (
+                          <li key={entry.id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const entryResult = entry.result as any;
+                                if (!entryResult) return;
+                                setResult(normalizeAnalysisResult(entryResult));
+                                setCurrentAnalysisId(entry.id);
+                                setActiveTab('analyze');
+                                resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }}
+                              className="w-full flex items-center justify-between gap-3 pl-8 pr-4 py-1.5 text-left text-xs hover:bg-accent/50 transition-colors min-h-[36px]"
+                            >
+                              <span className="truncate text-muted-foreground">{entry.idea}</span>
+                              <span className="shrink-0 text-muted-foreground">
+                                {format(new Date(entry.created_at), 'MMM d')}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {/* Recent Decisions — compact list, reuses useAnalysisHistory()

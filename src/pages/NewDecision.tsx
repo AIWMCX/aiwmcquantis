@@ -6,9 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { isEnabled } from '@/lib/flags';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
+import { useClients } from '@/hooks/useClients';
+
+const NEW_CLIENT_VALUE = '__new_client__';
+const NO_CLIENT_VALUE = '__no_client__';
 
 /**
  * Activation-to-revenue Wave 4: /app/new-decision.
@@ -57,6 +68,12 @@ export interface NewDecisionRouterState {
   decisionStatement: string;
   capitalAtRisk?: number;
   decisionDeadline?: string;
+  // Client workspace (Stage 5): optional link to a public.clients row, plus
+  // that client's stored industry/location so the downstream /app form can
+  // offer them as a starting point (the user can still override either).
+  clientId?: string;
+  prefillIndustry?: string;
+  prefillLocation?: string;
 }
 
 export default function NewDecision() {
@@ -68,6 +85,30 @@ export default function NewDecision() {
   const [capitalAtRisk, setCapitalAtRisk] = useState('');
   const [decisionDeadline, setDecisionDeadline] = useState('');
   const hasFiredInputStarted = useRef(false);
+
+  // Client workspace (Stage 5): fully optional -- selecting a client or
+  // typing a new one only sets clientId/newClientName; if the user never
+  // touches this control, continueToAnalysis() below sends no client
+  // information at all and the decision is saved exactly as before
+  // (client_id stays null).
+  const { clients, isLoaded: clientsLoaded, createClient } = useClients();
+  const [selectedClientValue, setSelectedClientValue] = useState<string>(NO_CLIENT_VALUE);
+  const [newClientName, setNewClientName] = useState('');
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const selectedClient = clients.find((c) => c.id === selectedClientValue);
+
+  // Entry point from ClientDetail's "New decision for this client" button --
+  // pre-selects that client once the list has loaded. Still just a default;
+  // the dropdown above remains fully editable.
+  const appliedClientPrefill = useRef(false);
+  useEffect(() => {
+    if (appliedClientPrefill.current || !clientsLoaded) return;
+    const incoming = routerLocation.state as { prefillClientId?: string } | null;
+    if (incoming?.prefillClientId && clients.some((c) => c.id === incoming.prefillClientId)) {
+      appliedClientPrefill.current = true;
+      setSelectedClientValue(incoming.prefillClientId);
+    }
+  }, [clientsLoaded, clients, routerLocation.state]);
 
   useEffect(() => {
     if (!isEnabled('new_decision_v1')) {
@@ -91,18 +132,46 @@ export default function NewDecision() {
     }
   }
 
-  function continueToAnalysis() {
+  async function continueToAnalysis() {
     if (!decisionType || decisionStatement.trim().length === 0) return;
+
+    // Client workspace (Stage 5): resolve the "+ New client" case by
+    // creating the row now (so it exists before we ever try to save a
+    // decision against it); an existing selection just passes its id
+    // through. Neither path blocks the user if it fails -- the decision
+    // still proceeds without a client_id, same as before this feature.
+    let clientId: string | undefined;
+    let prefillIndustry: string | undefined;
+    let prefillLocation: string | undefined;
+
+    if (selectedClientValue === NEW_CLIENT_VALUE && newClientName.trim()) {
+      setIsCreatingClient(true);
+      const created = await createClient({ name: newClientName.trim() });
+      setIsCreatingClient(false);
+      clientId = created?.id;
+    } else if (selectedClient) {
+      clientId = selectedClient.id;
+      prefillIndustry = selectedClient.industry ?? undefined;
+      prefillLocation = selectedClient.location ?? undefined;
+    }
+
     const state: NewDecisionRouterState = {
       decisionType,
       decisionStatement: decisionStatement.trim(),
       capitalAtRisk: capitalAtRisk ? Number(capitalAtRisk) : undefined,
       decisionDeadline: decisionDeadline || undefined,
+      clientId,
+      prefillIndustry,
+      prefillLocation,
     };
     navigate('/app', { state });
   }
 
-  const canContinue = !!decisionType && decisionStatement.trim().length > 0;
+  const canContinue =
+    !!decisionType &&
+    decisionStatement.trim().length > 0 &&
+    !(selectedClientValue === NEW_CLIENT_VALUE && newClientName.trim().length === 0) &&
+    !isCreatingClient;
 
   return (
     <AppLayout title="New decision">
@@ -135,6 +204,49 @@ export default function NewDecision() {
               ))}
             </div>
           </div>
+
+          {clientsLoaded && (
+            <div>
+              <Label className="mb-2 block">Client (optional)</Label>
+              <Select
+                value={selectedClientValue}
+                onValueChange={(value) => {
+                  setSelectedClientValue(value);
+                  if (value !== NEW_CLIENT_VALUE) setNewClientName('');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No client -- just me" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_CLIENT_VALUE}>No client -- just me</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={NEW_CLIENT_VALUE}>+ New client</SelectItem>
+                </SelectContent>
+              </Select>
+              {selectedClientValue === NEW_CLIENT_VALUE && (
+                <Input
+                  className="mt-2"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="Client or business name"
+                  autoFocus
+                />
+              )}
+              {selectedClient && (selectedClient.industry || selectedClient.location) && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Will pre-fill {selectedClient.industry ? `industry (${selectedClient.industry})` : ''}
+                  {selectedClient.industry && selectedClient.location ? ' and ' : ''}
+                  {selectedClient.location ? `location (${selectedClient.location})` : ''} on the next
+                  step -- you can still change either.
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <Label htmlFor="decision-statement" className="mb-2 block">
@@ -176,8 +288,13 @@ export default function NewDecision() {
             </div>
           </div>
 
-          <Button size="lg" className="w-full" onClick={continueToAnalysis} disabled={!canContinue}>
-            Continue to analysis
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() => void continueToAnalysis()}
+            disabled={!canContinue}
+          >
+            {isCreatingClient ? 'Setting up client…' : 'Continue to analysis'}
           </Button>
         </GlassCard>
       </div>

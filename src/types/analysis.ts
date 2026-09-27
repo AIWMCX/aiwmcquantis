@@ -527,6 +527,29 @@ export interface AnalysisHistoryEntry {
   location: string;
   result: BusinessAnalysisResult;
   created_at: string;
+  // Client workspace (Stage 5): which client business-entity this Decision
+  // Run was for, if any. Always optional -- a decision without a client_id
+  // works exactly as before. client_name is denormalized in via the join in
+  // getAnalyses() purely for display; the client_id/clients row remains the
+  // one source of truth for the client's own fields.
+  client_id?: string | null;
+  client_name?: string | null;
+}
+
+// Client workspace (Stage 5): a business-entity record so a consultant/CFO
+// doing repeat decisions for the same client can group them together. See
+// supabase/migrations/20260927050000_clients_table.sql. Deliberately NOT a
+// full CRM record -- just enough identity + reusable context to link
+// Decision Runs and pre-fill the next one.
+export interface Client {
+  id: string;
+  owner_user_id: string;
+  name: string;
+  industry?: string | null;
+  location?: string | null;
+  baseline_assumptions?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // Industry Option for selector

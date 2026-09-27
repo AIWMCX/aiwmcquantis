@@ -60,7 +60,8 @@ export async function saveAnalysis(
   idea: string,
   location: string,
   result: BusinessAnalysisResult,
-  depth: 'quick' | 'full' | 'pro' = 'full'
+  depth: 'quick' | 'full' | 'pro' = 'full',
+  clientId?: string | null
 ): Promise<{ id: string } | null> {
   const idempotencyKey = computeIdempotencyKey(userId, idea, location, result);
 
@@ -77,6 +78,10 @@ export async function saveAnalysis(
       payback_months: getPaybackMonths(result.financial_analysis),
       depth,
       idempotency_key: idempotencyKey,
+      // Client workspace (Stage 5) — optional link to public.clients.
+      // Absent/null for every decision made outside the New Decision "select
+      // a client" step; never required.
+      client_id: clientId ?? null,
       // Handbook §19 item 9 follow-up — joins to analysis_snapshots.correlation_id
       // without ever mutating the immutable snapshot row.
       analysis_correlation_id: result.analysis_correlation_id ?? null,
@@ -263,17 +268,24 @@ export const HISTORY_PAGE_SIZE = 25;
 
 export async function getAnalyses(
   userId: string,
-  opts: { limit?: number; before?: string } = {},
+  opts: { limit?: number; before?: string; clientId?: string } = {},
 ): Promise<AnalysisHistoryEntry[]> {
   const limit = opts.limit ?? HISTORY_PAGE_SIZE;
+  // Client workspace (Stage 5): pull the client's name alongside each row via
+  // a join on the FK, rather than a second round-trip per row. RLS on
+  // public.clients still applies to the joined rows (owner-only), so this
+  // can never leak another user's client name.
   let query = supabase
     .from('analyses')
-    .select('*')
+    .select('*, clients(id, name)' as any)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
   if (opts.before) {
     query = query.lt('created_at', opts.before);
+  }
+  if (opts.clientId) {
+    query = query.eq('client_id', opts.clientId);
   }
   const { data, error } = await query;
 
@@ -282,12 +294,14 @@ export async function getAnalyses(
     return [];
   }
 
-  return data.map((row) => ({
+  return (data as any[]).map((row) => ({
     id: row.id,
     idea: row.idea,
     location: row.location,
     result: row.result as unknown as BusinessAnalysisResult,
     created_at: row.created_at,
+    client_id: row.client_id ?? null,
+    client_name: row.clients?.name ?? null,
   }));
 }
 

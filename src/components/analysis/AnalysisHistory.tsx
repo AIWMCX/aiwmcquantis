@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { History, Trash2, ExternalLink, Clock, MapPin, TrendingUp, Cloud, CloudOff, Loader2, LogIn, RefreshCw, Copy } from 'lucide-react';
+import { History, Trash2, ExternalLink, Clock, MapPin, TrendingUp, Cloud, CloudOff, Loader2, LogIn, RefreshCw, Copy, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
@@ -192,6 +192,19 @@ export function AnalysisHistory({ onSelect, onClone }: AnalysisHistoryProps) {
                       <Clock className="w-3 h-3" />
                       {formatDate(entry.created_at)}
                     </span>
+                    {/* Client workspace (Stage 5): lightweight grouping --
+                        just the client name linking to its detail view,
+                        rather than a separate client-filtered list page. */}
+                    {entry.client_id && entry.client_name && (
+                      <Link
+                        to={`/app/clients/${entry.client_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 text-primary hover:underline"
+                      >
+                        <Building2 className="w-3 h-3" />
+                        {entry.client_name}
+                      </Link>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 mt-2">
                     <span className="text-xs text-muted-foreground">
