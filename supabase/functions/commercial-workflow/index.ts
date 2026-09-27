@@ -19,6 +19,7 @@ import { assessProspect } from '../_shared/commercial/stages/prospecting.ts';
 import { prepareCallBrief } from '../_shared/commercial/stages/call-preparation.ts';
 import { handleObjection } from '../_shared/commercial/stages/objection-handling.ts';
 import { draftFollowup } from '../_shared/commercial/stages/follow-up.ts';
+import { checkSuppression, type OtherProspectIdentity, type SuppressionProspect } from '../_shared/commercial-suppression.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -205,6 +206,69 @@ Deno.serve(async (req) => {
         const prospectId = String(body.prospect_id ?? '').trim();
         const stageContext = String(body.stage_context ?? '').trim();
         if (!prospectId || !stageContext) return j({ error: 'prospect_id and stage_context are required' }, 400);
+
+        // Deterministic suppression gate -- runs BEFORE any message drafting
+        // (and therefore before any LLM call). Never guesses: a lookup
+        // failure here is a hard error, not a silent "assume not suppressed".
+        const { data: prospectRow, error: prospectErr } = await svc
+          .from('commercial_prospects')
+          .select('id, company_name, contact_channel, campaign_id, suppression_status, stage')
+          .eq('id', prospectId)
+          .single();
+        if (prospectErr || !prospectRow) return j({ error: prospectErr?.message ?? 'prospect not found' }, 404);
+
+        const suppressionSubject: SuppressionProspect = {
+          id: prospectRow.id,
+          company_name: prospectRow.company_name,
+          contact_channel: prospectRow.contact_channel,
+          suppression_status: prospectRow.suppression_status ?? 'active',
+        };
+
+        const [{ data: campaignSiblingsRaw }, { data: activeOppsRaw }, { data: lastContactedRow }] = await Promise.all([
+          prospectRow.campaign_id
+            ? svc
+                .from('commercial_prospects')
+                .select('id, company_name, contact_channel')
+                .eq('campaign_id', prospectRow.campaign_id)
+                .neq('id', prospectId)
+            : Promise.resolve({ data: [] as OtherProspectIdentity[] }),
+          svc
+            .from('commercial_prospects')
+            .select('id, company_name, contact_channel, stage')
+            .eq('company_name', prospectRow.company_name)
+            .neq('id', prospectId),
+          svc
+            .from('commercial_prospect_stage_history')
+            .select('created_at')
+            .eq('prospect_id', prospectId)
+            .eq('to_stage', 'contacted')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+
+        const suppression = checkSuppression(suppressionSubject, {
+          campaignSiblingProspects: (campaignSiblingsRaw ?? []) as OtherProspectIdentity[],
+          activeOpportunityProspects: (activeOppsRaw ?? []) as OtherProspectIdentity[],
+          lastContactedAt: lastContactedRow?.created_at ?? null,
+        });
+
+        if (suppression.suppressed) {
+          // Record the suppression on the prospect's own history trail
+          // (rather than letting it silently disappear from the funnel) --
+          // a same-stage entry, not a fake transition: the funnel stage
+          // itself is untouched, only the fact that an attempt was blocked
+          // is now visible to anyone reviewing this prospect.
+          await svc.from('commercial_prospect_stage_history').insert({
+            prospect_id: prospectId,
+            from_stage: prospectRow.stage,
+            to_stage: prospectRow.stage,
+            reason: `suppressed: ${suppression.reasonCode}`,
+            changed_by: null,
+          });
+          return j({ success: true, suppressed: true, reason_code: suppression.reasonCode });
+        }
+
         const foundation = await loadCurrentFoundation(svc);
         const result = await draftFollowup({
           foundation,
