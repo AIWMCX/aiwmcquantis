@@ -80,6 +80,40 @@ Deno.test("runCommercialAgent: with no AI provider configured, returns a typed p
   }
 });
 
+Deno.test("runCommercialAgent: a provider_error is NEVER retried, even though maxAttempts allows it (retrying a down/rate-limited provider wastes cost, corrective feedback can't fix it)", async () => {
+  // With no AI provider key configured, every attempt would fail identically
+  // -- if this looped it would time out this test suite. Passing a generous
+  // maxAttempts and completing near-instantly proves no retry happened.
+  const start = performance.now();
+  const result = await runCommercialAgent({
+    stage: "offer",
+    foundationVersion: 1,
+    systemPrompt: "You are a test.",
+    userPrompt: "Say hello.",
+    schema: z.object({ hello: z.string() }),
+    maxAttempts: 5,
+  });
+  const elapsedMs = performance.now() - start;
+  assertFalse(result.ok);
+  if (!result.ok) assertEquals(result.reason, "provider_error");
+  assert(elapsedMs < 2000, `expected a single fast provider_error, took ${elapsedMs}ms (looks like it retried)`);
+});
+
+Deno.test("runCommercialAgent: maxAttempts is clamped to at least 1 (a caller passing 0 or a negative number can't disable the guardrail into zero attempts)", async () => {
+  const result = await runCommercialAgent({
+    stage: "offer",
+    foundationVersion: 1,
+    systemPrompt: "You are a test.",
+    userPrompt: "Say hello.",
+    schema: z.object({ hello: z.string() }),
+    maxAttempts: 0,
+  });
+  // Still exactly one attempt happens (surfaced as provider_error here since
+  // no provider is configured) -- it never short-circuits to "no result".
+  assertFalse(result.ok);
+  if (!result.ok) assertEquals(result.reason, "provider_error");
+});
+
 Deno.test("runCommercialAgent: the provider_error path is stage-agnostic and carries adminUserId/requestId through without throwing", async () => {
   const result = await runCommercialAgent({
     stage: "follow_up",
