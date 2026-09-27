@@ -73,12 +73,15 @@ export function MobileNav({ children }: MobileNavProps) {
     { path: '/risk-gallery', label: 'Risk Gallery', icon: Shield, show: true },
     { path: '/pricing', label: 'Pricing', icon: Zap, show: true },
     { path: '/blog', label: 'Blog', icon: FileText, show: true },
-    { path: '/app', label: 'Decision Analysis', icon: LayoutDashboard, show: isAuthenticated },
-    { path: '/app/pre-mortem', label: 'Failure Pre-Mortem', icon: Shield, show: isAuthenticated },
-    { path: '/app/scenarios', label: 'Compare Outcomes', icon: Brain, show: isAuthenticated },
-    { path: '/quote', label: 'Client Proposal', icon: Zap, show: isAuthenticated },
-    { path: '/docs', label: 'Decision Report', icon: FileText, show: isAuthenticated },
-    { path: '/app/invoices', label: 'Invoice & Capacity', icon: Briefcase, show: isAuthenticated },
+    // Stage 1 dashboard IA compression (2026-09-27): mirrors AppSidebar's
+    // collapsed 5-destination model. Failure Pre-Mortem, Compare Outcomes,
+    // Client Proposal, and Invoice & Capacity still resolve as routes --
+    // they're reached from inside a Decision's tabbed shell or the Reports
+    // destination now, not as competing top-level nav items.
+    { path: '/app', label: 'Home', icon: LayoutDashboard, show: isAuthenticated },
+    { path: '/app?tab=history', label: 'Decisions', icon: Brain, show: isAuthenticated },
+    { path: '/admin/benchmarks', label: 'Benchmarks', icon: Shield, show: isAuthenticated && isAdmin },
+    { path: '/docs', label: 'Reports', icon: FileText, show: isAuthenticated },
     { path: '/plus-settings', label: 'Plus Settings', icon: Settings, show: isAuthenticated },
     { path: '/admin', label: 'Admin Panel', icon: Shield, show: isAuthenticated && isAdmin },
   ];

@@ -65,7 +65,7 @@ export default function PreMortem() {
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to dashboard
+            Back to your Decision
           </button>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -75,10 +75,10 @@ export default function PreMortem() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-foreground">Pre-Mortem Stress Test</h1>
-                <Badge variant="secondary" className="text-[10px]">INCLUDED</Badge>
+                <Badge variant="secondary" className="text-[10px]">Part of your Decision — Risks tab</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Find the failure modes before your customers, your bank, or your runway find them first.
+                The deep-dive behind your Decision's Risks tab: find the failure modes before your customers, your bank, or your runway find them first.
               </p>
             </div>
           </div>

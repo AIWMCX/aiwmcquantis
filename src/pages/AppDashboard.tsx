@@ -61,6 +61,9 @@ import { recordFunnelEvent } from '@/lib/analytics';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
 import { QuantisWorkspaceGuide } from '@/components/dashboard/QuantisWorkspaceGuide';
+import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
+import { format } from 'date-fns';
+import { Plus } from 'lucide-react';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -104,6 +107,13 @@ export default function Index() {
   const prevResultRef = useRef<boolean>(false);
 
   const { isAuthenticated, user } = useAuth();
+
+  // Stage 1 dashboard IA compression (2026-09-27): Home is a work queue —
+  // New Decision CTA, then "Continue your work" (ReturningDecisionBanner,
+  // already below), then a compact Recent Decisions list. Reuses the same
+  // useAnalysisHistory() data source AnalysisHistory/ReturningDecisionBanner
+  // already read; no new table, no new fetch.
+  const { history: recentDecisions, isLoaded: recentDecisionsLoaded } = useAnalysisHistory();
 
   // Soft "welcome back" nudge for recognized returning visitors who already ran a
   // free analysis on this device but never created an account. Non-blocking (they
@@ -449,6 +459,22 @@ export default function Index() {
       />
 
       <div className="container max-w-7xl px-4 sm:px-6 py-6">
+        {/* Home as a work queue (Stage 1 IA): New Decision CTA leads, then
+            "Continue your work" (ReturningDecisionBanner, below) and Recent
+            Decisions (below), with the existing analysis form staying put. */}
+        {isAuthenticated && (
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Your decisions</h2>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              onClick={() => navigate('/app/new-decision')}
+            >
+              <Plus className="w-3.5 h-3.5" /> New Decision
+            </Button>
+          </div>
+        )}
+
         {/* Checkout activation overlay */}
         {checkoutPolling && (
           <div className="mb-6 p-6 rounded-xl border-2 border-primary/40 bg-primary/5 flex flex-col items-center justify-center gap-3 animate-fade-in">
@@ -789,6 +815,50 @@ export default function Index() {
                   resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
               />
+            )}
+
+            {/* Recent Decisions — compact list, reuses useAnalysisHistory()
+                (the same data source AnalysisHistory's full "History" tab
+                reads). Only shown when there's no in-progress/just-completed
+                result taking over the page, and only past the first entry
+                already surfaced above by ReturningDecisionBanner. */}
+            {isAuthenticated && !result && !freeTierSummary && recentDecisionsLoaded && recentDecisions.length > 1 && (
+              <div className="mb-4 rounded-xl border border-border bg-card overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Recent Decisions
+                  </span>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    View all
+                  </button>
+                </div>
+                <ul>
+                  {recentDecisions.slice(1, 5).map((entry) => (
+                    <li key={entry.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const entryResult = entry.result as any;
+                          if (!entryResult) return;
+                          setResult(normalizeAnalysisResult(entryResult));
+                          setCurrentAnalysisId(entry.id);
+                          setActiveTab('analyze');
+                          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-accent/50 transition-colors min-h-[44px]"
+                      >
+                        <span className="truncate font-medium text-foreground">{entry.idea}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {format(new Date(entry.created_at), 'MMM d')}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {/* Compact Analysis Form */}
