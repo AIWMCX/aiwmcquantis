@@ -63,6 +63,7 @@ const Research = lazy(() => import("./pages/Research"));
 const PreMortem = lazy(() => import("./pages/PreMortem"));
 const FirstDecisionExperience = lazy(() => import("./pages/FirstDecisionExperience"));
 const NewDecision = lazy(() => import("./pages/NewDecision"));
+const ClientDetail = lazy(() => import("./pages/ClientDetail"));
 const ScenarioWorkspace = lazy(() => import("./pages/ScenarioWorkspace"));
 const Status = lazy(() => import("./pages/Status"));
 const StateOfQuantis = lazy(() => import("./pages/StateOfQuantis"));
@@ -256,6 +257,15 @@ const App = () => {
                 <Route path="/app/new-decision" element={
                   <ProtectedRoute>
                     <NewDecision />
+                  </ProtectedRoute>
+                } />
+                {/* Client workspace, Stage 5: lightweight client detail --
+                    that client's own decisions grouped together, plus
+                    "start a new decision for this client". Not a full CRM
+                    page (see PR description). */}
+                <Route path="/app/clients/:id" element={
+                  <ProtectedRoute>
+                    <ClientDetail />
                   </ProtectedRoute>
                 } />
                 {/* Decision tools stay discoverable. Server entitlements protect

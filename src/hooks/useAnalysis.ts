@@ -31,6 +31,10 @@ export function useAnalysis() {
   const [location, setLocation] = useState('');
   const [financialInputs, setFinancialInputs] =
     useState<OptionalFinancialInputs>(EMPTY_FINANCIAL_INPUTS);
+  // Client workspace (Stage 5): optional link to a public.clients row for
+  // the run about to be submitted. Always optional -- when null, saved
+  // analyses behave exactly as before (client_id stays null in the DB).
+  const [clientId, setClientId] = useState<string | null>(null);
 
   // Debounced activation tracking for idea/location entry — fires once user pauses typing.
   // Internal dedupe (30s window in trackActivationEvent) prevents spam on remounts.
@@ -119,7 +123,8 @@ export function useAnalysis() {
           trimmedIdea,
           trimmedLocation,
           safeData,
-          finalDepth
+          finalDepth,
+          clientId
         );
         if (saved) {
           savedId = saved.id;
@@ -134,6 +139,7 @@ export function useAnalysis() {
             location: trimmedLocation,
             result: safeData,
             created_at: new Date().toISOString(),
+            client_id: clientId,
           });
         }
       } else {
@@ -165,7 +171,7 @@ export function useAnalysis() {
       }
       setAnalysisId(savedId);
     },
-    [idea, location, isAuthenticated, user, addEntry]
+    [idea, location, isAuthenticated, user, addEntry, clientId]
   );
 
   const mutation = useMutation({
@@ -480,6 +486,7 @@ export function useAnalysis() {
     setIdea('');
     setLocation('');
     setFinancialInputs(EMPTY_FINANCIAL_INPUTS);
+    setClientId(null);
     setErrors({});
     setResult(null);
     setFreeTierSummary(null);
@@ -515,6 +522,9 @@ export function useAnalysis() {
     setFinancialInputs,
     errors,
     clearError,
+    // Client workspace (Stage 5) — optional, defaults to null (no client).
+    clientId,
+    setClientId,
 
     // Analysis state
     result,
