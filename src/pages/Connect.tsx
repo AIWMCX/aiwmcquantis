@@ -36,9 +36,9 @@ const SOCIALS = [
   {
     id: 'telegram',
     name: 'Telegram',
-    handle: '@AYO_IS_AIWMC',
+    handle: '@AIWMC',
     description: 'Exclusive founder community, early access drops, and Q&A.',
-    url: 'https://t.me/AYO_IS_AIWMC',
+    url: 'https://t.me/AIWMC',
     color: '#26A5E4',
     bg: 'bg-[#26A5E4]/10 hover:bg-[#26A5E4]/20 border-[#26A5E4]/30 hover:border-[#26A5E4]/60',
     iconColor: '#26A5E4',
@@ -93,6 +93,38 @@ const SOCIALS = [
       </svg>
     ),
   },
+  // Threads/Whop: monogram placeholders (no verified official brand SVG
+  // path in this codebase yet). Swap in exact brand assets when available.
+  {
+    id: 'threads',
+    name: 'Threads',
+    handle: '@wmc.ai',
+    description: 'Long-form updates, threads, and community conversations.',
+    url: 'https://www.threads.com/@wmc.ai',
+    color: '#FFFFFF',
+    bg: 'bg-white/5 hover:bg-white/10 border-white/20 hover:border-white/50',
+    iconColor: '#FFFFFF',
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-7 h-7">
+        <text x="12" y="18" textAnchor="middle" fontSize="18" fontWeight="800" fill="currentColor" fontFamily="sans-serif">@</text>
+      </svg>
+    ),
+  },
+  {
+    id: 'whop',
+    name: 'Whop',
+    handle: '@aiwmc',
+    description: 'Membership, community access, and paid offers.',
+    url: 'https://whop.com/aiwmc',
+    color: '#FFFFFF',
+    bg: 'bg-white/5 hover:bg-white/10 border-white/20 hover:border-white/50',
+    iconColor: '#FFFFFF',
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-7 h-7">
+        <text x="12" y="18" textAnchor="middle" fontSize="18" fontWeight="800" fill="currentColor" fontFamily="sans-serif">W</text>
+      </svg>
+    ),
+  },
 ];
 
 export default function Connect() {
@@ -100,7 +132,7 @@ export default function Connect() {
     <div className="min-h-screen bg-[#080C14] text-white">
       <Helmet>
         <title>Connect with AIWMC — All Our Channels</title>
-        <meta name="description" content="Follow AIWMC and AIWMC Quantis across LinkedIn, X, Telegram, Facebook, Instagram, and GitHub. One place for all our communities." />
+        <meta name="description" content="Follow AIWMC and AIWMC Quantis across LinkedIn, X, Telegram, Facebook, Instagram, Threads, Whop, and GitHub. One place for all our communities." />
         <link rel="canonical" href="https://www.aiwmcquantis.com/connect" />
       </Helmet>
 
