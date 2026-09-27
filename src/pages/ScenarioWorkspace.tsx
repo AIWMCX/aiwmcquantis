@@ -30,6 +30,7 @@ import {
 } from '@/services/scenario-sets-api';
 import { ArrowLeft, Loader2, Sparkles, GitBranch, ChevronRight, Target, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { recordFunnelEvent } from '@/lib/analytics';
 
 const ASSUMPTION_LABELS: Record<ScenarioAssumptionKey, string> = {
   monthly_revenue: 'Monthly revenue',
@@ -323,8 +324,17 @@ export default function ScenarioWorkspace() {
       setPreview(result);
     } catch (e) {
       if (e instanceof ScenarioEntitlementError) {
+        // Activation-to-revenue Wave 7 (PR D): e.message is now the real,
+        // value-continuity copy the server constructs from the actual
+        // used/limit numbers (requireScenarioSetQuota) -- no separate
+        // hardcoded description needed, and none that could go stale or
+        // wrong relative to the actual tier (this is exactly the bug the
+        // old hardcoded "use Plus" text had for a Plus user hitting the
+        // Pro ceiling). upgrade_cta_seen already existed in the canonical
+        // event list but had zero real call sites until now.
+        recordFunnelEvent('upgrade_cta_seen', { surface: 'scenario_quota', feature: e.feature });
         toast.error(e.message, {
-          description: 'This Decision Run includes one saved scenario set. Open the existing set, or use Plus for additional sets.',
+          action: { label: 'See plans', onClick: () => navigate('/pricing') },
         });
       } else {
         toast.error(e instanceof Error ? e.message : 'Save failed');
