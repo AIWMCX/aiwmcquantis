@@ -88,7 +88,18 @@ export const TIERS = {
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 36,
       monteCarloScenarios: MONTE_CARLO_ITERATIONS,
-      teamSeats: 1,
+      // Entitlement fix (2026-09-27 audit): was 1. Team seats are Pro-only
+      // in reality -- team-invite/index.ts and the enforce_team_seat_cap DB
+      // trigger both hard-require the team owner to hold a PRO subscription
+      // (verify_pro_subscription RPC), unconditionally, with no branch that
+      // lets a Plus owner create a team or invite anyone. This already
+      // matched src/lib/tier-spec.ts's FEATURE_MANIFEST.PLUS.team_seats (0,
+      // asserted by src/__tests__/tier-matrix.test.ts) -- only this file and
+      // its entitlements.ts mirror claimed 1, and the live /pricing page
+      // rendered that "1" as a real feature (PricingSection.tsx
+      // FeatureComparisonTable). Corrected to match what the server actually
+      // grants; Plus subscribers were never able to use the seat anyway.
+      teamSeats: 0,
       templates: DOC_TEMPLATE_COUNT,
       scenarioSetsPerAnalysis: 10,
     },

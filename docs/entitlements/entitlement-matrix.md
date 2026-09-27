@@ -1,0 +1,56 @@
+# AIWMC Quantis — Entitlement / Payment Reconciliation Matrix
+
+**Audit date:** 2026-09-27
+**Branch:** `feat/entitlement-payment-reconciliation`
+**Scope:** read-only audit of tier config vs. server-side enforcement across every paid capability, plus narrow fixes for confirmed genuine discrepancies. No Stripe product/price config, checkout flow, or webhook handling was touched. No dashboard IA/navigation or Commercial Ops changes (those are PR #199/#200, already merged).
+
+Governing rule (standing charter): **do not fix discrepancies by adding restrictions unless product strategy explicitly requires it.** Where the server is more generous than the copy, the default fix is to correct the copy (or leave it — generous-to-user is not a bug). A new gate is only added where a real, exploitable revenue leak was found with high confidence it isn't intentional generosity.
+
+## How to read this table
+
+- **Free / Plus / Pro** — what `src/config/tiers.ts` (client SSOT) and its edge-function mirror `supabase/functions/_shared/entitlements.ts` claim.
+- **Real server enforcement** — the actual code path that blocks/limits the capability (edge function, RPC, DB trigger/RLS), or "NONE" if nothing does.
+- **Status** — CONFIRMED (matches, real gate exists), **FIXED** (a genuine mismatch found and corrected this session), or **FLAGGED** (mismatch found, left for founder decision — either because it's ambiguous, or because "fixing" it would mean adding a new restriction, or because it's a known/previously-flagged item being reconfirmed).
+
+| Capability | Free | Plus | Pro | Real server enforcement | Status |
+|---|---|---|---|---|---|
+| Decision Runs / analyses per month | 5 | Unlimited | Unlimited | `analyze-business/index.ts` reads `usage_tracking.analyses_count` and hard-blocks at `FREE_TIER_LIMIT=5` with a 402; mirrored by `tier-gate.ts`'s `evaluateGate()` (`FEATURE_MANIFEST.FREE.monthly_analysis_limit`) for the spec-tier endpoints. | CONFIRMED — real, matches config. |
+| Scenario sets per analysis | 1 | 10 | 30 | `requireScenarioSetQuota()` in `_shared/entitlements.ts`, backed by the atomic `consume_scenario_set_quota` RPC. Re-verified this session — unchanged since the prior audit. | CONFIRMED (pre-verified, re-checked). |
+| Reports / PDF exports (daily download cap) | 5/day, watermarked | Unlimited, watermark-free | Unlimited, watermark-free | `queue-export/index.ts`: `requireFeature('watermarkFree')` + `requireDownloadQuota()` (atomic `consume_download_quota` RPC). | CONFIRMED — real, matches config. |
+| Document Studio / templates | Locked (3 starter templates shown, no generation) | Full (10 templates) | Full (10 templates) | `generate-document/index.ts` and `export-document/index.ts` both call `requireFeature(..., 'documentStudio', ...)`. | CONFIRMED — real, matches config. |
+| Invoice & Capacity Check | Locked | Unlocked | Unlocked | `invoice-capacity-check/index.ts` wraps its handler in `tierGate(req, ENDPOINTS.TOOLS_CAPACITY_CHECK)`; `TOOLS_CAPACITY_CHECK` is in `FEATURE_MANIFEST.FREE.blocked_endpoints`. | CONFIRMED — real, matches config. |
+| AI Document Intelligence (PDF/Excel extraction) | Locked | Unlocked | Unlocked | `parse-document/index.ts` calls `requireFeature(..., 'aiDocIntelligence', ...)`. | CONFIRMED — real, matches config. |
+| Custom branding (logo/colors on exports) | No | Yes | Yes | **No feature gate found.** `upsert_user_brand_profile()` RPC (migration `20260703010000`) lets *any* authenticated user store a `logo_url`/colors with zero tier check. In practice this is inert for Free: the only places that render `user_brand_profiles` are Document Studio exports, which are already gated behind `documentStudio` (Plus+ only) — the plain 5/day watermarked-PDF path (`queue-export`) never reads branding at all. | FLAGGED — data-layer gap with no known exploitable path today (downstream renderer is already Plus+-gated); not fixed, since adding a gate here isn't required by any confirmed leak. Founder call if Document Studio's rendering paths ever change. |
+| White-label PDF (remove Quantis branding) | No | No | Yes | Real, at the DB layer: `branding_settings.hide_quantis_branding` can only be set true via the `enforce_white_label_pro` trigger, which requires a PRO subscription; `pdf-generator/index.ts` trusts the column because of that trigger. | CONFIRMED — real, matches config. |
+| API access | No | No | Yes | `api-analyze/index.ts` calls `requireFeature(..., 'apiAccess', ...)`; `create-api-key` edge function also enforces Pro server-side (SHA-256 hashed keys). | CONFIRMED — real, matches config. |
+| Team seats | 0 | **Was 1 in `tiers.ts`/`entitlements.ts` — FIXED to 0** | 3 | `team-invite/index.ts` and the `enforce_team_seat_cap` DB trigger both unconditionally require `verify_pro_subscription(owner_id)` before any team_members insert — there is no code path that grants a Plus-owned team any seats at all. `src/lib/tier-spec.ts`'s `FEATURE_MANIFEST.PLUS.team_seats` already correctly said 0 (asserted by `tier-matrix.test.ts`); only `tiers.ts`/`entitlements.ts` (and the live `/pricing` page, which renders `TIERS.plus.limits.teamSeats`) claimed 1. | **FIXED** — corrected the two SSOT files that were wrong; this removes a false "1 team seat" claim from the live pricing page that Plus subscribers could never actually use. |
+| TAM/SAM/SOM | No | Yes | Yes (+ pitch deck) | `analyze-pro-extension/index.ts`, gated by `tierGate(ENDPOINTS.ANALYSE_PRO_EXTENSION)` — Plus is intentionally allowed to call this endpoint for TAM/SAM/SOM (`tamSamSom: true` for Plus). | CONFIRMED (post-fix; see next 3 rows for what was broken). |
+| Pitch deck data package | No | No | Yes | Same endpoint as above. | **Was a real leak — FIXED** (see below). |
+| Strategic roadmap | No | No | Yes | Same endpoint as above. | **Was a real leak — FIXED** (see below). |
+| 5-year financial model | No | No | Yes | Same endpoint as above. | **Was a real leak — FIXED** (see below). |
+| Saved decision history / retention | Advertised as Plus+/Pro-only in places (e.g. `Consultants.tsx` lists "Unlimited analysis history" as a Pro differentiator; `tiers.ts` `unlimitedHistory: false` for Free) | Yes | Yes | **NONE.** `useAnalysisHistory.ts` → `getAnalyses()`/`loadMore()` has zero tier branching; any authenticated user gets full pagination and unlimited retention. RLS only scopes rows to `auth.uid()`, not tier. This is the prior known finding from the charter, re-confirmed this session. | FLAGGED (re-confirmed known finding) — not changed. Per the standing rule, the default fix for "server is more generous than copy" is to correct the copy or leave it; this is a pre-existing, already-flagged item, and unilaterally removing a marketing bullet point (`Consultants.tsx` line 199, `tiers.ts` `UPGRADE_COPY.unlimitedHistory`) is a product/marketing call, not a technical reconciliation — left for the founder. |
+
+## The real leak found and fixed: `analyze-pro-extension`
+
+`analyze-pro-extension/index.ts` is the single edge function that generates the entire Pro investor bundle in one LLM call: `five_year_model`, `market_sizing` (TAM/SAM/SOM), `pitch_deck_data`, and `strategic_roadmap`. Its endpoint-level gate (`tierGate(req, ENDPOINTS.ANALYSE_PRO_EXTENSION)`) correctly allows **both** Plus and Pro to call it — that's intentional, because Plus is entitled to TAM/SAM/SOM (`tamSamSom: true` in `tiers.ts`).
+
+The bug: past the endpoint gate, the function did **no further per-module check**. It always set `parsed.tier = 'PRO'` and returned all four modules to whoever called it — meaning a Plus subscriber ($17/mo) who called this one documented endpoint got the complete Pro-exclusive ($49/mo) investor package for free: the 5-year model, the pitch deck data package, and the week-by-week strategic roadmap, all fully functional, with zero gate. The frontend `MarketSizingCard.tsx` component only *renders* the `market_sizing` field, but the full JSON payload — including the three Pro-only modules — was already sent over the wire to the browser, visible in the network tab / `useProExtension()`'s React Query cache.
+
+This is exactly the class of leak the charter says to fix with server enforcement rather than just a copy correction: these three modules are the explicit, named reason `UPGRADE_TRIGGERS.plus_complete_investor` exists ("Ready for investors? Get your TAM/SAM/SOM, pitch deck data package, 5-year model...") — i.e. the product's own upsell copy pitches Plus users on paying for something they could already get for free by calling the API directly. High confidence this was never intentional generosity.
+
+**Fix applied** (`supabase/functions/analyze-pro-extension/index.ts`): after generating the response, strip `five_year_model`, `pitch_deck_data`, and `strategic_roadmap` from the payload when the *resolved server-side caller tier* (`gate.tier`, from the JWT + subscription lookup — not the client-supplied `body.plus_analysis.tier`, which was previously trusted for the response's own `tier` field) is `PLUS`. The response's `tier` field now reflects the caller's real tier instead of being hardcoded to `'PRO'`. Plus callers still get `market_sizing` (their correct entitlement); only the three genuinely Pro-only modules are removed.
+
+Not done (out of scope for a narrow fix): the LLM call itself still generates all four modules for Plus callers before the strip, which wastes tokens. Optimizing the prompt to skip generating Pro-only content for Plus callers would be a reasonable follow-up but is a separate, larger change.
+
+## Stripe verification note
+
+No Stripe MCP/API tool access was available in this session. Price IDs and trial configuration in `src/config/tiers.ts` were **not** re-verified directly against the live Stripe account this session — the file's own header comment states they were last verified 2026-06-30. This should be a follow-up if it hasn't been re-checked since.
+
+## Summary
+
+- **Fixed (code):** `analyze-pro-extension/index.ts` — stripped Pro-only modules (`five_year_model`, `pitch_deck_data`, `strategic_roadmap`) from Plus-tier responses; response `tier` field now reflects the real resolved caller tier instead of being hardcoded to `'PRO'`.
+- **Fixed (copy/config, no new restriction):** `src/config/tiers.ts` and `supabase/functions/_shared/entitlements.ts` — Plus `teamSeats` corrected from 1 to 0, matching what the DB trigger and `team-invite` edge function have always actually enforced (Pro-only). Also corrected the misleading comment in `PricingSection.tsx` that had called the wrong value "the real server-enforced value."
+- **Flagged for founder decision (not changed):**
+  1. Custom branding (`upsert_user_brand_profile`) has no feature gate at the data layer — currently inert since the only renderer is already Plus+-gated, but worth a real gate if that ever changes.
+  2. Saved decision history is genuinely unlimited for Free users today, despite copy in `Consultants.tsx` and `tiers.ts` implying it's a paid differentiator. This is a re-confirmation of an already-known finding, not a new one — left as-is per the "don't add restrictions, generous-to-user isn't a bug" rule; only a founder call on whether to soften/remove that specific marketing claim.
+- **Stripe:** not independently re-verified this session (no tool access); flagged as a follow-up.

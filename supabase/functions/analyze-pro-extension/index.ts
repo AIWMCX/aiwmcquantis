@@ -235,7 +235,6 @@ serve(async (req) => {
       );
     }
 
-    parsed.tier = 'PRO';
     parsed.parent_analysis_id =
       (parsed.parent_analysis_id as string) ||
       (body.plus_analysis.analysis_id as string) ||
@@ -252,9 +251,28 @@ serve(async (req) => {
     parsed.data_sources = mergeCanonicalDataSources(incomingSources);
     parsed.sources = canonicalDataSourcesAsStrings().join('; ');
 
+    // Entitlement fix (2026-09-27 audit): this endpoint is allowed for PLUS
+    // callers too (Plus is entitled to TAM/SAM/SOM per tiers.ts tamSamSom:
+    // true), but the model always generates the full investor-grade bundle
+    // in one shot -- five_year_model, pitch_deck_data, and strategic_roadmap
+    // are Pro-only per tiers.ts (fiveYearModel/pitchDeck/strategicRoadmap:
+    // false for Plus). Previously this response returned all four modules
+    // to ANY caller who passed the endpoint-level tierGate, with tier
+    // hardcoded to 'PRO' regardless of the resolved caller tier -- a Plus
+    // subscriber calling this function got the complete Pro-only investor
+    // package for free, with zero gate on the individual modules. Strip to
+    // the caller's actual entitlement before responding; only market_sizing
+    // (TAM/SAM/SOM) is Plus-eligible.
+    parsed.tier = gate.tier;
+    if (gate.tier === 'PLUS') {
+      delete parsed.five_year_model;
+      delete parsed.pitch_deck_data;
+      delete parsed.strategic_roadmap;
+    }
+
     return json({
       success: true,
-      tier: 'PRO',
+      tier: gate.tier,
       request_id: requestId,
       data: parsed,
     });

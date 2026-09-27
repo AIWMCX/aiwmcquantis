@@ -78,7 +78,12 @@ export const LIMITS: Record<TierId, Record<LimitKey, number>> = {
   // templates = Doc Studio template count (per src/config/canonical-facts.ts DOC_TEMPLATE_COUNT).
   // Previously 12 — the real count of functional templates is 10; fixed 2026-06-30.
   // scenarioSetsPerAnalysis: Release 1 scenario framework quota (10/analysis Plus, 30/analysis Pro).
-  plus: { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 36, monteCarloScenarios: 1_000, teamSeats: 1, templates: 10, scenarioSetsPerAnalysis: 10 },
+  // teamSeats: Plus was previously 1 -- corrected 2026-09-27 audit. Team
+  // seats are Pro-only in the actually-enforced path (team-invite/index.ts
+  // + enforce_team_seat_cap DB trigger require verify_pro_subscription
+  // unconditionally); this mirror's old value of 1 only ever matched itself
+  // and tiers.ts, never the real gate. See tiers.ts for the full note.
+  plus: { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 36, monteCarloScenarios: 1_000, teamSeats: 0, templates: 10, scenarioSetsPerAnalysis: 10 },
   pro:  { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 60, monteCarloScenarios: 1_000, teamSeats: 3, templates: 10, scenarioSetsPerAnalysis: 30 },
 };
 
