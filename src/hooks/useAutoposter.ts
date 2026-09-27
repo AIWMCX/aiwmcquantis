@@ -150,6 +150,51 @@ export function useGenerateContent() {
   });
 }
 
+export interface ContentPlanItem {
+  post_date: string;
+  hook: string;
+  content_brief: string;
+  post_type?: string;
+  visual_type?: string;
+  cta?: string;
+  hashtags?: string[];
+}
+
+export interface ContentPlanImportResult {
+  success: boolean;
+  inserted_count: number;
+  inserted?: Array<{ id: string; post_date: string; hook: string }>;
+  rejected_duplicate_in_batch: string[];
+  rejected_existing_duplicate: string[];
+}
+
+// Insert-only bulk import (content-plan-import edge function) -- never an
+// upsert, never touches an existing row's status. See that function's own
+// header for why this distinction matters (the prior bulk-seed mechanism's
+// deleted status-reset bug).
+export function useImportContentPlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (items: ContentPlanItem[]) => {
+      const { data, error } = await supabase.functions.invoke('content-plan-import', {
+        body: { items },
+      });
+      if (error) throw error;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      return data as ContentPlanImportResult;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      const rejected = data.rejected_duplicate_in_batch.length + data.rejected_existing_duplicate.length;
+      if (rejected === 0) toast.success(`Imported ${data.inserted_count} new post(s)`);
+      else toast.warning(`Imported ${data.inserted_count}, rejected ${rejected} duplicate(s)`, {
+        description: [...data.rejected_duplicate_in_batch, ...data.rejected_existing_duplicate].slice(0, 5).join('\n'),
+      });
+    },
+    onError: (e: Error) => toast.error('Import failed', { description: e.message }),
+  });
+}
+
 export function useUpdatePlatformContent() {
   const qc = useQueryClient();
   return useMutation({

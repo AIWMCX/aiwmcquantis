@@ -481,6 +481,7 @@ jobs:
             # logs cost to ai_calls itself. Promoted 2026-08-24 after commit
             # 20ff6af2's content_admin role change sat undeployed for a month.
             content-studio-generate
+            content-plan-import
             # ── Commercial Ops workflow (admin-only internal sales tooling) ──
             commercial-workflow
             # ── Observability harnesses (admin dashboard reads their output) ─
