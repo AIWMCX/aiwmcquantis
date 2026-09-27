@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { SimpleMetricCard } from './SimpleMetricCard';
+import { ContinueDecisionActions } from './ContinueDecisionActions';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 import { computeVerdict } from '@/lib/verdict';
@@ -31,6 +32,10 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 interface DecisionSummaryProps {
   result: BusinessAnalysisResult;
   analysisId?: string;
+  /** Wired to AppDashboard's existing idea+location clone mechanism. See
+   *  ContinueDecisionActions.tsx's header for why financial inputs are
+   *  deliberately not auto-repopulated here. */
+  onUpdateWithRealNumbers?: () => void;
 }
 
 const normalizePercent = (value?: number): number => {
@@ -54,7 +59,7 @@ function fmtUsd(n: number): string {
   return `${sign}$${Math.round(abs)}`;
 }
 
-export function DecisionSummary({ result, analysisId }: DecisionSummaryProps) {
+export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }: DecisionSummaryProps) {
   const verdict = useMemo(() => computeVerdict(result), [result]);
   const fa = result.financial_analysis;
 
@@ -287,6 +292,8 @@ export function DecisionSummary({ result, analysisId }: DecisionSummaryProps) {
           </div>
         </GlassCard>
       )}
+
+      <ContinueDecisionActions analysisId={analysisId} onUpdateWithRealNumbers={onUpdateWithRealNumbers} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/layout/EmptyState';
 import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
 import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
 import { DecisionSummary } from '@/components/analysis/DecisionSummary';
+import { ReturningDecisionBanner } from '@/components/analysis/ReturningDecisionBanner';
 import { detectQuoteGenTrade } from '@/lib/quotegen-eligibility';
 import { Receipt } from 'lucide-react';
 // Lazy: pulls @react-pdf/renderer (~1.5 MB). Keep off the dashboard entry bundle.
@@ -234,6 +235,30 @@ export default function Index() {
       }
     },
     [markQuickStartComplete, setIdea, setLocation]
+  );
+
+  // Activation-to-revenue Wave 6 (PR C): shared by AnalysisHistory's clone
+  // action AND DecisionSummary's "Update with real numbers" continuation
+  // action -- same real mechanism, one definition. Deliberately only
+  // clones idea+location, not financial inputs (see
+  // ContinueDecisionActions.tsx's header for why: the only stored bundle
+  // close to original raw inputs, analyses.scenario_base_input, is frozen
+  // for the deterministic engine's own re-run path and isn't confirmed to
+  // map field-for-field onto this form).
+  const handleUpdateWithRealNumbers = useCallback(
+    (cloneIdea: string, cloneLocation: string) => {
+      setIdea(cloneIdea);
+      setLocation(cloneLocation);
+      setResult(null as any);
+      setCurrentAnalysisId(null);
+      setActiveTab('analyze');
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      toast({
+        title: 'Ready to update',
+        description: 'Edit the details and re-run the analysis with your real numbers.',
+      });
+    },
+    [setIdea, setLocation, setResult, setCurrentAnalysisId, setActiveTab, formRef, toast]
   );
 
   // Activation-to-revenue Wave 4: /app/new-decision hands off here via
@@ -752,6 +777,20 @@ export default function Index() {
               </div>
             )}
 
+            {/* Activation-to-revenue Wave 6 (PR C): return-experience -- only
+                renders when there's no current result already showing, so it
+                never competes with an in-progress or just-completed run. */}
+            {!result && !freeTierSummary && (
+              <ReturningDecisionBanner
+                onOpenReport={(selectedResult, selectedAnalysisId) => {
+                  setResult(normalizeAnalysisResult(selectedResult));
+                  setCurrentAnalysisId(selectedAnalysisId);
+                  setActiveTab('analyze');
+                  resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              />
+            )}
+
             {/* Compact Analysis Form */}
             <div ref={formRef}>
               {rateLimitError && (
@@ -874,7 +913,15 @@ export default function Index() {
                           setHasPrefill(false);
                         }}
                       >
-                        <DecisionSummary result={result} analysisId={currentAnalysisId || undefined} />
+                        <DecisionSummary
+                          result={result}
+                          analysisId={currentAnalysisId || undefined}
+                          onUpdateWithRealNumbers={
+                            result.metadata?.idea && result.metadata?.location
+                              ? () => handleUpdateWithRealNumbers(result.metadata.idea, result.metadata.location)
+                              : undefined
+                          }
+                        />
                         <Suspense
                           fallback={
                             <div className="space-y-3 p-6">
@@ -1060,18 +1107,7 @@ export default function Index() {
                         setCurrentAnalysisId(analysisId);
                         setActiveTab('analyze');
                       }}
-                      onClone={(cloneIdea, cloneLocation) => {
-                        setIdea(cloneIdea);
-                        setLocation(cloneLocation);
-                        setResult(null as any);
-                        setCurrentAnalysisId(null);
-                        setActiveTab('analyze');
-                        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        toast({
-                          title: 'Analysis cloned',
-                          description: 'Edit the details and run a new analysis.',
-                        });
-                      }}
+                      onClone={handleUpdateWithRealNumbers}
                     />
                   </TabsContent>
 
