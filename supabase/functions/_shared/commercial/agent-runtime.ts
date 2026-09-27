@@ -34,6 +34,7 @@ export const COMMERCIAL_AGENT_STAGES = [
   'call_preparation',
   'objection_handling',
   'follow_up',
+  'first_touch',
 ] as const;
 export type CommercialAgentStage = (typeof COMMERCIAL_AGENT_STAGES)[number];
 

@@ -74,7 +74,7 @@ export const VS_PAGES: VsPage[] = [
       ...QUANTIS_DIFFERENTIATORS,
       {
         feature: 'Monthly price (entry tier)',
-        quantis: `$${TIERS.plus.priceMonthly}/mo (Plus). $${TIERS.pro.priceMonthly}/mo (Pro, investor-grade).`,
+        quantis: `$${TIERS.plus.priceMonthly}/mo (Plus). $${TIERS.pro.priceMonthly}/mo (Pro, 5-year model).`,
         competitor: '$20/mo on annual billing — see LivePlan pricing.',
         competitorSource: 'https://www.liveplan.com/pricing',
       },
@@ -179,7 +179,7 @@ export const VS_PAGES: VsPage[] = [
       },
       {
         feature: 'Paid tier',
-        quantis: `$${TIERS.plus.priceMonthly}/mo (Plus) or $${TIERS.pro.priceMonthly}/mo (Pro, investor-grade).`,
+        quantis: `$${TIERS.plus.priceMonthly}/mo (Plus) or $${TIERS.pro.priceMonthly}/mo (Pro, 5-year model).`,
         competitor: 'Paid upsells; price not publicly listed at link.',
         competitorSource: 'https://www.bizplanr.ai',
       },

@@ -31,13 +31,14 @@ import {
 } from "./agent-runtime.ts";
 import { z } from "npm:zod@3.23.8";
 
-Deno.test("COMMERCIAL_AGENT_STAGES is exactly the five AI-generative stages", () => {
+Deno.test("COMMERCIAL_AGENT_STAGES is exactly the six AI-generative stages", () => {
   assertEquals(COMMERCIAL_AGENT_STAGES, [
     "offer",
     "prospecting",
     "call_preparation",
     "objection_handling",
     "follow_up",
+    "first_touch",
   ]);
 });
 

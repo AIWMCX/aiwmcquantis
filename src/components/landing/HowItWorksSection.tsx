@@ -28,7 +28,7 @@ const steps = [
   {
     num: '03',
     icon: FileCheck,
-    title: 'You get an investor-grade dossier',
+    title: 'You get a reviewable decision report',
     body: 'Verdict, P&L, risk matrix, launch plan, and invoice capacity in one PDF + dashboard.',
     glow: 'brand' as const,
     preview: '24 pages · PDF',

@@ -62,15 +62,15 @@ export default function Landing() {
     <div className="min-h-screen rmg-surface dark text-[var(--rmg-text)]">
       <PageSEO
         title="AIWMC Quantis — AI Business Idea Validator"
-        description={`Stress-test your business idea. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points. Free to start.`}
+        description="Test a business decision before committing capital: explicit assumptions, deterministic cash, break-even and payback math, downside scenarios. Free to start."
         canonical="/"
       />
       <StructuredData 
         includeFAQ
         faqItems={[
-          { question: 'What is Quantis?', answer: `Quantis is an AI-powered business idea validator and startup viability calculator that runs a financial pre-mortem on any business idea. It stress-tests 12 financial variables using ${BENCHMARK_COUNT_DISPLAY} benchmark data points and 50+ city-level cost indices — the best free break-even calculator AI for entrepreneurs.` },
+          { question: 'What is Quantis?', answer: `Quantis is an AI-powered business idea validator and startup viability calculator that runs a financial pre-mortem on any business idea. It stress-tests 12 financial variables against a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid (modeled cells, not observed companies) and shows which assumptions control cash, break-even and payback.` },
           { question: 'Is Quantis free to use?', answer: `Yes — every founder gets 1 free analysis with the headline viability score, top-3 risks, and basic revenue projection. The full report (Monte Carlo, 36-month P&L, unit economics, action plan, Pre-Mortem Stress Test, Invoice & Capacity Check) and unlimited analyses unlock with Plus at $${TIERS.plus.priceMonthly}/mo. No credit card required for the free analysis.` },
-          { question: 'How accurate are the financial projections?', answer: `Quantis uses a deterministic financial engine calibrated against ${BENCHMARK_COUNT_DISPLAY} benchmark data points informed by ${BENCHMARK_SOURCES_DISPLAY}. Every projection includes a confidence score and assumption transparency so you know exactly what drives each number.` },
+          { question: 'How accurate are the financial projections?', answer: `Quantis runs deterministic calculations on your inputs, with benchmark defaults from a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid informed by ${BENCHMARK_SOURCES_DISPLAY}. It does not predict or guarantee outcomes; each assumption is labeled so you can see and replace what drives each number.` },
           { question: 'What does a "financial pre-mortem" mean?', answer: 'A pre-mortem identifies how your business could fail before you launch. Our financial stress test tool stress-tests revenue assumptions, cost structures, and unit economics to surface fatal flaws — like a rent-to-revenue ratio that guarantees losses.' },
           { question: 'How is Quantis different from ChatGPT or a spreadsheet?', answer: 'ChatGPT gives qualitative opinions. Spreadsheets require you to know the right formulas. Quantis combines a deterministic math engine with an AI narrator layer — giving you both precise, reproducible numbers and strategic context, cross-checked by a multi-model consensus pass.' },
         ]}

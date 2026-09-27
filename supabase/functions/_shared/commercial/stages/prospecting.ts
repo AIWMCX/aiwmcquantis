@@ -8,7 +8,9 @@
  */
 import { z } from 'npm:zod@3.23.8';
 import { runCommercialAgent, type CommercialAgentRunResult } from '../agent-runtime.ts';
-import type { CommercialFoundation } from '../contracts.ts';
+import type { R3Reconciler } from '../../r3-validator.ts';
+import { foundationGroundingBlock, type CommercialFoundation } from '../contracts.ts';
+import { scanOutbound } from '../claim-guard.ts';
 
 export const ProspectAssessmentOutput = z.object({
   segment: z.string().min(1),
@@ -21,17 +23,22 @@ export const ProspectAssessmentOutput = z.object({
 });
 export type ProspectAssessmentOutput = z.infer<typeof ProspectAssessmentOutput>;
 
+export function reconcileProspectAssessment(foundation: CommercialFoundation): R3Reconciler<ProspectAssessmentOutput> {
+  return (data) => {
+    const scan = scanOutbound(data.suggested_message, foundation);
+    return scan.ok ? null : `claim guard: ${scan.violations.join('; ')}`;
+  };
+}
+
 function buildSystemPrompt(foundation: CommercialFoundation): string {
   return [
     `You assess whether a prospect is a plausible fit for ${foundation.product_name}.`,
     'Base likely_relevant_problem and supporting_evidence only on what is actually observable about the prospect, plus the canonical foundation below -- do not invent facts about the prospect\'s business.',
     'suggested_message is a DRAFT for human review, never sent automatically.',
     'Respond with ONLY a single valid JSON object matching the required schema. No markdown, no commentary, no code fences.',
+    'If the prospect matches an excluded segment, say so plainly in likely_relevant_problem and suggest not contacting them.',
     '',
-    '=== CANONICAL FOUNDATION (version ' + foundation.version + ') ===',
-    `Target segments: ${foundation.target_segments.join(', ')}`,
-    `Excluded segments: ${foundation.excluded_segments.join(', ')}`,
-    `Customer problems: ${foundation.customer_problems.join(' | ')}`,
+    foundationGroundingBlock(foundation),
   ].join('\n');
 }
 
@@ -58,6 +65,7 @@ export async function assessProspect(
     systemPrompt: buildSystemPrompt(args.foundation),
     userPrompt,
     schema: ProspectAssessmentOutput,
+    reconcile: reconcileProspectAssessment(args.foundation),
     adminUserId: args.adminUserId,
     requestId: args.requestId,
     inputContext: { company_name: args.companyName, observed_signals: args.observedSignals },

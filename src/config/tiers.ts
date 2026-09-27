@@ -274,7 +274,7 @@ export const UPGRADE_COPY: Record<
     recommendedTier: 'plus',
   },
   depthPro: {
-    title: 'Investor-Grade Analysis',
+    title: 'Professional-Depth Analysis',
     bullets: [
       '60-month (5-year) financial model',
       'TAM / SAM / SOM with cited sources',

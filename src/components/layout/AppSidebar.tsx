@@ -32,6 +32,13 @@ import {
   Radio,
   Handshake,
   Plus,
+  ChevronRight,
+  ShieldAlert,
+  GitCompare,
+  Gauge,
+  Receipt,
+  FolderOpen,
+  TrendingUp,
 } from 'lucide-react';
 import { isEnabled } from '@/lib/flags';
 
@@ -50,18 +57,18 @@ interface NavItem {
 interface NavSection {
   label: string;
   items: NavItem[];
+  /** Collapsed by default; expands on click or when one of its items is active. */
+  collapsible?: boolean;
 }
+
+const MORE_TOOLS_KEY = 'q:sidebar:more-tools-open';
 
 // Stage 1 dashboard IA compression (2026-09-27): collapsed from ~15 top-level
 // destinations down to the object model in
 // docs/execution/dashboard-ia-stage1 (see the PR description's KEEP/MERGE/
-// MOVE/RENAME table). Nothing under WORK/INTELLIGENCE/OUTPUTS deletes a
-// route -- Failure Pre-Mortem, Compare Outcomes, My Stats, Document
-// Templates, and Client Proposal all still resolve; they're reached from
-// inside a Decision's tabbed shell (see DecisionSummary / AccuracyTransparentResults)
-// or the Reports destination below instead of competing as their own nav
-// item. "Clients" is intentionally omitted -- no Clients business-entity
-// data model exists yet (see PR description).
+// MOVE/RENAME table). No route was deleted: tools are reached from inside a
+// Decision (DecisionSummary / AccuracyTransparentResults), from Reports, or
+// from the collapsed "More tools" section below.
 const NAV_SECTIONS: NavSection[] = [
   {
     label: '',
@@ -93,6 +100,22 @@ const NAV_SECTIONS: NavSection[] = [
       { title: 'Reports', url: '/docs', icon: FileText },
     ],
   },
+  // Compress, don't remove: every standalone tool stays one click away for
+  // people who want it directly, without competing with New Decision on the
+  // first screen. Before this, My Documents and My Stats had no in-app link
+  // at all after the Stage 1 IA compression.
+  {
+    label: 'More tools',
+    collapsible: true,
+    items: [
+      { title: 'Failure Pre-Mortem', url: '/app/pre-mortem', icon: ShieldAlert },
+      { title: 'Scenario Workspace', url: '/app/scenarios', icon: GitCompare },
+      { title: 'Capacity Check', url: '/app/invoices', icon: Gauge },
+      { title: 'Service Quotes', url: '/quote', icon: Receipt, flag: 'service_job' },
+      { title: 'My Documents', url: '/app/documents', icon: FolderOpen },
+      { title: 'My Stats', url: '/app/stats', icon: TrendingUp },
+    ],
+  },
   {
     label: 'ADMIN',
     items: [
@@ -118,6 +141,22 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
 
   const { user } = useAuth();
+  const [moreOpen, setMoreOpen] = React.useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(MORE_TOOLS_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleMore = () =>
+    setMoreOpen((open) => {
+      try {
+        window.localStorage.setItem(MORE_TOOLS_KEY, open ? '0' : '1');
+      } catch {
+        /* private mode */
+      }
+      return !open;
+    });
   const { isPlus, isPro } = useSubscription();
   const { isAdmin, isContentAdmin } = useAdmin();
 
@@ -225,11 +264,36 @@ export function AppSidebar() {
                 (!item.flag || isEnabled(item.flag))
             );
             if (visibleItems.length === 0) return null;
+            const sectionOpen =
+              !section.collapsible || moreOpen || visibleItems.some((item) => isActive(item.url));
+            if (section.collapsible && collapsed) return null;
 
             return (
               <SidebarGroup key={`${section.label || 'section'}-${sectionIdx}`} className="mb-1">
                 {/* Section label — IBM Plex Mono, uppercase, faint */}
-                {!collapsed && section.label && (
+                {!collapsed && section.label && section.collapsible && (
+                  <button
+                    type="button"
+                    onClick={toggleMore}
+                    aria-expanded={sectionOpen}
+                    className="px-4 mb-1 mt-2 flex items-center gap-1 w-full text-left hover:opacity-80"
+                    style={{
+                      fontFamily: 'var(--q-font-mono)',
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      color: 'var(--q-text-ghost)',
+                    }}
+                  >
+                    <ChevronRight
+                      className="w-3 h-3 transition-transform"
+                      style={{ transform: sectionOpen ? 'rotate(90deg)' : 'none' }}
+                    />
+                    {section.label}
+                  </button>
+                )}
+                {!collapsed && section.label && !section.collapsible && (
                   <div
                     className="px-4 mb-1 mt-2"
                     style={{
@@ -244,6 +308,7 @@ export function AppSidebar() {
                     {section.label}
                   </div>
                 )}
+                {sectionOpen && (
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {visibleItems.map((item) => {
@@ -326,6 +391,7 @@ export function AppSidebar() {
                     })}
                   </SidebarMenu>
                 </SidebarGroupContent>
+                )}
               </SidebarGroup>
             );
           })}
