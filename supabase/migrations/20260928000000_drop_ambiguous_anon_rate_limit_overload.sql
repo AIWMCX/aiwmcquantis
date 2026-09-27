@@ -1,0 +1,18 @@
+-- Fix (2026-09-28): anonymous rate limiting was failing OPEN.
+--
+-- Two overloads of check_anonymous_rate_limit existed:
+--   (text,text,text,text,integer,integer,integer)                -- legacy, no fingerprint
+--   (text,text,text,text,text,integer,integer,integer,integer)   -- current, p_fingerprint_hash DEFAULT NULL
+-- analyze-business calls it with named parameters and omits the fingerprint
+-- parameters when the client sends no fingerprint. Both overloads match that
+-- call, PostgREST returns PGRST203 ("could not choose the best candidate
+-- function"), and analyze-business logs the error and continues -- so any
+-- anonymous request without a fingerprint header skipped the device/IP/
+-- duplicate limits entirely (observed in production logs throughout
+-- 2026-09-27).
+--
+-- The current overload already handles a NULL fingerprint (the fingerprint
+-- check is skipped, device/IP/duplicate checks still run). It is the only
+-- caller's intended target, so dropping the legacy overload removes the
+-- ambiguity without changing any limit value.
+DROP FUNCTION IF EXISTS public.check_anonymous_rate_limit(text, text, text, text, integer, integer, integer);
