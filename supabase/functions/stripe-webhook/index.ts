@@ -6,6 +6,7 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { recordServerFunnelEvent } from '../_shared/funnel-event-server.ts';
 import {
   getEngagementOfferByPaymentLinkId,
   paymentLinkIdFromSession,
@@ -764,6 +765,18 @@ serve(async (req) => {
             );
             log.info(`[${requestId}] SUCCESS: Subscription updated by subscription_id`);
 
+            // Activation-to-revenue Wave 7 (PR D): the ONLY trustworthy
+            // "activated" signal -- Stripe-webhook-confirmed, never
+            // client-emitted. Known gap: the email-fallback branch below
+            // (subscription not found by ID) does not fire this; narrow
+            // scope for this PR, documented rather than silently skipped.
+            if (status === "active") {
+              await recordServerFunnelEvent("subscription_activated", {
+                userId: existing.user_id,
+                metadata: { plan, source: "customer.subscription.updated" },
+              });
+            }
+
             // ISSUE-004 — Auto-provision PRO entitlements when the subscription
             // transitions to (or stays on) the PRO plan with active/trialing status.
             // RPC is idempotent so repeated `customer.subscription.updated` fires
@@ -880,6 +893,10 @@ serve(async (req) => {
                 p_reason: subscription.cancellation_details?.reason || "subscription_deleted",
               });
               log.info(`[${requestId}] mark_subscription_canceled OK for ${subRow.user_id}`);
+              await recordServerFunnelEvent("subscription_cancelled", {
+                userId: subRow.user_id,
+                metadata: { reason: subscription.cancellation_details?.reason || "subscription_deleted" },
+              });
             } catch (rpcErr) {
               log.error(`[${requestId}] mark_subscription_canceled failed:`, rpcErr instanceof Error ? rpcErr.message : String(rpcErr));
             }
@@ -1112,6 +1129,15 @@ serve(async (req) => {
               .from("subscriptions")
               .update({ payment_failed_at: nowIso, status: "past_due" })
               .eq("stripe_subscription_id", subId);
+            // Only the FIRST failure -- Stripe re-fires this event on every
+            // smart-retry attempt, and payment_failed_at not being set yet
+            // is exactly the "first time" guard already used above.
+            if (subRow.user_id) {
+              await recordServerFunnelEvent("subscription_failed", {
+                userId: subRow.user_id,
+                metadata: { subscription_id: subId },
+              });
+            }
           }
 
           const ageMs = Date.now() - new Date(firstFailureIso).getTime();

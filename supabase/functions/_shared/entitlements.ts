@@ -92,6 +92,13 @@ export class EntitlementError extends Error {
     public readonly currentTier: TierId,
     public readonly reason: 'feature_locked' | 'quota_exceeded' = 'feature_locked',
     public readonly meta: Record<string, unknown> = {},
+    /**
+     * Activation-to-revenue Wave 7 (PR D): optional real, user-facing
+     * copy. Defaults to the internal debug message (unchanged behavior
+     * for every pre-existing call site) -- only call sites that have
+     * been deliberately upgraded to value-continuity copy pass this.
+     */
+    public readonly userMessage?: string,
   ) {
     super(`Entitlement denied: '${feature}' on tier '${currentTier}' (${reason})`);
     this.code = reason === 'quota_exceeded' ? 'QUOTA_EXCEEDED' : 'FEATURE_LOCKED';
@@ -101,7 +108,7 @@ export class EntitlementError extends Error {
     return new Response(
       JSON.stringify({
         error: this.code,
-        message: this.message,
+        message: this.userMessage ?? this.message,
         feature: this.feature,
         currentTier: this.currentTier,
         reason: this.reason,
@@ -327,10 +334,19 @@ export async function requireScenarioSetQuota(
   const result = data as { allowed: boolean; used: number; limit: number; scenario_set_id?: string };
   if (!result?.allowed) {
     await logDenial(supabase, userId, tier, 'scenarioSetsPerAnalysis', path, { used: result?.used, limit });
+    // Activation-to-revenue Wave 7 (PR D): value-continuity copy, real
+    // numbers from LIMITS -- never "Upgrade to unlock AI." Tied to the
+    // actual action just attempted (saving/promoting a scenario), not a
+    // generic ceiling banner. Pro is already the top tier -- nothing to
+    // upsell there, so that case gets a plain factual message instead.
+    const nextTier: TierId | null = tier === 'free' ? 'plus' : tier === 'plus' ? 'pro' : null;
+    const userMessage = nextTier
+      ? `You've tested ${limit} scenario${limit === 1 ? '' : 's'} on this decision -- that's the ${tier} limit. ${nextTier === 'plus' ? 'Plus' : 'Pro'} lets you compare up to ${LIMITS[nextTier].scenarioSetsPerAnalysis} scenarios per decision.`
+      : `You've reached the ${limit}-scenario limit for this decision on your current plan.`;
     throw new EntitlementError('scenarioSetsPerAnalysis', tier, 'quota_exceeded', {
       used: result?.used,
       limit,
-    });
+    }, userMessage);
   }
   if (!result.scenario_set_id) {
     // Should never happen when allowed === true — fail closed rather than
