@@ -10,6 +10,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 
 const mockRecordFunnelEvent = vi.fn();
@@ -28,6 +29,12 @@ class FakeIntersectionObserver {
 global.IntersectionObserver = FakeIntersectionObserver;
 
 import { DecisionSummary } from '@/components/analysis/DecisionSummary';
+
+// DecisionSummary now renders ContinueDecisionActions (PR C), which calls
+// useNavigate() -- needs a Router context to render at all.
+function renderIt(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 function makeResult(overrides: Partial<BusinessAnalysisResult> = {}): BusinessAnalysisResult {
   return {
@@ -64,14 +71,14 @@ function makeResult(overrides: Partial<BusinessAnalysisResult> = {}): BusinessAn
 describe('DecisionSummary', () => {
   it('renders the verdict headline from computeVerdict, not a fabricated one', () => {
     const result = makeResult();
-    render(<DecisionSummary result={result} />);
+    renderIt(<DecisionSummary result={result} />);
     // Base case: net_profit 3000 > 0, payback 10 <= 18, ltv_cac 4 >= 3, confidence 75 >= 60 -> pass tone.
     expect(screen.getByText(/Profitable from month/i)).toBeInTheDocument();
   });
 
   it('falls back to risk_analysis (real field) for "what breaks first" when assumption_graph is absent', () => {
     const result = makeResult();
-    render(<DecisionSummary result={result} />);
+    renderIt(<DecisionSummary result={result} />);
     // Most damaging by resulting_profit: churn_increase (-2000), then revenue_drop_20 (-500).
     expect(screen.getByText('Churn increases')).toBeInTheDocument();
     expect(screen.getByText(/high probability/i)).toBeInTheDocument(); // 'высокая' -> 'high'
@@ -89,7 +96,7 @@ describe('DecisionSummary', () => {
         ],
       },
     });
-    render(<DecisionSummary result={result} />);
+    renderIt(<DecisionSummary result={result} />);
     expect(screen.getByText('CAC holds')).toBeInTheDocument();
     expect(screen.getByText(/Verify CAC with 5 real buyers\./)).toBeInTheDocument();
   });
@@ -101,13 +108,13 @@ describe('DecisionSummary', () => {
         risk_analysis: undefined,
       } as BusinessAnalysisResult['financial_analysis'],
     });
-    render(<DecisionSummary result={result} />);
+    renderIt(<DecisionSummary result={result} />);
     expect(screen.getByText('Not available for this analysis.')).toBeInTheDocument();
   });
 
   it('shows a qualitative runway label at a profitable base case, never a fake precise month count', () => {
     const result = makeResult(); // base net_profit is positive
-    render(<DecisionSummary result={result} />);
+    renderIt(<DecisionSummary result={result} />);
     expect(screen.getByText(/no runway constraint/i)).toBeInTheDocument();
   });
 
@@ -121,7 +128,7 @@ describe('DecisionSummary', () => {
         },
       } as BusinessAnalysisResult['financial_analysis'],
     });
-    render(<DecisionSummary result={result} />);
+    renderIt(<DecisionSummary result={result} />);
     // startup_investment.total 30000 / abs(-3000) = 10 months.
     expect(screen.getByText(/10 months at current burn/i)).toBeInTheDocument();
   });
@@ -138,14 +145,14 @@ describe('DecisionSummary', () => {
         }],
       },
     });
-    render(<DecisionSummary result={result} analysisId="abc-123" />);
+    renderIt(<DecisionSummary result={result} analysisId="abc-123" />);
     fireEvent.click(screen.getByText('CAC'));
     expect(mockRecordFunnelEvent).toHaveBeenCalledWith('driver_inspected', { analysis_id: 'abc-123', metric_name: 'CAC' });
   });
 
   it('fires result_rendered on mount', () => {
     const result = makeResult();
-    render(<DecisionSummary result={result} analysisId="abc-123" />);
+    renderIt(<DecisionSummary result={result} analysisId="abc-123" />);
     expect(mockRecordFunnelEvent).toHaveBeenCalledWith('result_rendered', expect.objectContaining({ analysis_id: 'abc-123' }));
   });
 });
