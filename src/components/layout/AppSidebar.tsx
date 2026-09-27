@@ -19,15 +19,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { ActivationWidget } from '@/components/engagement/ActivationWidget';
 import {
-  LayoutDashboard,
+  Home,
   Clock,
   FileText,
-  Receipt,
-  FolderOpen,
   BarChart3,
-  GitBranch,
-  TrendingUp,
-  Trophy,
   Settings,
   CreditCard,
   HelpCircle,
@@ -36,6 +31,7 @@ import {
   Megaphone,
   Radio,
   Handshake,
+  Plus,
 } from 'lucide-react';
 import { isEnabled } from '@/lib/flags';
 
@@ -48,6 +44,7 @@ interface NavItem {
   external?: boolean;
   badge?: string;
   flag?: 'service_job' | 'commercial_workflow';
+  cta?: boolean;
 }
 
 interface NavSection {
@@ -55,36 +52,45 @@ interface NavSection {
   items: NavItem[];
 }
 
+// Stage 1 dashboard IA compression (2026-09-27): collapsed from ~15 top-level
+// destinations down to the object model in
+// docs/execution/dashboard-ia-stage1 (see the PR description's KEEP/MERGE/
+// MOVE/RENAME table). Nothing under WORK/INTELLIGENCE/OUTPUTS deletes a
+// route -- Failure Pre-Mortem, Compare Outcomes, My Stats, Document
+// Templates, and Client Proposal all still resolve; they're reached from
+// inside a Decision's tabbed shell (see DecisionSummary / AccuracyTransparentResults)
+// or the Reports destination below instead of competing as their own nav
+// item. "Clients" is intentionally omitted -- no Clients business-entity
+// data model exists yet (see PR description).
 const NAV_SECTIONS: NavSection[] = [
   {
-    label: 'ANALYSIS',
+    label: '',
     items: [
-      { title: 'Decision Analysis', url: '/app', icon: LayoutDashboard, badge: '5 FREE' },
-      { title: 'Failure Pre-Mortem', url: '/app/pre-mortem', icon: Zap, badge: 'INCLUDED' },
-      { title: 'Client Proposal', url: '/quote', icon: Receipt, badge: 'BETA', flag: 'service_job' },
-      { title: 'Decision History', url: '/app?tab=history', icon: Clock },
+      { title: 'New Decision', url: '/app/new-decision', icon: Plus, cta: true },
     ],
   },
   {
-    label: 'DOCUMENTS',
+    label: '',
     items: [
-      { title: 'Decision Report', url: '/docs', icon: FileText },
-      { title: 'Document Templates', url: '/docs?view=templates', icon: FolderOpen },
+      { title: 'Home', url: '/app', icon: Home },
     ],
   },
   {
-    label: 'BILLING',
+    label: 'WORK',
     items: [
-      { title: 'Invoice & Capacity', url: '/app/invoices', icon: Receipt },
+      { title: 'Decisions', url: '/app?tab=history', icon: Clock },
     ],
   },
   {
     label: 'INTELLIGENCE',
     items: [
       { title: 'Benchmarks', url: '/admin/benchmarks', icon: BarChart3, adminOnly: true },
-      { title: 'Compare Outcomes', url: '/app/scenarios', icon: GitBranch, badge: 'INCLUDED' },
-      { title: 'My Stats', url: '/app/stats', icon: Trophy },
-      { title: 'Progress', url: '/leaderboard', icon: TrendingUp },
+    ],
+  },
+  {
+    label: 'OUTPUTS',
+    items: [
+      { title: 'Reports', url: '/docs', icon: FileText },
     ],
   },
   {
@@ -96,10 +102,10 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    label: 'ACCOUNT',
+    label: '',
     items: [
-      { title: 'Settings', url: '__settings__', icon: Settings },
       { title: 'Billing', url: '__settings__?tab=billing', icon: CreditCard },
+      { title: 'Settings', url: '__settings__', icon: Settings },
       { title: 'Help', url: 'https://aiwmcquantis.com/how-it-works', icon: HelpCircle, external: true },
     ],
   },
@@ -211,7 +217,7 @@ export function AppSidebar() {
 
         {/* ── NAV ── */}
         <SidebarContent className="py-3 overflow-y-auto">
-          {NAV_SECTIONS.map((section) => {
+          {NAV_SECTIONS.map((section, sectionIdx) => {
             const visibleItems = section.items.filter(
               (item) =>
                 (!item.adminOnly || isAdmin) &&
@@ -221,9 +227,9 @@ export function AppSidebar() {
             if (visibleItems.length === 0) return null;
 
             return (
-              <SidebarGroup key={section.label} className="mb-1">
+              <SidebarGroup key={`${section.label || 'section'}-${sectionIdx}`} className="mb-1">
                 {/* Section label — IBM Plex Mono, uppercase, faint */}
-                {!collapsed && (
+                {!collapsed && section.label && (
                   <div
                     className="px-4 mb-1 mt-2"
                     style={{
@@ -248,14 +254,20 @@ export function AppSidebar() {
                         <SidebarMenuButton
                           onClick={() => handleNavClick(item)}
                           style={{
-                            height: '36px',
-                            margin: '1px 6px',
+                            height: item.cta ? '38px' : '36px',
+                            margin: item.cta ? '2px 6px 6px' : '1px 6px',
                             borderRadius: 'var(--q-radius-md)',
                             transition: 'all 120ms ease-out',
                             fontFamily: 'var(--q-font-body)',
                             fontSize: '13px',
-                            fontWeight: active ? 500 : 400,
-                            ...(active
+                            fontWeight: item.cta ? 600 : active ? 500 : 400,
+                            ...(item.cta
+                              ? {
+                                  background: 'var(--q-accent-primary)',
+                                  color: 'var(--q-bg-surface)',
+                                  justifyContent: collapsed ? 'center' : 'flex-start',
+                                }
+                              : active
                               ? {
                                   background: 'var(--q-bg-elevated)',
                                   borderLeft: '2px solid var(--q-accent-primary)',
@@ -266,11 +278,17 @@ export function AppSidebar() {
                                   color: 'var(--q-text-secondary)',
                                 }),
                           }}
-                          className={!active ? 'hover:bg-[var(--q-bg-elevated)] hover:text-[var(--q-text-primary)]' : ''}
+                          className={
+                            item.cta
+                              ? 'hover:opacity-90'
+                              : !active
+                              ? 'hover:bg-[var(--q-bg-elevated)] hover:text-[var(--q-text-primary)]'
+                              : ''
+                          }
                         >
                           <Icon
                             className="w-3.5 h-3.5 shrink-0"
-                            style={{ color: active ? 'var(--q-accent-primary)' : 'inherit' }}
+                            style={{ color: item.cta ? 'inherit' : active ? 'var(--q-accent-primary)' : 'inherit' }}
                           />
                           {!collapsed && (
                             <>

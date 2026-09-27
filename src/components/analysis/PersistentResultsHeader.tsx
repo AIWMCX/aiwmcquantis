@@ -78,10 +78,19 @@ function useCountUp(target: number, duration = 800): number {
   return value;
 }
 
+// Stage 1 dashboard IA compression (2026-09-27): this is the Decision's
+// tabbed shell (target: Overview / Model / Scenarios / Risks / Evidence /
+// Report). Previously 3 steps ("Verdict & Risk Intelligence" / "Levers Lab" /
+// "Red Flags & Action Plan") -- expanded to 6 without rewriting the content
+// underneath, just re-slicing it across more tabs (see
+// AccuracyTransparentResults.tsx's currentStep switch).
 const steps = [
-  { id: 1, title: 'Verdict & Risk Intelligence' },
-  { id: 2, title: 'Levers Lab' },
-  { id: 3, title: 'Red Flags & Action Plan' },
+  { id: 1, title: 'Overview' },
+  { id: 2, title: 'Model' },
+  { id: 3, title: 'Scenarios' },
+  { id: 4, title: 'Risks' },
+  { id: 5, title: 'Evidence' },
+  { id: 6, title: 'Report' },
 ];
 
 export function PersistentResultsHeader({
@@ -252,7 +261,7 @@ export function PersistentResultsHeader({
       </div>
 
       {/* Wizard Tabs Row - 44px */}
-      <div className="h-[44px] max-w-3xl mx-auto flex">
+      <div className="h-[44px] max-w-4xl mx-auto flex">
         {steps.map((step, idx) => {
           const isActive = currentStep === step.id;
           const isCompleted = currentStep > step.id;

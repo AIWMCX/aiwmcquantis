@@ -62,7 +62,7 @@ export function ValidationSection({ validation }: { validation: AnalysisValidati
     <section className="rounded-lg border border-border bg-card/40 p-5 space-y-5">
       {/* Header */}
       <header className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold tracking-tight">External Reality Validation</h2>
+        <h2 className="text-base font-semibold tracking-tight">Assumption Check</h2>
         <span className="text-[11px] font-mono text-muted-foreground">
           RVCE {validation.rvce_version} · {validation.latency_ms}ms
         </span>

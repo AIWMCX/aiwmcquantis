@@ -684,29 +684,6 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
-            {/* Benchmark Citations — every numeric metric tied to the 97,500-row library */}
-            <section className="q-card p-5 mt-5">
-              <BenchmarkCitations
-                context={benchmarkContext}
-                serverRecords={(result.metadata as any)?.benchmarks}
-                metrics={[
-                  { label: 'Gross Margin', metric: 'gross_margin', userValue: metrics.grossMargin / 100 },
-                  { label: 'Operating Margin', metric: 'operating_margin', userValue: metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined },
-                  { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: metrics.ltvCac },
-                  { label: 'CAC Payback', metric: 'cac_payback', userValue: cacPaybackMonths },
-                  { label: 'Survival', metric: 'survival_years', userValue: metrics.runway / 12 },
-                ]}
-              />
-            </section>
-
-            {/* Live Benchmark Block — strict consumer of metadata.benchmarks[]
-                (Step 8 of Benchmark-First plan). No recomputation here. */}
-            <BenchmarkRecordsBlock
-              className="mt-5"
-              records={(meta.benchmarks as BenchmarkRecord[] | undefined) ?? null}
-              mode={meta.benchmark_mode}
-              summary={meta.benchmark_match_summary}
-            />
             </div>
             );
           })()}
@@ -726,7 +703,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           )}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 2 — LEVERS LAB (Plus only) */}
+          {/* STEP 2 — MODEL (unit economics / FinancialSummary; Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 2 && isReportLocked && <LockedAnalysisPaywall section="levers" />}
           {currentStep === 2 && !isReportLocked && (() => {
@@ -734,26 +711,15 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             const safeRevenue = Number.isFinite(scenarioMetrics.revenue) && scenarioMetrics.revenue > 0
               ? scenarioMetrics.revenue
               : (fa.mrr || fa.scenarios?.base?.revenue || 1000);
-            const safeMargin = Number.isFinite(scenarioMetrics.margin) ? scenarioMetrics.margin : 0.2;
             const initialCac = fa.unit_economics?.cac ?? 50;
             const initialRent = fa.monthly_expenses?.fixed_costs ?? 1000;
             const initialTicket = fa.inputs?.price_per_unit ?? fa.unit_economics?.avg_revenue_per_user ?? 100;
             return (
             <div className="grid lg:grid-cols-[55%_45%] gap-5">
-              {/* LEFT: Chart + P&L */}
+              {/* LEFT: Unit economics */}
               <div className="space-y-5">
-                <div className="q-card p-6 space-y-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold">36-Month Revenue Projection</h3>
-                    <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={handleScenarioSelectorChange} />
-                  </div>
-                  <RevenueChart baseRevenue={safeRevenue} margin={safeMargin} activeScenario={activeScenario} />
-                  <div className="pt-4 border-t border-border">
-                    <ScenarioBar activeScenario={activeScenario} onScenarioChange={handleActiveScenarioChange} />
-                  </div>
-                </div>
                 <FinancialSummary financial={result.financial_analysis} selectedScenario={selectedScenario} />
-                
+
                 {/* Why These Numbers Section */}
                 <div className="q-card p-5">
                   <h4 className="text-sm font-semibold mb-3">Why These Numbers?</h4>
@@ -779,13 +745,13 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
               {/* RIGHT: Assumption Editor + Impact Preview */}
               <div className="space-y-5">
-                <InlineAssumptionEditor 
+                <InlineAssumptionEditor
                   initialCac={initialCac}
                   initialRent={initialRent}
                   initialTicketSize={initialTicket}
                   onRecalculate={handleAssumptionRecalculate}
                 />
-                
+
                 {/* Impact Snapshot */}
                 {/* P0-26 (Domain 8 audit, 2026-07-25): scenarioMetrics below applies
                     the slider overrides with a simple linear heuristic (see the
@@ -832,24 +798,84 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 3 — RED FLAGS & ACTION PLAN (Plus only) */}
+          {/* STEP 3 — SCENARIOS (36-mo chart + scenario bar inline, merges
+              Compare Outcomes / Levers Lab / Scenario Comparison into one
+              tab via composition -- the full multi-scenario-set workspace
+              stays at its own route, linked below, rather than being
+              reimplemented here). Plus only, same gate as before. */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {currentStep === 3 && isReportLocked && <LockedAnalysisPaywall section="action-plan" />}
-          {currentStep === 3 && !isReportLocked && (
-            <div className="space-y-6">
-              {/* ── RVCE Layer 8 — External Reality Validation ── */}
-              {rvceLoading && (
-                <div className="rounded-lg border border-border bg-card/40 p-4 flex items-center gap-3 text-sm text-muted-foreground">
-                  <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/40 border-t-foreground animate-spin" />
-                  Validating against external benchmarks...
+          {currentStep === 3 && isReportLocked && <LockedAnalysisPaywall section="levers" />}
+          {currentStep === 3 && !isReportLocked && (() => {
+            const fa: any = result.financial_analysis || {};
+            const safeRevenue = Number.isFinite(scenarioMetrics.revenue) && scenarioMetrics.revenue > 0
+              ? scenarioMetrics.revenue
+              : (fa.mrr || fa.scenarios?.base?.revenue || 1000);
+            const safeMargin = Number.isFinite(scenarioMetrics.margin) ? scenarioMetrics.margin : 0.2;
+            return (
+            <div className="space-y-5">
+              <div className="q-card p-6 space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold">36-Month Revenue Projection</h3>
+                  <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={handleScenarioSelectorChange} />
                 </div>
-              )}
-              {rvceValidation && !rvceLoading && (
-                <SectionErrorBoundary section="external validation">
-                  <RvceValidationSection validation={rvceValidation} />
-                </SectionErrorBoundary>
-              )}
+                <RevenueChart baseRevenue={safeRevenue} margin={safeMargin} activeScenario={activeScenario} />
+                <div className="pt-4 border-t border-border">
+                  <ScenarioBar activeScenario={activeScenario} onScenarioChange={handleActiveScenarioChange} />
+                </div>
+              </div>
 
+              {/* Compare Outcomes CTA — the saved-scenario-set workspace
+                  (build/save/promote scenarios, compare side by side) is a
+                  standalone multi-step flow with its own data fetching; it
+                  stays at its own route rather than being reimplemented
+                  inline here. */}
+              <div className="q-card p-5 border-l-4 border-l-[var(--q-accent-primary)] flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Build and compare named scenarios</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Save named scenario sets (demand downside, cost shock, pricing change), stress-test breakpoints, and compare them side by side.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0 gap-2"
+                  onClick={() => window.open(`/app/scenarios${analysisId ? `?analysisId=${analysisId}` : ''}`, '_self')}
+                >
+                  Open Scenario Builder
+                </Button>
+              </div>
+            </div>
+            );
+          })()}
+
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* STEP 4 — RISKS (Red Flags & Action Plan; Plus only) */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {currentStep === 4 && isReportLocked && <LockedAnalysisPaywall section="action-plan" />}
+          {currentStep === 4 && !isReportLocked && (
+            <div className="space-y-6">
+              {/* Failure Pre-Mortem lives here now, as part of this Decision's
+                  Risks tab, not as a competing top-level product. The full
+                  deep stress test (Monte Carlo + churn/cost/demand shocks) is
+                  a heavier, separately-run job, so it stays at its own route,
+                  linked below, rather than being re-run inline on every
+                  Risks-tab view. */}
+              <div className="q-card p-5 border-l-4 border-l-destructive flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Run the full pre-mortem stress test</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Stress-test this decision against a revenue collapse, churn spike, cost inflation, and concentration risk.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 gap-2"
+                  onClick={() => window.open('/app/pre-mortem', '_self')}
+                >
+                  Open Pre-Mortem
+                </Button>
+              </div>
               <div className="grid lg:grid-cols-2 gap-5">
 
                 {/* LEFT: Risk Flags */}
@@ -1036,41 +1062,155 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 <LockedFeaturePreview onUpgrade={() => window.location.href = '/pricing'} />
               )}
 
-              {/* Document Generator - Full Width */}
-              <div className="q-card p-6">
-                <h3 className="font-semibold mb-4">Generate Documents</h3>
-                <p className="text-sm text-muted-foreground">
-                  Document generation available in the Documents Studio.
-                </p>
-              </div>
-
               {/* Realism Feedback Widget */}
-              <RealismFeedbackWidget 
-                analysisId={analysisId} 
+              <RealismFeedbackWidget
+                analysisId={analysisId}
                 businessType={businessType}
                 location={location}
               />
             </div>
           )}
-        </div>
 
-        {/* Methodology Footer */}
-        <div className="mt-6 rounded-lg border border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)] px-4 py-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">How does Quantis calculate these numbers?</span>
-          <a
-            href="https://www.aiwmcquantis.com/methodology"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-medium text-[var(--q-accent-primary)] hover:underline"
-          >
-            Read our methodology →
-          </a>
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* STEP 5 — EVIDENCE (benchmarks-within-analysis + Assumption
+              Check (RVCE) + audit trail/methodology). Benchmark citations
+              stay visible to free users, same as before this tab existed;
+              Assumption Check keeps its original Plus-only gate. */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {currentStep === 5 && (
+            <div className="space-y-5">
+              {/* Benchmark Citations — every numeric metric tied to the 97,500-row library */}
+              <section className="q-card p-5">
+                <BenchmarkCitations
+                  context={benchmarkContext}
+                  serverRecords={(result.metadata as any)?.benchmarks}
+                  metrics={[
+                    { label: 'Gross Margin', metric: 'gross_margin', userValue: metrics.grossMargin / 100 },
+                    { label: 'Operating Margin', metric: 'operating_margin', userValue: metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined },
+                    { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: metrics.ltvCac },
+                    { label: 'CAC Payback', metric: 'cac_payback', userValue: cacPaybackMonths },
+                    { label: 'Survival', metric: 'survival_years', userValue: metrics.runway / 12 },
+                  ]}
+                />
+              </section>
+
+              {/* Live Benchmark Block — strict consumer of metadata.benchmarks[]
+                  (Step 8 of Benchmark-First plan). No recomputation here. */}
+              <BenchmarkRecordsBlock
+                records={(meta.benchmarks as BenchmarkRecord[] | undefined) ?? null}
+                mode={meta.benchmark_mode}
+                summary={meta.benchmark_match_summary}
+              />
+
+              {/* Assumption Check (RVCE Layer 8, formerly labeled "External
+                  Reality Validation") — cross-checks metrics against
+                  external benchmarks. Same Plus-only gate as before. */}
+              {isReportLocked ? (
+                <LockedAnalysisPaywall section="action-plan" />
+              ) : (
+                <>
+                  {rvceLoading && (
+                    <div className="rounded-lg border border-border bg-card/40 p-4 flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/40 border-t-foreground animate-spin" />
+                      Validating against external benchmarks...
+                    </div>
+                  )}
+                  {rvceValidation && !rvceLoading && (
+                    <SectionErrorBoundary section="external validation">
+                      <RvceValidationSection validation={rvceValidation} />
+                    </SectionErrorBoundary>
+                  )}
+                </>
+              )}
+
+              {/* Audit Trail */}
+              <div className="q-card p-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Audit Trail</h4>
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <div className="flex justify-between">
+                    <span>Benchmark Engine</span>
+                    <span className="font-mono text-foreground">V2</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Geo Calibration</span>
+                    <span className="font-mono text-foreground">{location || 'Global'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Reconciliation</span>
+                    {(result as any)?.report_integrity === 'BLOCK' ? (
+                      <span className="text-[var(--q-status-red)] font-medium">⚠ Contradiction detected</span>
+                    ) : (
+                      <span className="text-[var(--q-status-green)] font-medium">✓ Passed</span>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-semibold text-foreground">Benchmark-matched analysis</p>
+                    <p className="text-[10px] text-muted-foreground">V2 engine • 5 tables • real-time calibration</p>
+                  </div>
+                </div>
+                <a
+                  href="https://www.aiwmcquantis.com/methodology"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 block text-xs text-[var(--q-accent-primary)] hover:underline"
+                >
+                  How we calculate this →
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* STEP 6 — REPORT (Decision Report / Client Proposal / Document
+              Templates entry points -- composition only, each destination
+              already exists and keeps its own gating). */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {currentStep === 6 && isReportLocked && <LockedAnalysisPaywall section="action-plan" />}
+          {currentStep === 6 && !isReportLocked && (
+            <div className="grid sm:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => window.open('/docs', '_self')}
+                className="q-card p-5 text-left hover:bg-muted/40 transition-colors"
+              >
+                <h4 className="text-sm font-semibold text-foreground">Decision Report</h4>
+                <p className="text-xs text-muted-foreground mt-1">Generate the full formatted report for this decision — financial forecast, quarterly summary, or investor one-pager.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.open('/docs?view=templates', '_self')}
+                className="q-card p-5 text-left hover:bg-muted/40 transition-colors"
+              >
+                <h4 className="text-sm font-semibold text-foreground">Document Templates</h4>
+                <p className="text-xs text-muted-foreground mt-1">Business plan, pitch deck, NDA, partnership and founder agreement templates, pre-filled from this analysis.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.open('/quote', '_self')}
+                className="q-card p-5 text-left hover:bg-muted/40 transition-colors"
+              >
+                <h4 className="text-sm font-semibold text-foreground">Client Proposal</h4>
+                <p className="text-xs text-muted-foreground mt-1">Turn this decision into a client-facing quote or proposal.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.open('/app/invoices', '_self')}
+                className="q-card p-5 text-left hover:bg-muted/40 transition-colors"
+              >
+                <h4 className="text-sm font-semibold text-foreground">Invoice &amp; Capacity</h4>
+                <p className="text-xs text-muted-foreground mt-1">Check delivery capacity and generate an invoice tied to this engagement.</p>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Navigation Footer */}
         <div className="flex justify-between items-center pt-6 mt-6 border-t border-border gap-2">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => handleStepChange(Math.max(1, currentStep - 1))}
             disabled={currentStep === 1}
@@ -1078,18 +1218,20 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           >
             <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Previous</span><span className="sm:hidden">Prev</span>
           </Button>
-          
+
           <div className="hidden sm:block">
             <LastAuditedBadge />
           </div>
-          
-          <Button 
+
+          <Button
             size="sm"
-            onClick={() => handleStepChange(Math.min(3, currentStep + 1))}
-            disabled={currentStep === 3}
+            onClick={() => handleStepChange(Math.min(6, currentStep + 1))}
+            disabled={currentStep === 6}
             className="gap-1.5 text-xs sm:text-sm sm:gap-2"
           >
-            <span className="hidden sm:inline">Next: {currentStep === 1 ? 'Levers Lab' : 'Red Flags'}</span>
+            <span className="hidden sm:inline">
+              Next{currentStep < 6 ? `: ${['Overview', 'Model', 'Scenarios', 'Risks', 'Evidence', 'Report'][currentStep]}` : ''}
+            </span>
             <span className="sm:hidden">Next</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
