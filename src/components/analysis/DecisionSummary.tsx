@@ -9,6 +9,14 @@ import { computeVerdict } from '@/lib/verdict';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  normalizePercent,
+  PROBABILITY_LABEL,
+  selectCriticalAssumptions,
+  selectWhatBreaksFirst,
+  selectNextActions,
+  computeRunwayLabel,
+} from '@/lib/decision-memo-data';
 
 /**
  * Activation-to-revenue Wave 5 (PR B): First Result Activation.
@@ -37,19 +45,6 @@ interface DecisionSummaryProps {
    *  deliberately not auto-repopulated here. */
   onUpdateWithRealNumbers?: () => void;
 }
-
-const normalizePercent = (value?: number): number => {
-  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
-  return value <= 1 ? value * 100 : value;
-};
-
-const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-
-const PROBABILITY_LABEL: Record<string, string> = {
-  'низкая': 'low',
-  'средняя': 'medium',
-  'высокая': 'high',
-};
 
 function fmtUsd(n: number): string {
   const abs = Math.abs(n);
@@ -94,12 +89,7 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
   }, []);
 
   // ── B. What has to be true -- top 5 actionable insights by priority ──
-  const drivers = useMemo(() => {
-    const insights = result.actionable_insights?.insights ?? [];
-    return [...insights]
-      .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9))
-      .slice(0, 5);
-  }, [result.actionable_insights]);
+  const drivers = useMemo(() => selectCriticalAssumptions(result, 5), [result]);
 
   const [expandedDriver, setExpandedDriver] = useState<string | null>(null);
   function toggleDriver(id: string, metricName: string) {
@@ -109,32 +99,7 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
   }
 
   // ── C. What breaks first -- real assumption_graph, else real risk_analysis ──
-  const breaksFirst = useMemo(() => {
-    const criticalPath = result.assumption_graph?.criticalPath;
-    if (criticalPath && criticalPath.length > 0) {
-      return {
-        source: 'assumption_graph' as const,
-        items: [...criticalPath].sort((a, b) => (b.sensitivity ?? 0) - (a.sensitivity ?? 0)).slice(0, 3),
-      };
-    }
-    const risk = fa?.risk_analysis;
-    if (!risk) return null;
-    const named = (
-      [
-        ['Revenue drops 20%', risk.revenue_drop_20],
-        ['Costs rise 15%', risk.costs_rise_15],
-        ['CAC doubles', risk.cac_doubles],
-        ['Churn increases', risk.churn_increase],
-      ] as const
-    ).filter(([, s]) => typeof s?.resulting_profit === 'number');
-    return {
-      source: 'risk_analysis' as const,
-      items: named
-        .sort((a, b) => a[1].resulting_profit - b[1].resulting_profit)
-        .slice(0, 3)
-        .map(([label, s]) => ({ label, ...s })),
-    };
-  }, [result.assumption_graph, fa?.risk_analysis]);
+  const breaksFirst = useMemo(() => selectWhatBreaksFirst(result, 3), [result]);
 
   // ── D. Cash decision metrics -- real fields only; runway is derived, never invented as a fake precise number ──
   const monthlyProfit = getMonthlyProfit(fa);
@@ -142,24 +107,10 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
   const breakEvenMonths = fa?.breakeven?.breakeven_months ?? fa?.break_even_months;
   const requiredCapital = fa?.startup_investment?.total;
   const grossMarginPct = normalizePercent(fa?.scenarios?.base?.gross_margin);
-  const runwayLabel =
-    monthlyProfit >= 0
-      ? 'Profitable at base case — no runway constraint'
-      : requiredCapital
-        ? `${Math.max(1, Math.floor(requiredCapital / Math.abs(monthlyProfit)))} months at current burn`
-        : 'Not available — startup investment not modeled';
+  const runwayLabel = computeRunwayLabel(fa, monthlyProfit);
 
   // ── E. Test before committing capital -- grounded in the same real drivers, never generic filler ──
-  const nextActions = useMemo(() => {
-    const criticalPath = result.assumption_graph?.criticalPath;
-    if (criticalPath && criticalPath.length > 0) {
-      return criticalPath
-        .filter((c) => c.recommendation)
-        .slice(0, 3)
-        .map((c) => c.recommendation);
-    }
-    return drivers.slice(0, 3).map((d) => `Verify: ${d.metric_name} (currently ${d.current_value}, target ${d.target_value})`);
-  }, [result.assumption_graph, drivers]);
+  const nextActions = useMemo(() => selectNextActions(result, breaksFirst, 3), [result, breaksFirst]);
 
   const [selectedActions, setSelectedActions] = useState<Set<number>>(new Set());
   function toggleAction(index: number, action: string) {

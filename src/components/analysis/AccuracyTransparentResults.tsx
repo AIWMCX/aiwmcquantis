@@ -212,12 +212,17 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     return Math.max(1, Math.floor(investment / Math.abs(scenarioMetrics.profit)));
   }, [result.financial_analysis, scenarioMetrics.profit]);
 
-  const performExportPDF = useCallback(async () => {
-    const loadingId = toast.loading('Generating PDF...');
+  // Stage 4 (Reports Consolidation): a single exporter parameterized by
+  // variant -- 'memo' (the new default, a 3-5 page Decision Memo) and
+  // 'full' (the pre-existing, unchanged detailed/appendix report). Both
+  // call the same usePdfExport().generatePdf() with the same `result`, so
+  // neither path can drift from the other's underlying numbers.
+  const performExportPDF = useCallback(async (variant: 'memo' | 'full' = 'memo') => {
+    const loadingId = toast.loading(variant === 'full' ? 'Generating Full Report...' : 'Generating Decision Memo...');
     try {
-      await generatePdf(result);
+      await generatePdf(result, undefined, undefined, variant);
       toast.dismiss(loadingId);
-      toast.success('PDF downloaded!');
+      toast.success(variant === 'full' ? 'Full Report downloaded!' : 'Decision Memo downloaded!');
     } catch (error) {
       toast.dismiss(loadingId);
       const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -229,10 +234,21 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     }
   }, [generatePdf, result]);
 
+  const performExportMemo = useCallback(() => performExportPDF('memo'), [performExportPDF]);
+  const performExportFull = useCallback(() => performExportPDF('full'), [performExportPDF]);
+
+  // Both variants pass through the exact same integrity gate (report_integrity
+  // === 'BLOCK' confirmation) -- no gating logic is duplicated or changed.
   const { confirmOpen, setConfirmOpen, requestExport: handleExportPDF, confirmAndExport } = useIntegrityGatedExport(
     (result as any)?.report_integrity,
-    performExportPDF
+    performExportMemo
   );
+  const {
+    confirmOpen: confirmOpenFull,
+    setConfirmOpen: setConfirmOpenFull,
+    requestExport: handleExportFullReport,
+    confirmAndExport: confirmAndExportFull,
+  } = useIntegrityGatedExport((result as any)?.report_integrity, performExportFull);
 
   const handleShare = useCallback(() => {
     if (analysisId) shareReport(analysisId);
@@ -375,6 +391,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         onStepChange={handleStepChange}
         onBack={onReset}
         onExportPDF={handleExportPDF}
+        onExportFullReport={handleExportFullReport}
         onNewAnalysis={onReset}
         isGeneratingPdf={isGenerating}
         analysisTime={2.4}
@@ -1242,6 +1259,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         onConfirm={confirmAndExport}
+      />
+      <ExportIntegrityConfirmDialog
+        open={confirmOpenFull}
+        onOpenChange={setConfirmOpenFull}
+        onConfirm={confirmAndExportFull}
       />
     </div>
   );

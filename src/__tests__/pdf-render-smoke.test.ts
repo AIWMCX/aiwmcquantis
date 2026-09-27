@@ -19,7 +19,7 @@
 import { describe, it, expect } from 'vitest';
 import { pdf } from '@react-pdf/renderer';
 import zlib from 'zlib';
-import { createExecutiveReport } from '../hooks/usePdfExport';
+import { createExecutiveReport, createDecisionMemoReport } from '../hooks/usePdfExport';
 import type { BusinessAnalysisResult } from '../types/analysis';
 
 // react-pdf's toBuffer() returns a readable stream in this Node/Vitest
@@ -168,5 +168,79 @@ describe('createExecutiveReport render smoke test', () => {
     const instance = pdf(doc as any);
     const buffer = await instance.toBuffer();
     expect(buffer).toBeTruthy();
+  });
+});
+
+// Stage 4 (Reports Consolidation, 2026-09-27): the Decision Memo is a new,
+// shorter document assembled from its own react-pdf markup -- the same
+// class of font/style-combination bug this file exists to catch could
+// just as easily hide in it. Reuses the same `result` fixture and the
+// same real-render assertions (valid PDF header, nontrivial size, decoded
+// text content) as createExecutiveReport's suite above.
+describe('createDecisionMemoReport render smoke test', () => {
+  it('produces a valid, nontrivial PDF with the expected Decision Memo sections', async () => {
+    const doc = createDecisionMemoReport(result);
+    const stream = await pdf(doc as any).toBuffer();
+    const buffer = await streamToBuffer(stream as unknown as NodeJS.ReadableStream);
+
+    expect(buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(buffer.length).toBeGreaterThan(5_000);
+
+    const text = extractPdfText(buffer);
+    expect(text).toContain(result.metadata.idea);
+    expect(text).toContain('Assessment');
+    expect(text).toContain('Financial Consequence');
+    expect(text).toContain('Critical Assumptions');
+    expect(text).toContain('Downside Case');
+    expect(text).toContain('What Changes the Answer');
+    expect(text).toContain('Risks');
+    expect(text).toContain('Recommended Validation');
+    expect(text).toContain('Financial Summary');
+    expect(text).toContain('Evidence & Methodology');
+    // Same downside numbers the Full Report's Scenario Analysis table
+    // reads from financial_analysis.scenarios.pessimistic -- confirms no
+    // second calculation path exists for this figure.
+    expect(text).toContain('$3,000');
+  });
+
+  it('renders to a PDF buffer without throwing when actionable_insights/assumption_graph/risks are absent (older stored analyses)', async () => {
+    const doc = createDecisionMemoReport(result);
+    const instance = pdf(doc as any);
+    const buffer = await instance.toBuffer();
+    expect(buffer).toBeTruthy();
+  });
+
+  it('renders real critical-assumption and next-action text when actionable_insights/assumption_graph are present, matching DecisionSummary.tsx\'s own selectors', async () => {
+    const richResult = {
+      ...result,
+      actionable_insights: {
+        insights: [
+          {
+            id: 'i1', metric_name: 'CAC Payback', current_value: 5, target_value: 3, gap: 2,
+            priority: 'critical', status: 'danger', headline: 'test', explanation: 'CAC payback is too slow',
+            why_it_matters: 'Slows reinvestment', action_plan: { strategy: 's', tactics: [], expected_outcome: 'o', time_to_result: 't' },
+          },
+        ],
+        summary: { total_insights: 1, critical_count: 1, high_count: 0, medium_count: 0, low_count: 0, overall_health: 'needs_work', top_priority: 'CAC Payback', quick_wins: [] },
+      },
+      assumption_graph: {
+        nodes: [],
+        edges: [],
+        fragility_score: 0.4,
+        criticalPath: [
+          { assumption: 'Customer acquisition cost', sensitivity: 0.9, breakingThreshold: 300, currentValue: 150, direction: 'up', recommendation: 'Run a paid-channel test before committing capital' },
+        ],
+      },
+    } as unknown as BusinessAnalysisResult;
+
+    const doc = createDecisionMemoReport(richResult);
+    const stream = await pdf(doc as any).toBuffer();
+    const buffer = await streamToBuffer(stream as unknown as NodeJS.ReadableStream);
+    const text = extractPdfText(buffer);
+
+    expect(text).toContain('CAC Payback');
+    expect(text).toContain('Slows reinvestment');
+    expect(text).toContain('Customer acquisition cost');
+    expect(text).toContain('Run a paid-channel test before committing capital');
   });
 });

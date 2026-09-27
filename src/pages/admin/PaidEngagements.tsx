@@ -158,11 +158,18 @@ export default function PaidEngagements() {
         return;
       }
       const result = data.result as unknown as BusinessAnalysisResult;
+      // Stage 4 (Reports Consolidation) changed usePdfExport's generatePdf()
+      // default variant to 'memo' (the new short Decision Memo). This paid
+      // engagement flow existed before that change and delivers the FULL
+      // detailed report with an extra engagement-framing page inserted
+      // (see EngagementMemoContext in usePdfExport.ts) -- pinned to 'full'
+      // explicitly so this revenue-critical export keeps its exact prior
+      // behavior, unaffected by the new client-side default.
       await generatePdf(result, undefined, {
         preparedFor: engagement.contact_name,
         decisionQuestion: engagement.decision_question || undefined,
         consultantNotes: engagement.consultant_notes || undefined,
-      });
+      }, 'full');
     } finally {
       setExportingId(null);
     }
