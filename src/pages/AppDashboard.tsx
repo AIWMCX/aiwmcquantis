@@ -102,6 +102,7 @@ export default function Index() {
   const [hasPrefill, setHasPrefill] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const capacityCheckRef = useRef<HTMLDivElement>(null);
   const [showScrollBanner, setShowScrollBanner] = useState(false);
   const [showNextSteps, setShowNextSteps] = useState(false);
   const prevResultRef = useRef<boolean>(false);
@@ -281,14 +282,36 @@ export default function Index() {
   // unrelated state update this component makes afterward.
   const routerLocation = useRouterLocation();
   const appliedNewDecisionState = useRef(false);
+  // "Take on a new client" reuses this same hand-off -- it still runs the
+  // real analysis (no second engine, no separate intake form) but also
+  // flags that the existing Capacity Check card (PLUS+, further below) is
+  // the thing this user actually came here for, so once the analysis
+  // finishes we can scroll straight to it instead of leaving them to find
+  // it on their own.
+  const [pendingCapacityCheckFocus, setPendingCapacityCheckFocus] = useState(false);
   useEffect(() => {
     if (appliedNewDecisionState.current) return;
     const incoming = routerLocation.state as NewDecisionRouterState | null;
     if (incoming?.decisionStatement) {
       appliedNewDecisionState.current = true;
       setIdea(incoming.decisionStatement);
+      if (incoming.decisionType === 'new_client_capacity') {
+        setPendingCapacityCheckFocus(true);
+      }
     }
   }, [routerLocation.state, setIdea]);
+
+  // Once the analysis this hand-off triggered comes back, jump straight to
+  // the Capacity Check card rather than making the user scroll past the
+  // rest of the report to find it.
+  useEffect(() => {
+    if (!pendingCapacityCheckFocus || !result || isFree) return;
+    const id = window.setTimeout(() => {
+      capacityCheckRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    setPendingCapacityCheckFocus(false);
+    return () => window.clearTimeout(id);
+  }, [pendingCapacityCheckFocus, result, isFree]);
 
   // New complimentary Decision Runs populate `result` with the complete
   // report. `freeTierSummary` remains only for legacy cached responses.
@@ -1091,7 +1114,7 @@ export default function Index() {
                           onDismiss={() => {}}
                         />
                         {!isFree && (
-                          <div className="mt-6 grid grid-cols-1 gap-4">
+                          <div ref={capacityCheckRef} className="mt-6 grid grid-cols-1 gap-4">
                             <CapacityCheckCard parentAnalysisId={currentAnalysisId ?? undefined} />
                             <MarketSizingCard
                               plusAnalysis={businessResultToPlusInput(
