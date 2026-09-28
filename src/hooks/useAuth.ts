@@ -3,7 +3,14 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry';
 
-const getEmailConfirmationRedirect = () => `${window.location.origin}/auth?verified=1`;
+// returnUrl rides along in the confirmation-link redirect (not just
+// localStorage) because the invitee may click that link on a different
+// device/browser than the one they signed up on — localStorage alone
+// would silently lose the pending invite in that case.
+const getEmailConfirmationRedirect = (returnUrl?: string) => {
+  const base = `${window.location.origin}/auth?verified=1`;
+  return returnUrl ? `${base}&returnUrl=${encodeURIComponent(returnUrl)}` : base;
+};
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -80,12 +87,12 @@ export function useAuth() {
     return { data, error };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string, returnUrl?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: getEmailConfirmationRedirect(),
+        emailRedirectTo: getEmailConfirmationRedirect(returnUrl),
         data: {
           full_name: fullName,
           phone: phone,
@@ -95,12 +102,12 @@ export function useAuth() {
     return { data, error };
   }, []);
 
-  const resendSignupConfirmation = useCallback(async (email: string) => {
+  const resendSignupConfirmation = useCallback(async (email: string, returnUrl?: string) => {
     const { data, error } = await supabase.auth.resend({
       type: 'signup',
       email,
       options: {
-        emailRedirectTo: getEmailConfirmationRedirect(),
+        emailRedirectTo: getEmailConfirmationRedirect(returnUrl),
       },
     });
     return { data, error };

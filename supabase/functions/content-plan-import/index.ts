@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
 
     const svc = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: roleRows } = await svc
-      .from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'content_admin']);
+      .from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin');
     if (!roleRows || roleRows.length === 0) return j({ error: 'Admin only' }, 403);
 
     const body = await req.json().catch(() => ({}));

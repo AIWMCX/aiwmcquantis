@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Copy, Gift, Loader2 } from 'lucide-react';
+import { Copy, Gift, Layers, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { generateInviteToken, inviteUrl } from '@/lib/invites';
 
 // "1 month of Pro, free" invite links for founder-led outreach. Each link is
@@ -77,6 +78,16 @@ export function InvitesPanel() {
   const [busy, setBusy] = useState(false);
   const [lastLink, setLastLink] = useState<string | null>(null);
 
+  // Bulk mode — a LinkedIn campaign to many people at once: one label per
+  // line in, one link per label out. Same one-person-one-link contract as
+  // the single form, just N rows in one insert instead of N clicks.
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkNames, setBulkNames] = useState('');
+  const [bulkChannel, setBulkChannel] = useState('linkedin');
+  const [bulkDays, setBulkDays] = useState('30');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResults, setBulkResults] = useState<{ label: string; url: string }[] | null>(null);
+
   const invitesQuery = useQuery({
     queryKey: ['plan-invites'],
     queryFn: async () => {
@@ -123,6 +134,49 @@ export function InvitesPanel() {
       toast.error(e instanceof Error ? e.message : 'Could not create the invite');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const bulkCreate = async () => {
+    const labels = bulkNames
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (labels.length === 0) { toast.error('Paste at least one name, one per line'); return; }
+    if (labels.length > 100) { toast.error('That\'s more than 100 in one batch — split it up'); return; }
+    setBulkBusy(true);
+    try {
+      const durationDays = Math.max(1, Math.min(365, Number(bulkDays) || 30));
+      const rows = labels.map((l) => ({
+        token: generateInviteToken(),
+        label: l,
+        channel: bulkChannel,
+        plan_id: 'pro',
+        duration_days: durationDays,
+        max_redemptions: 1,
+        created_by: user?.id ?? null,
+      }));
+      const { error } = await (supabase as any).from('plan_invites').insert(rows);
+      if (error) throw error;
+      setBulkResults(rows.map((r) => ({ label: r.label, url: inviteUrl(r.token) })));
+      setBulkNames('');
+      refresh();
+      toast.success(`${rows.length} invite links created`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not create the invites');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const copyAllBulkResults = async () => {
+    if (!bulkResults) return;
+    const text = bulkResults.map((r) => `${r.label}: ${r.url}`).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('All links copied');
+    } catch {
+      toast.error('Copy failed — select the list manually');
     }
   };
 
@@ -173,6 +227,72 @@ export function InvitesPanel() {
           <Button onClick={create} disabled={busy}>{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create & copy link'}</Button>
         </div>
         {lastLink && <p className="text-sm break-all">Copied: <span className="font-mono">{lastLink}</span></p>}
+      </Card>
+
+      <Card className="p-4 space-y-3">
+        <button
+          type="button"
+          className="flex items-center gap-2 w-full text-left"
+          onClick={() => setBulkOpen((v) => !v)}
+        >
+          <Layers className="w-5 h-5 text-primary" />
+          <h2 className="font-semibold">Bulk create — a whole campaign at once</h2>
+          <span className="text-xs text-muted-foreground ml-auto">{bulkOpen ? 'Hide' : 'For LinkedIn: paste 30 names, get 30 links'}</span>
+        </button>
+        {bulkOpen && (
+          <>
+            <p className="text-sm text-muted-foreground">
+              One name per line — each gets its own one-person link. Every link is logged here the moment it's created, and moves to "redeemed" the moment that person signs in.
+            </p>
+            <Textarea
+              value={bulkNames}
+              onChange={(e) => setBulkNames(e.target.value)}
+              placeholder={'Carlos Ruiz — LinkedIn post reply\nDana Kim — LinkedIn DM\nJordan Lee — LinkedIn comment\n…'}
+              rows={6}
+              className="font-mono text-sm"
+            />
+            <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+              <div className="space-y-1">
+                <Label className="text-xs">Channel</Label>
+                <Select value={bulkChannel} onValueChange={setBulkChannel}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CHANNELS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Days of Pro (each)</Label>
+                <Input type="number" value={bulkDays} onChange={(e) => setBulkDays(e.target.value)} />
+              </div>
+              <Button onClick={bulkCreate} disabled={bulkBusy}>
+                {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : `Create ${bulkNames.split('\n').map((l) => l.trim()).filter(Boolean).length || ''} links`}
+              </Button>
+            </div>
+            {bulkResults && (
+              <div className="space-y-2 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{bulkResults.length} links ready</p>
+                  <Button size="sm" variant="outline" onClick={copyAllBulkResults} className="gap-1">
+                    <Copy className="w-3.5 h-3.5" /> Copy all
+                  </Button>
+                </div>
+                <div className="max-h-56 overflow-y-auto space-y-1 text-xs font-mono bg-muted/40 rounded p-2">
+                  {bulkResults.map((r) => (
+                    <div key={r.url} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{r.label}</span>
+                      <button
+                        type="button"
+                        className="text-primary hover:underline shrink-0"
+                        onClick={() => { void navigator.clipboard.writeText(r.url).then(() => toast.success(`Copied: ${r.label}`)); }}
+                      >
+                        copy link
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </Card>
 
       <div className="grid grid-cols-3 gap-3">

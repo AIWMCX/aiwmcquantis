@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .in('role', ['admin', 'content_admin']);
+      .eq('role', 'admin');
     if (!roleRows || roleRows.length === 0) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,

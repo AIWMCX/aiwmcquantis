@@ -81,12 +81,8 @@ const ANGLE_PRESETS = [
 ];
 
 export default function ContentStudio() {
-  // Backend (RLS + the content-studio-generate edge function) already
-  // authorizes admin OR content_admin -- this page's own gate must match,
-  // or scoped content_admin accounts get redirected away from a surface
-  // the backend already lets them use.
-  const { isAdmin, isContentAdmin, isLoading } = useAdmin();
-  const canAccess = isAdmin || isContentAdmin;
+  const { isAdmin, isLoading } = useAdmin();
+  const canAccess = isAdmin;
   const navigate = useNavigate();
 
   const [topic, setTopic] = useState('');
