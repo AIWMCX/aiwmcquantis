@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Clock, Wallet, Target, BarChart3, Users, Perc
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { breakEvenMonthsLabel, canonicalBreakEven } from '@/lib/break-even';
 import { logger } from '@/lib/logger';
 import {
   Tooltip,
@@ -408,15 +409,21 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                   // the legacy figure (same pattern as
                   // AccuracyTransparentResults.tsx). Absent on analyses
                   // saved before this field existed.
-                  const cvp = (financial as unknown as { cvp?: { breakEven: { status: string } } }).cvp;
-                  const notAchievable = cvp?.breakEven.status === 'NOT_ACHIEVABLE';
+                  const be = canonicalBreakEven(financial);
+                  const notAchievable = be.status === 'not_achievable';
+                  const inconsistent = be.status === 'inconsistent';
                   return (
                   <div className="p-4 rounded-lg border border-border bg-card md:col-span-2">
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
                       <Target className="w-4 h-4 text-primary" />
                       Break-even Point
                     </h4>
-                    {notAchievable ? (
+                    {inconsistent ? (
+                      <p className="text-sm text-amber-600 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                        Needs review: the monthly costs you entered don't reconcile with the itemized cost defaults in this report, so no break-even figure is shown. Re-run with itemized costs to get a reliable break-even.
+                      </p>
+                    ) : notAchievable ? (
                       <p className="text-sm text-amber-600 flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                         Not achievable at current costs and pricing — contribution margin is zero or negative, so no volume of sales reaches break-even.
@@ -425,15 +432,15 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <p className="text-xs text-muted-foreground">In Units</p>
-                          <p className="text-lg font-bold">{formatNumber(financial.breakeven.breakeven_units ?? 0)}</p>
+                          <p className="text-lg font-bold">{be.units != null ? formatNumber(be.units) : '—'}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">In Revenue</p>
-                          <p className="text-lg font-bold">{formatCurrency(financial.breakeven.breakeven_revenue ?? 0)}</p>
+                          <p className="text-lg font-bold">{be.revenue != null ? formatCurrency(be.revenue) : '—'}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Months to BE</p>
-                          <p className="text-lg font-bold">{financial.breakeven.breakeven_months ?? '—'}</p>
+                          <p className="text-lg font-bold">{breakEvenMonthsLabel(financial, baseProfit)}</p>
                         </div>
                       </div>
                     )}

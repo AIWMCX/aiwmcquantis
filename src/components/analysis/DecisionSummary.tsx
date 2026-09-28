@@ -5,6 +5,7 @@ import { SimpleMetricCard } from './SimpleMetricCard';
 import { ContinueDecisionActions } from './ContinueDecisionActions';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
+import { breakEvenMonthsLabel } from '@/lib/break-even';
 import { computeVerdict } from '@/lib/verdict';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
@@ -104,7 +105,6 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
   // ── D. Cash decision metrics -- real fields only; runway is derived, never invented as a fake precise number ──
   const monthlyProfit = getMonthlyProfit(fa);
   const paybackMonths = getPaybackMonths(fa);
-  const breakEvenMonths = fa?.breakeven?.breakeven_months ?? fa?.break_even_months;
   const requiredCapital = fa?.startup_investment?.total;
   const grossMarginPct = normalizePercent(fa?.scenarios?.base?.gross_margin);
   const runwayLabel = computeRunwayLabel(fa, monthlyProfit);
@@ -213,7 +213,7 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
       {/* D. Cash decision metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SimpleMetricCard title="Payback" value={paybackMonths >= 999 ? 'Never' : `${Math.round(paybackMonths)} mo`} />
-        <SimpleMetricCard title="Break-even" value={breakEvenMonths != null ? `${Math.round(breakEvenMonths)} mo` : 'N/A'} />
+        <SimpleMetricCard title="Break-even" value={breakEvenMonthsLabel(fa, monthlyProfit)} />
         <SimpleMetricCard title="Capital required" value={requiredCapital != null ? fmtUsd(requiredCapital) : 'N/A'} />
         <SimpleMetricCard title="Gross margin" value={`${grossMarginPct.toFixed(0)}%`} />
       </div>

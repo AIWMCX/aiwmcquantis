@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Minus, FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { breakEvenMonthsForDisplay } from '@/lib/break-even';
 import { cn } from '@/lib/utils';
 import { QuantisMath } from '@/lib/quantis-math';
 import {
@@ -87,7 +88,7 @@ function extractMetric(scenario: SavedScenario, metric: string): number | null {
       const growth = (scenario.params?.monthly_growth_rate || 0.05);
       return QuantisMath.round(QuantisMath.multiply(monthly, QuantisMath.compound(1, growth, 11)));
     }
-    case 'break_even_month': return fa?.breakeven?.breakeven_months ?? ret?.payback_period_months ?? null;
+    case 'break_even_month': return breakEvenMonthsForDisplay(fa);
     case 'net_margin': return base.net_margin ?? null;
     case 'gross_margin': return base.gross_margin ?? null;
     case 'survival_probability': return mc?.probabilityPositive != null ? QuantisMath.round(QuantisMath.multiply(mc.probabilityPositive, 100)) : null;
