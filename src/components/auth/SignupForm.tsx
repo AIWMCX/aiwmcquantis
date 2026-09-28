@@ -41,6 +41,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [formStartTime, setFormStartTime] = useState<number | null>(null);
   const isMobile = useIsMobile();
@@ -127,6 +128,22 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         trackEvent('signup_warning', { reason: 'unexpected_immediate_session' });
       }
 
+      // Supabase's documented anti-enumeration behavior: signUp() against an
+      // email that already has a CONFIRMED account returns 200 with a fake
+      // user object whose identities array is empty, and sends no email at
+      // all -- there's nothing to confirm. Left undetected, this form told
+      // that person "Account created, check your email" for an email that
+      // was never sent, which is exactly the kind of silent, unexplained
+      // dead end a real invitee (or anyone reusing an old address) hits with
+      // zero way to recover on their own.
+      if (authData.user && authData.user.identities?.length === 0) {
+        trackEvent('signup_error', { reason: 'email_exists' });
+        setSubmittedEmail(data.email);
+        setAlreadyRegistered(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (leadConversion) {
         trackEvent('lead_converted_to_signup', {
           source: savedLead?.source,
@@ -188,6 +205,32 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       setIsResending(false);
     }
   };
+
+  if (alreadyRegistered) {
+    return (
+      <div className={cn('text-center space-y-6 py-8', className)}>
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/20">
+          <Lock className="w-8 h-8 text-amber-600" />
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-xl font-semibold text-foreground">You already have an account</h3>
+          <p className="text-muted-foreground">
+            <span className="font-medium text-foreground">{submittedEmail}</span> is already registered — no new email was sent.
+          </p>
+        </div>
+
+        <div className="pt-2 space-y-3">
+          <Button onClick={() => navigate(`/auth?email=${encodeURIComponent(submittedEmail)}&mode=login`)} className="w-full">
+            Sign in instead
+          </Button>
+          <Button variant="outline" onClick={() => setAlreadyRegistered(false)} className="w-full">
+            Use a different email
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (signupComplete) {
     return (
