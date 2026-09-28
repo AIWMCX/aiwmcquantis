@@ -39,10 +39,10 @@ export function useKeyboardShortcuts({ enabled = true, onCommandK }: ShortcutCon
       return;
     }
 
-    // Alt+S → Docs Studio
+    // Alt+S → Reports (Docs Studio)
     if (e.altKey && e.key === 's') {
       e.preventDefault();
-      navigate('/app/docs');
+      navigate('/docs');
       return;
     }
 

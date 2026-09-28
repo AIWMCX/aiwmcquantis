@@ -5949,18 +5949,6 @@ export type Database = {
             }
             Returns: Json
           }
-        | {
-            Args: {
-              p_device_id: string
-              p_device_limit?: number
-              p_idea_hash: string
-              p_ip_hash: string
-              p_ip_limit?: number
-              p_location_hash: string
-              p_window_minutes?: number
-            }
-            Returns: Json
-          }
       check_pii_access_rate: { Args: { p_user_id?: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
