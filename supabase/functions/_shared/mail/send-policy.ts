@@ -4,9 +4,9 @@
  *
  * Rules (all must hold):
  *   - the kill switch is on (outreach_enabled);
- *   - the sending domain passes the DNS checks (SPF covers Zoho, Zoho DKIM
- *     published, DMARC present) — otherwise every message risks rejection
- *     under the domain's own p=reject policy;
+ *   - the domain's mail DNS passes (MX → IONOS so replies come back to the
+ *     mailboxes, SPF authorizes IONOS, DMARC present) — otherwise we would
+ *     cold-email people whose replies can't reach us;
  *   - local time in the configured timezone is a sending weekday, inside
  *     [start_hour, end_hour);
  *   - fewer than the effective daily cap already sent today (local day),
@@ -80,7 +80,7 @@ export function effectiveDailyCap(s: MailSettings, now: Date): number {
 export function canSendNow(s: MailSettings, ctx: SendContext): PolicyDecision {
   const cap = effectiveDailyCap(s, ctx.now);
   if (!s.outreach_enabled) return { ok: false, reason: 'disabled', cap, detail: 'outreach sending is switched off' };
-  if (!ctx.dnsReady) return { ok: false, reason: 'dns_not_ready', cap, detail: 'SPF/DKIM for Zoho not verified on the sending domain' };
+  if (!ctx.dnsReady) return { ok: false, reason: 'dns_not_ready', cap, detail: 'domain mail DNS not ready (MX must point to IONOS so replies come back)' };
   const { hour, weekday } = localParts(ctx.now, s.send_timezone);
   if (!s.send_weekdays.includes(weekday) || hour < s.send_start_hour || hour >= s.send_end_hour) {
     return { ok: false, reason: 'outside_window', cap, detail: `outside ${s.send_start_hour}:00–${s.send_end_hour}:00 ${s.send_timezone} on sending days` };

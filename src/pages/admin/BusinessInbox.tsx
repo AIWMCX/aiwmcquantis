@@ -136,8 +136,8 @@ export default function BusinessInbox() {
         {needsSetup && (
           <Card className="p-4 border-amber-500/50 bg-amber-500/5 text-sm space-y-1">
             <p className="font-semibold">Mailbox setup is not finished</p>
-            {!status.configured && <p>Zoho Mail is not connected yet, so nothing syncs. See the Mailbox &amp; sending tab.</p>}
-            {status.dns && !status.dns.ready && <p>The domain's SPF/DKIM do not authorize Zoho, and DMARC is set to reject. Mail sent from these addresses can be rejected until that's fixed.</p>}
+            {!status.configured && <p>The IONOS mailboxes are not connected to Quantis yet, so nothing syncs. See the Mailbox &amp; sending tab.</p>}
+            {status.dns && !status.dns.ready && <p>The domain's DNS is not ready: replies to hello@ / market@ are not delivered to the IONOS mailboxes you use in Outlook. Fix it in the Mailbox &amp; sending tab.</p>}
             <button className="text-primary text-xs hover:underline" onClick={() => setTab('mailbox')}>Open Mailbox &amp; sending →</button>
           </Card>
         )}
@@ -427,7 +427,7 @@ function MailboxPanel({ status, loading, error }: { status: any; loading: boolea
     <div className="space-y-4">
       <Card className="p-4 space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Zoho Mail connection</h3>
+          <h3 className="font-semibold">Mailbox connection <span className="text-xs font-normal text-muted-foreground">{status.server ? `IMAP ${status.server.imap} · SMTP ${status.server.smtp}` : ''}</span></h3>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={!status.configured || !!busy} onClick={() => run('sync', () => mail('sync_now'), (r) => `Synced: ${r.sync?.imported ?? 0} new message(s)`)}>
               {busy === 'sync' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />} Sync now
@@ -436,33 +436,35 @@ function MailboxPanel({ status, loading, error }: { status: any; loading: boolea
         </div>
         {status.configured ? (
           <>
-            {status.accounts_error && <p className="text-sm text-destructive">{status.accounts_error}</p>}
-            {(status.accounts ?? []).map((a: any) => (
-              <p key={a.accountId} className="text-sm">
-                <CheckCircle2 className="w-4 h-4 inline text-emerald-500 mr-1" />
-                {a.primaryEmail} <span className="text-muted-foreground">· can send as {a.sendAs.join(', ')}</span>
+            {(status.connections ?? []).map((c: any) => (
+              <p key={c.address} className="text-sm">
+                {c.connected ? <CheckCircle2 className="w-4 h-4 inline text-emerald-500 mr-1" /> : <XCircle className="w-4 h-4 inline text-muted-foreground mr-1" />}
+                {c.address}{' '}
+                <span className="text-muted-foreground">
+                  {c.connected ? `· connected${c.sent_folder ? ` · Sent folder "${c.sent_folder}"` : ' · no Sent folder found'}` : `· ${c.error}`}
+                </span>
               </p>
             ))}
             {(status.sync_state ?? []).map((r: any) => (
               <p key={`${r.account_id}-${r.folder}`} className="text-xs text-muted-foreground">
-                {r.folder}: last run {when(r.last_run_at)} · last ok {when(r.last_ok_at)}{r.last_error ? ` · error: ${r.last_error}` : ''}
+                {r.account_id} {r.folder}: last run {when(r.last_run_at)} · last ok {when(r.last_ok_at)}{r.last_error ? ` · error: ${r.last_error}` : ''}
               </p>
             ))}
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Not connected. Set the Supabase secrets ZOHO_MAIL_CLIENT_ID, ZOHO_MAIL_CLIENT_SECRET and ZOHO_MAIL_REFRESH_TOKEN (runbook: docs/execution/BUSINESS_MAILBOXES_RUNBOOK_2026-09-28.md). Sync then runs every 5 minutes.
+            Not connected. Set the Supabase secret BUSINESS_MAILBOX_PASSWORDS with the IONOS mailbox passwords (runbook: docs/execution/BUSINESS_MAILBOXES_RUNBOOK_2026-09-28.md). Sync then runs every 5 minutes, and everything Quantis sends is also filed in the mailbox's Sent folder, so Outlook shows it.
           </p>
         )}
       </Card>
 
       <Card className="p-4 space-y-2">
-        <h3 className="font-semibold">Domain authentication (aiwmcquantis.com)</h3>
+        <h3 className="font-semibold">Domain mail DNS (aiwmcquantis.com)</h3>
         {(status.dns?.checks ?? []).map((c: any) => (
           <div key={c.id} className="text-sm">
             <p>
-              {c.ok ? <CheckCircle2 className="w-4 h-4 inline text-emerald-500 mr-1" /> : <XCircle className="w-4 h-4 inline text-destructive mr-1" />}
-              <span className="font-medium uppercase mr-1">{c.id}</span>
+              {c.ok ? <CheckCircle2 className="w-4 h-4 inline text-emerald-500 mr-1" /> : <XCircle className={`w-4 h-4 inline mr-1 ${c.required === false ? 'text-amber-500' : 'text-destructive'}`} />}
+              <span className="font-medium uppercase mr-1">{c.id}{c.required === false ? ' (recommended)' : ''}</span>
               <span className="text-muted-foreground break-all">{c.detail}</span>
             </p>
             {!c.ok && c.fix && <p className="text-xs ml-5 mt-0.5 bg-muted/50 rounded p-2 break-all">Fix: {c.fix}</p>}

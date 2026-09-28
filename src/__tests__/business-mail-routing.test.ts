@@ -16,6 +16,10 @@ import {
 } from '../../supabase/functions/_shared/mail/routing.ts';
 import { canSendNow, effectiveDailyCap, localDayStartUtc, localParts, type MailSettings } from '../../supabase/functions/_shared/mail/send-policy.ts';
 import { evaluateDns } from '../../supabase/functions/_shared/mail/dns-health.ts';
+import { ImapClient, findSentFolder, imapDate } from '../../supabase/functions/_shared/mail/imap.ts';
+import { SmtpClient } from '../../supabase/functions/_shared/mail/smtp.ts';
+import { buildMessage, encodeHeader, quotedPrintable } from '../../supabase/functions/_shared/mail/mime-build.ts';
+import type { Transport } from '../../supabase/functions/_shared/mail/transport.ts';
 
 const MAILBOXES: Mailbox[] = [
   { address: 'support@aiwmcquantis.com', pipeline: 'ticketing', queue: 'support', active: true },
@@ -117,7 +121,7 @@ describe('parsing helpers', () => {
   it('accepts an object of headers too', () => {
     expect(parseHeaders({ 'Delivered-To': ['support@aiwmcquantis.com'] })['delivered-to']).toBe('support@aiwmcquantis.com');
   });
-  it('converts Zoho HTML content to text', () => {
+  it('converts HTML-only bodies to text', () => {
     expect(htmlToText('<div>Hi&nbsp;there<br/>Line two</div><p>Para &amp; more</p>')).toBe('Hi there\nLine two\nPara & more');
   });
   it('labels inbound companies from the sender domain, not freemail', () => {
@@ -178,71 +182,141 @@ describe('DNS evaluation (production records observed 2026-09-28)', () => {
     dmarc: 'v=DMARC1; p=reject; rua=mailto:support@aiwmcquantis.com; ruf=mailto:legal@aiwmcquantis.com; sp=reject; adkim=r; aspf=r; pct=100',
     dkim: null,
   };
+  const check = (h: ReturnType<typeof evaluateDns>, id: string) => h.checks.find((c) => c.id === id)!;
 
-  it('current production DNS is NOT ready: SPF lacks Zoho and there is no Zoho DKIM key', () => {
-    const h = evaluateDns(PROD, 'aiwmcquantis.com', 'zmail');
+  it('today: SPF already authorizes IONOS, but MX points to Zoho, so replies never reach the IONOS mailboxes → not ready', () => {
+    const h = evaluateDns(PROD, 'aiwmcquantis.com', 's1-ionos');
     expect(h.ready).toBe(false);
-    expect(h.checks.find((c) => c.id === 'mx')?.ok).toBe(true);
-    expect(h.checks.find((c) => c.id === 'spf')?.ok).toBe(false);
-    expect(h.checks.find((c) => c.id === 'dkim')?.ok).toBe(false);
-    expect(h.checks.find((c) => c.id === 'dmarc')?.ok).toBe(true);
+    expect(check(h, 'mx').ok).toBe(false);
+    expect(check(h, 'mx').fix).toContain('mx00.ionos.com');
+    expect(check(h, 'spf').ok).toBe(true);
+    expect(check(h, 'dmarc').ok).toBe(true);
   });
 
-  it('is ready once SPF includes zohomail.com and the DKIM key is published', () => {
-    const h = evaluateDns(
-      { ...PROD, spf: 'v=spf1 include:zohomail.com include:_spf.google.com ~all', dkim: 'v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+oZg8MIwiqfYm+w/uXJiSzU4yaHbtBNdX6ln' },
-      'aiwmcquantis.com',
-      'zmail',
-    );
+  it('ready once MX points to IONOS; DKIM is recommended, not blocking', () => {
+    const h = evaluateDns({ ...PROD, mx: ['10 mx00.ionos.com.', '10 mx01.ionos.com.'] }, 'aiwmcquantis.com', 's1-ionos');
     expect(h.ready).toBe(true);
+    expect(check(h, 'dkim')).toMatchObject({ ok: false, required: false });
+  });
+
+  it('a mixed MX (some Zoho, some IONOS) is not ready — mail would split between providers', () => {
+    expect(evaluateDns({ ...PROD, mx: ['10 mx00.ionos.com.', '20 mx2.zoho.com.'] }, 'aiwmcquantis.com', 's1-ionos').ready).toBe(false);
   });
 });
 
-describe('Zoho Mail client (request contract, fake fetch)', async () => {
-  const { ZohoMailClient, accountForAddress } = await import('../../supabase/functions/_shared/mail/zoho-mail.ts');
-  const cfg = { clientId: 'cid', clientSecret: 'sec', refreshToken: 'rt', accountsHost: 'accounts.zoho.com', apiHost: 'mail.zoho.com' };
-
-  function fakeFetch() {
-    const calls: Array<{ url: string; init?: RequestInit }> = [];
-    const impl = (async (url: string, init?: RequestInit) => {
-      calls.push({ url, init });
-      const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { 'Content-Type': 'application/json' } });
-      if (url.startsWith('https://accounts.zoho.com/oauth/v2/token')) return json({ access_token: 'AT', expires_in: 3600 });
-      if (url.endsWith('/api/accounts')) {
-        return json({ status: { code: 200 }, data: [{ accountId: 111, primaryEmailAddress: 'Bogdan@aiwmcquantis.com', sendMailDetails: [{ fromAddress: 'hello@aiwmcquantis.com' }, { fromAddress: 'support@aiwmcquantis.com' }] }] });
+/** Scripted fake mail server: replies to each client write with the next scripted chunk. */
+function fakeServer(greeting: string, replies: Array<string | ((sent: string) => string)>) {
+  const enc = new TextEncoder();
+  const written: string[] = [];
+  const queue: Uint8Array[] = [enc.encode(greeting)];
+  let waiting: ((v: Uint8Array | null) => void) | null = null;
+  let closed = false;
+  const push = (b: Uint8Array) => {
+    if (waiting) { const w = waiting; waiting = null; w(b); } else queue.push(b);
+  };
+  const t: Transport = {
+    read: () => (queue.length ? Promise.resolve(queue.shift()!) : closed ? Promise.resolve(null) : new Promise((r) => { waiting = r; })),
+    write: async (bytes) => {
+      const text = new TextDecoder().decode(bytes);
+      written.push(text);
+      const next = replies.shift();
+      if (next !== undefined) {
+        const out = typeof next === 'function' ? next(text) : next;
+        if (out) push(enc.encode(out));
       }
-      if (url.includes('/messages/view')) return json({ status: { code: 200 }, data: [{ messageId: 9, folderId: 5, threadId: 77, fromAddress: 'jane@acme.com', toAddress: '&lt;hello@aiwmcquantis.com&gt;', subject: 'Re: hi', summary: 'yes', receivedTime: '1759140000000' }] });
-      if (url.endsWith('/api/accounts/111/messages') && init?.method === 'POST') {
-        return json({ status: { code: 200 }, data: { messageId: '1726208416259127700', mailId: ' <abc@aiwmcquantis.com>' } });
-      }
-      if (url.endsWith('/api/accounts/111/messages/42')) return json({ status: { code: 500, description: 'Internal Error' }, data: { moreInfo: 'bad id' } }, 500);
-      return json({ status: { code: 404 } }, 404);
-    }) as unknown as typeof fetch;
-    return { calls, impl };
-  }
+    },
+    close: () => { closed = true; if (waiting) { const w = waiting; waiting = null; w(null); } },
+  };
+  return { t, written };
+}
 
-  it('refreshes the token once, lists accounts with aliases, and sends plaintext from an alias', async () => {
-    const f = fakeFetch();
-    const z = new ZohoMailClient(cfg, f.impl);
-    const accounts = await z.accounts();
-    expect(accounts[0]).toEqual({ accountId: '111', primaryEmail: 'bogdan@aiwmcquantis.com', sendAs: ['bogdan@aiwmcquantis.com', 'hello@aiwmcquantis.com', 'support@aiwmcquantis.com'] });
-    expect(accountForAddress(accounts, 'HELLO@aiwmcquantis.com')?.accountId).toBe('111');
-    expect(accountForAddress(accounts, 'legal@aiwmcquantis.com')).toBeNull();
-
-    const res = await z.send('111', { from: 'hello@aiwmcquantis.com', to: 'jane@acme.com', subject: 'A worked example', text: 'Hi Jane' });
-    expect(res).toEqual({ messageId: '1726208416259127700', mailId: '<abc@aiwmcquantis.com>' });
-    const sendCall = f.calls.find((c) => c.init?.method === 'POST' && c.url.endsWith('/messages'))!;
-    expect(JSON.parse(String(sendCall.init!.body))).toEqual({ fromAddress: 'hello@aiwmcquantis.com', toAddress: 'jane@acme.com', subject: 'A worked example', content: 'Hi Jane', mailFormat: 'plaintext' });
-    expect((sendCall.init!.headers as Record<string, string>).Authorization).toBe('Zoho-oauthtoken AT');
-    expect(f.calls.filter((c) => c.url.includes('/oauth/v2/token')).length).toBe(1);
+describe('IMAP client (scripted server)', () => {
+  it('logs in, lists folders, selects, searches and fetches a literal without marking it read', async () => {
+    const message = 'From: Carlos <carlos@axispointcap.com>\r\nTo: market@aiwmcquantis.com\r\nSubject: Re: Board judgment\r\n\r\nYes, send it.\r\n';
+    const bytes = new TextEncoder().encode(message).length;
+    const srv = fakeServer('* OK IMAP ready\r\n', [
+      'Q1 OK LOGIN completed\r\n',
+      '* LIST (\\HasNoChildren) "/" "INBOX"\r\n* LIST (\\HasNoChildren \\Sent) "/" "Sent Items"\r\nQ2 OK LIST done\r\n',
+      '* 3 EXISTS\r\n* OK [UIDVALIDITY 1700000000] ok\r\n* OK [UIDNEXT 58] ok\r\nQ3 OK [READ-WRITE] SELECT\r\n',
+      '* SEARCH 55 57\r\nQ4 OK SEARCH\r\n',
+      `* 3 FETCH (UID 57 INTERNALDATE "29-Sep-2026 10:15:00 -0400" BODY[]<0> {${bytes}}\r\n${message})\r\nQ5 OK FETCH\r\n`,
+    ]);
+    const imap = new ImapClient(srv.t, 2000);
+    await imap.greet();
+    await imap.login('market@aiwmcquantis.com', 'p"w\\d');
+    const folders = await imap.list();
+    expect(findSentFolder(folders)).toBe('Sent Items');
+    expect(await imap.select('INBOX')).toEqual({ uidValidity: 1700000000, uidNext: 58, exists: 3 });
+    expect(await imap.uidSearch('UID 55:*')).toEqual([55, 57]);
+    const [msg] = await imap.fetch([57]);
+    expect(msg.uid).toBe(57);
+    expect(msg.internalDate?.toISOString()).toBe('2026-09-29T14:15:00.000Z');
+    expect(new TextDecoder().decode(msg.raw)).toBe(message);
+    expect(srv.written[0]).toBe('Q1 LOGIN "market@aiwmcquantis.com" "p\\"w\\\\d"\r\n');
+    expect(srv.written[4]).toContain('BODY.PEEK[]'); // never sets \\Seen
   });
 
-  it('parses listed messages and surfaces Zoho errors with their detail', async () => {
-    const f = fakeFetch();
-    const z = new ZohoMailClient(cfg, f.impl);
-    const list = await z.listMessages('111', '5');
-    expect(list[0]).toMatchObject({ messageId: '9', folderId: '5', threadId: '77', fromAddress: 'jane@acme.com', receivedTime: 1759140000000 });
-    expect(f.calls.at(-1)!.url).toContain('includeto=true');
-    await expect(z.reply('111', '42', { from: 'hello@aiwmcquantis.com', to: 'jane@acme.com', subject: 'Re: x', text: 'y' })).rejects.toThrow(/Internal Error \(bad id\)/);
+  it('APPENDs a sent copy using a literal continuation, and surfaces NO responses', async () => {
+    const srv = fakeServer('* OK ready\r\n', ['+ Ready for literal\r\n', '', 'Q1 OK APPEND completed\r\n', 'Q2 NO [AUTHENTICATIONFAILED] Invalid credentials\r\n']);
+    const imap = new ImapClient(srv.t, 2000);
+    await imap.greet();
+    await imap.append('Sent Items', new TextEncoder().encode('Subject: x\r\n\r\nbody'));
+    expect(srv.written[0]).toBe('Q1 APPEND "Sent Items" (\\Seen) {18}\r\n');
+    await expect(imap.login('a@b.com', 'wrong')).rejects.toThrow(/LOGIN failed: NO \[AUTHENTICATIONFAILED\]/);
+  });
+
+  it('formats SEARCH dates the IMAP way', () => {
+    expect(imapDate(new Date('2026-09-05T12:00:00Z'))).toBe('5-Sep-2026');
+  });
+});
+
+describe('SMTP client (scripted server)', () => {
+  it('EHLO → AUTH PLAIN → MAIL/RCPT → DATA with dot-stuffing → QUIT', async () => {
+    const srv = fakeServer('220 smtp.ionos.com ESMTP\r\n', [
+      '250-smtp.ionos.com\r\n250-AUTH LOGIN PLAIN\r\n250 8BITMIME\r\n',
+      '235 Authentication succeeded\r\n',
+      '250 OK\r\n',
+      '250 OK\r\n',
+      '354 Start mail input\r\n',
+      '250 Requested mail action okay, completed: id=1MxAbc\r\n',
+      '221 Bye\r\n',
+    ]);
+    const smtp = new SmtpClient(srv.t, 2000);
+    const r = await smtp.send({ host: 'aiwmcquantis.com', user: 'hello@aiwmcquantis.com', password: 'pw', from: 'hello@aiwmcquantis.com', to: ['carlos@axispointcap.com'], raw: 'Subject: hi\n\nline one\n.hidden dot line\n' });
+    expect(r.response).toContain('id=1MxAbc');
+    expect(srv.written[1]).toBe(`AUTH PLAIN ${btoa('\u0000hello@aiwmcquantis.com\u0000pw')}\r\n`);
+    expect(srv.written[3]).toBe('RCPT TO:<carlos@axispointcap.com>\r\n');
+    expect(srv.written[5]).toBe('Subject: hi\r\n\r\nline one\r\n..hidden dot line\r\n.\r\n');
+  });
+
+  it('reports a rejected recipient with the server text', async () => {
+    const srv = fakeServer('220 ok\r\n', ['250 hi\r\n', '235 ok\r\n', '250 ok\r\n', '550 5.1.1 mailbox unavailable\r\n']);
+    await expect(new SmtpClient(srv.t, 2000).send({ host: 'x', user: 'u', password: 'p', from: 'a@b.com', to: ['nobody@x.com'], raw: 'x' }))
+      .rejects.toThrow(/RCPT TO nobody@x.com rejected: 550 5.1.1/);
+  });
+});
+
+describe('MIME builder', () => {
+  it('builds a threaded plain-text message with our own Message-ID', () => {
+    const raw = buildMessage({
+      from: 'market@aiwmcquantis.com', fromName: 'Bogdan Jeltov', to: 'carlos@axispointcap.com',
+      subject: 'Re: Board judgment at inflection points', text: 'Hi Carlos,\n\nFollowing up once.',
+      messageId: '<m2@aiwmcquantis.com>', inReplyTo: '<m1@aiwmcquantis.com>', references: ['<m1@aiwmcquantis.com>'],
+      date: new Date('2026-09-29T14:00:00Z'),
+    });
+    expect(raw).toContain('From: "Bogdan Jeltov" <market@aiwmcquantis.com>\r\n');
+    expect(raw).toContain('Message-ID: <m2@aiwmcquantis.com>\r\n');
+    expect(raw).toContain('In-Reply-To: <m1@aiwmcquantis.com>\r\nReferences: <m1@aiwmcquantis.com>\r\n');
+    expect(raw).toContain('Date: Tue, 29 Sep 2026 14:00:00 +0000');
+    expect(raw).toContain('Content-Transfer-Encoding: quoted-printable\r\n\r\nHi Carlos,\r\n\r\nFollowing up once.\r\n');
+  });
+
+  it('encodes non-ASCII headers and bodies safely', () => {
+    expect(encodeHeader('Café — decision')).toMatch(/^=\?UTF-8\?B\?.+\?=$/);
+    expect(quotedPrintable('Café = cost')).toBe('Caf=C3=A9 =3D cost');
+    expect(quotedPrintable('trailing space ')).toBe('trailing space=20');
+    const long = quotedPrintable('x'.repeat(200));
+    expect(long.split('\r\n').every((l) => l.length <= 76)).toBe(true);
+    expect(long.replace(/=\r\n/g, '')).toBe('x'.repeat(200));
   });
 });

@@ -170,7 +170,7 @@ export function withTicketTag(subject: string, ticketNumber: number): string {
   return `${re} [Ticket #${ticketNumber}]`;
 }
 
-/** Minimal HTML -> text for mailbox bodies (Zoho returns HTML content). */
+/** Minimal HTML -> text for HTML-only mail bodies (e.g. Outlook replies). */
 export function htmlToText(html: string): string {
   if (!/<[a-z!/][^>]*>/i.test(html)) return html.trim();
   return html

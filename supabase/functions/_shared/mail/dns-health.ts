@@ -1,14 +1,15 @@
 /**
- * Sending-domain authentication check for the business mailbox.
+ * Business-mail DNS check for the IONOS-hosted mailboxes.
  *
- * Found 2026-09-28: aiwmcquantis.com receives mail at Zoho (MX mx.zoho.com)
- * and publishes DMARC p=reject, but its SPF record does not include Zoho and
- * no Zoho DKIM key is published. Mail sent from the Zoho mailbox therefore
- * fails both SPF and DKIM alignment and receivers are told to reject it.
- * The paced sender refuses to send until this check passes.
+ * Found 2026-09-28: the mailboxes the founder uses (Outlook → IONOS Mail
+ * Basic) are at IONOS, and SPF already authorizes IONOS (so mail sent from
+ * them passes DMARC p=reject via aligned SPF). But MX still pointed to Zoho,
+ * so replies to hello@ / market@ never reached those mailboxes. The paced
+ * sender refuses to send cold email while replies can't come back.
  *
- * `evaluateDns` is pure (tested); `checkDomainDns` does the DNS-over-HTTPS
- * lookups.
+ * Required: MX → IONOS, SPF authorizes IONOS (≤10 lookup mechanisms), DMARC
+ * present. DKIM is recommended, not required (DMARC passes on aligned SPF).
+ * `evaluateDns` is pure (tested); `checkDomainDns` does the lookups.
  */
 
 export interface DnsRecords {
@@ -18,38 +19,60 @@ export interface DnsRecords {
   dkim: string | null;
 }
 
+export interface DnsCheck {
+  id: 'mx' | 'spf' | 'dkim' | 'dmarc';
+  ok: boolean;
+  required: boolean;
+  detail: string;
+  fix?: string;
+}
+
 export interface DnsHealth {
   ready: boolean;
-  checks: Array<{ id: 'mx' | 'spf' | 'dkim' | 'dmarc'; ok: boolean; detail: string; fix?: string }>;
+  checks: DnsCheck[];
   records: DnsRecords;
 }
 
+const IONOS_MX = /(^|\.)(ionos\.(com|de|co\.uk|es|fr|it|mx|ca|at)|kundenserver\.de|perfora\.net)\.?$/i;
+const IONOS_SPF = /include:(_spf(-us|-eu)?\.ionos\.\w+|_spf\.perfora\.net|_spf\.kundenserver\.de)\b/i;
+
 export function evaluateDns(r: DnsRecords, domain: string, dkimSelector: string): DnsHealth {
-  const mxOk = r.mx.some((m) => /(^|\.)zoho\.(com|eu|in|com\.au|jp|com\.cn)\.?$/i.test(m.split(/\s+/).pop() ?? ''));
-  const spfOk = !!r.spf && /include:(zoho\.(com|eu|in|com\.au|jp)|zohomail\.\w+|spf\.zoho\.\w+|one\.zoho\.\w+)/i.test(r.spf);
+  const mxHosts = r.mx.map((m) => m.split(/\s+/).pop() ?? '');
+  const mxOk = mxHosts.length > 0 && mxHosts.every((h) => IONOS_MX.test(h));
+  const lookups = r.spf ? (r.spf.match(/\b(include|a|mx|ptr|exists|redirect)[:=]/gi) ?? []).length : 0;
+  const spfOk = !!r.spf && IONOS_SPF.test(r.spf) && lookups <= 10;
   const dkimOk = !!r.dkim && /(^|;)\s*p=[A-Za-z0-9+/=]{40,}/.test(r.dkim.replace(/"\s*"/g, ''));
   const dmarcOk = !!r.dmarc && /^v=DMARC1/i.test(r.dmarc);
-  const lookups = r.spf ? (r.spf.match(/\b(include|a|mx|ptr|exists|redirect)[:=]/gi) ?? []).length : 0;
-  const checks: DnsHealth['checks'] = [
-    { id: 'mx', ok: mxOk, detail: mxOk ? `MX → ${r.mx.join(', ')}` : `MX is ${r.mx.join(', ') || 'missing'}; business mail is not received by Zoho` },
+  const checks: DnsCheck[] = [
+    {
+      id: 'mx',
+      ok: mxOk,
+      required: true,
+      detail: mxOk ? `MX → ${mxHosts.join(', ')}` : `MX is ${mxHosts.join(', ') || 'missing'} — replies to hello@/market@ do not reach the IONOS mailboxes you use in Outlook`,
+      fix: mxOk ? undefined : `IONOS → Domains & SSL → ${domain} → DNS: delete the three Zoho MX records (mx.zoho.com, mx2.zoho.com, mx3.zoho.com) and add MX mx00.ionos.com (priority 10) and MX mx01.ionos.com (priority 10) for host @. Or use IONOS "Reset mail records to default".`,
+    },
     {
       id: 'spf',
       ok: spfOk,
-      detail: spfOk ? `SPF includes Zoho (${lookups} lookup mechanisms)` : `SPF does not authorize Zoho: ${r.spf ?? 'no SPF record'}`,
-      fix: spfOk ? undefined : `Replace the TXT at ${domain} with: v=spf1 include:zohomail.com include:_spf.google.com ~all (keep other includes only for services that really send as @${domain}; stay under 10 DNS lookups)`,
+      required: true,
+      detail: spfOk ? `SPF authorizes IONOS (${lookups} lookup mechanisms)` : !r.spf ? 'No SPF record' : lookups > 10 ? `SPF has ${lookups} lookup mechanisms (limit 10)` : `SPF does not authorize IONOS: ${r.spf}`,
+      fix: spfOk ? undefined : `TXT @: v=spf1 include:_spf-us.ionos.com include:_spf.perfora.net include:_spf.kundenserver.de ~all (add other senders only if they really send as @${domain})`,
+    },
+    {
+      id: 'dmarc',
+      ok: dmarcOk,
+      required: true,
+      detail: dmarcOk ? r.dmarc! : 'No DMARC record',
     },
     {
       id: 'dkim',
       ok: dkimOk,
-      detail: dkimOk ? `DKIM key published at ${dkimSelector}._domainkey` : `No DKIM key at ${dkimSelector}._domainkey.${domain}`,
-      fix: dkimOk ? undefined : `Zoho Mail Admin → Domains → ${domain} → Email Configuration → DKIM → add selector "${dkimSelector}", publish the TXT it shows at ${dkimSelector}._domainkey.${domain}, then click Verify`,
+      required: false,
+      detail: dkimOk ? `DKIM key published at ${dkimSelector}._domainkey` : `Recommended: no DKIM key at ${dkimSelector}._domainkey.${domain} (mail still passes DMARC via SPF)`,
+      fix: dkimOk ? undefined : `IONOS → Email → Settings → DKIM: enable DKIM for ${domain} (IONOS publishes s1-ionos/s2-ionos records when its DNS is used).`,
     },
-    { id: 'dmarc', ok: dmarcOk, detail: dmarcOk ? r.dmarc! : 'No DMARC record' },
   ];
-  if (spfOk && lookups > 10) {
-    checks[1] = { ...checks[1], ok: false, detail: `SPF has ${lookups} lookup mechanisms (limit 10) — receivers treat it as a permanent error` };
-  }
-  return { ready: checks.every((c) => c.ok), checks, records: r };
+  return { ready: checks.every((c) => c.ok || !c.required), checks, records: r };
 }
 
 async function doh(name: string, type: 'MX' | 'TXT'): Promise<string[]> {

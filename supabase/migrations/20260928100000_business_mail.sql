@@ -1,7 +1,7 @@
 -- Business mail layer (2026-09-28).
 --
--- Connects the Quantis-domain mailboxes (Zoho Mail, MX mx.zoho.com) to the
--- product so that:
+-- Connects the Quantis-domain mailboxes (IONOS Mail, the same mailboxes the
+-- founder uses in Outlook; IMAP 993 / SMTP 465) to the product so that:
 --   * support@ and legal@ (plus the published privacy@ / security@) become
 --     tickets inside Quantis (/admin/inbox), answered from the same address;
 --   * hello@ and market@ feed the acquisition pipeline: replies,
@@ -41,7 +41,8 @@ ON CONFLICT (address) DO NOTHING;
 CREATE TABLE IF NOT EXISTS public.mail_settings (
   id boolean PRIMARY KEY DEFAULT true CHECK (id),
   -- Kill switch. Outreach sending stays OFF until the founder turns it on
-  -- after the DNS checks pass (SPF includes Zoho, Zoho DKIM published).
+  -- after the DNS checks pass (MX → IONOS so replies come back, SPF
+  -- authorizes IONOS, DMARC present).
   outreach_enabled boolean NOT NULL DEFAULT false,
   outreach_from text NOT NULL DEFAULT 'hello@aiwmcquantis.com',
   daily_cap integer NOT NULL DEFAULT 20 CHECK (daily_cap BETWEEN 1 AND 200),
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.mail_settings (
   send_start_hour integer NOT NULL DEFAULT 9 CHECK (send_start_hour BETWEEN 0 AND 23),
   send_end_hour integer NOT NULL DEFAULT 17 CHECK (send_end_hour BETWEEN 1 AND 24),
   send_weekdays integer[] NOT NULL DEFAULT '{1,2,3,4,5}',
-  dkim_selector text NOT NULL DEFAULT 'zmail',
+  dkim_selector text NOT NULL DEFAULT 's1-ionos',
   support_auto_ack boolean NOT NULL DEFAULT false,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid
@@ -62,9 +63,10 @@ INSERT INTO public.mail_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 
 -- ── Sync cursors and health ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.mail_sync_state (
-  account_id text NOT NULL,
+  account_id text NOT NULL, -- mailbox address
   folder text NOT NULL CHECK (folder IN ('inbox', 'sent')),
-  last_received_at timestamptz,
+  uid_validity bigint,
+  last_uid bigint,
   last_run_at timestamptz,
   last_ok_at timestamptz,
   last_error text,
@@ -108,7 +110,7 @@ CREATE INDEX IF NOT EXISTS support_ticket_events_ticket_idx ON public.support_ti
 -- ── Messages (every inbound and outbound business email) ────────────────
 CREATE TABLE IF NOT EXISTS public.mail_messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  provider text NOT NULL DEFAULT 'zoho',
+  provider text NOT NULL DEFAULT 'imap',
   provider_account_id text,
   provider_message_id text,
   provider_folder_id text,
@@ -167,7 +169,7 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'commercial_followups_sent_via_chk') THEN
     ALTER TABLE public.commercial_followups
-      ADD CONSTRAINT commercial_followups_sent_via_chk CHECK (sent_via IS NULL OR sent_via IN ('manual', 'zoho_api', 'zoho_sent_folder'));
+      ADD CONSTRAINT commercial_followups_sent_via_chk CHECK (sent_via IS NULL OR sent_via IN ('manual', 'mailbox_smtp', 'mailbox_sent_folder'));
   END IF;
   -- Only an approved (or already sent) message can sit in the send queue.
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'commercial_followups_queue_requires_approval_chk') THEN
@@ -181,8 +183,8 @@ CREATE INDEX IF NOT EXISTS commercial_followups_send_queue_idx
   WHERE status = 'approved' AND send_requested_at IS NOT NULL;
 
 -- Provider-evidenced send. Service role only (called by business-mail after
--- Zoho accepted the message, or when the Sent-folder sync finds a message
--- the founder sent by hand). Same stage/batch effects as the founder's
+-- the mailbox's SMTP server accepted the message, or when the Sent-folder
+-- sync finds a message the founder sent by hand from Outlook). Same stage/batch effects as the founder's
 -- mark_commercial_followup_sent(), plus the evidence columns.
 CREATE OR REPLACE FUNCTION public.record_commercial_followup_provider_send(
   _followup_id uuid,
@@ -258,8 +260,8 @@ BEGIN
 END $$;
 
 -- ── Schedule: sync mailboxes + one paced send tick every 5 minutes ──────
--- The function returns immediately (configured:false) until the Zoho Mail
--- OAuth secrets are set, so this is safe to schedule before setup.
+-- The function returns immediately (configured:false) until the mailbox
+-- passwords secret is set, so this is safe to schedule before setup.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'business-mail-tick') THEN

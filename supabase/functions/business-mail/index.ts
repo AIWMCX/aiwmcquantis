@@ -2,12 +2,12 @@
 // market@ acquisition, paced outreach sender).
 // ---------------------------------------------------------------------------
 // Two callers:
-//   * pg_cron every 5 minutes (x-cron-secret) → action "tick": sync the Zoho
-//     mailboxes into tickets / the prospect pipeline, then at most one paced
-//     outreach send.
+//   * pg_cron every 5 minutes (x-cron-secret) → action "tick": sync the
+//     IONOS mailboxes (IMAP) into tickets / the prospect pipeline, then at
+//     most one paced outreach send (SMTP).
 //   * /admin/inbox and /admin/commercial (admin Bearer token) → status,
 //     settings, ticket replies/notes/status, queue/cancel sends.
-// Until the ZOHO_MAIL_* secrets are set, every path reports
+// Until BUSINESS_MAILBOX_PASSWORDS is set, every path reports
 // configured:false and does nothing.
 // ---------------------------------------------------------------------------
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
@@ -16,7 +16,7 @@ import { maybeHealthResponse } from '../_shared/health.ts';
 import { checkDomainDns } from '../_shared/mail/dns-health.ts';
 import { canSendNow } from '../_shared/mail/send-policy.ts';
 import { extractAddresses, normalizeEmail } from '../_shared/mail/routing.ts';
-import { ZohoMailClient, zohoConfigFromEnv } from '../_shared/mail/zoho-mail.ts';
+import { checkMailbox, mailboxCredentialsFromEnv, mailServerFromEnv } from '../_shared/mail/mailbox-account.ts';
 import {
   DOMAIN,
   loadMailboxes,
@@ -25,11 +25,12 @@ import {
   replyToTicket,
   sendTick,
   syncMailboxes,
+  type MailContext,
   type Svc,
 } from './pipeline.ts';
 
 const FUNCTION_NAME = 'business-mail';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -67,17 +68,17 @@ Deno.serve(async (req) => {
       return j({ error: 'cron may only call tick' }, 403);
     }
 
-    const cfg = zohoConfigFromEnv();
-    const zoho = cfg ? new ZohoMailClient(cfg) : null;
+    const ctx: MailContext = { svc, server: mailServerFromEnv(), creds: mailboxCredentialsFromEnv() };
+    const configured = ctx.creds.size > 0;
 
     switch (action) {
       case 'tick':
       case 'sync_now':
       case 'send_tick': {
-        if (!zoho) return j({ success: true, configured: false, detail: 'ZOHO_MAIL_CLIENT_ID / _SECRET / _REFRESH_TOKEN not set' });
+        if (!configured) return j({ success: true, configured: false, detail: 'BUSINESS_MAILBOX_PASSWORDS not set' });
         const [settings, mailboxes] = await Promise.all([loadSettings(svc), loadMailboxes(svc)]);
-        const sync = action === 'send_tick' ? null : await syncMailboxes(svc, zoho, settings, mailboxes);
-        const send = action === 'sync_now' ? null : await sendTick(svc, zoho, settings);
+        const sync = action === 'send_tick' ? null : await syncMailboxes(ctx, settings, mailboxes);
+        const send = action === 'sync_now' ? null : await sendTick(ctx, settings, mailboxes);
         return j({ success: true, configured: true, sync, send: send && { ...send, dns: send.dns?.ready ?? false } });
       }
 
@@ -90,18 +91,22 @@ Deno.serve(async (req) => {
         ]);
         let dns = null;
         try { dns = await checkDomainDns(DOMAIN, settings.dkim_selector); } catch (e) { dns = { ready: false, error: (e as Error).message }; }
-        let accounts: unknown = null;
-        let accountsError: string | null = null;
-        if (zoho) {
-          try { accounts = await zoho.accounts(); } catch (e) { accountsError = (e as Error).message; }
-        }
+        // Live login check for every mailbox that has a password.
+        const connections = await Promise.all(
+          mailboxes.map(async (m) => {
+            const cred = ctx.creds.get(m.address);
+            if (!cred) return { address: m.address, connected: false, error: 'no password in BUSINESS_MAILBOX_PASSWORDS' };
+            const r = await checkMailbox(ctx.server, cred);
+            return r.ok ? { address: m.address, connected: true, sent_folder: r.sent_folder } : { address: m.address, connected: false, error: r.error };
+          }),
+        );
         const decision = canSendNow(settings, { now: new Date(), sentToday: counters.sentToday, lastSentAt: counters.lastSentAt, dnsReady: !!(dns as { ready?: boolean }).ready });
         const openCounts = await svc.from('support_tickets').select('queue, status').in('status', ['open', 'pending']);
         return j({
           success: true,
-          configured: !!zoho,
-          accounts,
-          accounts_error: accountsError,
+          configured,
+          server: { imap: `${ctx.server.imapHost}:${ctx.server.imapPort}`, smtp: `${ctx.server.smtpHost}:${ctx.server.smtpPort}` },
+          connections,
           dns,
           settings,
           mailboxes,
@@ -128,8 +133,8 @@ Deno.serve(async (req) => {
           // ramp on first enable so volume grows gradually.
           const s = await loadSettings(svc);
           const dns = await checkDomainDns(DOMAIN, (patch.dkim_selector as string) ?? s.dkim_selector).catch(() => null);
-          if (!dns?.ready) return j({ error: 'DNS not ready: fix SPF/DKIM for Zoho first (see Mailbox health)', dns }, 409);
-          if (!zoho) return j({ error: 'Zoho Mail is not connected (secrets missing)' }, 409);
+          if (!dns?.ready) return j({ error: 'DNS not ready: point MX to IONOS first so replies reach the mailboxes (see Mailbox & sending)', dns }, 409);
+          if (!configured) return j({ error: 'Business mailboxes are not connected (BUSINESS_MAILBOX_PASSWORDS missing)' }, 409);
           if (!s.warmup_start && patch.warmup_start === undefined) patch.warmup_start = new Date().toISOString().slice(0, 10);
         }
         patch.updated_at = new Date().toISOString();
@@ -189,13 +194,13 @@ Deno.serve(async (req) => {
 
       // ── Tickets ────────────────────────────────────────────────────────
       case 'ticket_reply': {
-        if (!zoho) return j({ error: 'Zoho Mail is not connected (secrets missing)' }, 409);
+        if (!configured) return j({ error: 'Business mailboxes are not connected (BUSINESS_MAILBOX_PASSWORDS missing)' }, 409);
         const ticketId = String(body.ticket_id ?? '');
         const text = String(body.body ?? '').trim();
         const statusAfter = ['pending', 'resolved', 'open'].includes(body.status_after) ? body.status_after : 'pending';
         if (!ticketId || text.length < 2) return j({ error: 'ticket_id and body required' }, 400);
         const mailboxes = await loadMailboxes(svc);
-        const res = await replyToTicket(svc, zoho, mailboxes, ticketId, text, userId!, statusAfter);
+        const res = await replyToTicket(ctx, mailboxes, ticketId, text, userId!, statusAfter);
         return j({ success: true, ...res });
       }
 

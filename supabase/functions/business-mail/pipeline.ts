@@ -1,15 +1,14 @@
-// Business-mail pipeline: mailbox sync, routing into tickets / acquisition,
-// and the paced outreach sender. HTTP concerns live in index.ts.
+// Business-mail pipeline: mailbox sync (IMAP), routing into tickets /
+// acquisition, and the paced outreach sender (SMTP). HTTP concerns live in
+// index.ts.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import {
   bouncedRecipient,
   classifyInbound,
   companyFromEmail,
   extractAddresses,
-  htmlToText,
   normalizeEmail,
   normalizeSubject,
-  parseHeaders,
   resolveMailbox,
   ticketNumberFromSubject,
   withTicketTag,
@@ -19,15 +18,23 @@ import {
 } from '../_shared/mail/routing.ts';
 import { canSendNow, localDayStartUtc, type MailSettings, type PolicyDecision } from '../_shared/mail/send-policy.ts';
 import { checkDomainDns, type DnsHealth } from '../_shared/mail/dns-health.ts';
-import { accountForAddress, type ZohoAccount, type ZohoListedMessage, ZohoMailClient } from '../_shared/mail/zoho-mail.ts';
+import { findSentFolder, imapDate } from '../_shared/mail/imap.ts';
+import {
+  parseMail,
+  sendFromMailbox,
+  withImap,
+  type MailboxCredential,
+  type MailServerConfig,
+  type ParsedMail,
+} from '../_shared/mail/mailbox-account.ts';
 
 // deno-lint-ignore no-explicit-any
 export type Svc = SupabaseClient<any, 'public', any>;
 
 export const DOMAIN = 'aiwmcquantis.com';
-const INITIAL_LOOKBACK_MS = 14 * 86_400_000;
-const OVERLAP_MS = 10 * 60_000;
-const MAX_PER_FOLDER = 150;
+const INITIAL_LOOKBACK_DAYS = 14;
+const MAX_PER_FOLDER = 100;
+const FETCH_CHUNK = 20;
 const BODY_LIMIT = 20_000;
 
 export interface FullSettings extends MailSettings {
@@ -39,6 +46,12 @@ export interface FullSettings extends MailSettings {
 export interface MailboxRow extends Mailbox {
   display_name: string;
   can_send: boolean;
+}
+
+export interface MailContext {
+  svc: Svc;
+  server: MailServerConfig;
+  creds: Map<string, MailboxCredential>;
 }
 
 export async function loadSettings(svc: Svc): Promise<FullSettings> {
@@ -102,7 +115,7 @@ async function applyOptOutOrBounce(svc: Svc, p: ProspectLite, kind: 'unsubscribe
     .update({ send_requested_at: null, send_last_error: `held: prospect ${kind === 'bounce' ? 'bounced' : 'opted out'}` })
     .eq('prospect_id', p.id)
     .eq('status', 'approved');
-  await moveStage(svc, { ...p }, 'lost', `${kind} detected at ${source}`);
+  await moveStage(svc, p, 'lost', `${kind} detected at ${source}`);
 }
 
 async function prospectsWithSends(svc: Svc, ids: string[]): Promise<Set<string>> {
@@ -121,31 +134,31 @@ interface TicketRow {
   status: string;
   subject: string;
   requester_email: string;
-  provider_thread_id: string | null;
   acked_at: string | null;
 }
 
-async function findTicket(svc: Svc, m: { subject: string; threadId: string | null; inReplyTo: string | null; references: string; from: string }): Promise<TicketRow | null> {
+function refIds(inReplyTo: string | null, references: string): string[] {
+  return Array.from(new Set(`${inReplyTo ?? ''} ${references}`.match(/<[^>\s]+>/g) ?? []));
+}
+
+async function findTicket(svc: Svc, m: { subject: string; inReplyTo: string | null; references: string; counterpart: string }): Promise<TicketRow | null> {
   const num = ticketNumberFromSubject(m.subject);
   if (num) {
     const { data } = await svc.from('support_tickets').select('*').eq('ticket_number', num).maybeSingle();
     if (data) return data as TicketRow;
   }
-  if (m.threadId) {
-    const { data } = await svc.from('support_tickets').select('*').eq('provider_thread_id', m.threadId).order('created_at', { ascending: false }).limit(1).maybeSingle();
-    if (data) return data as TicketRow;
-  }
-  const refIds = Array.from(new Set(`${m.inReplyTo ?? ''} ${m.references}`.match(/<[^>]+>/g) ?? []));
-  if (refIds.length) {
-    const { data } = await svc.from('mail_messages').select('ticket_id').in('internet_message_id', refIds).not('ticket_id', 'is', null).limit(1).maybeSingle();
+  const refs = refIds(m.inReplyTo, m.references);
+  if (refs.length) {
+    const { data } = await svc.from('mail_messages').select('ticket_id').in('internet_message_id', refs).not('ticket_id', 'is', null).limit(1).maybeSingle();
     const tid = (data as { ticket_id?: string } | null)?.ticket_id;
     if (tid) {
       const { data: t } = await svc.from('support_tickets').select('*').eq('id', tid).maybeSingle();
       if (t) return t as TicketRow;
     }
   }
+  if (!m.counterpart) return null;
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
-  const { data: recent } = await svc.from('support_tickets').select('*').eq('requester_email', m.from).gte('updated_at', since).order('updated_at', { ascending: false }).limit(10);
+  const { data: recent } = await svc.from('support_tickets').select('*').eq('requester_email', m.counterpart).gte('updated_at', since).order('updated_at', { ascending: false }).limit(10);
   const want = normalizeSubject(m.subject);
   return ((recent ?? []) as TicketRow[]).find((t) => normalizeSubject(t.subject) === want) ?? null;
 }
@@ -160,7 +173,7 @@ function priorityFor(queue: 'support' | 'legal', subject: string, body: string):
 // ── Sync ────────────────────────────────────────────────────────────────
 
 export interface SyncSummary {
-  accounts: number;
+  mailboxes: number;
   imported: number;
   tickets_created: number;
   tickets_updated: number;
@@ -172,98 +185,63 @@ export interface SyncSummary {
   errors: string[];
 }
 
-function emptySummary(): SyncSummary {
-  return { accounts: 0, imported: 0, tickets_created: 0, tickets_updated: 0, prospect_replies: 0, opt_outs: 0, bounces: 0, inbound_leads: 0, manual_sends_evidenced: 0, errors: [] };
+interface FetchedMail {
+  key: string; // `${uidValidity}:${uid}`
+  folder: string;
+  receivedAt: Date;
+  mail: ParsedMail;
 }
 
-export async function syncMailboxes(svc: Svc, zoho: ZohoMailClient, settings: FullSettings, mailboxes: MailboxRow[]): Promise<SyncSummary> {
-  const summary = emptySummary();
-  const accounts = await zoho.accounts();
-  summary.accounts = accounts.length;
+export async function syncMailboxes(ctx: MailContext, settings: FullSettings, mailboxes: MailboxRow[]): Promise<SyncSummary> {
+  const summary: SyncSummary = { mailboxes: 0, imported: 0, tickets_created: 0, tickets_updated: 0, prospect_replies: 0, opt_outs: 0, bounces: 0, inbound_leads: 0, manual_sends_evidenced: 0, errors: [] };
   const ourAddresses = new Set(mailboxes.map((m) => m.address));
 
-  for (const account of accounts) {
-    let folders;
+  for (const box of mailboxes.filter((m) => m.active)) {
+    const cred = ctx.creds.get(box.address);
+    if (!cred) continue;
+    summary.mailboxes++;
+    const started = new Date().toISOString();
     try {
-      folders = await zoho.folders(account.accountId);
+      await withImap(ctx.server, cred, async (imap) => {
+        const sentFolder = findSentFolder(await imap.list());
+        for (const [kind, folder] of [['inbox', 'INBOX'], ['sent', sentFolder]] as const) {
+          if (!folder) continue;
+          const { data: state } = await ctx.svc.from('mail_sync_state').select('uid_validity, last_uid').eq('account_id', box.address).eq('folder', kind).maybeSingle();
+          const st = state as { uid_validity: number | null; last_uid: number | null } | null;
+          const sel = await imap.select(folder);
+          const sameValidity = st?.uid_validity && Number(st.uid_validity) === sel.uidValidity;
+          const lastUid = sameValidity ? Number(st?.last_uid ?? 0) : 0;
+          let uids = lastUid > 0
+            ? (await imap.uidSearch(`UID ${lastUid + 1}:*`)).filter((u) => u > lastUid)
+            : await imap.uidSearch(`SINCE ${imapDate(new Date(Date.now() - INITIAL_LOOKBACK_DAYS * 86_400_000))}`);
+          uids = uids.slice(-MAX_PER_FOLDER);
+          let maxUid = lastUid;
+          for (let i = 0; i < uids.length; i += FETCH_CHUNK) {
+            const batch = await imap.fetch(uids.slice(i, i + FETCH_CHUNK));
+            for (const f of batch) {
+              maxUid = Math.max(maxUid, f.uid);
+              const mail = await parseMail(f.raw);
+              mail.text = mail.text.slice(0, BODY_LIMIT);
+              const item: FetchedMail = { key: `${sel.uidValidity}:${f.uid}`, folder, receivedAt: f.internalDate ?? mail.date ?? new Date(), mail };
+              const stored = kind === 'inbox'
+                ? await processInbound(ctx.svc, box, item, settings, mailboxes, ourAddresses, summary, ctx)
+                : await processSent(ctx.svc, box, item, ourAddresses, summary);
+              if (stored) summary.imported++;
+            }
+          }
+          await ctx.svc.from('mail_sync_state').upsert({
+            account_id: box.address, folder: kind, uid_validity: sel.uidValidity, last_uid: maxUid,
+            last_run_at: started, last_ok_at: started, last_error: null,
+          }, { onConflict: 'account_id,folder' });
+        }
+      });
     } catch (e) {
-      summary.errors.push(`folders ${account.primaryEmail}: ${(e as Error).message}`);
-      continue;
-    }
-    const inbox = folders.find((f) => /^inbox$/i.test(f.folderType) || /^inbox$/i.test(f.folderName));
-    const sent = folders.find((f) => /^sent$/i.test(f.folderType) || /^sent$/i.test(f.folderName));
-    for (const [kind, folder] of [['inbox', inbox], ['sent', sent]] as const) {
-      if (!folder) continue;
-      const started = new Date().toISOString();
-      try {
-        const n = await syncFolder(svc, zoho, account, folder.folderId, kind, settings, mailboxes, ourAddresses, summary);
-        await svc.from('mail_sync_state').upsert({
-          account_id: account.accountId, folder: kind, last_run_at: started, last_ok_at: started, last_error: null,
-          ...(n.cursor ? { last_received_at: n.cursor } : {}),
-        }, { onConflict: 'account_id,folder' });
-      } catch (e) {
-        const msg = (e as Error).message;
-        summary.errors.push(`${kind} ${account.primaryEmail}: ${msg}`);
-        await svc.from('mail_sync_state').upsert({ account_id: account.accountId, folder: kind, last_run_at: started, last_error: msg.slice(0, 500) }, { onConflict: 'account_id,folder' });
-      }
+      const msg = (e as Error).message;
+      summary.errors.push(`${box.address}: ${msg}`);
+      await ctx.svc.from('mail_sync_state').upsert({ account_id: box.address, folder: 'inbox', last_run_at: started, last_error: msg.slice(0, 500) }, { onConflict: 'account_id,folder' });
     }
   }
   return summary;
-}
-
-async function syncFolder(
-  svc: Svc,
-  zoho: ZohoMailClient,
-  account: ZohoAccount,
-  folderId: string,
-  kind: 'inbox' | 'sent',
-  settings: FullSettings,
-  mailboxes: MailboxRow[],
-  ourAddresses: Set<string>,
-  summary: SyncSummary,
-): Promise<{ imported: number; cursor: string | null }> {
-  const { data: state } = await svc.from('mail_sync_state').select('last_received_at').eq('account_id', account.accountId).eq('folder', kind).maybeSingle();
-  const cursorMs = (state as { last_received_at?: string } | null)?.last_received_at
-    ? Date.parse((state as { last_received_at: string }).last_received_at) - OVERLAP_MS
-    : Date.now() - INITIAL_LOOKBACK_MS;
-
-  const fresh: ZohoListedMessage[] = [];
-  for (let start = 1; fresh.length < MAX_PER_FOLDER; start += 50) {
-    const page = await zoho.listMessages(account.accountId, folderId, start, 50);
-    const newer = page.filter((m) => m.receivedTime > cursorMs);
-    fresh.push(...newer);
-    if (page.length < 50 || newer.length < page.length) break;
-  }
-  if (fresh.length === 0) return { imported: 0, cursor: null };
-
-  const ids = fresh.map((m) => m.messageId);
-  const { data: existing } = await svc.from('mail_messages').select('provider_message_id').eq('provider_account_id', account.accountId).in('provider_message_id', ids);
-  const seen = new Set(((existing ?? []) as Array<{ provider_message_id: string }>).map((r) => r.provider_message_id));
-
-  let imported = 0;
-  let newest = 0;
-  for (const m of fresh.sort((a, b) => a.receivedTime - b.receivedTime)) {
-    newest = Math.max(newest, m.receivedTime);
-    if (seen.has(m.messageId)) continue;
-    const stored = kind === 'inbox'
-      ? await processInbound(svc, zoho, account, m, settings, mailboxes, ourAddresses, summary)
-      : await processSent(svc, zoho, account, m, ourAddresses, summary);
-    if (stored) imported++;
-  }
-  summary.imported += imported;
-  return { imported, cursor: newest ? new Date(newest).toISOString() : null };
-}
-
-async function readMessage(zoho: ZohoMailClient, account: ZohoAccount, m: ZohoListedMessage) {
-  let headers: Record<string, string> = {};
-  try {
-    headers = parseHeaders(await zoho.headers(account.accountId, m.folderId, m.messageId));
-  } catch { /* headers are an enhancement; routing falls back to To/Cc */ }
-  let body = m.summary;
-  try {
-    body = htmlToText(await zoho.content(account.accountId, m.folderId, m.messageId)) || m.summary;
-  } catch { /* keep summary */ }
-  return { headers, body: body.slice(0, BODY_LIMIT) };
 }
 
 async function insertMessage(svc: Svc, row: Record<string, unknown>): Promise<string | null> {
@@ -275,73 +253,64 @@ async function insertMessage(svc: Svc, row: Record<string, unknown>): Promise<st
   return (data as { id: string }).id;
 }
 
+function baseRow(box: MailboxRow, item: FetchedMail, direction: 'inbound' | 'outbound') {
+  const m = item.mail;
+  return {
+    provider: 'imap',
+    provider_account_id: box.address,
+    provider_message_id: item.key,
+    provider_folder_id: item.folder,
+    internet_message_id: m.messageId,
+    in_reply_to: m.inReplyTo,
+    direction,
+    from_address: m.from || box.address,
+    from_name: m.fromName,
+    to_addresses: m.to,
+    cc_addresses: m.cc,
+    subject: m.subject,
+    body_text: m.text,
+    message_at: item.receivedAt.toISOString(),
+  };
+}
+
 async function processInbound(
   svc: Svc,
-  zoho: ZohoMailClient,
-  account: ZohoAccount,
-  m: ZohoListedMessage,
+  box: MailboxRow,
+  item: FetchedMail,
   settings: FullSettings,
   mailboxes: MailboxRow[],
   ourAddresses: Set<string>,
   summary: SyncSummary,
+  ctx: MailContext,
 ): Promise<boolean> {
-  const from = normalizeEmail(m.fromAddress);
-  if (!from || ourAddresses.has(from)) return false; // our own copies / internal loops
+  const m = item.mail;
+  const from = normalizeEmail(m.from);
+  if (!from || ourAddresses.has(from)) return false; // internal copies between our own mailboxes
 
-  const to = extractAddresses(m.toAddress);
-  const cc = extractAddresses(m.ccAddress);
-  // Cheap pre-check before fetching the body: is this business mail at all?
-  const listedMailbox = resolveMailbox({ to, cc, headers: {} }, mailboxes);
-  const looksLikeBounce = /^(mailer-daemon|postmaster|mail-daemon)@/i.test(from);
-  const fromProspects = listedMailbox || looksLikeBounce ? [] : await prospectsByEmail(svc, from);
-  if (!listedMailbox && !looksLikeBounce && fromProspects.length === 0) return false; // personal mail: never stored
-
-  const { headers, body } = await readMessage(zoho, account, m);
-  const msg: InboundMessage = { from, fromName: m.sender, to, cc, subject: m.subject, bodyText: body, headers };
-  const mailbox = resolveMailbox(msg, mailboxes) ?? listedMailbox;
+  const msg: InboundMessage = { from, fromName: m.fromName, to: m.to, cc: m.cc, subject: m.subject, bodyText: m.text, headers: m.headers };
+  // The mailbox that received it; an alias in To/Delivered-To can refine it.
+  const mailbox = resolveMailbox(msg, mailboxes) ?? box;
   const cls: Classification = classifyInbound(msg);
+  const base = { ...baseRow(box, item, 'inbound'), mailbox_address: mailbox.address, classification: cls };
 
-  const base = {
-    provider: 'zoho',
-    provider_account_id: account.accountId,
-    provider_message_id: m.messageId,
-    provider_folder_id: m.folderId,
-    provider_thread_id: m.threadId,
-    internet_message_id: headers['message-id'] ?? null,
-    in_reply_to: headers['in-reply-to'] ?? null,
-    direction: 'inbound',
-    mailbox_address: mailbox?.address ?? null,
-    from_address: from,
-    from_name: m.sender,
-    to_addresses: to,
-    cc_addresses: cc,
-    subject: m.subject,
-    body_text: body,
-    message_at: new Date(m.receivedTime || Date.now()).toISOString(),
-    classification: cls,
-  };
-
-  // ── Bounces: always acquisition-side evidence, whatever mailbox got them.
+  // ── Bounces: acquisition evidence whatever mailbox received them.
   if (cls === 'bounce') {
     const rcpt = bouncedRecipient(msg, DOMAIN);
     const matches = rcpt ? await prospectsByEmail(svc, rcpt) : [];
-    if (!mailbox && matches.length === 0) return false;
     const id = await insertMessage(svc, { ...base, route: matches.length ? 'acquisition' : 'system', bounced_recipient: rcpt, prospect_id: matches[0]?.id ?? null, match_status: matches.length === 1 ? 'matched' : matches.length > 1 ? 'ambiguous' : 'none' });
     if (id && rcpt && matches.length) {
-      await suppressEmail(svc, rcpt, 'hard_bounced', `bounce ${m.messageId}`, id);
-      for (const p of matches) await applyOptOutOrBounce(svc, p, 'bounce', mailbox?.address ?? account.primaryEmail);
+      await suppressEmail(svc, rcpt, 'hard_bounced', `bounce ${box.address} ${item.key}`, id);
+      for (const p of matches) await applyOptOutOrBounce(svc, p, 'bounce', mailbox.address);
       summary.bounces++;
     }
     return !!id;
   }
 
   // ── Ticketing mailboxes (support@, legal@, privacy@, security@).
-  if (mailbox?.pipeline === 'ticketing') {
-    if (cls === 'system' || cls === 'auto_reply') {
-      return !!(await insertMessage(svc, { ...base, route: 'system' }));
-    }
+  if (mailbox.pipeline === 'ticketing') {
+    if (cls === 'system' || cls === 'auto_reply') return !!(await insertMessage(svc, { ...base, route: 'system' }));
     const queue = mailbox.queue === 'legal' ? 'legal' : 'support';
-    let ticket = await findTicket(svc, { subject: m.subject, threadId: m.threadId, inReplyTo: base.in_reply_to, references: headers['references'] ?? '', from });
+    let ticket = await findTicket(svc, { subject: m.subject, inReplyTo: m.inReplyTo, references: m.references, counterpart: from });
     const now = new Date().toISOString();
     let created = false;
     if (!ticket) {
@@ -350,9 +319,8 @@ async function processInbound(
         mailbox_address: mailbox.address,
         subject: m.subject || '(no subject)',
         requester_email: from,
-        requester_name: m.sender,
-        provider_thread_id: m.threadId,
-        priority: priorityFor(queue, m.subject, body),
+        requester_name: m.fromName,
+        priority: priorityFor(queue, m.subject, m.text),
         last_inbound_at: base.message_at,
       }).select('*').single();
       if (error) throw new Error(`support_tickets insert: ${error.message}`);
@@ -364,19 +332,18 @@ async function processInbound(
         status: ['resolved', 'closed', 'pending'].includes(ticket.status) ? 'open' : ticket.status,
         last_inbound_at: base.message_at,
         updated_at: now,
-        provider_thread_id: ticket.provider_thread_id ?? m.threadId,
       }).eq('id', ticket.id);
       summary.tickets_updated++;
     }
     const id = await insertMessage(svc, { ...base, route: 'ticket', ticket_id: ticket.id, match_status: 'matched' });
     if (created && id && settings.support_auto_ack && queue === 'support' && cls === 'human') {
-      await sendTicketAck(svc, zoho, account, ticket, m, mailboxes).catch(() => undefined);
+      await sendTicketAck(ctx, ticket, m.messageId, mailboxes).catch(() => undefined);
     }
     return !!id;
   }
 
-  // ── Acquisition (hello@, market@) or a reply straight from a prospect.
-  const prospects = fromProspects.length ? fromProspects : await prospectsByEmail(svc, from);
+  // ── Acquisition mailboxes (hello@, market@).
+  const prospects = await prospectsByEmail(svc, from);
   if (prospects.length > 0) {
     const withSends = await prospectsWithSends(svc, prospects.map((p) => p.id));
     const contacted = prospects.filter((p) => withSends.has(p.id));
@@ -388,10 +355,9 @@ async function processInbound(
       match_status: target ? 'matched' : 'ambiguous',
     });
     if (!id || !target) return !!id;
-    const where = mailbox?.address ?? account.primaryEmail;
     if (cls === 'unsubscribe') {
-      await suppressEmail(svc, from, 'unsubscribed', `reply ${m.messageId}`, id);
-      await applyOptOutOrBounce(svc, target, 'unsubscribe', where);
+      await suppressEmail(svc, from, 'unsubscribed', `reply ${box.address} ${item.key}`, id);
+      await applyOptOutOrBounce(svc, target, 'unsubscribe', mailbox.address);
       summary.opt_outs++;
     } else if (cls === 'human') {
       // A reply stops the sequence: nothing queued for this prospect goes out.
@@ -400,22 +366,19 @@ async function processInbound(
         .eq('prospect_id', target.id)
         .eq('status', 'approved');
       if (['discovered', 'contacted'].includes(target.stage)) {
-        await moveStage(svc, target, 'replied', `reply received at ${where} — classify it in Commercial Ops`);
+        await moveStage(svc, target, 'replied', `reply received at ${mailbox.address} — classify it in Commercial Ops`);
       }
       summary.prospect_replies++;
     }
     return true;
   }
 
-  if (!mailbox) return false;
-  if (cls !== 'human') {
-    return !!(await insertMessage(svc, { ...base, route: 'system' }));
-  }
+  if (cls !== 'human') return !!(await insertMessage(svc, { ...base, route: 'system' }));
 
-  // Unknown human sender to hello@/market@ → inbound lead.
+  // Unknown human sender → inbound lead.
   const { data: prospect, error } = await svc.from('commercial_prospects').insert({
-    company_name: companyFromEmail(from, m.sender),
-    contact_name: m.sender,
+    company_name: companyFromEmail(from, m.fromName),
+    contact_name: m.fromName,
     contact_channel: from,
     segment: 'inbound',
     stage: 'replied',
@@ -428,46 +391,18 @@ async function processInbound(
   return !!(await insertMessage(svc, { ...base, route: 'acquisition', prospect_id: pid, match_status: 'new_inbound' }));
 }
 
-async function processSent(
-  svc: Svc,
-  zoho: ZohoMailClient,
-  account: ZohoAccount,
-  m: ZohoListedMessage,
-  ourAddresses: Set<string>,
-  summary: SyncSummary,
-): Promise<boolean> {
-  const from = normalizeEmail(m.fromAddress);
-  if (!ourAddresses.has(from)) return false; // founder's personal sent mail is never stored
-  const to = extractAddresses(m.toAddress);
-  const cc = extractAddresses(m.ccAddress);
-
-  const { headers, body } = await readMessage(zoho, account, m);
-  const internetId = headers['message-id'] ?? null;
-  if (internetId) {
-    const { data: dup } = await svc.from('mail_messages').select('id').eq('internet_message_id', internetId).limit(1).maybeSingle();
+async function processSent(svc: Svc, box: MailboxRow, item: FetchedMail, ourAddresses: Set<string>, summary: SyncSummary): Promise<boolean> {
+  const m = item.mail;
+  if (m.messageId) {
+    const { data: dup } = await svc.from('mail_messages').select('id').eq('internet_message_id', m.messageId).limit(1).maybeSingle();
     if (dup) return false; // sent through Quantis, already recorded
   }
-  const base = {
-    provider: 'zoho',
-    provider_account_id: account.accountId,
-    provider_message_id: m.messageId,
-    provider_folder_id: m.folderId,
-    provider_thread_id: m.threadId,
-    internet_message_id: internetId,
-    in_reply_to: headers['in-reply-to'] ?? null,
-    direction: 'outbound',
-    mailbox_address: from,
-    from_address: from,
-    to_addresses: to,
-    cc_addresses: cc,
-    subject: m.subject,
-    body_text: body,
-    message_at: new Date(m.receivedTime || Date.now()).toISOString(),
-    classification: 'outbound',
-  };
+  const to = m.to.filter((a) => !ourAddresses.has(a));
+  if (to.length === 0) return false;
+  const base = { ...baseRow(box, item, 'outbound'), mailbox_address: box.address, classification: 'outbound' };
 
-  // A ticket reply written directly in Zoho Mail.
-  const ticket = await findTicket(svc, { subject: m.subject, threadId: m.threadId, inReplyTo: base.in_reply_to, references: headers['references'] ?? '', from: to[0] ?? '' });
+  // A ticket reply written directly in Outlook.
+  const ticket = await findTicket(svc, { subject: m.subject, inReplyTo: m.inReplyTo, references: m.references, counterpart: to[0] });
   if (ticket && to.includes(ticket.requester_email)) {
     const id = await insertMessage(svc, { ...base, route: 'ticket', ticket_id: ticket.id, match_status: 'matched' });
     if (id) {
@@ -480,7 +415,8 @@ async function processSent(
     return !!id;
   }
 
-  // Outreach sent by hand from Zoho: match an approved followup → evidence.
+  // Outreach sent by hand from Outlook ("Open in mail"): match an approved
+  // followup by recipient + subject → provider evidence, marked sent.
   for (const rcpt of to) {
     const prospects = await prospectsByEmail(svc, rcpt);
     if (prospects.length === 0) continue;
@@ -495,11 +431,11 @@ async function processSent(
     if (id && hit) {
       const { error } = await svc.rpc('record_commercial_followup_provider_send', {
         _followup_id: hit.id,
-        _sent_via: 'zoho_sent_folder',
-        _sent_from: from,
+        _sent_via: 'mailbox_sent_folder',
+        _sent_from: box.address,
         _sent_to: rcpt,
-        _provider_message_id: m.messageId,
-        _internet_message_id: internetId,
+        _provider_message_id: item.key,
+        _internet_message_id: m.messageId,
         _sent_at: base.message_at,
       });
       if (!error) summary.manual_sends_evidenced++;
@@ -509,77 +445,77 @@ async function processSent(
   return false;
 }
 
-// ── Ticket replies ─────────────────────────────────────────────────────
+// ── Sending helpers ─────────────────────────────────────────────────────
 
-function replyFromFor(ticket: TicketRow, mailboxes: MailboxRow[]): string {
-  const own = mailboxes.find((mb) => mb.address === ticket.mailbox_address && mb.can_send);
-  if (own) return own.address;
-  const fallback = mailboxes.find((mb) => mb.pipeline === 'ticketing' && mb.queue === ticket.queue && mb.can_send);
-  return fallback?.address ?? `support@${DOMAIN}`;
+function sendingMailbox(ctx: MailContext, mailboxes: MailboxRow[], preferred: string, queue?: 'support' | 'legal'): { box: MailboxRow; cred: MailboxCredential } | null {
+  const candidates = [
+    mailboxes.find((mb) => mb.address === preferred),
+    ...(queue ? mailboxes.filter((mb) => mb.pipeline === 'ticketing' && mb.queue === queue) : []),
+  ].filter(Boolean) as MailboxRow[];
+  for (const box of candidates) {
+    const cred = ctx.creds.get(box.address);
+    if (box.can_send && cred) return { box, cred };
+  }
+  return null;
 }
 
-async function sendTicketAck(svc: Svc, zoho: ZohoMailClient, account: ZohoAccount, ticket: TicketRow, original: ZohoListedMessage, mailboxes: MailboxRow[]) {
-  const from = replyFromFor(ticket, mailboxes);
+async function sendTicketAck(ctx: MailContext, ticket: TicketRow, inReplyTo: string | null, mailboxes: MailboxRow[]) {
+  const sender = sendingMailbox(ctx, mailboxes, ticket.mailbox_address, ticket.queue);
+  if (!sender) return;
   const text = `Hi,\n\nThanks for writing to AIWMC Quantis. We received your message and opened ticket #${ticket.ticket_number}. A person reads every ticket; we usually reply within one business day.\n\nReply to this email to add anything to the same ticket.\n\nAIWMC Quantis Support`;
   const subject = withTicketTag(ticket.subject, ticket.ticket_number);
-  const res = await zoho.reply(account.accountId, original.messageId, { from, to: ticket.requester_email, subject, text });
-  await insertMessage(svc, {
-    provider: 'zoho', provider_account_id: account.accountId, provider_message_id: res.messageId, internet_message_id: res.mailId,
-    direction: 'outbound', mailbox_address: from, from_address: from, to_addresses: [ticket.requester_email], subject, body_text: text,
+  const res = await sendFromMailbox(ctx.server, sender.cred, { fromName: sender.box.display_name, to: ticket.requester_email, subject, text, inReplyTo, references: inReplyTo ? [inReplyTo] : [] });
+  await insertMessage(ctx.svc, {
+    provider: 'imap', provider_account_id: sender.box.address, internet_message_id: res.messageId,
+    direction: 'outbound', mailbox_address: sender.box.address, from_address: sender.box.address, to_addresses: [ticket.requester_email], subject, body_text: text,
     message_at: new Date().toISOString(), route: 'ticket', classification: 'outbound', ticket_id: ticket.id, match_status: 'matched',
   });
-  await svc.from('support_tickets').update({ acked_at: new Date().toISOString() }).eq('id', ticket.id);
-  await svc.from('support_ticket_events').insert({ ticket_id: ticket.id, kind: 'ack', body: 'automatic acknowledgement sent' });
+  await ctx.svc.from('support_tickets').update({ acked_at: new Date().toISOString() }).eq('id', ticket.id);
+  await ctx.svc.from('support_ticket_events').insert({ ticket_id: ticket.id, kind: 'ack', body: 'automatic acknowledgement sent' });
 }
 
 export async function replyToTicket(
-  svc: Svc,
-  zoho: ZohoMailClient,
+  ctx: MailContext,
   mailboxes: MailboxRow[],
   ticketId: string,
   text: string,
   userId: string,
   statusAfter: 'pending' | 'resolved' | 'open' = 'pending',
 ) {
-  const { data: t, error } = await svc.from('support_tickets').select('*').eq('id', ticketId).single();
+  const { data: t, error } = await ctx.svc.from('support_tickets').select('*').eq('id', ticketId).single();
   if (error || !t) throw new Error('ticket not found');
   const ticket = t as TicketRow;
-  const from = replyFromFor(ticket, mailboxes);
-  const accounts = await zoho.accounts();
-  const account = accountForAddress(accounts, from);
-  if (!account) throw new Error(`no Zoho account can send as ${from} — add it as an alias/From address in Zoho Mail`);
+  const sender = sendingMailbox(ctx, mailboxes, ticket.mailbox_address, ticket.queue);
+  if (!sender) throw new Error(`no connected mailbox can reply for the ${ticket.queue} queue — add its password to BUSINESS_MAILBOX_PASSWORDS`);
 
-  const { data: lastIn } = await svc.from('mail_messages')
-    .select('provider_message_id, provider_account_id')
-    .eq('ticket_id', ticket.id).eq('direction', 'inbound')
-    .order('message_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: thread } = await ctx.svc.from('mail_messages')
+    .select('internet_message_id')
+    .eq('ticket_id', ticket.id)
+    .not('internet_message_id', 'is', null)
+    .order('message_at', { ascending: true });
+  const refs = ((thread ?? []) as Array<{ internet_message_id: string }>).map((r) => r.internet_message_id);
   const subject = withTicketTag(ticket.subject, ticket.ticket_number);
   const signature = ticket.queue === 'legal' ? 'AIWMC Quantis Legal' : 'AIWMC Quantis Support';
   const body = `${text.trim()}\n\n${signature}\nTicket #${ticket.ticket_number}`;
-  const payload = { from, to: ticket.requester_email, subject, text: body };
-  const li = lastIn as { provider_message_id?: string; provider_account_id?: string } | null;
-
-  let res;
-  if (li?.provider_message_id && li.provider_account_id === account.accountId) {
-    try {
-      res = await zoho.reply(account.accountId, li.provider_message_id, payload);
-    } catch {
-      res = await zoho.send(account.accountId, payload);
-    }
-  } else {
-    res = await zoho.send(account.accountId, payload);
-  }
+  const res = await sendFromMailbox(ctx.server, sender.cred, {
+    fromName: sender.box.display_name,
+    to: ticket.requester_email,
+    subject,
+    text: body,
+    inReplyTo: refs[refs.length - 1] ?? null,
+    references: refs.slice(-10),
+  });
   const now = new Date().toISOString();
-  await insertMessage(svc, {
-    provider: 'zoho', provider_account_id: account.accountId, provider_message_id: res.messageId, internet_message_id: res.mailId,
-    direction: 'outbound', mailbox_address: from, from_address: from, to_addresses: [ticket.requester_email], subject, body_text: body,
+  await insertMessage(ctx.svc, {
+    provider: 'imap', provider_account_id: sender.box.address, internet_message_id: res.messageId,
+    direction: 'outbound', mailbox_address: sender.box.address, from_address: sender.box.address, to_addresses: [ticket.requester_email], subject, body_text: body,
     message_at: now, route: 'ticket', classification: 'outbound', ticket_id: ticket.id, match_status: 'matched', sent_by_user_id: userId,
   });
-  await svc.from('support_tickets').update({ status: statusAfter, last_outbound_at: now, updated_at: now }).eq('id', ticket.id);
+  await ctx.svc.from('support_tickets').update({ status: statusAfter, last_outbound_at: now, updated_at: now }).eq('id', ticket.id);
   if (statusAfter !== ticket.status) {
-    await svc.from('support_ticket_events').insert({ ticket_id: ticket.id, kind: 'status', body: `${ticket.status} → ${statusAfter}`, actor_user_id: userId });
+    await ctx.svc.from('support_ticket_events').insert({ ticket_id: ticket.id, kind: 'status', body: `${ticket.status} → ${statusAfter}`, actor_user_id: userId });
   }
-  return { message_id: res.messageId, from };
+  return { message_id: res.messageId, from: sender.box.address, filed_in_sent: res.filedInSent };
 }
 
 // ── Paced outreach sender ───────────────────────────────────────────────
@@ -587,7 +523,7 @@ export async function replyToTicket(
 export interface SendTickResult {
   decision: PolicyDecision;
   dns: DnsHealth | null;
-  sent: null | { followup_id: string; to: string; from: string; provider_message_id: string | null };
+  sent: null | { followup_id: string; to: string; from: string; message_id: string };
   held: Array<{ followup_id: string; reason: string }>;
   queued: number;
   sent_today: number;
@@ -596,8 +532,8 @@ export interface SendTickResult {
 export async function outreachCounters(svc: Svc, settings: FullSettings, now = new Date()) {
   const dayStart = localDayStartUtc(now, settings.send_timezone).toISOString();
   const [{ count: sentToday }, { data: last }, { count: queued }] = await Promise.all([
-    svc.from('commercial_followups').select('id', { count: 'exact', head: true }).eq('sent_via', 'zoho_api').gte('sent_at', dayStart),
-    svc.from('commercial_followups').select('sent_at').eq('sent_via', 'zoho_api').order('sent_at', { ascending: false }).limit(1).maybeSingle(),
+    svc.from('commercial_followups').select('id', { count: 'exact', head: true }).eq('sent_via', 'mailbox_smtp').gte('sent_at', dayStart),
+    svc.from('commercial_followups').select('sent_at').eq('sent_via', 'mailbox_smtp').order('sent_at', { ascending: false }).limit(1).maybeSingle(),
     svc.from('commercial_followups').select('id', { count: 'exact', head: true }).eq('status', 'approved').not('send_requested_at', 'is', null),
   ]);
   return {
@@ -626,7 +562,7 @@ async function hold(svc: Svc, f: QueuedFollowup, reason: string, held: SendTickR
 }
 
 /** Deterministic pre-send gate, re-run immediately before every send. */
-async function preSendGate(svc: Svc, f: QueuedFollowup): Promise<{ ok: true; to: string; prospect: ProspectLite } | { ok: false; reason: string }> {
+async function preSendGate(svc: Svc, f: QueuedFollowup): Promise<{ ok: true; to: string } | { ok: false; reason: string }> {
   const { data: p } = await svc.from('commercial_prospects')
     .select('id, stage, segment, campaign_id, batch_id, contact_channel, suppression_status')
     .eq('id', f.prospect_id).maybeSingle();
@@ -644,7 +580,6 @@ async function preSendGate(svc: Svc, f: QueuedFollowup): Promise<{ ok: true; to:
 
   if (f.kind === 'first_touch') {
     if (prospect.stage !== 'discovered') return { ok: false, reason: `first touch but prospect is already ${prospect.stage}` };
-    // Same address on another prospect contacted in the last 30 days (duplicate rows).
     const others = (await prospectsByEmail(svc, to)).filter((o) => o.id !== prospect.id).map((o) => o.id);
     if (others.length) {
       const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
@@ -657,10 +592,19 @@ async function preSendGate(svc: Svc, f: QueuedFollowup): Promise<{ ok: true; to:
       .eq('prospect_id', prospect.id).eq('status', 'sent').eq('sequence_step', f.sequence_step ?? -1);
     if ((step ?? 0) > 0) return { ok: false, reason: `step ${f.sequence_step} already sent` };
   }
-  return { ok: true, to, prospect };
+  return { ok: true, to };
 }
 
-export async function sendTick(svc: Svc, zoho: ZohoMailClient | null, settings: FullSettings, opts: { dryRun?: boolean } = {}): Promise<SendTickResult> {
+/** Display name for outreach: first line of the campaign signature, e.g. "Bogdan Jeltov". */
+async function senderName(svc: Svc, campaignId: string | null, fallback: string): Promise<string> {
+  if (!campaignId) return fallback;
+  const { data } = await svc.from('commercial_campaigns').select('sender_identity').eq('id', campaignId).maybeSingle();
+  const first = ((data as { sender_identity?: string | null } | null)?.sender_identity ?? '').split('\n')[0].trim();
+  return first && first.length <= 60 ? first : fallback;
+}
+
+export async function sendTick(ctx: MailContext, settings: FullSettings, mailboxes: MailboxRow[]): Promise<SendTickResult> {
+  const { svc } = ctx;
   const counters = await outreachCounters(svc, settings);
   let dns: DnsHealth | null = null;
   try {
@@ -668,12 +612,11 @@ export async function sendTick(svc: Svc, zoho: ZohoMailClient | null, settings: 
   } catch { /* treated as not ready */ }
   const decision = canSendNow(settings, { now: new Date(), sentToday: counters.sentToday, lastSentAt: counters.lastSentAt, dnsReady: !!dns?.ready });
   const result: SendTickResult = { decision, dns, sent: null, held: [], queued: counters.queued, sent_today: counters.sentToday };
-  if (!decision.ok || !zoho || opts.dryRun || counters.queued === 0) return result;
+  if (!decision.ok || counters.queued === 0) return result;
 
-  const accounts = await zoho.accounts();
-  const account = accountForAddress(accounts, settings.outreach_from);
-  if (!account) {
-    result.held.push({ followup_id: '-', reason: `no Zoho account can send as ${settings.outreach_from}` });
+  const sender = sendingMailbox(ctx, mailboxes, settings.outreach_from);
+  if (!sender) {
+    result.held.push({ followup_id: '-', reason: `${settings.outreach_from} is not connected (password missing) or cannot send` });
     return result;
   }
 
@@ -688,7 +631,7 @@ export async function sendTick(svc: Svc, zoho: ZohoMailClient | null, settings: 
       const limit = (c as { daily_limit?: number | null } | null)?.daily_limit;
       if (limit) {
         const { count } = await svc.from('commercial_followups').select('id', { count: 'exact', head: true })
-          .eq('campaign_id', f.campaign_id).eq('sent_via', 'zoho_api').gte('sent_at', counters.dayStart);
+          .eq('campaign_id', f.campaign_id).eq('sent_via', 'mailbox_smtp').gte('sent_at', counters.dayStart);
         if ((count ?? 0) >= limit) continue; // stays queued for tomorrow
       }
     }
@@ -698,45 +641,40 @@ export async function sendTick(svc: Svc, zoho: ZohoMailClient | null, settings: 
       continue;
     }
 
-    // Steps 2+ go in the first touch's thread.
+    // Steps 2+ reply in the first touch's thread (In-Reply-To/References).
     let subject = f.subject ?? '';
-    let replyTo: string | null = null;
+    let parent: string | null = null;
     if (f.kind === 'followup') {
       const { data: first } = await svc.from('commercial_followups')
-        .select('subject, provider_message_id, sent_from')
+        .select('subject, internet_message_id')
         .eq('prospect_id', f.prospect_id).eq('kind', 'first_touch').eq('status', 'sent')
         .order('sent_at', { ascending: true }).limit(1).maybeSingle();
-      const ft = first as { subject?: string | null; provider_message_id?: string | null; sent_from?: string | null } | null;
+      const ft = first as { subject?: string | null; internet_message_id?: string | null } | null;
       const base = (ft?.subject ?? subject).replace(/^(re:\s*)+/i, '');
       subject = base ? `Re: ${base}` : subject;
-      if (ft?.provider_message_id && ft.sent_from === settings.outreach_from) replyTo = ft.provider_message_id;
+      parent = ft?.internet_message_id ?? null;
     }
     if (!subject) subject = 'Quick question';
 
-    const payload = { from: settings.outreach_from, to: gate.to, subject, text: f.draft };
     try {
-      let res;
-      if (replyTo) {
-        try { res = await zoho.reply(account.accountId, replyTo, payload); } catch { res = await zoho.send(account.accountId, payload); }
-      } else {
-        res = await zoho.send(account.accountId, payload);
-      }
+      const fromName = await senderName(svc, f.campaign_id, sender.box.display_name);
+      const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text: f.draft, inReplyTo: parent, references: parent ? [parent] : [] });
       const { error } = await svc.rpc('record_commercial_followup_provider_send', {
         _followup_id: f.id,
-        _sent_via: 'zoho_api',
-        _sent_from: settings.outreach_from,
+        _sent_via: 'mailbox_smtp',
+        _sent_from: sender.box.address,
         _sent_to: gate.to,
-        _provider_message_id: res.messageId,
-        _internet_message_id: res.mailId,
+        _provider_message_id: res.smtpResponse.slice(0, 300),
+        _internet_message_id: res.messageId,
       });
       if (error) throw new Error(`sent but not recorded: ${error.message}`);
       await insertMessage(svc, {
-        provider: 'zoho', provider_account_id: account.accountId, provider_message_id: res.messageId, internet_message_id: res.mailId,
-        direction: 'outbound', mailbox_address: settings.outreach_from, from_address: settings.outreach_from, to_addresses: [gate.to],
+        provider: 'imap', provider_account_id: sender.box.address, internet_message_id: res.messageId,
+        direction: 'outbound', mailbox_address: sender.box.address, from_address: sender.box.address, from_name: fromName, to_addresses: [gate.to],
         subject, body_text: f.draft, message_at: new Date().toISOString(), route: 'outreach', classification: 'outbound',
         prospect_id: f.prospect_id, followup_id: f.id, match_status: 'matched', sent_by_user_id: f.send_requested_by,
       });
-      result.sent = { followup_id: f.id, to: gate.to, from: settings.outreach_from, provider_message_id: res.messageId };
+      result.sent = { followup_id: f.id, to: gate.to, from: sender.box.address, message_id: res.messageId };
     } catch (e) {
       const attempts = f.send_attempts + 1;
       await svc.from('commercial_followups').update({
