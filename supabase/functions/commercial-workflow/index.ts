@@ -25,6 +25,16 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+// Rate limiting -- same public.check_rate_limit(user_id, endpoint, window,
+// max_requests) RPC analyze-business/index.ts already uses. This endpoint is
+// admin-only, so the limit is generous enough not to block a legitimate
+// admin running a batch of prospects through the workflow, but still catches
+// the real production risk: a bug or a runaway script hammering this
+// function in a tight loop and burning LLM API budget. Fails OPEN on an RPC
+// error (matches analyze-business's own fail-open convention) -- a broken
+// rate-limit check must never itself take this endpoint down.
+const COMMERCIAL_WORKFLOW_RATE_LIMIT = { windowMinutes: 5, maxRequests: 60 };
+
 // deno-lint-ignore no-explicit-any
 type Svc = SupabaseClient<any, 'public', any>;
 
@@ -198,6 +208,28 @@ Deno.serve(async (req) => {
     const svc = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: roleRows } = await svc.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin');
     if (!roleRows || roleRows.length === 0) return j({ error: 'Admin only' }, 403);
+
+    try {
+      const { data: rateLimitResult, error: rateLimitError } = await svc.rpc('check_rate_limit', {
+        p_user_id: user.id,
+        p_endpoint: 'commercial-workflow',
+        p_window_minutes: COMMERCIAL_WORKFLOW_RATE_LIMIT.windowMinutes,
+        p_max_requests: COMMERCIAL_WORKFLOW_RATE_LIMIT.maxRequests,
+      });
+      if (rateLimitError) {
+        console.warn('[commercial-workflow] rate limit check failed, failing open:', rateLimitError.message);
+      } else if (rateLimitResult && !(rateLimitResult as { allowed?: boolean }).allowed) {
+        const r = rateLimitResult as { reset_at?: string; limit?: number };
+        const resetAt = r.reset_at ? new Date(r.reset_at) : new Date(Date.now() + 60_000);
+        const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
+        return j(
+          { error: 'Too many commercial-workflow requests. Please wait before retrying.', code: 'RATE_LIMIT_EXCEEDED', limit: r.limit ?? COMMERCIAL_WORKFLOW_RATE_LIMIT.maxRequests, retry_after_seconds: retryAfterSeconds },
+          429,
+        );
+      }
+    } catch (rlErr) {
+      console.warn('[commercial-workflow] rate limit system error, failing open:', rlErr);
+    }
 
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? '');
