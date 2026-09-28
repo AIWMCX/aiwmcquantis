@@ -8,8 +8,9 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Clock, Loader2, ShieldCheck, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Loader2, Mail, ShieldCheck, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { GlassCard } from '@/components/ui/glass-card';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -17,8 +18,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import {
+  consumeMagicLinkEntry,
   forgetInvite,
   isValidInviteToken,
+  markMagicLinkEntry,
   redeemMessage,
   rememberInvite,
   type InvitePreviewStatus,
@@ -35,7 +38,7 @@ const INCLUDED = [
 export default function Invite() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading, user, signOut } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, signOut, signInWithMagicLink } = useAuth();
   const { refetch } = useSubscription();
   const [preview, setPreview] = useState<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null } | null>(null);
   const [redeem, setRedeem] = useState<{ result: InviteRedeemResult; endsAt: string | null } | null>(null);
@@ -47,6 +50,23 @@ export default function Invite() {
   const [confirmed, setConfirmed] = useState(false);
   const redeemed = useRef(false);
   const valid = isValidInviteToken(token);
+
+  // Passwordless entry: the same one action works whether this email
+  // already has an account or not, so an invitee never has to guess
+  // "sign up" vs "log in" and never needs a password to get in.
+  const [magicEmail, setMagicEmail] = useState('');
+  const [magicSent, setMagicSent] = useState(false);
+  const [magicBusy, setMagicBusy] = useState(false);
+  const [magicError, setMagicError] = useState<string | null>(null);
+
+  // Optional, after a magic-link account activates Pro: offer to set a
+  // password so a return visit doesn't need another email round trip.
+  // Skippable -- never blocks the free month itself.
+  const [offerPasswordSetup, setOfferPasswordSetup] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordSet, setPasswordSet] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Remember the invite so any sign-in path returns here.
   useEffect(() => {
@@ -93,9 +113,52 @@ export default function Invite() {
       const row = data[0];
       setRedeem({ result: row.result, endsAt: row.current_period_end });
       if (row.result !== 'not_signed_in') forgetInvite();
-      if (row.result === 'granted') await refetch();
+      if (row.result === 'granted') {
+        await refetch();
+        if (consumeMagicLinkEntry()) setOfferPasswordSetup(true);
+      }
     });
   }, [valid, token, authLoading, isAuthenticated, confirmed, refetch]);
+
+  const sendMagicLink = async () => {
+    const email = magicEmail.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMagicError('Enter a valid email address');
+      return;
+    }
+    setMagicBusy(true);
+    setMagicError(null);
+    try {
+      markMagicLinkEntry();
+      const { error: e } = await signInWithMagicLink(email, `/invite/${token}`);
+      if (e) {
+        setMagicError(e.message);
+        return;
+      }
+      setMagicSent(true);
+    } finally {
+      setMagicBusy(false);
+    }
+  };
+
+  const submitNewPassword = async () => {
+    if (newPassword.length < 8) {
+      setPasswordError('At least 8 characters');
+      return;
+    }
+    setPasswordBusy(true);
+    setPasswordError(null);
+    try {
+      const { error: e } = await supabase.auth.updateUser({ password: newPassword });
+      if (e) {
+        setPasswordError(e.message);
+        return;
+      }
+      setPasswordSet(true);
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
 
   const returnUrl = encodeURIComponent(`/invite/${token}`);
   const days = preview?.duration_days ?? 30;
@@ -164,6 +227,41 @@ export default function Invite() {
             <Button variant="outline" onClick={() => navigate('/app')}>Continue with a free account</Button>
           )}
         </div>
+        {offerPasswordSetup && (
+          <div className="mt-6 pt-5 border-t text-left">
+            {passwordSet ? (
+              <p className="text-sm text-emerald-600 dark:text-emerald-500 text-center">Password set — you can sign in with it next time.</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium mb-1">Set a password? (optional)</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  You got in with an email link, so there's no password yet. Set one now and you can sign in directly next time — or skip this and use an email link again whenever you come back.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    disabled={passwordBusy}
+                    autoComplete="new-password"
+                  />
+                  <Button onClick={submitNewPassword} disabled={passwordBusy} className="shrink-0">
+                    {passwordBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Set password'}
+                  </Button>
+                </div>
+                {passwordError && <p className="text-xs text-destructive mt-2">{passwordError}</p>}
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:underline mt-2"
+                  onClick={() => setOfferPasswordSetup(false)}
+                >
+                  Skip for now
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </>
     );
   } else if (preview.status !== 'valid') {
@@ -201,12 +299,50 @@ export default function Invite() {
             <li key={f} className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" /> <span>{f}</span></li>
           ))}
         </ul>
-        <div className="flex flex-col sm:flex-row gap-2 justify-center">
-          <Button onClick={() => navigate(`/auth?mode=signup&returnUrl=${returnUrl}`)} className="gap-2">
-            Create my account <ArrowRight className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" onClick={() => navigate(`/auth?mode=login&returnUrl=${returnUrl}`)}>I already have an account</Button>
-        </div>
+        {magicSent ? (
+          <div className="max-w-sm mx-auto">
+            <Mail className="w-8 h-8 text-primary mx-auto mb-2" />
+            <p className="text-sm font-medium mb-1">Check your email</p>
+            <p className="text-sm text-muted-foreground">
+              We sent a link to <span className="font-medium text-foreground">{magicEmail}</span>. Open it on this device (or any device — it'll bring you right back here) and your Pro month activates automatically. No password needed.
+            </p>
+            <button type="button" className="text-xs text-muted-foreground hover:underline mt-3" onClick={() => setMagicSent(false)}>
+              Used the wrong email? Try again
+            </button>
+          </div>
+        ) : (
+          <div className="max-w-sm mx-auto">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                type="email"
+                value={magicEmail}
+                onChange={(e) => setMagicEmail(e.target.value)}
+                placeholder="you@company.com"
+                disabled={magicBusy}
+                autoComplete="email"
+                onKeyDown={(e) => { if (e.key === 'Enter') void sendMagicLink(); }}
+              />
+              <Button onClick={() => void sendMagicLink()} disabled={magicBusy} className="gap-2 shrink-0">
+                {magicBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get my Pro access <ArrowRight className="w-4 h-4" /></>}
+              </Button>
+            </div>
+            {magicError && <p className="text-xs text-destructive mt-2">{magicError}</p>}
+            <p className="text-xs text-muted-foreground mt-3">
+              New here or already have an account — either way, one email link gets you in and turns Pro on. No password to set up front.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Prefer a password?{' '}
+              <button type="button" className="underline hover:text-foreground" onClick={() => navigate(`/auth?mode=signup&returnUrl=${returnUrl}`)}>
+                Create an account
+              </button>{' '}
+              or{' '}
+              <button type="button" className="underline hover:text-foreground" onClick={() => navigate(`/auth?mode=login&returnUrl=${returnUrl}`)}>
+                sign in
+              </button>{' '}
+              instead.
+            </p>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mt-4">
           Pro turns on the moment you sign in. After {days} days your account stays, with your analyses, on the free plan unless you choose to upgrade.
         </p>

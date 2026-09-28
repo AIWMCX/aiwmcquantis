@@ -9,6 +9,7 @@
  */
 
 const STORAGE_KEY = 'quantis_pending_invite_v1';
+const MAGIC_ENTRY_KEY = 'quantis_magic_link_entry_v1';
 const TOKEN_RE = /^[A-Za-z0-9_-]{12,64}$/;
 
 export type InvitePreviewStatus = 'valid' | 'used' | 'expired' | 'revoked' | 'not_found';
@@ -53,6 +54,29 @@ export function forgetInvite(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch { /* ignore */ }
+}
+
+/**
+ * A passwordless (magic-link) entry never set a password, so there's
+ * nothing to log back in with next time except another email round
+ * trip. Marked right before the link is sent, consumed once on the
+ * invite's "granted" screen to offer setting one -- optional, so
+ * skipping it costs nothing and never blocks the free month itself.
+ */
+export function markMagicLinkEntry(): void {
+  try {
+    localStorage.setItem(MAGIC_ENTRY_KEY, '1');
+  } catch { /* ignore */ }
+}
+
+export function consumeMagicLinkEntry(): boolean {
+  try {
+    const was = localStorage.getItem(MAGIC_ENTRY_KEY) === '1';
+    localStorage.removeItem(MAGIC_ENTRY_KEY);
+    return was;
+  } catch {
+    return false;
+  }
 }
 
 /** 22-char URL-safe random token (~131 bits). */

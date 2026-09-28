@@ -102,6 +102,21 @@ export function useAuth() {
     return { data, error };
   }, []);
 
+  // Passwordless entry: one action works whether this email has an account
+  // or not (shouldCreateUser defaults to true) -- no "sign up vs log in"
+  // choice for the invitee to get wrong, and no password to forget on a
+  // repeat visit. Same email-delivery path Supabase already uses for
+  // signup confirmation, so it needs no separate infrastructure.
+  const signInWithMagicLink = useCallback(async (email: string, returnUrl?: string) => {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: getEmailConfirmationRedirect(returnUrl),
+      },
+    });
+    return { data, error };
+  }, []);
+
   const resendSignupConfirmation = useCallback(async (email: string, returnUrl?: string) => {
     const { data, error } = await supabase.auth.resend({
       type: 'signup',
@@ -126,6 +141,7 @@ export function useAuth() {
     isAuthenticated: !!session,
     signIn,
     signUp,
+    signInWithMagicLink,
     resendSignupConfirmation,
     signOut,
   };
