@@ -1,3 +1,4 @@
+import { breakEvenMonthsForDisplay, canonicalBreakEven } from './break-even';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type {
   CanonicalModelSnapshot,
@@ -83,11 +84,11 @@ const KEY_DEFS: Record<string, KeyDef> = {
   },
   breakEvenMonths: {
     sourcePath: 'financial_analysis.breakeven.breakeven_months',
-    resolve: (r) => ({ value: r.financial_analysis?.breakeven?.breakeven_months ?? null, unit: 'months' }),
+    resolve: (r) => ({ value: breakEvenMonthsForDisplay(r.financial_analysis), unit: 'months' }),
   },
   breakEvenRevenue: {
-    sourcePath: 'financial_analysis.breakeven.breakeven_revenue',
-    resolve: (r) => ({ value: r.financial_analysis?.breakeven?.breakeven_revenue ?? null, unit: 'currency', currency: USD }),
+    sourcePath: 'financial_analysis.cvp.breakEven.breakEvenRevenue',
+    resolve: (r) => ({ value: canonicalBreakEven(r.financial_analysis).revenue, unit: 'currency', currency: USD }),
   },
   // Operating break-even (breakeven_months, above) is kept distinct from
   // investment payback (below) per the framework's identity rules — never

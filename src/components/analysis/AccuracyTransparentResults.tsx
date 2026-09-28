@@ -27,6 +27,7 @@ import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsB
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { ModelApplicabilityBanner } from './ModelApplicabilityBanner';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
+import { costsReconcile } from '@/lib/break-even';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -339,6 +340,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         breakEven: { status: string; breakEvenRevenue: string | null };
       }
     | undefined;
+  // Break-even is unreliable when the report's own costs don't reconcile to
+  // its profit (user-entered total vs itemized benchmark costs).
+  const costsInconsistent = !costsReconcile(result.financial_analysis);
   // Handbook §19 Wave 2 — Profitability Margins (additive; absent on older
   // stored analyses generated before this field existed).
   const profitabilityMargins = (result.financial_analysis as any)?.profitability_margins as
@@ -617,7 +621,16 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       explanation="The share of revenue left after variable costs (COGS + marketing), before fixed costs are covered. Not the same as gross margin or net margin."
                     />
                   )}
-                  {cvp && cvp.breakEven.status === 'VALUE' && cvp.breakEven.breakEvenRevenue !== null && (
+                  {cvp && costsInconsistent && (
+                    <SimpleMetricCard
+                      title="Break-Even Revenue"
+                      value="Needs review"
+                      variant="warning"
+                      chip="Cost inputs don't reconcile"
+                      explanation="The monthly costs you entered don't reconcile with the itemized cost defaults in this report, so a break-even figure would be unreliable. Re-run with itemized costs."
+                    />
+                  )}
+                  {cvp && !costsInconsistent && cvp.breakEven.status === 'VALUE' && cvp.breakEven.breakEvenRevenue !== null && (
                     <SimpleMetricCard
                       title="Break-Even Revenue"
                       value={`$${Math.round(Number(cvp.breakEven.breakEvenRevenue)).toLocaleString()}/mo`}

@@ -25,3 +25,16 @@ Severity: P0 blocks sale, use, trust or security · P1 blocks activation or prof
 | D-19 | P3 | Audit trail | Manual comp logged as "auto-provisioned by stripe webhook" | `subscription_audit_log` | OPEN |
 | D-20 | P3 | UX | Alt+S shortcut → dead `/app/docs` | `useKeyboardShortcuts.ts` | FIXED (F-05, open PR) |
 | D-21 | — | Observability | Sentry/PostHog initialization not verified (read blocked by session permissions) | — | UNVERIFIED |
+
+## Financial reconciliation (2026-09-28, 116 reports from the last 90 days, recomputed independently)
+
+| ID | Sev | Finding | Evidence | Status |
+|---|---|---|---|---|
+| D-22 | P0 | `breakeven_months = 0` is the engine's "never" sentinel (`financial-analysis-shape.ts:262`), but the Decision Room, FinancialSummary, ScenarioComparison and the report mapper rendered it as "0 mo" for loss-making businesses | 107/116 reports; 11/11 since 08-31 | FIXED (display, F-09) |
+| D-23 | P0 | Two break-even figures in one result view: legacy `breakeven_revenue` (benchmark COGS %, CM floor 1%) vs CVP (actual unit economics). Example: $36,282 vs $23,945 | 66/73 reports with both; 11/11 since 08-31 | FIXED (display prefers CVP, F-09) |
+| D-24 | P0 | **Engine:** when a user enters total monthly costs, `financial-calculator.ts:371–381` keeps the benchmark fixed costs and COGS and reconciles only marketing (clamped ≥ 0). Profit follows the user total, while break-even/CVP/DOL follow the unscaled benchmark costs; the expense table no longer sums (items $12,785 vs total $4,650). No break-even in those reports is reliable. | base scenario revenue − VC − FC ≠ profit in 57/116; 8/11 since 08-31 | CONTAINED (UI shows "Needs review", F-09). Engine fix needs a product decision on which cost numbers win. |
+| D-25 | P1 | Breakeven "months" for profitable cases is investment payback capped at 24 (conflates break-even with payback) | engine source | OPEN (engine) |
+| D-26 | — | Scenario profit ordering (pessimistic > base) | 43 reports, all before 08-10; 0 since | STALE (already fixed in engine) |
+| D-27 | P2 | `payback_status` missing on 105 loss-making reports (only 2 carry NOT_APPLICABLE); payback column uses 999 | — | OPEN |
+
+Passed: profit column = base scenario (0 mismatches); payback and investment columns = JSON (0); revenue scenarios ordered (116/116); gross margins in range; MRR = units × price; CVP internally consistent.
