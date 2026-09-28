@@ -31,6 +31,7 @@ import {
   Megaphone,
   Radio,
   Handshake,
+  Inbox,
   Plus,
   ChevronRight,
   ShieldAlert,
@@ -122,6 +123,7 @@ const NAV_SECTIONS: NavSection[] = [
       { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, contentAdminOnly: true },
       { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, contentAdminOnly: true },
       { title: 'Commercial Ops', url: '/admin/commercial', icon: Handshake, adminOnly: true, flag: 'commercial_workflow' },
+      { title: 'Business Inbox', url: '/admin/inbox', icon: Inbox, adminOnly: true },
     ],
   },
   {

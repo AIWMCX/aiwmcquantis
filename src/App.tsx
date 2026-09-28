@@ -88,6 +88,7 @@ const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
 const ContentStudio = lazy(() => import("./pages/admin/ContentStudio"));
 const CommercialOps = lazy(() => import("./pages/admin/CommercialOps"));
+const BusinessInbox = lazy(() => import("./pages/admin/BusinessInbox"));
 const AiCosts = lazy(() => import("./pages/admin/AiCosts"));
 const EmailFunnel = lazy(() => import("./pages/admin/EmailFunnel"));
 const QocMonitor = lazy(() => import("./pages/admin/QocMonitor"));
@@ -381,6 +382,11 @@ const App = () => {
                 <Route path="/admin/commercial" element={
                   <ProtectedRoute requireAdmin>
                     <CommercialOps />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/inbox" element={
+                  <ProtectedRoute requireAdmin>
+                    <BusinessInbox />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/ai-costs" element={

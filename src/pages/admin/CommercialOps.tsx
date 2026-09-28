@@ -51,6 +51,10 @@ interface Followup {
   batch_id: string | null;
   sent_at: string | null;
   created_at: string;
+  send_requested_at: string | null;
+  send_last_error: string | null;
+  sent_via: string | null;
+  sent_from: string | null;
 }
 
 interface Campaign {
@@ -115,6 +119,30 @@ async function invoke(action: string, body: Record<string, unknown> = {}) {
   return data as any;
 }
 
+/** Business mailbox sender (queue approved messages for paced sending). */
+async function invokeMail(action: string, body: Record<string, unknown> = {}) {
+  const { data, error } = await supabase.functions.invoke('business-mail', { body: { action, ...body } });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === 'function') {
+      const parsed = await ctx.json().catch(() => null);
+      if (parsed?.error) throw new Error(parsed.error);
+    }
+    throw error;
+  }
+  if ((data as any)?.error) throw new Error((data as any).error);
+  return data as any;
+}
+
+async function queueSends(ids: string[]) {
+  const r = await invokeMail('request_send', { followup_ids: ids });
+  const results = (r.results ?? []) as Array<{ id: string; queued: boolean; reason?: string }>;
+  const queued = results.filter((x) => x.queued).length;
+  const failed = results.filter((x) => !x.queued);
+  if (queued) toast.success(`${queued} queued — sent from the business mailbox inside the sending window`);
+  for (const f of failed) toast.error(`Not queued: ${f.reason}`);
+}
+
 async function copy(text: string, label: string) {
   try {
     await navigator.clipboard.writeText(text);
@@ -164,7 +192,7 @@ export default function CommercialOps() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('commercial_followups')
-        .select('id, prospect_id, kind, sequence_step, subject, stage_context, draft, status, batch_id, sent_at, created_at')
+        .select('id, prospect_id, kind, sequence_step, subject, stage_context, draft, status, batch_id, sent_at, created_at, send_requested_at, send_last_error, sent_via, sent_from')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Followup[];
@@ -229,7 +257,7 @@ export default function CommercialOps() {
     { label: 'Leads imported into a batch (with signals)', done: prospects.some((p) => p.batch_id), detail: `${prospects.filter((p) => p.batch_id).length} lead(s) in batches`, tab: 'campaigns' },
     { label: 'First-touch drafts generated', done: followups.some((f) => f.kind === 'first_touch'), detail: `${discoveredNoDraft.length} lead(s) still need a draft`, tab: 'campaigns' },
     { label: 'Drafts reviewed and approved', done: drafts.length === 0 && ready.length + sent.length > 0, detail: `${drafts.length} waiting for review`, tab: 'review' },
-    { label: 'Sent by you, then marked sent', done: sent.length > 0 && ready.length === 0, detail: `${ready.length} ready to send · ${sent.length} sent`, tab: 'ready' },
+    { label: 'Queued for the business mailbox (or sent by you and marked sent)', done: sent.length > 0 && ready.length === 0, detail: `${ready.length} ready · ${ready.filter((f) => f.send_requested_at).length} queued · ${sent.length} sent`, tab: 'ready' },
     { label: 'Replies recorded, follow-ups drafted when due', done: dueFollowups.length === 0 && sent.length > 0, detail: `${dueFollowups.length} follow-up(s) due`, tab: 'sent' },
   ];
 
@@ -241,7 +269,7 @@ export default function CommercialOps() {
           <div>
             <h1 className="text-xl font-bold">Commercial Ops</h1>
             <p className="text-sm text-muted-foreground">
-              AI researches and drafts from the canonical foundation. You approve, you send, you record the reply. Nothing leaves without you.
+              AI researches and drafts from the canonical foundation. You approve and queue; the business mailbox sends at a safe pace and records replies, opt-outs and bounces. Nothing leaves without your approval.
             </p>
           </div>
         </div>
@@ -346,12 +374,54 @@ export default function CommercialOps() {
           {/* ── Ready to send ─────────────────────────────────────── */}
           <TabsContent value="ready" className="mt-4 space-y-3">
             {ready.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">Nothing approved yet.</p>}
+            {ready.length > 0 && (
+              <Card className="p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="text-muted-foreground">
+                  {ready.filter((f) => f.send_requested_at).length} queued for the business mailbox · {ready.filter((f) => !f.send_requested_at).length} not queued.
+                  {' '}Queued messages go out one at a time in the sending window (settings in <a className="text-primary hover:underline" href="/admin/inbox">Business Inbox</a>).
+                </span>
+                <Button
+                  size="sm"
+                  disabled={ready.every((f) => f.send_requested_at)}
+                  onClick={async () => {
+                    try { await queueSends(ready.filter((f) => !f.send_requested_at).map((f) => f.id)); refreshAll(); } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }
+                  }}
+                >
+                  <Send className="w-4 h-4 mr-1" /> Queue all
+                </Button>
+              </Card>
+            )}
             {ready.map((f) => {
               const p = prospectById.get(f.prospect_id);
               const to = emailOf(p?.contact_channel ?? null);
               const subject = f.subject ?? 'Following up';
               return (
                 <MessageCard key={f.id} followup={f} prospect={p}>
+                  {f.send_requested_at ? (
+                    <>
+                      <Badge variant="secondary" className="self-center">Queued {new Date(f.send_requested_at).toLocaleString()}</Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          try { await invokeMail('cancel_send', { followup_id: f.id }); toast.success('Removed from queue'); refreshAll(); } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }
+                        }}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Unqueue
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      size="sm"
+                      disabled={!to}
+                      onClick={async () => {
+                        try { await queueSends([f.id]); refreshAll(); } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }
+                      }}
+                    >
+                      <Send className="w-4 h-4 mr-1" /> Queue send
+                    </Button>
+                  )}
+                  {f.send_last_error && <span className="text-xs text-destructive self-center">{f.send_last_error}</span>}
                   <Button size="sm" variant="outline" onClick={() => copy(subject, 'Subject')}><Copy className="w-4 h-4 mr-1" /> Subject</Button>
                   <Button size="sm" variant="outline" onClick={() => copy(f.draft, 'Body')}><Copy className="w-4 h-4 mr-1" /> Body</Button>
                   {to && (
@@ -363,6 +433,7 @@ export default function CommercialOps() {
                   )}
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={async () => {
                       try {
                         await invoke('mark_sent', { followup_id: f.id });
@@ -371,7 +442,7 @@ export default function CommercialOps() {
                       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }
                     }}
                   >
-                    <Send className="w-4 h-4 mr-1" /> I sent it
+                    <CheckCircle2 className="w-4 h-4 mr-1" /> I sent it myself
                   </Button>
                 </MessageCard>
               );
@@ -409,7 +480,10 @@ export default function CommercialOps() {
                       <TableRow key={f.id}>
                         <TableCell className="font-medium">{p?.company_name ?? '—'}</TableCell>
                         <TableCell>{f.sequence_step ?? '—'}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{f.sent_at ? new Date(f.sent_at).toLocaleDateString() : '—'}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {f.sent_at ? new Date(f.sent_at).toLocaleDateString() : '—'}
+                          {f.sent_via && f.sent_via !== 'manual' && <span className="block">via {f.sent_from ?? 'mailbox'}</span>}
+                        </TableCell>
                         <TableCell><Badge variant={STAGE_BADGE_VARIANT[p?.stage ?? ''] ?? 'outline'}>{p?.stage ?? '—'}</Badge></TableCell>
                         <TableCell>{p && p.stage === 'contacted' ? <ReplyRecorder prospectId={p.id} onDone={refreshAll} /> : null}</TableCell>
                       </TableRow>

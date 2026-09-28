@@ -96,6 +96,10 @@ verify_jwt = false
 [functions.check-lifecycle-emails]
 verify_jwt = false
 
+# Business mail: pg_cron (x-cron-secret) + admin Bearer, both checked in code.
+[functions.business-mail]
+verify_jwt = false
+
 [functions.pdf-generator]
 verify_jwt = false
 

@@ -38,3 +38,10 @@ Severity: P0 blocks sale, use, trust or security · P1 blocks activation or prof
 | D-27 | P2 | `payback_status` missing on 105 loss-making reports (only 2 carry NOT_APPLICABLE); payback column uses 999 | — | OPEN |
 
 Passed: profit column = base scenario (0 mismatches); payback and investment columns = JSON (0); revenue scenarios ordered (116/116); gross margins in range; MRR = units × price; CVP internally consistent.
+
+## Business mailboxes (2026-09-28)
+
+| ID | Sev | Finding | Evidence | Status |
+|---|---|---|---|---|
+| D-28 | P0 (commercial) | Mail sent from the Zoho business mailboxes fails authentication. SPF doesn't include Zoho, there is no Zoho DKIM key, and DMARC is `p=reject`, so receivers are told to reject it. | Live DNS via DoH: MX mx.zoho.com; SPF has only IONOS/Google/Outlook includes; `zmail._domainkey` NXDOMAIN | BLOCKED — founder DNS change (runbook). The paced sender refuses to send until it passes. |
+| D-29 | P1 | support@/legal@ mail had no path into Quantis. hello@/marketing@ replies, opt-outs and bounces were not linked to prospects. Outreach was copy/paste plus "I sent it", with no delivery evidence. | code + schema | FIXED in code (F-11); needs Zoho secrets |
