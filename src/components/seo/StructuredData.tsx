@@ -53,8 +53,8 @@ export function StructuredData({
         maxValue: 10
       },
       sameAs: [
-        'https://www.linkedin.com/company/aiwmc-quantis',
-        'https://twitter.com/aiwmcquantis'
+        'https://www.linkedin.com/company/aiwmc/',
+        'https://x.com/aiwmcx1'
       ],
       contactPoint: {
         '@type': 'ContactPoint',

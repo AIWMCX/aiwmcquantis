@@ -139,8 +139,8 @@ export const AIWMCLocalBusiness = React.memo(function AIWMCLocalBusiness() {
       }}
       priceRange="$"
       sameAs={[
-        'https://www.linkedin.com/company/aiwmc-quantis',
-        'https://twitter.com/aiwmcquantis',
+        'https://www.linkedin.com/company/aiwmc/',
+        'https://x.com/aiwmcx1',
       ]}
     />
   );
