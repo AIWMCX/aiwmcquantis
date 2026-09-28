@@ -16,6 +16,10 @@
 /security
 /refund-policy
 /decision-review
+/demo/founder-decision-review
+/demo/consultant-founding-pilot
+/connect
+/invite
 /changelog
 /privacy
 /terms
@@ -88,7 +92,3 @@
 /examples/saas-hr-tech-bangalore
 /examples/print-shop-warsaw
 /examples/plumbing-business-toronto
-/demo/founder-decision-review
-/demo/consultant-founding-pilot
-/connect
-/invite
