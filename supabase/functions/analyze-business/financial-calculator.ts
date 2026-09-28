@@ -64,11 +64,13 @@ export interface StrictFinancialResult {
   leverageRatios: LeverageRatiosResult;
   npv3Years?: number;
   /** Whether totalExpenses came from the user directly or was calculated
-   *  from the itemized breakdown. When 'user', expenses.marketing is
-   *  reconciled to absorb the difference (see above) but is floor-clamped
-   *  at 0 -- if the user's total is lower than COGS + fixed costs alone,
-   *  the itemized sum will legitimately fall short of totalExpenses. Callers
-   *  doing a sum-integrity check must skip (not fail) when this is 'user'. */
+   *  from the itemized breakdown. When 'user', the operating items are
+   *  scaled so expenses.* sums exactly to totalExpenses (founder decision
+   *  2026-09-28: the user's total wins and includes COGS; COGS itself stays
+   *  at its benchmark share of revenue). If the user's total is below COGS
+   *  alone, operating items are 0 and COGS exceeds the total -- the one
+   *  case where the sum can exceed totalExpenses; margins then use the
+   *  capped effectiveCogsForMargins. */
   expenseSource: 'user' | 'calculated';
   isProfitable: boolean;
   corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
@@ -318,11 +320,11 @@ export function calculateStrictFinancials(
   });
 
   // 2.2 Fixed costs
-  const salaries = adjustedSalaries;
-  const rent = adjustedRent;
-  const utilities = adjustedUtilities;
-  const other = adjustedOther;
-  const fixedCosts = salaries + rent + utilities + other;
+  let salaries = adjustedSalaries;
+  let rent = adjustedRent;
+  let utilities = adjustedUtilities;
+  let other = adjustedOther;
+  let fixedCosts = salaries + rent + utilities + other;
 
   // 2.3 Marketing cost - Use dynamic churn rate from sub-industry detection
   const revenuePerClient = avgCheck * benchmarks.orders_per_client;
@@ -373,21 +375,48 @@ export function calculateStrictFinancials(
     totalExpenses = userProvidedCosts;
     expenseSource = 'user';
 
-    // Reconcile the breakdown to the user-provided total: hold COGS and
-    // fixed costs as-is (both are revenue/location-driven, not
-    // discretionary), and let marketing — the component demonstrably
-    // prone to running away independent of the user's stated total —
-    // absorb the difference. Never negative.
-    const impliedMarketing = userProvidedCosts - cogs - fixedCosts;
-    if (impliedMarketing !== marketing) {
-      reconciledMarketing = Math.max(0, Math.round(impliedMarketing));
+    // Reconcile the itemized benchmark costs to the user's total (founder
+    // decision 2026-09-28, "Option A"): the user's total wins and includes
+    // COGS. COGS stays at its benchmark share of revenue (it is a per-sale
+    // cost, so gross margin must not move with the user's total); the
+    // operating items -- salaries, rent, utilities, other, marketing -- are
+    // scaled by one factor so the breakdown sums exactly to the user's
+    // figure. Previously only marketing absorbed the difference (clamped at
+    // 0), so when the user's total was below COGS + benchmark fixed costs,
+    // profit followed the user's total while break-even, CVP and operating
+    // leverage kept the unscaled benchmark fixed costs -- a report whose
+    // expense table did not sum (e.g. items $12,785 vs total $4,650) and
+    // whose break-even was wrong. Reconciling here, once, makes every
+    // downstream figure consistent; the display-time rescaling in
+    // financial-analysis-shape.ts becomes a no-op.
+    const operatingItemized = fixedCosts + marketing;
+    const operatingTarget = Math.max(0, userProvidedCosts - cogs);
+    if (operatingItemized > 0 && Math.abs(operatingItemized - operatingTarget) >= 1) {
+      const scale = operatingTarget / operatingItemized;
+      const before = { salaries, rent, utilities, other, marketing };
+      salaries = Math.round(salaries * scale);
+      rent = Math.round(rent * scale);
+      utilities = Math.round(utilities * scale);
+      reconciledMarketing = Math.round(marketing * scale);
+      // `other` absorbs the rounding residue so the operating items sum exactly.
+      other = operatingTarget - salaries - rent - utilities - reconciledMarketing;
+      if (other < 0) {
+        salaries = Math.max(0, salaries + other);
+        other = 0;
+      }
+      fixedCosts = salaries + rent + utilities + other;
       audit.push({
-        formula: 'Marketing (reconciled) = User_Provided_Costs - COGS - Fixed_Costs',
-        inputs: { 'User Monthly Costs': userProvidedCosts, COGS: cogs, 'Fixed Costs': fixedCosts, 'Engine-computed marketing (unused)': marketing },
-        result: reconciledMarketing,
+        formula: 'Operating_Item_i (reconciled) = Operating_Item_i × ((User_Provided_Costs − COGS) / Operating_Itemized_Total)',
+        inputs: { 'User Monthly Costs': userProvidedCosts, COGS: cogs, 'Operating items (benchmark)': operatingItemized, 'Scale': Math.round(scale * 10000) / 10000 },
+        result: fixedCosts,
         isValid: true,
-        notes: `Engine-computed marketing ($${marketing.toLocaleString()}) was reconciled to $${reconciledMarketing.toLocaleString()} so the expense breakdown sums exactly to the user-provided total, instead of leaking the unreconciled figure into scenarios and reports elsewhere.`
+        notes: `Benchmark operating items ($${operatingItemized.toLocaleString()}: salaries $${before.salaries}, rent $${before.rent}, utilities $${before.utilities}, other $${before.other}, marketing $${before.marketing}) were scaled by ${Math.round(scale * 1000) / 1000} so COGS ($${cogs.toLocaleString()}) plus operating costs sum to your reported $${userProvidedCosts.toLocaleString()}/mo. Fixed costs used for break-even: $${fixedCosts.toLocaleString()}.`
       });
+    } else if (operatingItemized <= 0) {
+      // No itemized operating basis to scale: the remainder is all fixed cost.
+      other = operatingTarget;
+      fixedCosts = other;
+      reconciledMarketing = 0;
     }
 
     audit.push({
@@ -677,7 +706,12 @@ export function calculateStrictFinancials(
 
   // BUG FIX: Guard against division-by-zero when mrr=0 in break-even formula.
   const effectiveMrrForBreakeven = Math.max(mrr, benchmarks.average_check_min || 100);
-  const variableCostRatio = (benchmarks.cogs_percent / 100) + (marketing / effectiveMrrForBreakeven);
+  // Actual (reconciled) variable costs when there is revenue, so this legacy
+  // figure uses the same cost basis as the CVP contract below; the
+  // benchmark COGS% only as the mrr=0 fallback.
+  const variableCostRatio = mrr > 0
+    ? (cogs + reconciledMarketing) / mrr
+    : (benchmarks.cogs_percent / 100) + (reconciledMarketing / effectiveMrrForBreakeven);
   const safeContributionMargin = Math.max(1 - variableCostRatio, 0.01); // prevent zero or negative
   const breakEvenRevenue = Math.round(fixedCosts / safeContributionMargin);
 
