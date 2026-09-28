@@ -1,5 +1,5 @@
 // AIWMC Quantis — business mail (support@ / legal@ ticketing, hello@ /
-// marketing@ acquisition, paced outreach sender).
+// market@ acquisition, paced outreach sender).
 // ---------------------------------------------------------------------------
 // Two callers:
 //   * pg_cron every 5 minutes (x-cron-secret) → action "tick": sync the Zoho

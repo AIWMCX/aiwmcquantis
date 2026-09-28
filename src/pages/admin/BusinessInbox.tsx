@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { CheckCircle2, Inbox, Loader2, RefreshCw, Send, XCircle } from 'lucide-react';
 
 // Business mailboxes inside Quantis: support@ / legal@ tickets, the
-// hello@ / marketing@ pipeline inbox, and mailbox health + outreach sending
+// hello@ / market@ pipeline inbox, and mailbox health + outreach sending
 // settings. Reads go straight to the admin-only tables (RLS); every write
 // goes through the business-mail edge function.
 
@@ -128,7 +128,7 @@ export default function BusinessInbox() {
           <div>
             <h1 className="text-xl font-bold">Business Inbox</h1>
             <p className="text-sm text-muted-foreground">
-              support@ and legal@ arrive here as tickets. hello@ and marketing@ feed the sales pipeline. Replies go out from the same address.
+              support@ and legal@ arrive here as tickets. hello@ and market@ feed the sales pipeline. Replies go out from the same address.
             </p>
           </div>
         </div>
@@ -329,7 +329,7 @@ function TicketDetail({ ticket }: { ticket: Ticket }) {
   );
 }
 
-// ── Pipeline inbox (hello@, marketing@, prospect replies) ────────────────
+// ── Pipeline inbox (hello@, market@, prospect replies) ────────────────
 
 function PipelineInbox() {
   const messagesQuery = useQuery({
@@ -360,7 +360,7 @@ function PipelineInbox() {
       {messagesQuery.isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
       {!messagesQuery.isLoading && rows.length === 0 && (
         <p className="text-sm text-muted-foreground py-6 text-center">
-          Nothing yet. Replies to outreach, opt-outs, bounces and new mail to hello@ / marketing@ appear here. Known prospects are matched automatically; unknown senders become inbound prospects in Commercial Ops.
+          Nothing yet. Replies to outreach, opt-outs, bounces and new mail to hello@ / market@ appear here. Known prospects are matched automatically; unknown senders become inbound prospects in Commercial Ops.
         </p>
       )}
       <ul className="divide-y">

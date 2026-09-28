@@ -21,7 +21,7 @@ const MAILBOXES: Mailbox[] = [
   { address: 'support@aiwmcquantis.com', pipeline: 'ticketing', queue: 'support', active: true },
   { address: 'legal@aiwmcquantis.com', pipeline: 'ticketing', queue: 'legal', active: true },
   { address: 'hello@aiwmcquantis.com', pipeline: 'acquisition', queue: 'hello', active: true },
-  { address: 'marketing@aiwmcquantis.com', pipeline: 'acquisition', queue: 'marketing', active: true },
+  { address: 'market@aiwmcquantis.com', pipeline: 'acquisition', queue: 'marketing', active: true },
 ];
 
 function msg(over: Partial<InboundMessage> = {}): InboundMessage {
@@ -34,7 +34,7 @@ describe('resolveMailbox', () => {
     expect(resolveMailbox(msg({ to: ['someone@x.com'], cc: ['legal@aiwmcquantis.com'] }), MAILBOXES)?.queue).toBe('legal');
   });
   it('prefers Delivered-To over To (alias delivery)', () => {
-    const m = msg({ to: ['hello@aiwmcquantis.com'], headers: { 'delivered-to': 'marketing@aiwmcquantis.com' } });
+    const m = msg({ to: ['hello@aiwmcquantis.com'], headers: { 'delivered-to': 'market@aiwmcquantis.com' } });
     expect(resolveMailbox(m, MAILBOXES)?.queue).toBe('marketing');
   });
   it('returns null for mail not addressed to a business mailbox (personal mail is never stored)', () => {

@@ -4,7 +4,7 @@
 -- product so that:
 --   * support@ and legal@ (plus the published privacy@ / security@) become
 --     tickets inside Quantis (/admin/inbox), answered from the same address;
---   * hello@ and marketing@ feed the acquisition pipeline: replies,
+--   * hello@ and market@ feed the acquisition pipeline: replies,
 --     opt-outs and bounces are matched to commercial_prospects and stop
 --     the outreach sequence; unknown senders become inbound prospects;
 --   * approved Commercial Ops messages can be queued and sent from the
@@ -34,7 +34,7 @@ INSERT INTO public.business_mailboxes (address, display_name, pipeline, queue, c
   ('privacy@aiwmcquantis.com',   'AIWMC Quantis Privacy', 'ticketing',   'legal',     false),
   ('security@aiwmcquantis.com',  'AIWMC Quantis Security','ticketing',   'support',   false),
   ('hello@aiwmcquantis.com',     'AIWMC Quantis',         'acquisition', 'hello',     true),
-  ('marketing@aiwmcquantis.com', 'AIWMC Quantis',         'acquisition', 'marketing', true)
+  ('market@aiwmcquantis.com', 'AIWMC Quantis',         'acquisition', 'marketing', true)
 ON CONFLICT (address) DO NOTHING;
 
 -- ── Settings (singleton) ────────────────────────────────────────────────

@@ -135,5 +135,13 @@ export function composeOutboundEmail(body: string, contactName: string | null, s
   const first = (contactName ?? '').trim().split(/\s+/)[0];
   const greeting = first ? `Hi ${first},\n\n` : '';
   const signature = senderIdentity?.trim() ? `\n\n${senderIdentity.trim()}` : '';
-  return `${greeting}${body.trim()}${signature}\n\nIf this isn't relevant, just reply "no" and I won't follow up.`;
+  let text = body.trim();
+  if (first) {
+    // The model sometimes opens with the name too ("Carlos — your work…"),
+    // which reads as "Hi Carlos, Carlos — …" after the greeting above.
+    const esc = first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const stripped = text.replace(new RegExp(`^(?:(?:hi|hello|hey|dear)\\s+)?${esc}\\s*[—–,:!-]\\s*`, 'i'), '');
+    if (stripped !== text && stripped.length > 0) text = stripped.charAt(0).toUpperCase() + stripped.slice(1);
+  }
+  return `${greeting}${text}${signature}\n\nIf this isn't relevant, just reply "no" and I won't follow up.`;
 }

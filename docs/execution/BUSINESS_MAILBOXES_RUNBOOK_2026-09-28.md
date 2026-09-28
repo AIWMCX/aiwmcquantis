@@ -9,13 +9,13 @@
 | privacy@ | Legal ticket (it is a published address) | legal@ |
 | security@ | Support ticket (it is a published address) | support@ |
 | hello@aiwmcquantis.com | **Sales pipeline**: replies are matched to prospects. Unknown senders become inbound prospects (`segment = inbound`, stage `replied`). | hello@ (default outreach sender) |
-| marketing@aiwmcquantis.com | **Sales pipeline**, same as hello@ | marketing@ |
+| market@aiwmcquantis.com | **Sales pipeline**, same as hello@ | market@ |
 
 A pg_cron job (`business-mail-tick`) calls the `business-mail` edge function every 5 minutes. Each tick does two things:
 
 1. **Sync.** It reads the Zoho Inbox and Sent folders.
    - **Tickets.** Mail to support@ or legal@ opens a ticket, or joins an existing one. It is matched by ticket tag, Zoho thread, In-Reply-To, or the same sender with the same subject within 30 days.
-   - **Pipeline.** Mail to hello@ or marketing@, or mail from any prospect, goes to the pipeline:
+   - **Pipeline.** Mail to hello@ or market@, or mail from any prospect, goes to the pipeline:
      - *Human reply:* the prospect moves to `replied`, and any queued follow-up is held.
      - *Bare "no" or "remove me":* this is the opt-out the footer asks for. The address is suppressed and the prospect is marked `lost`.
      - *Bounce:* the bounced recipient is marked `hard_bounced` and suppressed.
@@ -69,7 +69,7 @@ As long as this stands, anything sent from support@, hello@ and the other Zoho a
 
 ## Zoho Mail setup (one time)
 
-1. **Addresses.** In Zoho Mail Admin → Users → your user → Email aliases, add `hello@`, `support@`, `marketing@`, `legal@`, `privacy@` and `security@` as **aliases of your own mailbox**. Groups whose only member is you also work. All the mail then arrives in one mailbox, and Quantis routes it by the address it was sent to.
+1. **Addresses.** In Zoho Mail Admin → Users → your user → Email aliases, add `hello@`, `support@`, `market@`, `legal@`, `privacy@` and `security@` as **aliases of your own mailbox**. Groups whose only member is you also work. All the mail then arrives in one mailbox, and Quantis routes it by the address it was sent to.
 2. **Send-as.** Make sure each alias can be used as a **From** address: Settings → Mail → Send mail as.
 3. **Plan.** The Zoho Mail REST API needs a plan with API access. If the connection check reports an access error on the Free plan, upgrade to Mail Lite.
 4. **API credentials (Self Client):**

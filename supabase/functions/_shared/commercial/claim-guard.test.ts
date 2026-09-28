@@ -112,3 +112,10 @@ Deno.test("compose: greeting, sender identity and opt-out are appended by code",
   assert(email.includes("Founder, AIWMC Quantis"));
   assert(email.endsWith(`reply "no" and I won't follow up.`));
 });
+
+Deno.test("compose: a body that repeats the first name is not doubled after the greeting", () => {
+  const email = composeOutboundEmail("Carlos — your work sits at capital structure.", "Carlos Ruiz", "Bogdan");
+  assert(email.startsWith("Hi Carlos,\n\nYour work sits at capital structure."));
+  const kept = composeOutboundEmail("Carlossa Group caught my eye.", "Carlos Ruiz", "Bogdan");
+  assert(kept.startsWith("Hi Carlos,\n\nCarlossa Group caught my eye."));
+});

@@ -375,7 +375,7 @@ async function processInbound(
     return !!id;
   }
 
-  // ── Acquisition (hello@, marketing@) or a reply straight from a prospect.
+  // ── Acquisition (hello@, market@) or a reply straight from a prospect.
   const prospects = fromProspects.length ? fromProspects : await prospectsByEmail(svc, from);
   if (prospects.length > 0) {
     const withSends = await prospectsWithSends(svc, prospects.map((p) => p.id));
@@ -412,7 +412,7 @@ async function processInbound(
     return !!(await insertMessage(svc, { ...base, route: 'system' }));
   }
 
-  // Unknown human sender to hello@/marketing@ → inbound lead.
+  // Unknown human sender to hello@/market@ → inbound lead.
   const { data: prospect, error } = await svc.from('commercial_prospects').insert({
     company_name: companyFromEmail(from, m.sender),
     contact_name: m.sender,

@@ -3,7 +3,7 @@
  *
  * Decides, for one message in a Quantis-domain mailbox:
  *   - which business mailbox it was addressed to (support@, legal@, hello@,
- *     marketing@, …) and therefore which pipeline owns it;
+ *     market@, …) and therefore which pipeline owns it;
  *   - what it is: a human message, an auto-reply, a bounce, an opt-out, or
  *     system mail (DMARC reports, newsletters, no-reply notifications);
  *   - for bounces, which recipient bounced.

@@ -44,4 +44,4 @@ Passed: profit column = base scenario (0 mismatches); payback and investment col
 | ID | Sev | Finding | Evidence | Status |
 |---|---|---|---|---|
 | D-28 | P0 (commercial) | Mail sent from the Zoho business mailboxes fails authentication. SPF doesn't include Zoho, there is no Zoho DKIM key, and DMARC is `p=reject`, so receivers are told to reject it. | Live DNS via DoH: MX mx.zoho.com; SPF has only IONOS/Google/Outlook includes; `zmail._domainkey` NXDOMAIN | BLOCKED — founder DNS change (runbook). The paced sender refuses to send until it passes. |
-| D-29 | P1 | support@/legal@ mail had no path into Quantis. hello@/marketing@ replies, opt-outs and bounces were not linked to prospects. Outreach was copy/paste plus "I sent it", with no delivery evidence. | code + schema | FIXED in code (F-11); needs Zoho secrets |
+| D-29 | P1 | support@/legal@ mail had no path into Quantis. hello@/market@ replies, opt-outs and bounces were not linked to prospects. Outreach was copy/paste plus "I sent it", with no delivery evidence. | code + schema | FIXED in code (F-11); needs Zoho secrets |
