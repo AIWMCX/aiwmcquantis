@@ -35,6 +35,12 @@ useDefault = true
 
     # Placeholder text in API documentation, not a real credential.
     '''YOUR_API_KEY''',
+
+    # Browser localStorage/sessionStorage key NAMES (not values) flagged by
+    # generic-api-key because the variable is called STORAGE_KEY. Inspected
+    # 2026-09-28: plain UI state keys for the invite flow and free-month banner.
+    '''quantis_pending_invite_v1''',
+    '''quantis_comp_banner_dismissed_v1''',
   ]
 
   # Historical-only: the string values of ADMIN_UPLOAD_KEY, CRON_SECRET, and

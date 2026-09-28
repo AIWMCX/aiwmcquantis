@@ -3,6 +3,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppTopBar } from './AppTopBar';
 import { ProTrialBanner } from '@/components/billing/ProTrialBanner';
+import { ComplimentaryProBanner } from '@/components/billing/ComplimentaryProBanner';
 import { UpgradeNudgeBanner } from '@/components/billing/UpgradeNudgeBanner';
 import { UsageMeterCard } from '@/components/billing/UsageMeterCard';
 
@@ -46,6 +47,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <div className="flex-1 flex flex-col min-w-0 relative z-10">
           <AppTopBar title={title} />
           <ProTrialBanner />
+          <ComplimentaryProBanner />
           <UpgradeNudgeBanner />
           <main className="flex-1 overflow-auto">
             <div className="px-4 pt-4">

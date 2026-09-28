@@ -216,7 +216,7 @@ export default function Auth() {
             </div>
 
             <Card className="w-full">
-              <Tabs defaultValue="signup">
+              <Tabs defaultValue={searchParams.get('mode') === 'login' ? 'login' : 'signup'}>
                 <CardHeader className="pb-4">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="signup">Sign Up</TabsTrigger>

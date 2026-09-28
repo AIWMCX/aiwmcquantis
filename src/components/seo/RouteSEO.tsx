@@ -142,6 +142,25 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: "Quantis vs ChatGPT — Why a general LLM can't cite its own numbers",
     description: "Compare Quantis and ChatGPT for calculation traceability, cited assumptions, financial scenarios, and business decision support.",
   },
+  // Shared in posts and DMs: crawlers (LinkedIn, X, Facebook, Slack) don't run
+  // JS, so without these the share card was the homepage's (og:url = "/").
+  '/demo/founder-decision-review': {
+    title: 'Interactive Decision Demo — Founder Decision Review',
+    description: 'See how Quantis tests a real spending decision: change one assumption and watch cash, payback, and the decision gate recompute live.',
+  },
+  '/demo/consultant-founding-pilot': {
+    title: 'Interactive Demo — Consultant Capacity vs Client Demand',
+    description: 'The gap every engagement hides: what a client says they can bring in per month versus what your team can actually deliver. Move a slider and see it.',
+  },
+  '/connect': {
+    title: 'Connect with AIWMC Quantis — LinkedIn, Instagram, X, Telegram, Whop',
+    description: 'Follow AIWMC Quantis for financial pre-mortem breakdowns, or start a free Decision Run on your own business decision.',
+  },
+  '/invite': {
+    title: "You're invited: 30 days of Quantis Pro, free",
+    description: 'A personal invitation to pressure-test one real business decision with AIWMC Quantis Pro. No card, nothing renews automatically.',
+    noIndex: true,
+  },
   // Auth / transactional — noIndex
   '/auth': { title: 'Sign In', description: 'Sign in or create your AIWMC Quantis account.', noIndex: true },
   '/reset-password': { title: 'Reset Password', description: 'Reset your AIWMC Quantis password.', noIndex: true },
