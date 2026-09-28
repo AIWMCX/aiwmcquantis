@@ -96,9 +96,9 @@ Return ONLY valid JSON matching the submit_analysis schema. No markdown, no pros
 
 - "confidence" is your final Integrity-Score-aware confidence (0–100). Never above 85 if you had to make >3 input adjustments or if base-case is unprofitable.
 - "limitations" must enumerate Adjusted Inputs + Key Uncertainties as plain sentences (not boilerplate).
-- "sources" lists the datasets/benchmarks actually used (e.g. "AIWMC Quantis Benchmark Master v2.0 · n=${BENCHMARK_COUNT_DISPLAY} · 2026").
+- "sources" lists the datasets/benchmarks actually used (e.g. "AIWMC Quantis modeled benchmark grid v2.0 · ${BENCHMARK_COUNT_DISPLAY} modeled cells (not observed companies) · 2026"). Never present the grid as a sample of real companies.
 
-All content in English. Investor-grade. No hype. Numbers always win.`;
+All content in English. Plain professional language. No hype, no "investor-grade", "audit-grade" or accuracy claims. Numbers always win.`;
 
 // ============================================================================
 // Narrative Honesty Sanitizer

@@ -193,7 +193,11 @@ const App = () => {
                 <Route path="/engagement-workspace" element={<PaidWorkspace />} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/cases" element={<CaseBrowser />} />
-                <Route path="/dev/rvce-test" element={<RvceTestPanel />} />
+                <Route path="/dev/rvce-test" element={
+                  <ProtectedRoute requireAdmin>
+                    <RvceTestPanel />
+                  </ProtectedRoute>
+                } />
                 <Route path="/email-confirmed" element={<EmailConfirmed />} />
                 <Route path="/email-preferences" element={<EmailPreferences />} />
                 <Route path="/connect" element={<Connect />} />

@@ -320,8 +320,8 @@ TIER: PRO
 DEPTH: INVESTOR-READY
 INSTRUCTION:
 
-You are extending a completed PLUS analysis with PRO-tier investor-grade
-outputs. The PLUS_ANALYSIS_CONTEXT below contains the full PLUS JSON. Do
+You are extending a completed PLUS analysis with PRO-tier extended
+outputs (never describe them as "investor-grade" in the output). The PLUS_ANALYSIS_CONTEXT below contains the full PLUS JSON. Do
 NOT re-run the PLUS analysis. Build exclusively on top of it.
 
 PLUS_ANALYSIS_CONTEXT: [INJECT COMPLETED PLUS JSON HERE]
