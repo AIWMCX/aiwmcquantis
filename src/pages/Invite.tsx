@@ -40,7 +40,7 @@ export default function Invite() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user, signOut, signInWithMagicLink } = useAuth();
   const { refetch } = useSubscription();
-  const [preview, setPreview] = useState<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null } | null>(null);
+  const [preview, setPreview] = useState<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null; email_locked: boolean } | null>(null);
   const [redeem, setRedeem] = useState<{ result: InviteRedeemResult; endsAt: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Explicit confirm before redeeming, not just "signed in" -- a stale
@@ -76,13 +76,13 @@ export default function Invite() {
   // Preview (works signed out).
   useEffect(() => {
     if (!valid) {
-      setPreview({ status: 'not_found', duration_days: null, redeem_by: null });
+      setPreview({ status: 'not_found', duration_days: null, redeem_by: null, email_locked: false });
       return;
     }
     (supabase as any)
       .rpc('preview_plan_invite', { _token: token })
-      .then(({ data, error: e }: { data: Array<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null }> | null; error: unknown }) => {
-        if (e || !data?.[0]) setPreview({ status: 'not_found', duration_days: null, redeem_by: null });
+      .then(({ data, error: e }: { data: Array<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null; email_locked: boolean }> | null; error: unknown }) => {
+        if (e || !data?.[0]) setPreview({ status: 'not_found', duration_days: null, redeem_by: null, email_locked: false });
         else setPreview(data[0]);
       });
   }, [valid, token]);
@@ -294,6 +294,11 @@ export default function Invite() {
           Quantis pressure-tests a real business decision: the assumptions it rests on, the cash it needs,
           break-even and payback, and which driver breaks it first. No card. Nothing renews automatically.
         </p>
+        {preview.email_locked && (
+          <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
+            This invite was sent to a specific email address — use that exact one below to activate it.
+          </p>
+        )}
         <ul className="text-sm text-left space-y-2 mb-6 max-w-sm mx-auto">
           {INCLUDED.map((f) => (
             <li key={f} className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" /> <span>{f}</span></li>

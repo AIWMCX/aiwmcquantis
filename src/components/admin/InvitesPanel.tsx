@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { generateInviteToken, inviteUrl } from '@/lib/invites';
+import { generateInviteToken, inviteUrl, parseInviteLine } from '@/lib/invites';
 
 // "1 month of Pro, free" invite links for founder-led outreach. Each link is
 // for one person; they can sign up with any email or Google and Pro turns on
@@ -29,6 +29,7 @@ interface InviteRow {
   redeem_by: string;
   label: string;
   channel: string | null;
+  expected_email: string | null;
   revoked_at: string | null;
   created_at: string;
 }
@@ -83,6 +84,7 @@ export function InvitesPanel() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [label, setLabel] = useState('');
+  const [email, setEmail] = useState('');
   const [channel, setChannel] = useState('linkedin');
   const [days, setDays] = useState('30');
   const [uses, setUses] = useState('1');
@@ -97,7 +99,7 @@ export function InvitesPanel() {
   const [bulkChannel, setBulkChannel] = useState('linkedin');
   const [bulkDays, setBulkDays] = useState('30');
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkResults, setBulkResults] = useState<{ label: string; url: string }[] | null>(null);
+  const [bulkResults, setBulkResults] = useState<{ label: string; url: string; boundEmail: string | null }[] | null>(null);
 
   const invitesQuery = useQuery({
     queryKey: ['plan-invites'],
@@ -127,6 +129,8 @@ export function InvitesPanel() {
 
   const create = async () => {
     if (!label.trim()) { toast.error('Add who the link is for (e.g. "Carlos Ruiz — LinkedIn")'); return; }
+    const trimmedEmail = email.trim().toLowerCase();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) { toast.error('That email address doesn\'t look right'); return; }
     setBusy(true);
     try {
       const token = generateInviteToken();
@@ -136,14 +140,18 @@ export function InvitesPanel() {
         channel,
         plan_id: 'pro',
         duration_days: Math.max(1, Math.min(365, Number(days) || 30)),
-        max_redemptions: Math.max(1, Math.min(500, Number(uses) || 1)),
+        // Email-bound invites are one person, one redemption -- multiple
+        // uses only makes sense for the unbound (LinkedIn-style) case.
+        max_redemptions: trimmedEmail ? 1 : Math.max(1, Math.min(500, Number(uses) || 1)),
         redeem_by: redeemByFromNow(),
+        expected_email: trimmedEmail || null,
         created_by: user?.id ?? null,
       });
       if (error) throw error;
       setLastLink(inviteUrl(token));
       await copyLink(token);
       setLabel('');
+      setEmail('');
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not create the invite');
@@ -153,29 +161,37 @@ export function InvitesPanel() {
   };
 
   const bulkCreate = async () => {
-    const labels = bulkNames
+    const lines = bulkNames
       .split('\n')
       .map((l) => l.trim())
       .filter(Boolean);
-    if (labels.length === 0) { toast.error('Paste at least one name, one per line'); return; }
-    if (labels.length > 100) { toast.error('That\'s more than 100 in one batch — split it up'); return; }
+    if (lines.length === 0) { toast.error('Paste at least one name (or email), one per line'); return; }
+    if (lines.length > 100) { toast.error('That\'s more than 100 in one batch — split it up'); return; }
     setBulkBusy(true);
     try {
       const durationDays = Math.max(1, Math.min(365, Number(bulkDays) || 30));
       const redeemBy = redeemByFromNow();
-      const rows = labels.map((l) => ({
-        token: generateInviteToken(),
-        label: l,
-        channel: bulkChannel,
-        plan_id: 'pro',
-        duration_days: durationDays,
-        max_redemptions: 1,
-        redeem_by: redeemBy,
-        created_by: user?.id ?? null,
-      }));
+      // A line with an email (cold outreach -- "Jane Doe <jane@co.com>" or
+      // a bare address) binds that invite to exactly that address. A
+      // label-only line (LinkedIn, no known email) stays unbound: first
+      // verified email to redeem it owns it.
+      const rows = lines.map((line) => {
+        const { label: parsedLabel, expectedEmail } = parseInviteLine(line);
+        return {
+          token: generateInviteToken(),
+          label: parsedLabel,
+          channel: bulkChannel,
+          plan_id: 'pro',
+          duration_days: durationDays,
+          max_redemptions: 1,
+          redeem_by: redeemBy,
+          expected_email: expectedEmail,
+          created_by: user?.id ?? null,
+        };
+      });
       const { error } = await (supabase as any).from('plan_invites').insert(rows);
       if (error) throw error;
-      setBulkResults(rows.map((r) => ({ label: r.label, url: inviteUrl(r.token) })));
+      setBulkResults(rows.map((r) => ({ label: r.label, url: inviteUrl(r.token), boundEmail: r.expected_email })));
       setBulkNames('');
       refresh();
       toast.success(`${rows.length} invite links created`);
@@ -224,11 +240,17 @@ export function InvitesPanel() {
             The link itself expires {REDEEM_WINDOW_HOURS}h after you create it — if they don't sign in by then, it's dead for everyone and you'll need to send a new one.
           </span>
         </p>
-        <div className="grid sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-end">
+        <div className="grid sm:grid-cols-2 gap-2">
           <div className="space-y-1">
             <Label className="text-xs">For (name — where you met)</Label>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Carlos Ruiz — LinkedIn" onKeyDown={(e) => { if (e.key === 'Enter') void create(); }} />
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Their email (optional — locks the invite to it)</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Known email → cold outreach. Blank → LinkedIn-style" onKeyDown={(e) => { if (e.key === 'Enter') void create(); }} />
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
           <div className="space-y-1">
             <Label className="text-xs">Channel</Label>
             <Select value={channel} onValueChange={setChannel}>
@@ -241,8 +263,8 @@ export function InvitesPanel() {
             <Input type="number" value={days} onChange={(e) => setDays(e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">People</Label>
-            <Input type="number" value={uses} onChange={(e) => setUses(e.target.value)} />
+            <Label className="text-xs">People{email.trim() && ' (locked to 1)'}</Label>
+            <Input type="number" value={uses} onChange={(e) => setUses(e.target.value)} disabled={!!email.trim()} />
           </div>
           <Button onClick={create} disabled={busy}>{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create & copy link'}</Button>
         </div>
@@ -262,7 +284,7 @@ export function InvitesPanel() {
         {bulkOpen && (
           <>
             <p className="text-sm text-muted-foreground">
-              One name per line — each gets its own one-person link. Every link is logged here the moment it's created, and moves to "redeemed" the moment that person signs in.
+              One line per person. Include an email to lock that invite to exactly that address (cold outreach — nobody else can activate it); leave it off for a LinkedIn-style link where the first verified email to sign in owns it. Every link is logged here the moment it's created, and moves to "redeemed" the moment that person signs in.
               <span className="block mt-1 text-amber-600 dark:text-amber-500">
                 Every link in this batch expires {REDEEM_WINDOW_HOURS}h from now — send them out right away. Anyone who misses the window needs a fresh link, not this one again.
               </span>
@@ -270,7 +292,7 @@ export function InvitesPanel() {
             <Textarea
               value={bulkNames}
               onChange={(e) => setBulkNames(e.target.value)}
-              placeholder={'Carlos Ruiz — LinkedIn post reply\nDana Kim — LinkedIn DM\nJordan Lee — LinkedIn comment\n…'}
+              placeholder={'Carlos Ruiz — LinkedIn post reply\nJane Doe <jane@company.com> — cold email\njohn@company.com\n…'}
               rows={6}
               className="font-mono text-sm"
             />
@@ -301,7 +323,7 @@ export function InvitesPanel() {
                 <div className="max-h-56 overflow-y-auto space-y-1 text-xs font-mono bg-muted/40 rounded p-2">
                   {bulkResults.map((r) => (
                     <div key={r.url} className="flex items-center justify-between gap-2">
-                      <span className="truncate">{r.label}</span>
+                      <span className="truncate">{r.label}{r.boundEmail && <span className="text-muted-foreground"> · locked to {r.boundEmail}</span>}</span>
                       <button
                         type="button"
                         className="text-primary hover:underline shrink-0"
@@ -349,6 +371,7 @@ export function InvitesPanel() {
                       <span className={new Date(i.redeem_by).getTime() < Date.now() && i.redeemed_count < i.max_redemptions ? 'text-destructive' : ''}>
                         {dayTime(i.redeem_by)}
                       </span>
+                      {i.expected_email && <span> · locked to {i.expected_email}</span>}
                     </div>
                   </TableCell>
                   <TableCell><Badge variant={st.variant}>{st.label}</Badge> {i.max_redemptions > 1 && <span className="text-xs text-muted-foreground">{i.redeemed_count}/{i.max_redemptions}</span>}</TableCell>
