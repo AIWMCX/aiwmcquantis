@@ -37,7 +37,7 @@ export default function Invite() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user, signOut } = useAuth();
   const { refetch } = useSubscription();
-  const [preview, setPreview] = useState<{ status: InvitePreviewStatus; duration_days: number | null } | null>(null);
+  const [preview, setPreview] = useState<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null } | null>(null);
   const [redeem, setRedeem] = useState<{ result: InviteRedeemResult; endsAt: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Explicit confirm before redeeming, not just "signed in" -- a stale
@@ -56,13 +56,13 @@ export default function Invite() {
   // Preview (works signed out).
   useEffect(() => {
     if (!valid) {
-      setPreview({ status: 'not_found', duration_days: null });
+      setPreview({ status: 'not_found', duration_days: null, redeem_by: null });
       return;
     }
     (supabase as any)
       .rpc('preview_plan_invite', { _token: token })
-      .then(({ data, error: e }: { data: Array<{ status: InvitePreviewStatus; duration_days: number | null }> | null; error: unknown }) => {
-        if (e || !data?.[0]) setPreview({ status: 'not_found', duration_days: null });
+      .then(({ data, error: e }: { data: Array<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null }> | null; error: unknown }) => {
+        if (e || !data?.[0]) setPreview({ status: 'not_found', duration_days: null, redeem_by: null });
         else setPreview(data[0]);
       });
   }, [valid, token]);
@@ -181,6 +181,17 @@ export default function Invite() {
       <>
         <ShieldCheck className="w-10 h-10 text-primary mx-auto mb-3" />
         <h1 className="text-2xl font-bold mb-2">You're invited: {days} days of Quantis Pro, free</h1>
+        {preview.redeem_by && (
+          <p className="text-sm font-medium text-amber-600 dark:text-amber-500 mb-3">
+            {(() => {
+              const msLeft = new Date(preview.redeem_by).getTime() - Date.now();
+              const hoursLeft = Math.max(0, Math.ceil(msLeft / 3_600_000));
+              return hoursLeft <= 1
+                ? 'This link expires within the hour — sign in now to lock in your Pro month.'
+                : `This link expires in about ${hoursLeft} hours — sign in now to lock in your Pro month.`;
+            })()}
+          </p>
+        )}
         <p className="text-sm text-muted-foreground mb-5">
           Quantis pressure-tests a real business decision: the assumptions it rests on, the cash it needs,
           break-even and payback, and which driver breaks it first. No card. Nothing renews automatically.

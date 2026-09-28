@@ -50,6 +50,15 @@ interface ActivityRow {
 
 const CHANNELS = ['linkedin', 'email', 'instagram', 'facebook', 'telegram', 'whop', 'referral', 'other'];
 
+// Commercial rule: a Pro invite link is a "claim it now" offer, not
+// something that sits open for a month. Unredeemed after this window, it
+// dies -- preview_plan_invite/redeem_plan_invite both refuse it as
+// 'expired' server-side, for anyone, including the original recipient.
+// A fresh link (single or bulk) is the only way to give that person
+// another chance.
+const REDEEM_WINDOW_HOURS = 24;
+const redeemByFromNow = () => new Date(Date.now() + REDEEM_WINDOW_HOURS * 3600_000).toISOString();
+
 function statusOf(i: InviteRow): { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' } {
   if (i.revoked_at) return { label: 'revoked', variant: 'destructive' };
   if (i.redeemed_count >= i.max_redemptions) return { label: 'redeemed', variant: 'default' };
@@ -58,6 +67,8 @@ function statusOf(i: InviteRow): { label: string; variant: 'default' | 'secondar
 }
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—');
+const dayTime = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
 
 async function copyLink(token: string) {
   try {
@@ -95,6 +106,9 @@ export function InvitesPanel() {
       if (error) throw error;
       return (data ?? []) as InviteRow[];
     },
+    // Waiting/expired status changes every hour on its own with a 24h
+    // redeem window, not just on user action -- keep the table live.
+    refetchInterval: 60_000,
   });
   const activityQuery = useQuery({
     queryKey: ['plan-invite-activity'],
@@ -123,6 +137,7 @@ export function InvitesPanel() {
         plan_id: 'pro',
         duration_days: Math.max(1, Math.min(365, Number(days) || 30)),
         max_redemptions: Math.max(1, Math.min(500, Number(uses) || 1)),
+        redeem_by: redeemByFromNow(),
         created_by: user?.id ?? null,
       });
       if (error) throw error;
@@ -147,6 +162,7 @@ export function InvitesPanel() {
     setBulkBusy(true);
     try {
       const durationDays = Math.max(1, Math.min(365, Number(bulkDays) || 30));
+      const redeemBy = redeemByFromNow();
       const rows = labels.map((l) => ({
         token: generateInviteToken(),
         label: l,
@@ -154,6 +170,7 @@ export function InvitesPanel() {
         plan_id: 'pro',
         duration_days: durationDays,
         max_redemptions: 1,
+        redeem_by: redeemBy,
         created_by: user?.id ?? null,
       }));
       const { error } = await (supabase as any).from('plan_invites').insert(rows);
@@ -203,6 +220,9 @@ export function InvitesPanel() {
         </div>
         <p className="text-sm text-muted-foreground">
           One link per person. They sign up with any email or Google and Pro is active immediately: no card, nothing renews, and the plan returns to free when the month ends.
+          <span className="block mt-1 text-amber-600 dark:text-amber-500">
+            The link itself expires {REDEEM_WINDOW_HOURS}h after you create it — if they don't sign in by then, it's dead for everyone and you'll need to send a new one.
+          </span>
         </p>
         <div className="grid sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-end">
           <div className="space-y-1">
@@ -243,6 +263,9 @@ export function InvitesPanel() {
           <>
             <p className="text-sm text-muted-foreground">
               One name per line — each gets its own one-person link. Every link is logged here the moment it's created, and moves to "redeemed" the moment that person signs in.
+              <span className="block mt-1 text-amber-600 dark:text-amber-500">
+                Every link in this batch expires {REDEEM_WINDOW_HOURS}h from now — send them out right away. Anyone who misses the window needs a fresh link, not this one again.
+              </span>
             </p>
             <Textarea
               value={bulkNames}
@@ -321,7 +344,12 @@ export function InvitesPanel() {
                 <TableRow key={i.id}>
                   <TableCell>
                     <div className="font-medium">{i.label}</div>
-                    <div className="text-xs text-muted-foreground">{i.channel ?? '—'} · created {day(i.created_at)} · redeem by {day(i.redeem_by)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {i.channel ?? '—'} · created {day(i.created_at)} · redeem by{' '}
+                      <span className={new Date(i.redeem_by).getTime() < Date.now() && i.redeemed_count < i.max_redemptions ? 'text-destructive' : ''}>
+                        {dayTime(i.redeem_by)}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell><Badge variant={st.variant}>{st.label}</Badge> {i.max_redemptions > 1 && <span className="text-xs text-muted-foreground">{i.redeemed_count}/{i.max_redemptions}</span>}</TableCell>
                   <TableCell className="text-xs">
