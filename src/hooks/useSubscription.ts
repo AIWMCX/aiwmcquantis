@@ -25,6 +25,8 @@ interface Subscription {
   current_period_start: string | null;
   current_period_end: string | null;
   trial_ends_at: string | null;
+  /** 'invite' | 'pending_grant' | 'admin' for a free (time-boxed) plan; null when paid. */
+  grant_source?: string | null;
 }
 
 interface UsageTracking {
@@ -46,6 +48,10 @@ interface SubscriptionData {
   isTrialing: boolean;
   trialEndsAt: string | null;
   trialDaysRemaining: number | null;
+  /** Free plan month (invite / grant): no card on file, ends at `complimentaryEndsAt`. */
+  isComplimentary: boolean;
+  complimentaryEndsAt: string | null;
+  complimentaryDaysRemaining: number | null;
   analysesUsed: number;
   analysesLimit: number;
   canAnalyze: boolean;
@@ -106,13 +112,24 @@ export function useSubscription(): SubscriptionData {
       // The RLS policy + view ensure Stripe IDs are never exposed
       // Order by updated_at DESC so if multiple rows exist we always get the latest.
       // Without ordering, Postgres can return any row — causing paid users to see FREE tier.
-      const { data: subRows, error: subError } = await supabase
-        .from('subscriptions')
-        .select('id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at')
-        .eq('user_id', user.id)
-        .in('status', ['active', 'trialing'])
-        .order('updated_at', { ascending: false })
-        .limit(5);
+      const querySubs = (columns: string) =>
+        supabase
+          .from('subscriptions')
+          .select(columns)
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .order('updated_at', { ascending: false })
+          .limit(5);
+      let { data: subRows, error: subError } = await querySubs(
+        'id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at, grant_source',
+      );
+      // grant_source arrives with migration 20260928120000; if the frontend
+      // ships first, fall back rather than showing every paid user as FREE.
+      if (subError?.code === '42703' || /grant_source/.test(subError?.message ?? '')) {
+        ({ data: subRows, error: subError } = await querySubs(
+          'id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at',
+        ));
+      }
 
       if (subError && subError.code !== 'PGRST116') {
         logger.error('Error fetching subscription:', subError);
@@ -120,7 +137,7 @@ export function useSubscription(): SubscriptionData {
       
       if (isMounted.current) {
         const rank = (planId?: string | null) => planId === 'pro' || planId === 'enterprise' ? 3 : planId === 'plus' ? 2 : 1;
-        const subData = (subRows ?? [])
+        const subData = ((subRows ?? []) as unknown as Subscription[])
           .slice()
           .sort((a, b) => rank(b.plan_id) - rank(a.plan_id))[0] ?? null;
         // Type assertion to match our safe Subscription interface (without Stripe IDs)
@@ -245,7 +262,12 @@ export function useSubscription(): SubscriptionData {
   // Master Spec v1.0 supports FREE | PLUS | PRO (enterprise → PRO).
   const planId = subscription?.plan_id || 'free';
   const status = subscription?.status || 'active';
-  const isActive = status === 'active' || status === 'trialing';
+  // Same rule as the server (resolveTier / tier-gate): an 'active' row past
+  // its own current_period_end is no longer a paid tier. Without this the UI
+  // kept showing Pro after a free month ended while the server returned 402.
+  const periodEnd = subscription?.current_period_end ?? null;
+  const periodExpired = status === 'active' && !!periodEnd && new Date(periodEnd).getTime() < Date.now();
+  const isActive = (status === 'active' || status === 'trialing') && !periodExpired;
   const isTrialing = status === 'trialing';
   const trialEndsAt = subscription?.trial_ends_at ?? null;
   const trialDaysRemaining = trialEndsAt
@@ -257,6 +279,11 @@ export function useSubscription(): SubscriptionData {
   const isPro = tier === 'PRO';
   const isPlus = tier === 'PLUS' || isPro; // Pro inherits Plus capabilities
   const isFree = tier === 'FREE';
+  const isComplimentary = !isFree && !!subscription?.grant_source;
+  const complimentaryEndsAt = isComplimentary ? periodEnd : null;
+  const complimentaryDaysRemaining = complimentaryEndsAt
+    ? Math.max(0, Math.ceil((new Date(complimentaryEndsAt).getTime() - Date.now()) / 86_400_000))
+    : null;
 
   const analysesUsed = usage?.analyses_count || 0;
   const monthlyLimit = manifest.monthly_analysis_limit;
@@ -337,6 +364,12 @@ export function useSubscription(): SubscriptionData {
 
     // SECURITY: Check subscription exists via plan_id (not stripe_customer_id which is hidden)
     // The portal edge function will verify Stripe customer server-side
+    // A free plan month has no Stripe customer to manage: send them to the
+    // Pro checkout instead of a portal that would answer "no customer".
+    if (subscription?.grant_source && subscription.plan_id !== 'free') {
+      await createCheckout(subscription.plan_id === 'plus' ? 'plus' : 'pro');
+      return;
+    }
     if (!subscription || subscription.plan_id === 'free') {
       toast({
         title: 'No Active Subscription',
@@ -385,6 +418,9 @@ export function useSubscription(): SubscriptionData {
     isTrialing,
     trialEndsAt,
     trialDaysRemaining,
+    isComplimentary,
+    complimentaryEndsAt,
+    complimentaryDaysRemaining,
     analysesUsed,
     analysesLimit,
     canAnalyze,

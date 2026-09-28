@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { PendingInviteRedirect } from "@/components/invite/PendingInviteRedirect";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
@@ -89,6 +90,7 @@ const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
 const ContentStudio = lazy(() => import("./pages/admin/ContentStudio"));
 const CommercialOps = lazy(() => import("./pages/admin/CommercialOps"));
 const BusinessInbox = lazy(() => import("./pages/admin/BusinessInbox"));
+const Invite = lazy(() => import("./pages/Invite"));
 const AiCosts = lazy(() => import("./pages/admin/AiCosts"));
 const EmailFunnel = lazy(() => import("./pages/admin/EmailFunnel"));
 const QocMonitor = lazy(() => import("./pages/admin/QocMonitor"));
@@ -153,6 +155,7 @@ const App = () => {
             <BrowserRouter>
             <SkipToContent />
             <FounderPromoBanner />
+            <PendingInviteRedirect />
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public routes */}
@@ -182,6 +185,7 @@ const App = () => {
                 <Route path="/research" element={<Research />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/trial" element={<TrialPage />} />
+                <Route path="/invite/:token" element={<Invite />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />
                 <Route path="/status" element={<Status />} />
                 <Route path="/state-of-quantis" element={<StateOfQuantis />} />

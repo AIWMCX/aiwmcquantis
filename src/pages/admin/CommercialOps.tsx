@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2, Handshake, CheckCircle2, XCircle, Copy, Mail, Send, Upload, Sparkles } from 'lucide-react';
 import { parseProspectCsv, sequenceDue, SEQUENCE_DAYS } from '@/lib/commercial-ops';
+import { InvitesPanel } from '@/components/admin/InvitesPanel';
 
 // Loose row shapes -- the generated Supabase types haven't been regenerated
 // for the commercial tables yet (same situation useFirstExperienceDemoState.ts
@@ -288,6 +289,7 @@ export default function CommercialOps() {
               Sent &amp; replies {dueFollowups.length > 0 && <Badge variant="secondary" className="ml-1">{dueFollowups.length} due</Badge>}
             </TabsTrigger>
             <TabsTrigger value="prospects">Prospects ({prospects.length})</TabsTrigger>
+            <TabsTrigger value="invites">Pro invites</TabsTrigger>
             <TabsTrigger value="foundation">Foundation</TabsTrigger>
           </TabsList>
 
@@ -495,6 +497,11 @@ export default function CommercialOps() {
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
+
+          {/* ── Pro invites ───────────────────────────────────────── */}
+          <TabsContent value="invites" className="mt-4">
+            <InvitesPanel />
           </TabsContent>
 
           {/* ── Prospects ─────────────────────────────────────────── */}
