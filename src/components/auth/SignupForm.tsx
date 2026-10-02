@@ -41,7 +41,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
-  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [formStartTime, setFormStartTime] = useState<number | null>(null);
   const isMobile = useIsMobile();
@@ -131,49 +130,61 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       // Supabase's documented anti-enumeration behavior: signUp() against an
       // email that already has a CONFIRMED account returns 200 with a fake
       // user object whose identities array is empty, and sends no email at
-      // all -- there's nothing to confirm. Left undetected, this form told
-      // that person "Account created, check your email" for an email that
-      // was never sent, which is exactly the kind of silent, unexplained
-      // dead end a real invitee (or anyone reusing an old address) hits with
-      // zero way to recover on their own.
-      if (authData.user && authData.user.identities?.length === 0) {
+      // all -- there's nothing to confirm. This used to be invisible to the
+      // UI, which just claimed "Account created, check your email" either
+      // way -- a lie for this case, since no email goes out.
+      //
+      // The fix is NOT a distinct "you already have an account" screen --
+      // an earlier version of this fix did that and a security review
+      // correctly flagged it: showing a different message for this case
+      // than for a genuine new signup lets anyone probe whether an email
+      // is registered, which is exactly what Supabase's fake-success
+      // response is designed to prevent. So the single screen below is
+      // worded to be true in both cases (new confirmation sent, or
+      // nothing to send because the account already exists) and always
+      // offers the same "sign in instead" escape hatch -- no branch, no
+      // signal leaked, no false claim either.
+      const existingConfirmedAccount = !!authData.user && authData.user.identities?.length === 0;
+      if (existingConfirmedAccount) {
         trackEvent('signup_error', { reason: 'email_exists' });
-        setSubmittedEmail(data.email);
-        setAlreadyRegistered(true);
-        setIsLoading(false);
-        return;
       }
 
-      if (leadConversion) {
-        trackEvent('lead_converted_to_signup', {
-          source: savedLead?.source,
-          days_to_convert: savedLead ? Math.floor((Date.now() - new Date(savedLead.timestamp).getTime()) / (1000 * 60 * 60 * 24)) : 0,
-        });
+      // None of the below claims a new account was created -- only track
+      // and clear lead/analytics state for an actual new signup, not for
+      // the existing-confirmed-account response the branch above detected.
+      if (!existingConfirmedAccount) {
+        if (leadConversion) {
+          trackEvent('lead_converted_to_signup', {
+            source: savedLead?.source,
+            days_to_convert: savedLead ? Math.floor((Date.now() - new Date(savedLead.timestamp).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+          });
+        }
+
+        // Domain 9 audit: signUp() can return a non-error response for a
+        // retry against an already-pending, unconfirmed email — it just
+        // resends the confirmation email rather than creating a new
+        // account. Confirmed directly: one real session fired
+        // free_signup_complete 3 times over 15 minutes with no account
+        // ever created (three resubmits while waiting for the
+        // confirmation email). This guard fires the event at most once
+        // per email per browser session, regardless of how many times
+        // the form is resubmitted for the same address.
+        const signupTrackedKey = `aiwmc_signup_tracked_${data.email.toLowerCase()}`;
+        if (!sessionStorage.getItem(signupTrackedKey)) {
+          sessionStorage.setItem(signupTrackedKey, '1');
+          trackSignup('email');
+        }
+        trackSimplifiedFormConversion('verified_email_v1', timeToSubmit);
+
+        if (isMobile && timeToSubmit) {
+          trackMobileSignupCompleted(timeToSubmit);
+        }
+
+        clearLeadData();
       }
 
-      // Domain 9 audit: signUp() can return a non-error response for a retry
-      // against an already-pending, unconfirmed email — it just resends the
-      // confirmation email rather than creating a new account. Confirmed
-      // directly: one real session fired free_signup_complete 3 times over
-      // 15 minutes with no account ever created (three resubmits while
-      // waiting for the confirmation email). This guard fires the event at
-      // most once per email per browser session, regardless of how many
-      // times the form is resubmitted for the same address.
-      const signupTrackedKey = `aiwmc_signup_tracked_${data.email.toLowerCase()}`;
-      if (!sessionStorage.getItem(signupTrackedKey)) {
-        sessionStorage.setItem(signupTrackedKey, '1');
-        trackSignup('email');
-      }
-      trackSimplifiedFormConversion('verified_email_v1', timeToSubmit);
-
-      if (isMobile && timeToSubmit) {
-        trackMobileSignupCompleted(timeToSubmit);
-      }
-
-      clearLeadData();
       setSubmittedEmail(data.email);
       setSignupComplete(true);
-      toast.success('Account created. Check your email to verify it.');
 
       if (onSuccess) {
         onSuccess();
@@ -206,32 +217,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     }
   };
 
-  if (alreadyRegistered) {
-    return (
-      <div className={cn('text-center space-y-6 py-8', className)}>
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/20">
-          <Lock className="w-8 h-8 text-amber-600" />
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-foreground">You already have an account</h3>
-          <p className="text-muted-foreground">
-            <span className="font-medium text-foreground">{submittedEmail}</span> is already registered — no new email was sent.
-          </p>
-        </div>
-
-        <div className="pt-2 space-y-3">
-          <Button onClick={() => navigate(`/auth?email=${encodeURIComponent(submittedEmail)}&mode=login`)} className="w-full">
-            Sign in instead
-          </Button>
-          <Button variant="outline" onClick={() => setAlreadyRegistered(false)} className="w-full">
-            Use a different email
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   if (signupComplete) {
     return (
       <div className={cn('text-center space-y-6 py-8', className)}>
@@ -240,21 +225,16 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-foreground">Check Your Email</h3>
-          <p className="text-muted-foreground">We sent a verification link to</p>
+          <h3 className="text-xl font-semibold text-foreground">Check your email, or sign in</h3>
+          <p className="text-muted-foreground">
+            If <span className="font-medium text-foreground">{submittedEmail}</span> is new, we've sent a verification link —
+            click it to activate your account. Already have an account with that email? Just sign in below.
+          </p>
         </div>
 
-        <p className="text-sm font-medium text-foreground bg-muted px-4 py-2 rounded-lg inline-block">
-          {submittedEmail}
-        </p>
-
-        <p className="text-sm text-muted-foreground">
-          Click the verification link before signing in. Your account and any pre-granted plan will remain ready for you.
-        </p>
-
         <div className="pt-2 space-y-3">
-          <Button onClick={() => navigate(`/auth?email=${encodeURIComponent(submittedEmail)}&verified=1`)} className="w-full">
-            Go to Sign In
+          <Button onClick={() => navigate(`/auth?email=${encodeURIComponent(submittedEmail)}&mode=login`)} className="w-full">
+            Sign in
           </Button>
           <Button variant="outline" onClick={resendVerification} disabled={isResending} className="w-full">
             {isResending ? (
@@ -266,7 +246,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
               'Resend Verification Email'
             )}
           </Button>
-          <p className="text-xs text-muted-foreground">Check Spam or Promotions if it is not in your inbox.</p>
+          <p className="text-xs text-muted-foreground">If you're expecting a new-account email, check Spam or Promotions too.</p>
         </div>
       </div>
     );
