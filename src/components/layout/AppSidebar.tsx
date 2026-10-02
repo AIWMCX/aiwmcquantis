@@ -48,7 +48,6 @@ interface NavItem {
   url: string;
   icon: React.ElementType;
   adminOnly?: boolean;
-  contentAdminOnly?: boolean;
   external?: boolean;
   badge?: string;
   flag?: 'service_job' | 'commercial_workflow';
@@ -120,8 +119,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ADMIN',
     items: [
-      { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, contentAdminOnly: true },
-      { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, contentAdminOnly: true },
+      { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, adminOnly: true },
+      { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
       { title: 'Commercial Ops', url: '/admin/commercial', icon: Handshake, adminOnly: true, flag: 'commercial_workflow' },
       { title: 'Business Inbox', url: '/admin/inbox', icon: Inbox, adminOnly: true },
     ],
@@ -160,7 +159,7 @@ export function AppSidebar() {
       return !open;
     });
   const { isPlus, isPro } = useSubscription();
-  const { isAdmin, isContentAdmin } = useAdmin();
+  const { isAdmin } = useAdmin();
 
   const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
   const resolveUrl = (url: string) => url.replace('__settings__', settingsPath);
@@ -262,7 +261,6 @@ export function AppSidebar() {
             const visibleItems = section.items.filter(
               (item) =>
                 (!item.adminOnly || isAdmin) &&
-                (!item.contentAdminOnly || isContentAdmin) &&
                 (!item.flag || isEnabled(item.flag))
             );
             if (visibleItems.length === 0) return null;

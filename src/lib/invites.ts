@@ -9,6 +9,7 @@
  */
 
 const STORAGE_KEY = 'quantis_pending_invite_v1';
+const MAGIC_ENTRY_KEY = 'quantis_magic_link_entry_v1';
 const TOKEN_RE = /^[A-Za-z0-9_-]{12,64}$/;
 
 export type InvitePreviewStatus = 'valid' | 'used' | 'expired' | 'revoked' | 'not_found';
@@ -21,7 +22,8 @@ export type InviteRedeemResult =
   | 'expired'
   | 'revoked'
   | 'not_found'
-  | 'not_signed_in';
+  | 'not_signed_in'
+  | 'wrong_email';
 
 export function isValidInviteToken(token: string | null | undefined): token is string {
   return !!token && TOKEN_RE.test(token);
@@ -55,6 +57,29 @@ export function forgetInvite(): void {
   } catch { /* ignore */ }
 }
 
+/**
+ * A passwordless (magic-link) entry never set a password, so there's
+ * nothing to log back in with next time except another email round
+ * trip. Marked right before the link is sent, consumed once on the
+ * invite's "granted" screen to offer setting one -- optional, so
+ * skipping it costs nothing and never blocks the free month itself.
+ */
+export function markMagicLinkEntry(): void {
+  try {
+    localStorage.setItem(MAGIC_ENTRY_KEY, '1');
+  } catch { /* ignore */ }
+}
+
+export function consumeMagicLinkEntry(): boolean {
+  try {
+    const was = localStorage.getItem(MAGIC_ENTRY_KEY) === '1';
+    localStorage.removeItem(MAGIC_ENTRY_KEY);
+    return was;
+  } catch {
+    return false;
+  }
+}
+
 /** 22-char URL-safe random token (~131 bits). */
 export function generateInviteToken(): string {
   const bytes = new Uint8Array(16);
@@ -66,6 +91,24 @@ export function generateInviteToken(): string {
 
 export function inviteUrl(token: string, origin = 'https://aiwmcquantis.com'): string {
   return `${origin}/invite/${token}`;
+}
+
+const EMAIL_RE = /[^\s<>]+@[^\s<>]+\.[^\s<>]+/;
+
+/**
+ * Pulls an email address out of a bulk-invite line, if there is one, so
+ * one paste can mix known-email rows (cold outreach -- gets bound to
+ * that exact address) with label-only rows (LinkedIn -- first verified
+ * email to redeem it owns it). "Jane Doe <jane@co.com>" or a bare
+ * "jane@co.com" both work; anything left over after removing the email
+ * becomes the label, falling back to the email itself.
+ */
+export function parseInviteLine(line: string): { label: string; expectedEmail: string | null } {
+  const match = line.match(EMAIL_RE);
+  if (!match) return { label: line.trim(), expectedEmail: null };
+  const email = match[0].toLowerCase();
+  const label = line.replace(match[0], '').replace(/[<>]/g, '').trim();
+  return { label: label || email, expectedEmail: email };
 }
 
 /** What the invitee sees for each server answer. */
@@ -87,6 +130,8 @@ export function redeemMessage(result: InviteRedeemResult, endsAt: string | null)
       return { ok: false, title: 'This invite is no longer active', body: 'Ask the person who sent it for a new link.' };
     case 'not_found':
       return { ok: false, title: "We couldn't find this invite", body: 'Check that the whole link was copied, or ask for a new one.' };
+    case 'wrong_email':
+      return { ok: false, title: 'This invite is for a different email', body: 'This link was sent to a specific address. Sign in or sign up with that exact email to activate it.' };
     default:
       return { ok: false, title: 'Please sign in', body: 'Sign in or create a free account to activate your invite.' };
   }

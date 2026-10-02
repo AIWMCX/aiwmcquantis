@@ -48,6 +48,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const savedLead = getSavedLead();
   const emailFromUrl = searchParams.get('email');
   const prefillEmail = emailFromUrl ? decodeURIComponent(emailFromUrl) : savedLead?.email || '';
+  const returnUrl = searchParams.get('returnUrl') || undefined;
 
   const {
     register,
@@ -104,7 +105,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         time_to_submit_ms: timeToSubmit,
       });
 
-      const { data: authData, error } = await signUp(data.email, data.password);
+      const { data: authData, error } = await signUp(data.email, data.password, undefined, undefined, returnUrl);
 
       if (error) {
         toast.error('Unable to create account. Please check your information and try again.');
@@ -203,7 +204,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     setIsResending(true);
 
     try {
-      const { error } = await resendSignupConfirmation(submittedEmail);
+      const { error } = await resendSignupConfirmation(submittedEmail, returnUrl);
       if (error) {
         toast.error('Unable to resend the verification email. Please wait and try again.');
         trackEvent('verification_resend_failed', { reason: error.message });
@@ -233,7 +234,12 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         </div>
 
         <div className="pt-2 space-y-3">
-          <Button onClick={() => navigate(`/auth?email=${encodeURIComponent(submittedEmail)}&mode=login`)} className="w-full">
+          <Button
+            onClick={() => navigate(
+              `/auth?email=${encodeURIComponent(submittedEmail)}&mode=login${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`
+            )}
+            className="w-full"
+          >
             Sign in
           </Button>
           <Button variant="outline" onClick={resendVerification} disabled={isResending} className="w-full">

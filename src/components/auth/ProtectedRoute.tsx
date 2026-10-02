@@ -7,18 +7,14 @@ import { Loader2 } from 'lucide-react';
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
-  // Scoped gate: full admins pass automatically; AIWMCSRM@gmail.com and
-  // jjbalaganvasya@gmail.com pass via the separate content_admin role
-  // without gaining requireAdmin routes. See useAdmin()/is_content_admin_allowlisted().
-  requireContentAdmin?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false, requireContentAdmin = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const location = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { isAdmin, isContentAdmin, isLoading: adminLoading } = useAdmin();
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
 
-  const needsRoleCheck = requireAdmin || requireContentAdmin;
+  const needsRoleCheck = requireAdmin;
 
   // Show loading state while checking authentication
   if (authLoading || (needsRoleCheck && adminLoading)) {
@@ -41,11 +37,6 @@ export function ProtectedRoute({ children, requireAdmin = false, requireContentA
 
   // Redirect non-admin users trying to access admin routes
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/app" replace />;
-  }
-
-  // Redirect users with neither full admin nor the scoped content_admin role
-  if (requireContentAdmin && !isContentAdmin) {
     return <Navigate to="/app" replace />;
   }
 
