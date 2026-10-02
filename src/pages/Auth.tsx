@@ -25,6 +25,16 @@ export default function Auth() {
   const checkoutTriggered = useRef(false);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  // Controlled, not Tabs' own defaultValue: navigating here from a child
+  // (e.g. "Sign in instead" on the signup form) changes the URL's mode
+  // param without remounting this page, since it's the same route --
+  // defaultValue is only read once at mount and would silently keep
+  // showing whichever tab loaded first, stranding the visitor on the
+  // wrong tab after they explicitly asked to switch.
+  const [activeTab, setActiveTab] = useState<'signup' | 'login'>(searchParams.get('mode') === 'login' ? 'login' : 'signup');
+  useEffect(() => {
+    setActiveTab(searchParams.get('mode') === 'login' ? 'login' : 'signup');
+  }, [searchParams]);
 
   // Track page view
   useEffect(() => {
@@ -216,7 +226,7 @@ export default function Auth() {
             </div>
 
             <Card className="w-full">
-              <Tabs defaultValue={searchParams.get('mode') === 'login' ? 'login' : 'signup'}>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'signup' | 'login')}>
                 <CardHeader className="pb-4">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="signup">Sign Up</TabsTrigger>
