@@ -30,6 +30,7 @@ import { computeCanonicalResultHash, computeEvidenceHash, computeReviewCacheKey 
 import { TypesafeJevProvider } from '../_shared/decision-review/jev-provider.ts';
 import { QuantisInternalTestProvider, type FixtureBehavior } from '../_shared/decision-review/quantis-internal-test-provider.ts';
 import { logDecisionReviewEvent } from '../_shared/decision-review/telemetry.ts';
+import { reconcileDecision, type ConsensusResult } from '../_shared/decision-review/consensus-policy.ts';
 
 const FUNCTION_NAME = 'review-decision';
 const FUNCTION_VERSION = '1.0.0';
@@ -114,6 +115,32 @@ Deno.serve(async (req) => {
     const canonicalResultHash = await computeCanonicalResultHash(analysis_id, metrics);
     const packet = buildDecisionPacket({ canonicalResultHash, result });
     const evidenceHash = await computeEvidenceHash(packet.evidence);
+    // The backend's canonical verdict (investment-verdict.ts), never the
+    // frontend's independent computeVerdict() classifier — see
+    // VERIFICATION_AUTHORITY_MATRIX.md's note on that second surface.
+    const quantisDecision = typeof result?.verdict === 'string' ? result.verdict : 'MEDIUM_RISK';
+    const criticalAssumptionLabel = packet.criticalAssumptions[0]?.label ?? null;
+
+    const persistConsensus = async (reviewOutcome: Parameters<typeof reconcileDecision>[0]['reviewOutcome'], decisionReviewId: string | null): Promise<ConsensusResult> => {
+      const consensus = reconcileDecision({ quantisDecision, integrity: packet.integrity, criticalAssumptionLabel, reviewOutcome });
+      const { error: consensusInsertError } = await adminClient.from('decision_consensus_runs').insert({
+        analysis_id,
+        decision_review_id: decisionReviewId,
+        policy_version: consensus.policyVersion,
+        quantis_decision: quantisDecision,
+        independent_decision: reviewOutcome.status === 'completed' ? reviewOutcome.review.recommendedState : null,
+        consensus_state: consensus.consensusState,
+        agreement: consensus.agreement,
+        reason_codes: consensus.reasonCodes,
+        critical_assumption: consensus.criticalAssumption,
+        next_validation_action: consensus.nextValidationAction,
+        canonical_result_hash: canonicalResultHash,
+      });
+      if (consensusInsertError) {
+        log.error('Failed to persist decision consensus run:', consensusInsertError);
+      }
+      return consensus;
+    };
 
     const reviewerModelLabel = provider === 'typesafe_jev' ? 'typesafe-jev-systemone' : 'fixture-v1';
     const reviewCacheKey = await computeReviewCacheKey({
@@ -140,7 +167,14 @@ Deno.serve(async (req) => {
         latencyMs: 0,
         ok: true,
       });
-      return jsonResponse({ cached: true, review: existing }, 200, corsHeaders);
+      // Recompute consensus from the cached review rather than persisting a
+      // duplicate run — a cache hit means nothing material changed.
+      const cachedOutcome: Parameters<typeof reconcileDecision>[0]['reviewOutcome'] =
+        existing.status === 'completed'
+          ? { status: 'completed', review: existing.review_payload }
+          : { status: 'unavailable', reason: existing.error_code, detail: existing.error_detail ?? '' };
+      const consensus = reconcileDecision({ quantisDecision, integrity: packet.integrity, criticalAssumptionLabel, reviewOutcome: cachedOutcome });
+      return jsonResponse({ cached: true, review: existing, consensus }, 200, corsHeaders);
     }
 
     await logDecisionReviewEvent(adminClient, {
@@ -178,22 +212,28 @@ Deno.serve(async (req) => {
         error: `${outcome.reason}: ${outcome.detail}`,
       });
 
-      await adminClient.from('decision_reviews').insert({
-        analysis_id,
-        user_id: userId,
-        provider,
-        provider_model: reviewerModelLabel,
-        review_version: DECISION_REVIEW_VERSION,
-        review_cache_key: reviewCacheKey,
-        canonical_result_hash: canonicalResultHash,
-        input_hash: canonicalResultHash,
-        status: 'unavailable',
-        error_code: outcome.reason,
-        error_detail: outcome.detail,
-      });
+      const { data: unavailableRow } = await adminClient
+        .from('decision_reviews')
+        .insert({
+          analysis_id,
+          user_id: userId,
+          provider,
+          provider_model: reviewerModelLabel,
+          review_version: DECISION_REVIEW_VERSION,
+          review_cache_key: reviewCacheKey,
+          canonical_result_hash: canonicalResultHash,
+          input_hash: canonicalResultHash,
+          status: 'unavailable',
+          error_code: outcome.reason,
+          error_detail: outcome.detail,
+        })
+        .select('id')
+        .single();
+
+      const consensus = await persistConsensus(outcome, unavailableRow?.id ?? null);
 
       log.info(`Decision review unavailable for analysis=${analysis_id}: ${outcome.reason}`);
-      return jsonResponse({ status: 'unavailable', reason: outcome.reason, detail: outcome.detail }, 200, corsHeaders);
+      return jsonResponse({ status: 'unavailable', reason: outcome.reason, detail: outcome.detail, consensus }, 200, corsHeaders);
     }
 
     const review = outcome.review;
@@ -228,6 +268,8 @@ Deno.serve(async (req) => {
       log.error('Failed to persist decision review:', insertError);
     }
 
+    const consensus = await persistConsensus(outcome, inserted?.id ?? null);
+
     await logDecisionReviewEvent(adminClient, {
       event: 'decision_review_completed',
       userId,
@@ -238,8 +280,8 @@ Deno.serve(async (req) => {
       costUsd: review.costUsd,
     });
 
-    log.info(`Decision review completed for analysis=${analysis_id}: ${review.recommendedState}`);
-    return jsonResponse({ cached: false, review: inserted ?? review }, 200, corsHeaders);
+    log.info(`Decision review completed for analysis=${analysis_id}: ${review.recommendedState}, consensus=${consensus.consensusState}`);
+    return jsonResponse({ cached: false, review: inserted ?? review, consensus }, 200, corsHeaders);
   } catch (error) {
     log.error('review-decision error:', error);
     return jsonResponse({ error: 'Internal server error' }, 500, corsHeadersFor(req));
