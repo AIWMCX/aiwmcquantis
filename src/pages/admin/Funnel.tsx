@@ -33,10 +33,25 @@ const SOW_EVENTS = [
 // measures post-analysis engagement depth, not top-of-funnel acquisition.
 const ACTIVATION_LADDER_EVENTS = [
   { key: 'verdict_viewed', label: 'Verdict viewed' },
+  { key: 'driver_inspected', label: 'Driver inspected' },
   { key: 'scenario_compared', label: 'Scenario compared' },
   { key: 'assumption_changed', label: 'Assumption changed' },
   { key: 'upgrade_cta_seen', label: 'Upgrade CTA seen' },
   { key: 'paid_checkout_start', label: 'Paid checkout start' },
+  { key: 'subscription_activated', label: 'Subscription activated' },
+] as const;
+
+// JEV decision-intelligence (2026-10-03): a separate row rather than folded
+// into ACTIVATION_LADDER_EVENTS above -- these only exist for founder/admin
+// accounts while decision_review_v1 is off (see
+// docs/decision-intelligence/), so mixing them into the real-user ladder
+// would understate every stage's conversion by diluting the denominator
+// with founder testing activity. Kept visible here so there's at least
+// shadow-mode usage data once the panel starts getting used.
+const INDEPENDENT_REVIEW_EVENTS = [
+  { key: 'decision_breakpoint_viewed', label: 'Breakpoint viewed' },
+  { key: 'independent_review_viewed', label: 'Independent review viewed' },
+  { key: 'decision_consensus_viewed', label: 'Consensus viewed' },
 ] as const;
 
 type Row = {
@@ -44,6 +59,7 @@ type Row = {
   total_events: number;
   unique_sessions: number;
   unique_users: number;
+  unique_analyses: number;
   first_seen: string | null;
   last_seen: string | null;
 };
@@ -132,6 +148,12 @@ export default function AdminFunnel() {
       <header className="mt-10 mb-6">
         <h2 className="text-xl font-bold">Activation ladder — post-analysis engagement</h2>
         <p className="text-sm text-muted-foreground mt-1">
+          <strong>Analyses</strong> below counts distinct analysis_id values carried in each
+          event's metadata — a third denominator alongside sessions/users, never mixed with
+          either. Not every event stamps an analysis_id, so it reads lower there, honestly,
+          rather than estimated.
+        </p>
+        <p className="text-sm text-muted-foreground mt-1">
           Same <code>funnel_events</code> sink, different question: of the sessions that saw a
           verdict, how many actually engage before converting or leaving? Conversion percentages
           here are stage-vs-verdict-viewed, not stage-vs-home — home_view is the wrong baseline
@@ -162,7 +184,46 @@ export default function AdminFunnel() {
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {(row?.total_events ?? 0).toLocaleString()} total ·{' '}
-                      {(row?.unique_users ?? 0).toLocaleString()} users
+                      {(row?.unique_users ?? 0).toLocaleString()} users ·{' '}
+                      {(row?.unique_analyses ?? 0).toLocaleString()} analyses
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <header className="mt-10 mb-6">
+        <h2 className="text-xl font-bold">Independent review (founder/admin-only preview)</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          JEV decision-intelligence shadow mode (<code>docs/decision-intelligence/</code>). These
+          events currently only fire for admin accounts testing the panel in{' '}
+          <code>DecisionSummary.tsx</code> — not yet real-user traffic — kept separate from the
+          ladder above so it never dilutes a real conversion denominator.
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {INDEPENDENT_REVIEW_EVENTS.map(({ key, label }) => {
+          const row = byEvent.get(key);
+          return (
+            <Card key={key}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {rows === null ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold">{(row?.unique_sessions ?? 0).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      sessions · {(row?.unique_users ?? 0).toLocaleString()} users ·{' '}
+                      {(row?.unique_analyses ?? 0).toLocaleString()} analyses
                     </div>
                   </>
                 )}
@@ -193,6 +254,16 @@ export default function AdminFunnel() {
             <code>AccuracyTransparentResults.tsx</code> and have been persisting since
             migration <code>20260721184551_add_activation_ladder_events</code> widened
             the canonical-name allowlist — this page previously never rendered them.
+          </p>
+          <p>
+            This page itself existed in the repo but was never routed, and the two views it
+            reads (<code>funnel_summary_30d</code>/<code>funnel_daily_30d</code>) did not exist
+            in production despite being defined in an early migration — both fixed 2026-10-03
+            (migration <code>20261003140000_restore_funnel_summary_views</code>). The views now
+            run with <code>security_invoker</code> so a non-admin authenticated user reading
+            them directly gets the same zero rows <code>funnel_events</code>&apos; own RLS
+            already gives them, rather than the aggregate counts the original definition's plain
+            grant would have exposed.
           </p>
         </CardContent>
       </Card>
