@@ -9,11 +9,16 @@
 -- kept in its own migration so this diff stays reviewable per phase, per
 -- docs/decision-intelligence/JEV_IMPLEMENTATION_DECISION.md.
 
+-- NOTE: production's live constraint already includes 'dahl' (added by a
+-- later migration than the one this repo snapshot shows at
+-- 20260713055333_ai_calls_cost_ledger_with_deepseek.sql) — confirmed via
+-- pg_get_constraintdef before writing this ALTER, so the widen below is
+-- additive to the REAL current set, not a narrowing regression.
 ALTER TABLE public.ai_calls
   DROP CONSTRAINT IF EXISTS ai_calls_provider_check;
 ALTER TABLE public.ai_calls
   ADD CONSTRAINT ai_calls_provider_check
-  CHECK (provider IN ('anthropic', 'lovable_gateway', 'deepseek', 'typesafe_jev', 'quantis_internal_test'));
+  CHECK (provider IN ('anthropic', 'lovable_gateway', 'deepseek', 'dahl', 'typesafe_jev', 'quantis_internal_test'));
 
 CREATE TABLE IF NOT EXISTS public.decision_reviews (
   id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
