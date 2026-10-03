@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
 // Scenario workspace tables (scenario_sets/versions/runs, analyses.scenario_base_input)
@@ -110,6 +111,14 @@ export default function ScenarioWorkspace() {
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get('analysisId');
   const setId = searchParams.get('setId');
+  // Phase E scenario handoff: DecisionSummary's "What breaks first" links
+  // here with ?focusAssumption=<key> for the single assumption it already
+  // identified as the critical driver -- auto-runs that one breakpoint
+  // search and scrolls/highlights it, instead of landing the user on a
+  // blank builder they'd have to re-derive the same driver in.
+  const focusAssumptionParam = searchParams.get('focusAssumption');
+  const [highlightKey, setHighlightKey] = useState<ScenarioAssumptionKey | null>(null);
+  const autoBreakpointFired = useRef(false);
   const { hasFeature, tier, getLimit } = useEntitlements();
 
   const [baseAvailable, setBaseAvailable] = useState<boolean | null>(null);
@@ -306,6 +315,26 @@ export default function ScenarioWorkspace() {
       setSolvingKey(null);
     }
   };
+
+  useEffect(() => {
+    if (autoBreakpointFired.current) return;
+    if (!analysisId || baseAvailable !== true) return;
+    const key = focusAssumptionParam as ScenarioAssumptionKey | null;
+    if (!key || !(key in ASSUMPTION_LABELS)) return;
+    autoBreakpointFired.current = true;
+    setHighlightKey(key);
+    (async () => {
+      try {
+        await ensureScenarioSet();
+      } catch {
+        // No scenario set yet and none could be created -- handleFindBreakpoint
+        // only needs analysisId (it's a pure read+compute call), so still try it.
+      }
+      handleFindBreakpoint(key);
+      document.getElementById(`assumption-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisId, baseAvailable, focusAssumptionParam]);
 
   const handleSave = async () => {
     if (!analysisId) return;
@@ -635,9 +664,21 @@ export default function ScenarioWorkspace() {
               {(Object.keys(ASSUMPTION_LABELS) as ScenarioAssumptionKey[]).map((key) => {
                 const originInfo = preview?.output.assumption_origins?.[key];
                 return (
-                <div key={key}>
+                <div
+                  key={key}
+                  id={`assumption-${key}`}
+                  className={cn(
+                    'rounded-md transition-shadow',
+                    highlightKey === key && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+                  )}
+                >
                   <div className="flex items-center gap-1.5 flex-wrap mb-1">
                     <Label htmlFor={key} className="mb-0">{ASSUMPTION_LABELS[key]} (% change)</Label>
+                    {highlightKey === key && (
+                      <Badge variant="default" className="text-[10px] px-1.5 py-0 font-normal">
+                        From your decision summary
+                      </Badge>
+                    )}
                     {originInfo && (
                       <Badge
                         variant={originInfo.origin === 'USER_ACTUAL' ? 'default' : originInfo.origin === 'PLACEHOLDER' ? 'destructive' : 'secondary'}

@@ -93,6 +93,7 @@ const BusinessInbox = lazy(() => import("./pages/admin/BusinessInbox"));
 const Invite = lazy(() => import("./pages/Invite"));
 const AiCosts = lazy(() => import("./pages/admin/AiCosts"));
 const EmailFunnel = lazy(() => import("./pages/admin/EmailFunnel"));
+const AdminFunnel = lazy(() => import("./pages/admin/Funnel"));
 const QocMonitor = lazy(() => import("./pages/admin/QocMonitor"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 const EmailConfirmed = lazy(() => import("./pages/EmailConfirmed"));
@@ -401,6 +402,11 @@ const App = () => {
                 <Route path="/admin/email-funnel" element={
                   <ProtectedRoute requireAdmin>
                     <EmailFunnel />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/funnel" element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminFunnel />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/qoc" element={

@@ -1,8 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { SimpleMetricCard } from './SimpleMetricCard';
 import { ContinueDecisionActions } from './ContinueDecisionActions';
+import { IndependentReviewPanel } from './IndependentReviewPanel';
+import { useAdmin } from '@/hooks/useAdmin';
+import type { ScenarioAssumptionKey } from '@/services/scenario-sets-api';
+
+/**
+ * Phase E: maps a tornado/criticalPath assumption label (assumption-graph.ts's
+ * TORNADO_TO_NODE node labels, the only vocabulary "what breaks first" ever
+ * uses when source === 'assumption_graph') onto the Scenario Workspace's own
+ * assumption keys. 'COGS %' has no scenario-assumption equivalent and is
+ * deliberately left unmapped rather than guessed -- those items render
+ * without a "Test this assumption" handoff.
+ */
+const TORNADO_LABEL_TO_SCENARIO_KEY: Partial<Record<string, ScenarioAssumptionKey>> = {
+  'Price (Avg Check)': 'average_price',
+  'Customer Count': 'expected_customers',
+  'CAC': 'cac',
+  'Churn Rate': 'churn_rate',
+  'Fixed Costs': 'monthly_costs',
+};
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 import { breakEvenMonthsLabel } from '@/lib/break-even';
@@ -58,6 +78,13 @@ function fmtUsd(n: number): string {
 export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }: DecisionSummaryProps) {
   const verdict = useMemo(() => computeVerdict(result), [result]);
   const fa = result.financial_analysis;
+  const { isAdmin } = useAdmin();
+  const navigate = useNavigate();
+
+  function testAssumption(scenarioKey: ScenarioAssumptionKey, assumptionLabel: string) {
+    recordFunnelEvent('decision_breakpoint_viewed', { analysis_id: analysisId, assumption: assumptionLabel });
+    navigate(`/app/scenarios?analysisId=${analysisId}&focusAssumption=${scenarioKey}`);
+  }
 
   // ── Telemetry: result_rendered (mount) + result_viewed (scrolled into view) ──
   const renderedFired = useRef(false);
@@ -190,9 +217,18 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
               <li key={i} className="flex items-start gap-2 text-sm">
                 <span className="font-mono text-xs text-muted-foreground mt-0.5">{i + 1}.</span>
                 {breaksFirst.source === 'assumption_graph' ? (
-                  <span>
+                  <span className="flex-1">
                     <span className="font-medium">{item.assumption}</span> — breaks below{' '}
                     <span className="font-mono">{item.breakingThreshold}</span> (currently {item.currentValue})
+                    {analysisId && TORNADO_LABEL_TO_SCENARIO_KEY[item.assumption] && (
+                      <button
+                        type="button"
+                        onClick={() => testAssumption(TORNADO_LABEL_TO_SCENARIO_KEY[item.assumption]!, item.assumption)}
+                        className="ml-2 text-xs text-primary hover:underline whitespace-nowrap"
+                      >
+                        Test this assumption →
+                      </button>
+                    )}
                   </span>
                 ) : (
                   <span>
@@ -243,6 +279,9 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
           </div>
         </GlassCard>
       )}
+
+      {/* F. Independent review -- founder/admin-only while decision_review_v1 is off */}
+      {isAdmin && analysisId && <IndependentReviewPanel analysisId={analysisId} />}
 
       <ContinueDecisionActions analysisId={analysisId} onUpdateWithRealNumbers={onUpdateWithRealNumbers} />
     </div>

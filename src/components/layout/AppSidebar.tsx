@@ -123,6 +123,7 @@ const NAV_SECTIONS: NavSection[] = [
       { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
       { title: 'Commercial Ops', url: '/admin/commercial', icon: Handshake, adminOnly: true, flag: 'commercial_workflow' },
       { title: 'Business Inbox', url: '/admin/inbox', icon: Inbox, adminOnly: true },
+      { title: 'Funnel', url: '/admin/funnel', icon: TrendingUp, adminOnly: true },
     ],
   },
   {
