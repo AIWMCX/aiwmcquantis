@@ -266,7 +266,12 @@ export type SowFunnelEvent =
   // exist so the shadow-mode rollout has real view-rate data before wider
   // exposure, not because the feature is customer-facing yet.
   | 'independent_review_viewed'
-  | 'decision_consensus_viewed';
+  | 'decision_consensus_viewed'
+  // Phase E (2026-10-03): the "What breaks first" -> Scenario Workspace
+  // handoff. Fires when a user clicks "Test this assumption" on a real
+  // assumption-graph critical-path item, before navigating away -- lets the
+  // funnel distinguish "saw the breakpoint" from "went and ran it."
+  | 'decision_breakpoint_viewed';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
