@@ -3,6 +3,8 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { SimpleMetricCard } from './SimpleMetricCard';
 import { ContinueDecisionActions } from './ContinueDecisionActions';
+import { IndependentReviewPanel } from './IndependentReviewPanel';
+import { useAdmin } from '@/hooks/useAdmin';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 import { breakEvenMonthsLabel } from '@/lib/break-even';
@@ -58,6 +60,7 @@ function fmtUsd(n: number): string {
 export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }: DecisionSummaryProps) {
   const verdict = useMemo(() => computeVerdict(result), [result]);
   const fa = result.financial_analysis;
+  const { isAdmin } = useAdmin();
 
   // ── Telemetry: result_rendered (mount) + result_viewed (scrolled into view) ──
   const renderedFired = useRef(false);
@@ -243,6 +246,9 @@ export function DecisionSummary({ result, analysisId, onUpdateWithRealNumbers }:
           </div>
         </GlassCard>
       )}
+
+      {/* F. Independent review -- founder/admin-only while decision_review_v1 is off */}
+      {isAdmin && analysisId && <IndependentReviewPanel analysisId={analysisId} />}
 
       <ContinueDecisionActions analysisId={analysisId} onUpdateWithRealNumbers={onUpdateWithRealNumbers} />
     </div>

@@ -259,7 +259,14 @@ export type SowFunnelEvent =
   | 'result_rendered'
   | 'result_viewed'
   | 'driver_inspected'
-  | 'next_action_selected';
+  | 'next_action_selected'
+  // JEV decision-intelligence Phase D (2026-10-03): the independent-review
+  // panel is founder/admin-only while TYPESAFE_API_KEY is unprovisioned and
+  // decision_review_v1 is off (see docs/decision-intelligence/) -- these
+  // exist so the shadow-mode rollout has real view-rate data before wider
+  // exposure, not because the feature is customer-facing yet.
+  | 'independent_review_viewed'
+  | 'decision_consensus_viewed';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
