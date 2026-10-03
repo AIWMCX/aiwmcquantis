@@ -1,8 +1,10 @@
-# JEV Decision-Intelligence — Phases A–D Final Report
+# JEV Decision-Intelligence — Phases A–F Final Report
 
-Per contract §40. Produced 2026-10-03 at the close of PR #218. Status vocabulary per
-contract §37: `CODE_VERIFIED`, `TEST_VERIFIED`, `DEPLOYED`, `PROD_VERIFIED`, `PARTIAL`,
-`FAIL`, `BLOCKED`, `UNVERIFIED`.
+Per contract §40. Produced 2026-10-03, updated at the close of Phase F on PR #218
+(originally written after Phase D; Phases E and F were completed in the same PR
+afterward — the title and body below now cover the full contract). Status vocabulary
+per contract §37: `CODE_VERIFIED`, `TEST_VERIFIED`, `DEPLOYED`, `PROD_VERIFIED`,
+`PARTIAL`, `FAIL`, `BLOCKED`, `UNVERIFIED`.
 
 ## A. Production baseline
 
@@ -88,16 +90,39 @@ fixture-provider outcome (agree/disagree/insufficient-evidence/contradiction/tim
 rate-limited/malformed), financial non-interference (byte-identical result before/after
 a review), and every consensus-policy branch including both JEV-unavailable directions.
 
-## E. Decision UX implementation
+## E. Decision UX implementation (Phase D)
 
 Before: `DecisionSummary.tsx` already had "The decision" / "What has to be true" / "What
 breaks first" / cash metrics / "Test before committing capital" from a prior wave — this
 was discovered during Phase A and deliberately not duplicated.
 
-After: one new section, "Independent review (founder-only preview)" — an explicit button
-(never auto-fired, since the call is metered once a real key exists), rendering the
-consensus state, rationale, and next-validation-action, or an honest "temporarily
+After Phase D: one new section, "Independent review (founder-only preview)" — an explicit
+button (never auto-fired, since the call is metered once a real key exists), rendering
+the consensus state, rationale, and next-validation-action, or an honest "temporarily
 unavailable" message. Gated on `isAdmin`.
+
+After Phase E: "What breaks first" items whose assumption-graph label maps onto a real
+`ScenarioAssumptionKey` (Price, Customer Count, CAC, Churn Rate, Fixed Costs — `COGS %`
+deliberately left unmapped, since it has no scenario-assumption equivalent to guess at)
+now carry a "Test this assumption →" link into `ScenarioWorkspace.tsx?focusAssumption=`,
+which auto-runs that one breakpoint search and highlights the matching input. No backend
+change — `scenario-breakpoint` was already live and unmodified; this phase only wired
+the handoff.
+
+After Phase F: `src/pages/admin/Funnel.tsx` — found to already exist in the repo but
+**unroutable** (no entry in `App.tsx` or the sidebar) and reading from two views that
+**did not exist in production** (`funnel_summary_30d`/`funnel_daily_30d` — defined in an
+early migration, confirmed missing via `information_schema.tables` before fixing, not
+assumed from the migration file). Both are now fixed: the views are recreated (with a
+real security correction — `security_invoker = true`, since the original definition's
+plain `GRANT SELECT TO authenticated` let any signed-in user read the admin-only
+aggregate funnel directly via the REST API, bypassing `funnel_events`' own admin-only
+RLS; this was a latent gap in the original design, closed now rather than carried
+forward since this is the first time the view becomes reachable at all), the page is
+routed at `/admin/funnel` and linked from the sidebar, the ladder is extended through
+`driver_inspected` and `subscription_activated` (closing the loop to real paid
+conversion), and a `unique_analyses` column (counted from `metadata->>'analysis_id'`,
+kept as a separate denominator from users/sessions per contract §19) was added.
 
 ## F. Financial-integrity proof
 
@@ -107,32 +132,42 @@ packet and running a review through it. The packet builder and consensus policy 
 only derived/extracted copies, never the source `analyses.result` object. The consensus
 policy's type system has no field through which a numeric value could flow back into a
 financial figure — `ConsensusResult` carries only state enums, strings, and booleans.
+Phases E and F touched no financial calculation code at all (E only added a navigation
+link; F only restored/fixed existing aggregate views over `funnel_events`, unrelated to
+`analyses`' financial data).
 
 ## G. Activation instrumentation
 
-Two new canonical `funnel_events` names: `independent_review_viewed`,
-`decision_consensus_viewed`. Added via the same additive-CHECK-constraint pattern as
-every prior wave, with the live constraint confirmed via `pg_get_constraintdef` before
-writing the migration (not trusted from the repo snapshot, after the `ai_calls`/`dahl`
-lesson). Aggregation into the admin funnel ladder is Phase F, not yet done (see §K).
+Five new canonical `funnel_events` names, each added via the same additive-CHECK-
+constraint pattern, with the live constraint confirmed via `pg_get_constraintdef` before
+every migration (not trusted from the repo snapshot, after the `ai_calls`/`dahl` lesson
+in Phase B): `independent_review_viewed`, `decision_consensus_viewed` (Phase D),
+`decision_breakpoint_viewed` (Phase E). Phase F aggregates these plus the pre-existing
+ladder into the now-live `/admin/funnel` dashboard, with `driver_inspected` and
+`subscription_activated` added to close the loop from engagement to real paid
+conversion, and the three JEV events kept in a visually separate card row so founder
+testing traffic never dilutes a real-user conversion denominator.
 
 ## H. Deployment proof
 
 ```
-Commit (PR #218 branch): 1f8daf6 (latest at report time)
+Commit (PR #218 branch, latest): cc996c6
 decision_reviews table:          PROD_VERIFIED (information_schema query)
 decision_consensus_runs table:   PROD_VERIFIED (information_schema query)
 ai_calls.provider CHECK:         PROD_VERIFIED (pg_get_constraintdef, includes dahl+new)
-funnel_events CHECK:             PROD_VERIFIED (pg_get_constraintdef, includes new names)
+funnel_events CHECK:             PROD_VERIFIED (pg_get_constraintdef, includes all 5 new names)
+funnel_summary_30d/daily_30d:    PROD_VERIFIED — recreated, queried with real data
+                                  (e.g. analysis_complete: 45 events / 43 sessions /
+                                  3 users / 40 analyses)
 review-decision edge function:   PROD_VERIFIED — ACTIVE v2, health endpoint returns
                                   version 1.1.0 + correct commit_sha; a real invalid-
                                   token POST returns {"error":"Invalid token"} FROM THE
                                   FUNCTION'S OWN CODE (not a gateway rejection), proving
                                   the deployed bundle actually executes its logic.
-Frontend (IndependentReviewPanel, DecisionSummary wiring): DEPLOYED_UNVERIFIED — code
-                                  complete, typechecks, builds, passes existing tests,
-                                  but not live on aiwmcquantis.com until PR #218 merges
-                                  and Vercel rebuilds.
+Frontend (IndependentReviewPanel, DecisionSummary wiring, ScenarioWorkspace handoff,
+  /admin/funnel route): DEPLOYED_UNVERIFIED — code complete, typechecks, builds, passes
+                                  existing tests, but not live on aiwmcquantis.com until
+                                  PR #218 merges and Vercel rebuilds.
 ```
 
 ## I. Production state per promised capability
@@ -144,10 +179,10 @@ Frontend (IndependentReviewPanel, DecisionSummary wiring): DEPLOYED_UNVERIFIED �
 | `review-decision` edge function | `PROD_VERIFIED` (deployed, health-checked, logic confirmed via real request) |
 | `decision_reviews` / `decision_consensus_runs` schema + RLS | `PROD_VERIFIED` |
 | Decision consensus policy | `TEST_VERIFIED` (10/10 branch tests); wired into the deployed function |
-| Founder-only UI panel | `DEPLOYED_UNVERIFIED` (not live until merge) |
+| Founder-only UI panel (Phase D) | `DEPLOYED_UNVERIFIED` (not live until merge) |
+| Scenario handoff (Phase E) | `DEPLOYED_UNVERIFIED` (code complete, not live until merge) |
+| Admin funnel dashboard + restored views (Phase F) | `PARTIAL` — DB views `PROD_VERIFIED`; route/UI `DEPLOYED_UNVERIFIED` until merge |
 | Real JEV vendor call (typesafe-jev.com) | `BLOCKED` — `TYPESAFE_API_KEY` not provisioned; no account/key exists for this session to use |
-| Scenario handoff (breakpoint → decision header click-through) | `DEFERRED` — Phase E, not started |
-| Admin activation-ladder funnel report | `DEFERRED` — Phase F, not started |
 | `ai-consensus` dead-code removal | `DEFERRED` — flagged for a separate cleanup PR |
 
 ## J. Metrics to observe once this merges and the founder tests the panel
@@ -162,6 +197,12 @@ Frontend (IndependentReviewPanel, DecisionSummary wiring): DEPLOYED_UNVERIFIED �
 - `independent_review_viewed` vs `decision_consensus_viewed` fire-together rate (the
   panel should fire both on a completed review — a gap would indicate a UI bug, not a
   real usage signal).
+- On `/admin/funnel`: `decision_breakpoint_viewed` → actual breakpoint-run rate on
+  `ScenarioWorkspace.tsx` (does the handoff actually get used, or just viewed?), and
+  whether `driver_inspected`/`subscription_activated` show any real lift once enough
+  volume accumulates — the whole point of Phases D/E per the contract's own framing is
+  whether independent review + an explicit threshold + a direct next action cause more
+  interaction than a report alone, not just more instrumentation.
 
 No vanity metrics (no "accuracy," no combined confidence — consistent with contract §24).
 
@@ -170,19 +211,18 @@ No vanity metrics (no "accuracy," no combined confidence — consistent with con
 1. **P0 — provision `TYPESAFE_API_KEY`** as a Supabase Edge Function secret. Nothing
    else in this chain can be end-to-end verified against the real vendor until this
    exists. (Founder action, not something this session can do.)
-2. **P0 — merge PR #218**, then verify the frontend panel renders in production for an
-   admin account.
-3. **P1 — Phase E**: wire the critical-assumption/breakpoint click-through from
-   `DecisionSummary.tsx`'s "What has to be true" section into `ScenarioWorkspace.tsx`
-   with the relevant assumption preselected (the underlying `scenario-breakpoint`
-   function already exists and needs no new backend work).
-4. **P1 — Phase F**: aggregate the real activation ladder
-   (`analysis_complete → verdict_viewed → driver_inspected → scenario_compared →
-   independent_review_viewed → subscription_activated`) into an admin-visible report
-   with correct per-stage denominators (users/sessions/analyses kept distinct, per
-   contract §19).
-5. **P2 — cleanup PR**: remove the five dead `ai-consensus` call sites identified in
+2. **P0 — merge PR #218**, then verify the frontend panel, scenario handoff, and
+   `/admin/funnel` all render correctly in production for an admin account.
+3. **P1 — cleanup PR**: remove the five dead `ai-consensus` call sites identified in
    `AI_CONSENSUS_CALL_GRAPH.md`.
-6. **P2 — one real disagreement case and one real provider-failure case**, verified
+4. **P1 — one real disagreement case and one real provider-failure case**, verified
    against the live vendor, once the key exists (contract §33's Definition of Done for
    JEV v1 — cannot be satisfied without the key, and is not claimed as satisfied here).
+5. **P2 — controlled external rollout** (contract §23's next stage after founder/admin
+   testing): once the founder has observed a reasonable sample of agreement/disagreement
+   cases from real admin usage, decide whether to extend `decision_consensus_ui_v1` past
+   `isAdmin` to a small percentage of real users.
+6. **P2 — multi-driver counterfactuals / global sensitivity** (contract §27–28):
+   explicitly not started, and per the contract's own sequencing should not start until
+   there is demonstrated user demand for more than the single-driver breakpoint handoff
+   this PR ships.
