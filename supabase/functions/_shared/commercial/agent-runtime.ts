@@ -56,6 +56,15 @@ export interface CommercialAgentRunArgs<T> {
    */
   inputContext?: Record<string, unknown>;
   timeoutMs?: number;
+  /**
+   * Hard cap on total LLM attempts for this stage invocation (1 initial call
+   * + up to maxAttempts-1 corrective retries). Never unbounded -- a stage
+   * that keeps failing validation fails cleanly as a typed rejection once
+   * this cap is reached, it never loops forever. Defaults to 3 (1 initial +
+   * 2 retries): a small fixed retry budget rather than either "no retry" or
+   * "retry forever".
+   */
+  maxAttempts?: number;
 }
 
 export type CommercialAgentRunResult<T> =
@@ -70,6 +79,7 @@ export type CommercialAgentRunResult<T> =
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const RAW_PREVIEW_LEN = 240;
+const DEFAULT_MAX_ATTEMPTS = 3;
 
 /**
  * Runs one commercial-workflow stage through the shared LLM + validation
@@ -77,71 +87,113 @@ const RAW_PREVIEW_LEN = 240;
  * regardless of outcome. Never throws -- a provider failure or a validation
  * rejection both come back as a typed `{ ok: false, ... }` result, matching
  * r3Validate's own never-throws contract.
+ *
+ * Guardrail + bounded retry (added on top of r3Validate's own single
+ * JSON-repair pass): r3Validate only fixes malformed JSON syntax -- it never
+ * re-asks the model for content that parses but fails schema or reconcile
+ * (domain-invariant) checks. That used to mean any such failure was a
+ * same-attempt, permanent rejection. Now, when validation fails for a reason
+ * a corrective re-prompt can plausibly fix (schema or reconcile -- never
+ * 'empty', which means the model returned nothing and a near-identical retry
+ * is unlikely to help), the exact validation error is fed back to the model
+ * as an additional turn and the call is retried, up to `maxAttempts`
+ * (default 3: 1 initial + 2 corrective retries) total attempts. This is a
+ * HARD cap, not a while-loop: the loop bound is fixed before the first call
+ * and cannot grow at runtime, so a stage that keeps failing validation
+ * always terminates in a clean typed rejection rather than looping
+ * indefinitely or silently accepting invalid output. A provider_error
+ * (timeout/rate-limit/config/network) is never retried either -- a
+ * corrective re-prompt can't fix a down or rate-limited provider, and
+ * retrying identical input against it would only burn cost and latency for
+ * the same outcome.
  */
 export async function runCommercialAgent<T>(
   args: CommercialAgentRunArgs<T>,
 ): Promise<CommercialAgentRunResult<T>> {
+  const maxAttempts = Math.max(1, args.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
   const messages: GatewayMessage[] = [
     { role: 'system', content: args.systemPrompt },
     { role: 'user', content: args.userPrompt },
   ];
 
-  const result = await aiCall(
-    {
-      messages,
-      response_format: { type: 'json_object' },
-      temperature: 0.2,
-    },
-    {
-      task: `commercial:${args.stage}`,
-      userId: args.adminUserId ?? null,
-      requestId: args.requestId ?? null,
-      timeoutMs: args.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      metadata: { stage: args.stage, foundation_version: args.foundationVersion },
-    },
-  );
+  let attempt = 0;
 
-  if (!result.ok) {
+  while (true) {
+    attempt += 1;
+    const result = await aiCall(
+      {
+        messages,
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+      },
+      {
+        task: `commercial:${args.stage}`,
+        userId: args.adminUserId ?? null,
+        requestId: args.requestId ?? null,
+        timeoutMs: args.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+        metadata: { stage: args.stage, foundation_version: args.foundationVersion, attempt, max_attempts: maxAttempts },
+      },
+    );
+
+    if (!result.ok) {
+      const runId = await recordAgentRun({
+        stage: args.stage,
+        foundationVersion: args.foundationVersion,
+        inputContext: { ...(args.inputContext ?? {}), attempt, max_attempts: maxAttempts },
+        ok: false,
+        rejectionReason: 'provider_error',
+        rawPreview: result.message.slice(0, RAW_PREVIEW_LEN),
+        output: null,
+        model: null,
+        latencyMs: result.latencyMs,
+        repaired: false,
+        adminUserId: args.adminUserId ?? null,
+      });
+      return { ok: false, reason: 'provider_error', detail: result.message, raw_preview: '', runId };
+    }
+
+    const choices = result.data.choices as Array<{ message?: { content?: string } }> | undefined;
+    const rawContent = choices?.[0]?.message?.content ?? '';
+    const model = (result.data.model as string | undefined) ?? null;
+
+    const validated = r3Validate(rawContent, args.schema, args.reconcile);
+
+    const isLastAttempt = attempt >= maxAttempts;
+    // 'empty' means the model returned nothing at all -- a corrective
+    // re-prompt has no new information to add, so don't burn a retry on it.
+    const canRetry = !validated.ok && validated.reason !== 'empty' && !isLastAttempt;
+
+    if (!validated.ok && canRetry) {
+      // Feed the exact validation failure back to the model as corrective
+      // feedback and retry, rather than silently accepting invalid output
+      // or giving up on the first miss.
+      messages.push({ role: 'assistant', content: rawContent.slice(0, RAW_PREVIEW_LEN) || '(empty response)' });
+      messages.push({
+        role: 'user',
+        content: `Your previous response was rejected: [${validated.reason}] ${validated.detail}. Correct this and respond again with ONLY a single valid JSON object matching the required schema.`,
+      });
+      continue;
+    }
+
     const runId = await recordAgentRun({
       stage: args.stage,
       foundationVersion: args.foundationVersion,
-      inputContext: args.inputContext ?? {},
-      ok: false,
-      rejectionReason: 'provider_error',
-      rawPreview: result.message.slice(0, RAW_PREVIEW_LEN),
-      output: null,
-      model: null,
+      inputContext: { ...(args.inputContext ?? {}), attempts_used: attempt, max_attempts: maxAttempts },
+      ok: validated.ok,
+      rejectionReason: validated.ok ? null : validated.reason,
+      rawPreview: validated.ok ? null : validated.raw_preview,
+      output: validated.ok ? (validated.data as Record<string, unknown>) : null,
+      model,
       latencyMs: result.latencyMs,
-      repaired: false,
+      repaired: validated.ok ? validated.repaired : validated.repair_attempted,
       adminUserId: args.adminUserId ?? null,
     });
-    return { ok: false, reason: 'provider_error', detail: result.message, raw_preview: '', runId };
+
+    if (!validated.ok) {
+      return { ok: false, reason: validated.reason, detail: validated.detail, raw_preview: validated.raw_preview, runId };
+    }
+    return { ok: true, data: validated.data, repaired: validated.repaired, runId };
   }
-
-  const choices = result.data.choices as Array<{ message?: { content?: string } }> | undefined;
-  const rawContent = choices?.[0]?.message?.content ?? '';
-  const model = (result.data.model as string | undefined) ?? null;
-
-  const validated = r3Validate(rawContent, args.schema, args.reconcile);
-
-  const runId = await recordAgentRun({
-    stage: args.stage,
-    foundationVersion: args.foundationVersion,
-    inputContext: args.inputContext ?? {},
-    ok: validated.ok,
-    rejectionReason: validated.ok ? null : validated.reason,
-    rawPreview: validated.ok ? null : validated.raw_preview,
-    output: validated.ok ? (validated.data as Record<string, unknown>) : null,
-    model,
-    latencyMs: result.latencyMs,
-    repaired: validated.ok ? validated.repaired : validated.repair_attempted,
-    adminUserId: args.adminUserId ?? null,
-  });
-
-  if (!validated.ok) {
-    return { ok: false, reason: validated.reason, detail: validated.detail, raw_preview: validated.raw_preview, runId };
-  }
-  return { ok: true, data: validated.data, repaired: validated.repaired, runId };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
