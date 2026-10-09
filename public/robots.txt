@@ -1,7 +1,12 @@
 # AIWMC Quantis robots.txt
-# Last updated: 2026-09-18
+# Last updated: 2026-10-08
 
-# Default rules for all crawlers
+# Rules apply to all crawlers, including Googlebot, Bingbot, and social
+# crawlers. Bot-specific groups were removed: a named group (e.g.
+# "User-agent: Googlebot") makes that bot ignore this wildcard group
+# entirely per the robots.txt spec, so a bare "Allow: /" group for Googlebot
+# silently re-allowed crawling of every Disallow path below (admin, auth,
+# dashboard, checkout, account, reset-password) for Google specifically.
 User-agent: *
 Allow: /
 Allow: /how-it-works
@@ -32,26 +37,6 @@ Disallow: /api/
 Disallow: /*?ref=
 Disallow: /*?source=
 Crawl-delay: 1
-
-# Google
-User-agent: Googlebot
-Allow: /
-
-# Bing
-User-agent: Bingbot
-Allow: /
-
-# Twitter/X
-User-agent: Twitterbot
-Allow: /
-
-# Facebook
-User-agent: facebookexternalhit
-Allow: /
-
-# LinkedIn
-User-agent: LinkedInBot
-Allow: /
 
 # Sitemap location
 Sitemap: https://www.aiwmcquantis.com/sitemap.xml
