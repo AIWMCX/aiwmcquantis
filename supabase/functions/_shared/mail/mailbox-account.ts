@@ -46,7 +46,11 @@ export function mailboxCredentialsFromEnv(): Map<string, MailboxCredential> {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error('BUSINESS_MAILBOX_PASSWORDS is not valid JSON');
+    // Length only, never the content -- this has crashed the cron tick
+    // silently before; the length at least lets whoever reads the log
+    // tell a truncated-paste from a wrong-format paste without needing
+    // the actual secret value.
+    throw new Error(`BUSINESS_MAILBOX_PASSWORDS is not valid JSON (received ${raw.length} characters)`);
   }
   for (const [addr, pw] of Object.entries(parsed)) {
     if (typeof pw === 'string' && pw) out.set(addr.trim().toLowerCase(), { address: addr.trim().toLowerCase(), password: pw });

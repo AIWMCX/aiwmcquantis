@@ -246,6 +246,23 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    // This was silently returning 500 with no log line at all -- the cron
+    // tick (every 5 minutes) had been failing for days with zero
+    // application-level trace of why. Whatever reaches here is by
+    // definition unexpected (every known-bad input is handled above with
+    // its own status code), so it belongs in the logs, not just the HTTP
+    // response body nobody was reading.
+    //
+    // This is a function-wide catch-all, not just the credential-parsing
+    // path -- err.message could in principle come from an IMAP/SMTP
+    // provider error or any other thrown error elsewhere in this file, so
+    // it is NOT safe to log verbatim or log the stack (which can echo
+    // argument values in some runtimes). Redact anything email-shaped and
+    // cap the length before it ever reaches the log.
+    const sanitized = message
+      .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[redacted-email]')
+      .slice(0, 300);
+    console.error(`[business-mail] unhandled error (${err instanceof Error ? err.constructor.name : typeof err}): ${sanitized}`);
     return j({ error: message }, 500);
   }
 });
