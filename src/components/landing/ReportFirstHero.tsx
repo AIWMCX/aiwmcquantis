@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge, ZoomIn, ZoomOut, Contrast, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowRight, Lock, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge, ZoomIn, ZoomOut, Contrast, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
@@ -10,7 +10,13 @@ import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '
 import { SampleReportPages, type Density } from './SampleReportPages';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY, BENCHMARK_SOURCES_LIST } from '@/config/canonical-facts';
 
-const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
+// The downloadable PDF + its link entry points were withdrawn 2026-10-10:
+// it was a stale asset from an earlier report-generation pipeline whose
+// page-7 content didn't match this page (different numbers, different
+// company-scale figures, a "Page 4 of 10" footer vs this report's own 15
+// pages). The in-page preview below (SampleReportPages, driven by the same
+// SAMPLE_REPORT this file imports) is unaffected and remains the only
+// sample-report entry point until a PDF is regenerated from verified data.
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
 
 // Commercial cover card shown above the rendered report pages.
@@ -314,7 +320,7 @@ export function ReportFirstHero() {
               style={{ background: 'hsl(var(--foreground) / 0.18)' }}
               aria-hidden="true"
             />
-            Sources Cited on Every Number
+            Grounded in Real Benchmark Data
           </div>
           <h1
             className="font-bold leading-[1.02] tracking-tight max-w-4xl"
@@ -436,16 +442,6 @@ export function ReportFirstHero() {
                       }}
                     >
                       <p className="pt-3">{m.detail}</p>
-                      <a
-                        href={SAMPLE_URL}
-                        target="_blank"
-                        rel="noopener"
-                        className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold"
-                        style={{ color: 'hsl(var(--primary))' }}
-                        onClick={() => trackCtaClick(`hero_metric_open_pdf_${m.id}`, 'hero')}
-                      >
-                        Open full plan <Maximize2 className="w-3 h-3" aria-hidden="true" />
-                      </a>
                     </div>
                   </div>
                 </li>
@@ -642,15 +638,6 @@ export function ReportFirstHero() {
                     ? <Minimize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                     : <Maximize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />}
                 </button>
-                <a
-                  href={SAMPLE_URL}
-                  download="Quantis_Sample_Report.pdf"
-                  className="p-1.5 rounded hover:bg-foreground/10 transition-colors"
-                  aria-label="Download sample report PDF"
-                  onClick={() => trackCtaClick('sample_report_download', 'hero')}
-                >
-                  <Download className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
-                </a>
                 {isFullscreen && (
                   <button
                     type="button"
@@ -769,6 +756,14 @@ export function ReportFirstHero() {
                       </span>
                       {COVER.summary}
                     </p>
+                    <p className="mt-4 text-[11px] leading-relaxed rounded-md px-3 py-2" style={{ color: 'rgba(230,238,255,0.6)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      This is a fictional illustrative example, not a real business. Its core
+                      revenue/cost/profit math (pages 3 and 7) is independently checked for
+                      arithmetic consistency. Its narrative detail beyond that — the specific
+                      cash-flow timeline, member-ramp schedule, and Monte Carlo distribution —
+                      is illustrative copy and has not been independently verified against a
+                      computed model.
+                    </p>
                     <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono" style={{ color: 'rgba(230,238,255,0.55)' }}>
                       <span>{COVER.pages} pages</span>
                       <span aria-hidden="true">·</span>
@@ -780,22 +775,6 @@ export function ReportFirstHero() {
                 </section>
 
                 <SampleReportPages zoom={zoom} theme={theme} density={density} pageRefs={pageRefs} />
-
-
-                <a
-                  href={SAMPLE_URL}
-                  target="_blank"
-                  rel="noopener"
-                  onClick={() => trackCtaClick('sample_report_open_end', 'hero')}
-                  className="inline-flex items-center gap-2 mt-2 mb-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
-                  style={{
-                    background: 'hsl(var(--primary) / 0.12)',
-                    color: 'hsl(var(--primary))',
-                    border: '1px solid hsl(var(--primary) / 0.3)',
-                  }}
-                >
-                  Open full PDF in new tab <Maximize2 className="w-3 h-3" />
-                </a>
               </div>
             </div>
 

@@ -100,7 +100,7 @@ export function IndustryStep({
           >
             <span className="transition-transform duration-200" style={{ transform: descOpen ? 'rotate(90deg)' : 'none', color: 'var(--q-text-tertiary)', fontSize: 14 }}>›</span>
             <span className="text-[13px] font-medium" style={{ color: 'var(--q-text-secondary)' }}>Describe your idea</span>
-            <span className="text-[11px] ml-1 font-semibold" style={{ color: 'var(--q-status-green)' }}>(+12% accuracy)</span>
+            <span className="text-[11px] ml-1" style={{ color: 'var(--q-text-tertiary)' }}>(optional, but more detail helps)</span>
           </button>
           {descOpen ? (
             <textarea
