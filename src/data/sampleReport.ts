@@ -118,10 +118,10 @@ export const SAMPLE_REPORT = {
         ['Membership revenue (180 × $89)', '$16,020'],
         ['Walk-in coffee + retail', '$12,380'],
         ['Total monthly revenue', '$28,400'],
-        ['COGS (29%)', '($8,236)'],
+        ['COGS (walk-in coffee/retail only)', '($4,000)'],
         ['Rent (2nd & Congress)', '($9,400)'],
-        ['Staff (1.5 FTE barista)', '($6,200)'],
-        ['Utilities, software, misc', '($2,764)'],
+        ['Staff (0.75 FTE barista, lean model)', '($2,700)'],
+        ['Utilities, software, misc', '($500)'],
         ['Monthly net profit', '$11,800'],
       ],
     },
@@ -294,5 +294,38 @@ export function validateSampleReportIntegrity(): string[] {
       issues.push('page 3 payback KPI drifted from canonical metric');
     }
   }
+
+  // Arithmetic check: the page 7 bottom-up P&L table must actually sum to the
+  // stated net profit. This is the gap that let a hand-typed table drift
+  // $10,000 away from the correct total (revenue minus every listed cost
+  // line) while every label-matching check above stayed green -- those only
+  // ever compared strings to each other, never did the actual math.
+  const page7 = SAMPLE_REPORT.pages.find((p) => p.id === 7);
+  if (page7 && 'table' in page7 && page7.table) {
+    const parseMoney = (s: string) => {
+      const negative = s.startsWith('(');
+      const n = Number(s.replace(/[()$,]/g, ''));
+      return negative ? -n : n;
+    };
+    const rows = Object.fromEntries(page7.table.map(([label, value]) => [label, parseMoney(value)]));
+    const revenue = rows['Total monthly revenue'];
+    const statedProfit = rows['Monthly net profit'];
+    const costLines = Object.entries(rows).filter(
+      ([label]) => label !== 'Total monthly revenue' && label !== 'Monthly net profit'
+        && label !== 'Membership revenue (180 × $89)' && label !== 'Walk-in coffee + retail'
+    );
+    const computedProfit = revenue + costLines.reduce((sum, [, v]) => sum + v, 0);
+    if (Math.round(computedProfit) !== Math.round(statedProfit)) {
+      issues.push(
+        `page 7 P&L table does not sum: revenue ${revenue} + costs = ${computedProfit}, but table states profit ${statedProfit}`
+      );
+    }
+    if (Math.round(computedProfit) !== SAMPLE_REPORT.metrics.monthlyProfitY2.value) {
+      issues.push(
+        `page 7 P&L table sums to ${computedProfit}, which does not match the canonical monthlyProfitY2 value ${SAMPLE_REPORT.metrics.monthlyProfitY2.value}`
+      );
+    }
+  }
+
   return issues;
 }
