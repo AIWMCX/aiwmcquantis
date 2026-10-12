@@ -263,6 +263,13 @@ jobs:
             echo "::error title=Missing PAT::SUPABASE_ACCESS_TOKEN is not set in GitHub → Settings → Secrets → Actions. Edge functions cannot deploy. Add a valid Supabase Personal Access Token (supabase.com/dashboard/account/tokens)."
             exit 1
           fi
+          # 2026-10-12: this exact token round-tripped fine via a direct API call
+          # AND via this same pinned CLI version run locally, but still failed
+          # with "Invalid access token format" in CI specifically -- the only
+          # remaining difference is the GitHub secret value itself, almost
+          # certainly carrying a copy-paste trailing newline/whitespace. Strip
+          # it defensively so this can't recur.
+          SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
           # `supabase projects list` is a cheap authenticated call. If the PAT is
           # invalid/revoked it returns non-zero here. The CLI is now installed
           # by the setup-cli action above (pinned, not npx-resolved), so a
@@ -417,6 +424,7 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping edge function deploy" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
           FUNCTIONS=(
             # ── Billing (must deploy first so payments work) ──────────────
             stripe-webhook
