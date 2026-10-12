@@ -244,11 +244,23 @@ jobs:
             echo "::error title=Missing PAT::SUPABASE_ACCESS_TOKEN is not set in GitHub → Settings → Secrets → Actions. Edge functions cannot deploy. Add a valid Supabase Personal Access Token (supabase.com/dashboard/account/tokens)."
             exit 1
           fi
-          npm install -g supabase@2.20.5 2>/dev/null || true
+          # 2026-10-12: this install was silently failing (|| true swallowed it)
+          # while the genuinely-valid token below got blamed instead -- capture
+          # install output too, not just the CLI call.
+          if ! npm install -g supabase@2.20.5 > /tmp/cli-install.log 2>&1; then
+            echo "::warning title=CLI install failed::npm install -g supabase@2.20.5 failed; the preflight check below may fail for this reason rather than a bad token. Tail:"
+            tail -n 20 /tmp/cli-install.log | sed -E 's/sbp_[A-Za-z0-9]+/[redacted-token]/g'
+          fi
           # `supabase projects list` is a cheap authenticated call. If the PAT is
-          # invalid/revoked it returns non-zero here with a clear message.
-          if ! npx supabase projects list >/dev/null 2>&1; then
-            echo "::error title=Invalid PAT::SUPABASE_ACCESS_TOKEN is set but rejected by Supabase (expired or revoked). Rotate it at supabase.com/dashboard/account/tokens and update the GitHub secret. This is the #1 cause of a fast-failing Production Deploy."
+          # invalid/revoked it returns non-zero here -- but so does a broken CLI
+          # install, a network blip, or an npx resolution problem, and this used
+          # to redirect the real output to /dev/null, so every one of those
+          # looked identical to "bad token" with zero way to tell them apart.
+          # Capture and print it (redacted) instead of guessing.
+          if ! npx supabase projects list > /tmp/preflight-cli.log 2>&1; then
+            echo "::error title=Preflight failed::SUPABASE_ACCESS_TOKEN preflight failed. This may be an expired/revoked PAT, OR a broken CLI install/network issue unrelated to the token -- see the captured output below before rotating anything. Rotate at supabase.com/dashboard/account/tokens only if the output below actually shows an auth error."
+            echo "--- npx supabase projects list output (redacted) ---"
+            tail -n 40 /tmp/preflight-cli.log | sed -E 's/sbp_[A-Za-z0-9]+/[redacted-token]/g'
             exit 1
           fi
           echo "✓ Supabase access token is valid" >> "$GITHUB_STEP_SUMMARY"
