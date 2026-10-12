@@ -139,6 +139,19 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
+      - name: Setup Supabase CLI
+        # 2026-10-12: `npm install -g supabase` has been silently failing on
+        # every run for months (Supabase's CLI explicitly refuses global npm
+        # installs now) -- `supabase` then auto-resolved a completely
+        # different, much newer CLI version on the fly every time, which is
+        # what produced "Invalid access token format" on a token that was
+        # independently confirmed valid via a direct API call. This is the
+        # officially supported install method; every `supabase` call below
+        # now uses the properly pinned binary, no more npx involved.
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.20.5
+
       - name: Apply migrations via Supabase CLI
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -150,17 +163,16 @@ jobs:
             echo "Add SUPABASE_DB_PASSWORD to GitHub Secrets (Supabase Dashboard → Settings → Database → Connection string password)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          npm install -g supabase@2.20.5 2>/dev/null || true
           # link prompts for the DB password when run interactively — in CI it must
           # be passed via -p or the command exits non-zero and kills the whole job
           # (which then skips deploy-edge-functions via `needs`). Root cause of the
           # red Production Deploy runs #162-#174.
-          npx supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" || {
+          supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" || {
             echo "::warning title=Link failed::supabase link failed — skipping migrations (edge functions still deploy)"
             exit 0
           }
           # Push all pending migrations (idempotent — skips already-applied ones)
-          npx supabase db push --password "$SUPABASE_DB_PASSWORD" --include-all 2>&1 || {
+          supabase db push --password "$SUPABASE_DB_PASSWORD" --include-all 2>&1 || {
             echo "::warning title=Migration warn::db push exited non-zero — check output above"
           }
           echo "✓ Migrations applied (or were already up to date)" >> "$GITHUB_STEP_SUMMARY"
@@ -228,9 +240,16 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
+      - name: Setup Supabase CLI
+        # See the matching comment in run-migrations above -- same root
+        # cause, same fix, applied to every `supabase` call in this job.
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.20.5
+
       # ── Token preflight ──────────────────────────────────────────────────────
       # Root cause of red Production Deploy #210: if SUPABASE_ACCESS_TOKEN is
-      # missing/expired/revoked (e.g. mid-PAT-rotation), EVERY `npx supabase`
+      # missing/expired/revoked (e.g. mid-PAT-rotation), EVERY `supabase`
       # call fails — including the secret-sync step — and (when that step lacked
       # continue-on-error) the whole job died at ~47s before a single function
       # deployed. This preflight fails fast with an unambiguous message instead.
@@ -244,22 +263,12 @@ jobs:
             echo "::error title=Missing PAT::SUPABASE_ACCESS_TOKEN is not set in GitHub → Settings → Secrets → Actions. Edge functions cannot deploy. Add a valid Supabase Personal Access Token (supabase.com/dashboard/account/tokens)."
             exit 1
           fi
-          # 2026-10-12: this install was silently failing (|| true swallowed it)
-          # while the genuinely-valid token below got blamed instead -- capture
-          # install output too, not just the CLI call.
-          if ! npm install -g supabase@2.20.5 > /tmp/cli-install.log 2>&1; then
-            echo "::warning title=CLI install failed::npm install -g supabase@2.20.5 failed; the preflight check below may fail for this reason rather than a bad token. Tail:"
-            tail -n 20 /tmp/cli-install.log | sed -E 's/sbp_[A-Za-z0-9]+/[redacted-token]/g'
-          fi
           # `supabase projects list` is a cheap authenticated call. If the PAT is
-          # invalid/revoked it returns non-zero here -- but so does a broken CLI
-          # install, a network blip, or an npx resolution problem, and this used
-          # to redirect the real output to /dev/null, so every one of those
-          # looked identical to "bad token" with zero way to tell them apart.
-          # Capture and print it (redacted) instead of guessing.
-          if ! npx supabase projects list > /tmp/preflight-cli.log 2>&1; then
-            echo "::error title=Preflight failed::SUPABASE_ACCESS_TOKEN preflight failed. This may be an expired/revoked PAT, OR a broken CLI install/network issue unrelated to the token -- see the captured output below before rotating anything. Rotate at supabase.com/dashboard/account/tokens only if the output below actually shows an auth error."
-            echo "--- npx supabase projects list output (redacted) ---"
+          # invalid/revoked it returns non-zero here. The CLI is now installed
+          # by the setup-cli action above (pinned, not npx-resolved), so a
+          # failure here is a real token problem, not a CLI-install artifact.
+          if ! supabase projects list > /tmp/preflight-cli.log 2>&1; then
+            echo "::error title=Invalid PAT::SUPABASE_ACCESS_TOKEN is set but rejected by Supabase. Rotate it at supabase.com/dashboard/account/tokens and update the GitHub Production-environment secret. Captured output:"
             tail -n 40 /tmp/preflight-cli.log | sed -E 's/sbp_[A-Za-z0-9]+/[redacted-token]/g'
             exit 1
           fi
@@ -289,24 +298,23 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping secret sync" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          npm install -g supabase@2.20.5 2>/dev/null || true
           # Push runtime secrets that edge functions read at invocation time.
           # DEEPSEEK_API_KEY: used by rvce-validate, generate-idea, analyze-* (DeepSeek LLM calls)
           if [ -n "$DEEPSEEK_API_KEY" ]; then
-            npx supabase secrets set DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" --project-ref "$PROJECT_REF"
+            supabase secrets set DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" --project-ref "$PROJECT_REF"
             echo "✓ DEEPSEEK_API_KEY synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning title=Missing secret::DEEPSEEK_API_KEY not in GitHub secrets — RVCE and analysis functions will fail"
           fi
           # STRIPE secrets: required by stripe-webhook, create-checkout-session, create-portal-session
           if [ -n "$STRIPE_SECRET_KEY" ]; then
-            npx supabase secrets set STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" --project-ref "$PROJECT_REF"
+            supabase secrets set STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" --project-ref "$PROJECT_REF"
             echo "✓ STRIPE_SECRET_KEY synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning title=Missing secret::STRIPE_SECRET_KEY not set — payments will fail"
           fi
           if [ -n "$STRIPE_WEBHOOK_SECRET" ]; then
-            npx supabase secrets set STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" --project-ref "$PROJECT_REF"
+            supabase secrets set STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" --project-ref "$PROJECT_REF"
             echo "✓ STRIPE_WEBHOOK_SECRET synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::error title=Missing secret::STRIPE_WEBHOOK_SECRET not set — webhook signature verification will FAIL and subscriptions will not activate"
@@ -315,30 +323,30 @@ jobs:
           # When the var is empty, `[ -n ] && cmd` evaluates false (exit 1); as
           # the script's last statement that failed the whole step — root cause
           # of every red Production Deploy from #162 onward (TAVILY_API_KEY).
-          if [ -n "$STRIPE_PRO_MONTHLY_PRICE_ID" ]; then npx supabase secrets set STRIPE_PRO_MONTHLY_PRICE_ID="$STRIPE_PRO_MONTHLY_PRICE_ID" --project-ref "$PROJECT_REF"; fi
-          if [ -n "$STRIPE_PRO_ANNUAL_PRICE_ID" ]; then npx supabase secrets set STRIPE_PRO_ANNUAL_PRICE_ID="$STRIPE_PRO_ANNUAL_PRICE_ID" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$STRIPE_PRO_MONTHLY_PRICE_ID" ]; then supabase secrets set STRIPE_PRO_MONTHLY_PRICE_ID="$STRIPE_PRO_MONTHLY_PRICE_ID" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$STRIPE_PRO_ANNUAL_PRICE_ID" ]; then supabase secrets set STRIPE_PRO_ANNUAL_PRICE_ID="$STRIPE_PRO_ANNUAL_PRICE_ID" --project-ref "$PROJECT_REF"; fi
           # Handbook CFO audit (2026-07-11): STRIPE_PLUS_*_PRICE_ID had no CI sync
           # path at all — create-checkout-session.ts's Plus lookup depended on
           # whatever was manually set in Supabase once, with zero automated
           # protection against loss on secret rotation or project rebuild.
-          if [ -n "$STRIPE_PLUS_MONTHLY_PRICE_ID" ]; then npx supabase secrets set STRIPE_PLUS_MONTHLY_PRICE_ID="$STRIPE_PLUS_MONTHLY_PRICE_ID" --project-ref "$PROJECT_REF"; fi
-          if [ -n "$STRIPE_PLUS_ANNUAL_PRICE_ID" ]; then npx supabase secrets set STRIPE_PLUS_ANNUAL_PRICE_ID="$STRIPE_PLUS_ANNUAL_PRICE_ID" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$STRIPE_PLUS_MONTHLY_PRICE_ID" ]; then supabase secrets set STRIPE_PLUS_MONTHLY_PRICE_ID="$STRIPE_PLUS_MONTHLY_PRICE_ID" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$STRIPE_PLUS_ANNUAL_PRICE_ID" ]; then supabase secrets set STRIPE_PLUS_ANNUAL_PRICE_ID="$STRIPE_PLUS_ANNUAL_PRICE_ID" --project-ref "$PROJECT_REF"; fi
           # LOVABLE_API_KEY: optional legacy gateway (DeepSeek is primary since Lovable migration)
-          if [ -n "$LOVABLE_API_KEY" ]; then npx supabase secrets set LOVABLE_API_KEY="$LOVABLE_API_KEY" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$LOVABLE_API_KEY" ]; then supabase secrets set LOVABLE_API_KEY="$LOVABLE_API_KEY" --project-ref "$PROJECT_REF"; fi
           # ANTHROPIC_API_KEY: hard fallback for aiCall() when DeepSeek/Lovable fail (RVCE excluded — DeepSeek-only by policy)
           if [ -n "$ANTHROPIC_API_KEY" ]; then
-            npx supabase secrets set ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" --project-ref "$PROJECT_REF"
+            supabase secrets set ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" --project-ref "$PROJECT_REF"
             echo "✓ ANTHROPIC_API_KEY synced to Supabase (Claude fallback enabled)" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning title=Missing secret::ANTHROPIC_API_KEY not set — no Claude fallback if DeepSeek fails" >> "$GITHUB_STEP_SUMMARY"
           fi
           # TAVILY_API_KEY: optional search enhancement for RVCE
-          if [ -n "$TAVILY_API_KEY" ]; then npx supabase secrets set TAVILY_API_KEY="$TAVILY_API_KEY" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$TAVILY_API_KEY" ]; then supabase secrets set TAVILY_API_KEY="$TAVILY_API_KEY" --project-ref "$PROJECT_REF"; fi
           # DAHL_API_KEY: private inference provider (see _shared/dahl-adapter.ts).
           # Inert until DAHL_ENABLED=true is ALSO set -- this only makes the key
           # available to the runtime, it does not route any traffic by itself.
           if [ -n "$DAHL_API_KEY" ]; then
-            npx supabase secrets set DAHL_API_KEY="$DAHL_API_KEY" --project-ref "$PROJECT_REF"
+            supabase secrets set DAHL_API_KEY="$DAHL_API_KEY" --project-ref "$PROJECT_REF"
             echo "✓ DAHL_API_KEY synced to Supabase (inactive until DAHL_ENABLED=true)" >> "$GITHUB_STEP_SUMMARY"
           fi
           # CRON_SECRET: shared secret pg_cron sends via x-cron-secret to
@@ -351,7 +359,7 @@ jobs:
           # 2026-08-18; now tracked here so future rotations are a GitHub
           # secret update + redeploy, never another committed migration.
           if [ -n "$CRON_SECRET" ]; then
-            npx supabase secrets set CRON_SECRET="$CRON_SECRET" --project-ref "$PROJECT_REF"
+            supabase secrets set CRON_SECRET="$CRON_SECRET" --project-ref "$PROJECT_REF"
             echo "✓ CRON_SECRET synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning title=Missing secret::CRON_SECRET not set — cron-triggered functions will reject pg_cron calls with 401"
@@ -362,7 +370,7 @@ jobs:
           # means "the new code is answering", not "the deploy exited 0".
           PUSHED_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
           if [ -n "$PUSHED_SHA" ]; then
-            npx supabase secrets set COMMIT_SHA="$PUSHED_SHA" --project-ref "$PROJECT_REF"
+            supabase secrets set COMMIT_SHA="$PUSHED_SHA" --project-ref "$PROJECT_REF"
             echo "✓ COMMIT_SHA synced to Supabase ($PUSHED_SHA)" >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "Secret sync complete" >> "$GITHUB_STEP_SUMMARY"
@@ -389,14 +397,13 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping Dahl rollout sync" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          npm install -g supabase@2.20.5 2>/dev/null || true
-          npx supabase secrets set DAHL_ENABLED="${DAHL_ENABLED:-false}" --project-ref "$PROJECT_REF"
-          npx supabase secrets set DAHL_CANARY_MODE="${DAHL_CANARY_MODE:-off}" --project-ref "$PROJECT_REF"
-          npx supabase secrets set DAHL_CANARY_PERCENT="${DAHL_CANARY_PERCENT:-0}" --project-ref "$PROJECT_REF"
+          supabase secrets set DAHL_ENABLED="${DAHL_ENABLED:-false}" --project-ref "$PROJECT_REF"
+          supabase secrets set DAHL_CANARY_MODE="${DAHL_CANARY_MODE:-off}" --project-ref "$PROJECT_REF"
+          supabase secrets set DAHL_CANARY_PERCENT="${DAHL_CANARY_PERCENT:-0}" --project-ref "$PROJECT_REF"
           if [ -n "$DAHL_CANARY_ADMIN_USER_IDS" ]; then
-            npx supabase secrets set DAHL_CANARY_ADMIN_USER_IDS="$DAHL_CANARY_ADMIN_USER_IDS" --project-ref "$PROJECT_REF"
+            supabase secrets set DAHL_CANARY_ADMIN_USER_IDS="$DAHL_CANARY_ADMIN_USER_IDS" --project-ref "$PROJECT_REF"
           else
-            npx supabase secrets unset DAHL_CANARY_ADMIN_USER_IDS --project-ref "$PROJECT_REF"
+            supabase secrets unset DAHL_CANARY_ADMIN_USER_IDS --project-ref "$PROJECT_REF"
           fi
           echo "✓ Dahl rollout config synced: DAHL_ENABLED=${DAHL_ENABLED:-false}, DAHL_CANARY_MODE=${DAHL_CANARY_MODE:-off}, DAHL_CANARY_PERCENT=${DAHL_CANARY_PERCENT:-0}" >> "$GITHUB_STEP_SUMMARY"
 
@@ -410,7 +417,6 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping edge function deploy" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          npm install -g supabase@2.20.5 2>/dev/null || true
           FUNCTIONS=(
             # ── Billing (must deploy first so payments work) ──────────────
             stripe-webhook
@@ -519,7 +525,7 @@ jobs:
             if echo "$NO_VERIFY_JWT_FNS" | grep -qw "$fn"; then
               EXTRA_FLAGS="--no-verify-jwt"
             fi
-            if npx supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --use-api $EXTRA_FLAGS 2>&1; then
+            if supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --use-api $EXTRA_FLAGS 2>&1; then
               echo "✓ $fn deployed"
             else
               echo "✗ $fn FAILED"
