@@ -163,6 +163,9 @@ jobs:
             echo "Add SUPABASE_DB_PASSWORD to GitHub Secrets (Supabase Dashboard → Settings → Database → Connection string password)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          # 2026-10-12: strip whitespace defensively -- a pasted secret with a
+          # trailing newline passed this -z check fine but still broke the CLI.
+          SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
           # link prompts for the DB password when run interactively — in CI it must
           # be passed via -p or the command exits non-zero and kills the whole job
           # (which then skips deploy-edge-functions via `needs`). Root cause of the
@@ -212,6 +215,7 @@ jobs:
             echo "::warning title=Ledger check skipped::SUPABASE_ACCESS_TOKEN not set"
             exit 0
           fi
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
           node scripts/verify-migration-ledger.mjs
 
       - name: Verify live schema against the current required contract
@@ -223,6 +227,7 @@ jobs:
             echo "::warning title=Schema contract check skipped::SUPABASE_ACCESS_TOKEN not set"
             exit 0
           fi
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
           node scripts/verify-production-schema.mjs
 
   deploy-edge-functions:
@@ -305,6 +310,7 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping secret sync" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
           # Push runtime secrets that edge functions read at invocation time.
           # DEEPSEEK_API_KEY: used by rvce-validate, generate-idea, analyze-* (DeepSeek LLM calls)
           if [ -n "$DEEPSEEK_API_KEY" ]; then
@@ -404,6 +410,7 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping Dahl rollout sync" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
           supabase secrets set DAHL_ENABLED="${DAHL_ENABLED:-false}" --project-ref "$PROJECT_REF"
           supabase secrets set DAHL_CANARY_MODE="${DAHL_CANARY_MODE:-off}" --project-ref "$PROJECT_REF"
           supabase secrets set DAHL_CANARY_PERCENT="${DAHL_CANARY_PERCENT:-0}" --project-ref "$PROJECT_REF"
