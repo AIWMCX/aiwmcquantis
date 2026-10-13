@@ -17,6 +17,7 @@ import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/can
 import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { ReportFirstHero } from '@/components/landing/ReportFirstHero';
+import { ProductFilm } from '@/components/landing/ProductFilm';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
 import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
@@ -88,6 +89,9 @@ export default function Landing() {
         <div ref={heroRef} id="single-input-hero" data-hero-form>
           <ReportFirstHero />
         </div>
+
+        {/* 0.5. Product film — 25s decision film, framed on the RMG surface */}
+        <ProductFilm />
 
         {/* 1. Hero — Founder vs Reality (visual / story) */}
         <div id="mobile-hero">
