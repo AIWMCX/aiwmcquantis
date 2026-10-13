@@ -1,26 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Shield, Star, TrendingUp, AlertTriangle, Clock, DollarSign, Coffee } from 'lucide-react';
+import { Zap, TrendingUp, Shield, Clock } from 'lucide-react';
 import { trackCtaClick, trackAnalysisFunnel } from '@/lib/analytics';
-import { QuantisHeroDemo } from './QuantisHeroDemo';
 import { LiveCounter } from './LiveCounter';
-
-/* ── Animated counter for instrument panel ── */
-function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { end: number; prefix?: string; suffix?: string; duration?: number }) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValue(Math.round(eased * end));
-      if (t < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [end, duration]);
-  return <>{prefix}{value.toLocaleString()}{suffix}</>;
-}
 
 export function MobileHero() {
   const navigate = useNavigate();
@@ -50,20 +33,6 @@ export function MobileHero() {
     navigate('/app');
   };
 
-  const metrics = [
-    { icon: Clock, label: 'Break-Even', value: 'Month 14', status: 'warning' as const },
-    { icon: DollarSign, label: 'Revenue M12', value: '$8,400', status: 'neutral' as const },
-    { icon: TrendingUp, label: 'Cash Runway', value: '9 mo', status: 'danger' as const },
-    { icon: AlertTriangle, label: 'Risk Score', value: 'HIGH', status: 'danger' as const },
-  ];
-
-  const statusColor = {
-    success: 'var(--q-status-green)',
-    warning: 'var(--q-status-yellow)',
-    danger: 'var(--q-status-red)',
-    neutral: 'var(--q-accent-primary)',
-  };
-
   return (
     <section className="relative overflow-hidden" aria-label="Hero" style={{ minHeight: '720px' }}>
       {/* Background */}
@@ -86,19 +55,13 @@ export function MobileHero() {
         />
       </div>
 
-      <div className="relative container max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Main split layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center min-h-[720px] py-12 lg:py-20">
+      <div className="relative container max-w-5xl mx-auto px-4 sm:px-6">
+        {/* Centered copy — the Product Film above already carries the "see it work" job */}
+        <div className="flex flex-col items-center min-h-[560px] py-12 lg:py-16">
 
-          {/* LEFT — Live Demo Dashboard */}
-          <div className="relative w-full max-w-[640px] mx-auto lg:mx-0 order-2 lg:order-1">
-            <QuantisHeroDemo />
-          </div>
-
-          {/* RIGHT — Copy + CTA */}
-          <div className="space-y-6 md:space-y-8 order-1 lg:order-2 text-center lg:text-left">
+          <div className="space-y-6 md:space-y-8 text-center max-w-[720px]">
             {/* Eyebrow pill */}
-            <div className="flex justify-center lg:justify-start animate-fade-in" style={{ animationFillMode: 'both' }}>
+            <div className="flex justify-center animate-fade-in" style={{ animationFillMode: 'both' }}>
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider" style={{ background: 'var(--q-status-ai-bg)', border: '1px solid var(--q-status-ai-border)', color: 'var(--q-status-ai)' }}>
                 <Zap className="w-3.5 h-3.5" />
                 Financial Pre-Mortem Engine &middot; Multi-Model Cross-Checked
@@ -125,7 +88,7 @@ export function MobileHero() {
 
             {/* Subtitle — conversion-focused */}
             <p
-              className="animate-fade-in text-base md:text-lg max-w-[560px] mx-auto lg:mx-0 leading-relaxed"
+              className="animate-fade-in text-base md:text-lg max-w-[560px] mx-auto leading-relaxed"
               style={{ fontFamily: 'var(--q-font-body)', color: 'var(--q-text-secondary)', animationDelay: '160ms', animationFillMode: 'both' }}
             >
               Find out if your business idea will make money —{' '}
@@ -137,7 +100,7 @@ export function MobileHero() {
 
             {/* CTA Row */}
             <div
-              className="animate-fade-in flex flex-col items-center lg:items-start gap-4 w-full max-w-[400px] mx-auto lg:mx-0"
+              className="animate-fade-in flex flex-col items-center gap-4 w-full max-w-[400px] mx-auto"
               style={{ animationDelay: '240ms', animationFillMode: 'both' }}
             >
               <Button
@@ -181,7 +144,7 @@ export function MobileHero() {
 
             {/* Trust trio — 3 icon badges */}
             <div
-              className="animate-fade-in grid grid-cols-3 gap-3 max-w-[420px] mx-auto lg:mx-0"
+              className="animate-fade-in grid grid-cols-3 gap-3 max-w-[420px] mx-auto"
               style={{ animationDelay: '360ms', animationFillMode: 'both' }}
             >
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
@@ -199,7 +162,7 @@ export function MobileHero() {
             </div>
 
             {/* Live Counter */}
-            <div className="animate-fade-in flex justify-center lg:justify-start" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
+            <div className="animate-fade-in flex justify-center" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <LiveCounter />
             </div>
           </div>
