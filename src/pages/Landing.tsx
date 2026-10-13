@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useRef, useEffect } from 'react';
+import React, { lazy, Suspense, useRef, useEffect, useState } from 'react';
 import { useBotDetection } from '@/hooks/useBotDetection';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { ReportFirstHero } from '@/components/landing/ReportFirstHero';
 import { ProductFilm } from '@/components/landing/ProductFilm';
+import { IntroFilm } from '@/components/landing/IntroFilm';
+import { shouldShowIntroFilm } from '@/lib/intro-film';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
 import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
@@ -53,6 +55,8 @@ export default function Landing() {
   const faqSection = useLazySection({ rootMargin: '200px' });
   const heroRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
+  // First visit: the product film opens above every layer, then reveals the homepage.
+  const [introOpen, setIntroOpen] = useState(shouldShowIntroFilm);
 
   // SOW §6.1 funnel event: home_view fires once per session on landing
   useEffect(() => {
@@ -180,7 +184,9 @@ export default function Landing() {
       />
 
       <div className="h-24 md:hidden" />
-      <PopupManager />
+      {/* Marketing popups wait until the intro film has been closed. */}
+      {!introOpen && <PopupManager />}
+      {introOpen && <IntroFilm onDone={() => setIntroOpen(false)} />}
     </div>
   );
 }
