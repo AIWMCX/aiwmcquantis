@@ -1,106 +1,122 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ClipboardEdit, Cpu, FileCheck, ArrowRight } from 'lucide-react';
-import { GlassCard, Reveal, SectionHeader } from '@/components/ui/glass-card';
-import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT_DISPLAY, PIPELINE_LAYERS } from '@/config/canonical-facts';
+import React, { useEffect, useRef, useState } from 'react';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { Img3D, InView, SectionLabel, SplitButton } from '@/components/sadewa/primitives';
+import { trackCtaClick } from '@/lib/analytics';
+import { cn } from '@/lib/utils';
 
-const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
-
-const steps = [
+const STEPS = [
   {
     num: '01',
-    icon: ClipboardEdit,
-    title: 'Tell us what you know',
-    body: `Industry, city, a few numbers. We fill in the gaps from ${BENCHMARK_COUNT_DISPLAY}+ benchmarks.`,
-    glow: 'cyan' as const,
-    preview: 'Industry ▾ · City · Startup Capital',
+    title: 'Describe',
+    img: 'notebook' as const,
+    body: `Tell Quantis what you know — industry, city, a few numbers. Blanks are filled with labeled defaults from a ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid, and you can replace any of them.`,
   },
   {
     num: '02',
-    icon: Cpu,
-    title: 'Quantis simulates 1,000 futures',
-    body: 'Multi-model checks, risk stress-tests, and pre-mortem engine run in the background.',
-    glow: 'violet' as const,
-    preview: `L1–L${PIPELINE_LAYERS} · ${MONTE_CARLO_ITERATIONS_DISPLAY} iterations`,
-    badges: ['Quantis Engine'],
+    title: 'Stress-test',
+    img: 'magnifier' as const,
+    body: 'The engine computes cash, break-even and payback, then runs downside scenarios and a failure pre-mortem against your assumptions.',
   },
   {
     num: '03',
-    icon: FileCheck,
-    title: 'You get a reviewable decision report',
-    body: 'Verdict, P&L, risk matrix, launch plan, and invoice capacity in one PDF + dashboard.',
-    glow: 'brand' as const,
-    preview: '24 pages · PDF',
+    title: 'Compare',
+    img: 'code-window' as const,
+    body: 'See conservative, realistic and optimistic cases side by side — and which single assumption moves the result the most.',
+  },
+  {
+    num: '04',
+    title: 'Decide',
+    img: 'cursor' as const,
+    body: 'Get a verdict and a saveable report. Change one assumption and see exactly what breaks before you commit the money.',
   },
 ];
 
 export function HowItWorksSection() {
+  const [active, setActive] = useState(0);
+  const stepRefs = useRef<Array<HTMLLIElement | null>>([]);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            const i = stepRefs.current.indexOf(e.target as HTMLLIElement);
+            if (i >= 0) setActive(i);
+          }
+        });
+      },
+      { rootMargin: '-45% 0px -45% 0px', threshold: 0 },
+    );
+    stepRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <section id="how-it-works" aria-labelledby="how-it-works-heading" className="aiwmc-section-wash py-20 md:py-28">
-      <div className="container max-w-6xl mx-auto px-4 sm:px-6">
-        <SectionHeader
-          eyebrow="How It Works"
-          title="Describe it once. Full clarity."
-          subtitle="No spreadsheets, no guesswork — just verified financial intelligence."
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mt-12">
-          {steps.map((s, i) => (
-            <GlassCard key={s.num} glow={s.glow} revealDelay={i * 80} className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl font-bold" style={{ ...MONO, color: 'hsl(var(--foreground))' }}>
-                  {s.num}
-                </span>
-                <div className="p-2 rounded-xl" style={{ background: 'rgba(148,163,255,0.10)' }}>
-                  <s.icon className="w-5 h-5" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
-                </div>
-              </div>
-
-              <div
-                className="rounded-lg mb-4 h-14 flex items-center justify-center px-3"
-                style={{ background: 'rgba(148,163,255,0.06)', border: '1px solid rgba(148,163,255,0.14)' }}
-              >
-                <span className="text-[11px] uppercase tracking-[0.1em] text-center" style={{ ...MONO, color: 'var(--aiwmc-grad-violet)' }}>
-                  {s.preview}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-semibold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
-                {s.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{s.body}</p>
-
-              {s.badges && (
-                <div className="flex gap-2 mt-4">
-                  {s.badges.map((b) => (
-                    <span
-                      key={b}
-                      className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full"
-                      style={{ background: 'var(--q-status-ai-bg)', color: 'var(--q-status-ai)', border: '1px solid var(--q-status-ai-border)' }}
-                    >
-                      {b}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </GlassCard>
-          ))}
+    <section id="how-it-works" aria-labelledby="how-it-works-heading" className="sdw-section">
+      <div className="sdw-container">
+        <SectionLabel>Our approach</SectionLabel>
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 lg:gap-16 lg:items-end">
+          <h2 id="how-it-works-heading" className="sdw-h2">Describe it once. See what has to be true.</h2>
+          <p className="sdw-lead text-[17px] lg:justify-self-end max-w-[460px]">
+            Four steps, one Decision Run. No spreadsheet to build, and every number traceable to an input or a labeled default.
+          </p>
         </div>
 
-        <Reveal delay={280}>
-          <div className="text-center mt-14 flex flex-col items-center gap-3">
-            <Link to="/app">
-              <Button size="lg" className="gap-2 h-[52px] px-8 text-base font-semibold">
-                Run my first analysis free
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <span className="text-xs uppercase tracking-[0.14em]" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
-              &lt; 90 sec
-            </span>
+        <div className="mt-12 lg:mt-4 grid grid-cols-1 lg:grid-cols-2 gap-x-16">
+          {/* Pinned visual (desktop) */}
+          <div className="hidden lg:block">
+            <div className="sticky top-[72px] h-[calc(100vh-72px)] flex items-center">
+              <div className="relative w-full h-[440px]">
+                <span
+                  className="absolute left-0 bottom-6 font-bold sdw-num"
+                  style={{ fontSize: '96px', letterSpacing: '-0.05em', color: 'var(--sdw-line-strong)', lineHeight: 1 }}
+                  aria-hidden="true"
+                >
+                  /{STEPS[active].num}
+                </span>
+                {STEPS.map((s, i) => (
+                  <Img3D
+                    key={s.num}
+                    name={s.img}
+                    className={cn(
+                      'absolute left-[22%] top-0 w-[400px] transition-all duration-700 ease-[cubic-bezier(.2,.7,.2,1)]',
+                      i === active ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-90 -rotate-6',
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
-        </Reveal>
+
+          <ol>
+            {STEPS.map((s, i) => (
+              <li
+                key={s.num}
+                ref={(el) => { stepRefs.current[i] = el; }}
+                aria-current={i === active ? 'step' : undefined}
+                className="lg:min-h-[78vh] flex flex-col justify-center py-10 lg:py-0 border-b lg:border-b-0"
+                style={{ borderColor: 'var(--sdw-line)' }}
+              >
+                <div className="lg:hidden flex items-end gap-4 mb-6">
+                  <Img3D name={s.img} className="w-40" />
+                  <span className="font-bold sdw-num" style={{ fontSize: '56px', letterSpacing: '-0.05em', color: 'var(--sdw-line-strong)', lineHeight: 1 }}>/{s.num}</span>
+                </div>
+                <div className={cn('transition-opacity duration-500', 'lg:opacity-30', i === active && 'lg:opacity-100')}>
+                  <h3 className="font-bold" style={{ fontSize: 'clamp(2.75rem, 5vw, 4.5rem)', letterSpacing: '-0.045em', lineHeight: 1, color: 'var(--sdw-ink)' }}>
+                    {s.title}
+                  </h3>
+                  <p className="mt-5 text-[18px] leading-relaxed max-w-[520px]" style={{ color: 'var(--sdw-ink-2)' }}>{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <InView className="mt-10 lg:mt-0 flex flex-col sm:flex-row sm:items-center gap-4">
+          <SplitButton to="/app" onClick={() => trackCtaClick('how_it_works_run_free', 'how_it_works')}>Run my first analysis free</SplitButton>
+          <span className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>/Results in under 90 seconds</span>
+        </InView>
       </div>
     </section>
   );

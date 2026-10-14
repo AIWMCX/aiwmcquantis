@@ -8,7 +8,8 @@ import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '@/data/sampleReport';
 import { SampleReportPages, type Density } from './SampleReportPages';
-import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY, BENCHMARK_SOURCES_LIST } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_LIST } from '@/config/canonical-facts';
+import { SectionLabel } from '@/components/sadewa/primitives';
 
 const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
@@ -289,74 +290,25 @@ export function ReportFirstHero() {
   return (
     <section
       aria-label="See a real Quantis report, then generate yours"
-      className="aiwmc-section-wash relative w-full overflow-hidden"
-      style={{ background: 'hsl(var(--background))' }}
+      className="relative w-full"
+      style={{ background: 'var(--sdw-bg, hsl(var(--background)))' }}
     >
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20">
-        {/* Eyebrow — Instrument-Grade: plain DM Mono uppercase, no pill container */}
-        <div className="flex flex-col items-center text-center mb-8 md:mb-10">
-          <div
-            className="flex items-center gap-3 mb-6 text-[11px] font-semibold uppercase"
-            style={{
-              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-              letterSpacing: '0.18em',
-              color: 'hsl(var(--foreground) / 0.72)',
-            }}
-          >
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ background: 'var(--aiwmc-grad-brand, hsl(var(--primary)))' }}
-              aria-hidden="true"
-            />
-            Financial Stress-Test for Founders
-            <span
-              className="inline-block w-8 h-px"
-              style={{ background: 'hsl(var(--foreground) / 0.18)' }}
-              aria-hidden="true"
-            />
-            Sources Cited on Every Number
+      <div className="sdw-container sdw-section">
+        <div className="mb-10 md:mb-14">
+          <SectionLabel>Sample report · The Draft Lab, Austin TX</SectionLabel>
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 lg:gap-16 lg:items-end">
+            <h2 className="sdw-h2">See a real report. Then generate yours.</h2>
+            <div className="lg:justify-self-end max-w-[460px]">
+              <p className="sdw-lead text-[17px]">
+                A complete {PAGE_COUNT}-page Quantis report on an illustrative business — open any number to see how it was produced.
+              </p>
+              <ul aria-label="Benchmark data sources" className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
+                {[...BENCHMARK_SOURCES_LIST, '8-Layer QSL safety'].map((src) => (
+                  <li key={src} className="sdw-label text-[11px]" style={{ color: 'var(--sdw-muted)' }}>/{src}</li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <h1
-            className="font-bold leading-[1.02] tracking-tight max-w-4xl"
-            style={{
-              fontFamily: "'Cabinet Grotesk', 'Sora', var(--font-heading, inherit)",
-              fontSize: 'clamp(2.25rem, 5.5vw, 4rem)',
-              color: 'hsl(var(--foreground))',
-              letterSpacing: '-0.035em',
-            }}
-          >
-            Before you invest $50K, find out if you’ll get it back.
-          </h1>
-          <p className="mt-5 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Quantis stress-tests your idea against <strong>a {BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid</strong> informed
-            by {BENCHMARK_SOURCES_DISPLAY} — and returns a profitability verdict and reliability
-            score with a saveable PDF. No credit card. First analysis free.
-          </p>
-          {/* Data-source attribution row — real trust signals replacing fabricated review counts */}
-          <ul
-            aria-label="Benchmark data sources"
-            className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-mono uppercase tracking-wider"
-            style={{ color: 'hsl(var(--muted-foreground))' }}
-          >
-            {BENCHMARK_SOURCES_LIST.map((src) => (
-              <li key={src} className="inline-flex items-center gap-1.5">
-                <span
-                  className="inline-block w-1 h-1 rounded-full"
-                  style={{ background: 'hsl(var(--primary))' }}
-                  aria-hidden="true"
-                />
-                {src}
-              </li>
-            ))}
-            <li className="inline-flex items-center gap-1.5">
-              <span
-                className="inline-block w-1 h-1 rounded-full"
-                style={{ background: 'hsl(var(--primary))' }}
-                aria-hidden="true"
-              />
-              8-Layer QSL safety
-            </li>
-          </ul>
         </div>
 
 

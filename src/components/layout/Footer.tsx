@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail } from 'lucide-react';
+import { ScrambleText, Crosshairs } from '@/components/sadewa/primitives';
 import { FooterEmailSignup } from './FooterEmailSignup';
 import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
@@ -73,7 +73,7 @@ const SOCIAL_LINKS = [
     ),
   },
   // Threads/Whop: monogram placeholders (no verified official brand SVG
-  // path in this codebase yet), matching SocialPanel.tsx/Connect.tsx.
+  // path in this codebase yet), matching Connect.tsx.
   {
     id: 'threads',
     label: 'Threads',
@@ -98,130 +98,135 @@ const SOCIAL_LINKS = [
   },
 ];
 
+const COLUMNS: { label: string; links: { to: string; label: string }[] }[] = [
+  {
+    label: 'Product',
+    links: [
+      { to: '/how-it-works', label: 'How It Works' },
+      { to: '/pricing', label: 'Pricing' },
+      { to: '/examples', label: 'Examples' },
+      { to: '/use-cases', label: 'Use Cases' },
+      { to: '/consultants', label: 'For Consultants' },
+    ],
+  },
+  {
+    label: 'Resources',
+    links: [
+      { to: '/blog', label: 'Blog' },
+      { to: '/methodology', label: 'Methodology' },
+      { to: '/cases', label: 'Reference Cases' },
+      { to: '/state-of-quantis', label: 'State of Quantis' },
+      { to: '/changelog', label: 'Changelog' },
+      { to: '/status', label: 'Status' },
+    ],
+  },
+  {
+    label: 'Legal',
+    links: [
+      { to: '/security', label: 'Security' },
+      { to: '/refund-policy', label: 'Refund Policy' },
+      { to: '/privacy', label: 'Privacy Policy' },
+      { to: '/terms', label: 'Terms of Service' },
+    ],
+  },
+];
+
+const linkCls = 'text-[18px] md:text-[20px] font-medium leading-none transition-colors hover:text-[var(--sdw-blue-hi)]';
+
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/50 mt-auto">
-      <div className="container max-w-7xl px-4 sm:px-6 py-8 md:py-12">
-        <div className="flex flex-col gap-8">
-          {/* Top Row: Branding + Newsletter */}
-          <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
-            <div className="flex flex-col items-center lg:items-start gap-3">
-              <Link to="/" className="flex items-center">
-                <img
-                  src={aiwmcLogoText}
-                  alt="​AIWMC™ Quantis"
-                  width={109}
-                  height={32}
-                  className="h-8 w-auto object-contain dark:invert" />
+    <footer className="sdw-dark sdw-stars mt-auto overflow-hidden">
+      <div className="sdw-container pt-10 md:pt-14">
+        <Crosshairs />
 
-              </Link>
-              <p className="text-sm text-muted-foreground text-center lg:text-left max-w-xs">
-                AI business validation & financial structuring for founders
+        <div className="mt-12 md:mt-16 grid grid-cols-1 lg:grid-cols-[minmax(300px,1.6fr)_repeat(4,minmax(0,1fr))] gap-12 lg:gap-8">
+          <div className="flex flex-col gap-6">
+            <Link to="/" aria-label="AIWMC Quantis — home" className="inline-flex w-fit">
+              <img
+                src={aiwmcLogoText}
+                alt="AIWMC™ Quantis"
+                width={109}
+                height={32}
+                className="h-8 w-auto object-contain"
+                style={{ filter: 'invert(1)', mixBlendMode: 'screen' }}
+              />
+            </Link>
+            <div>
+              <p className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
+                <ScrambleText text="/EMAIL" />
               </p>
-              <p className="text-xs text-muted-foreground">
-                A product of <span className="font-medium">AIWMC™  LLC</span>
-              </p>
-              
-              {/* Social Links */}
-              <div className="flex flex-col gap-2 mt-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {SOCIAL_LINKS.map((s) => (
-                    <a
-                      key={s.id}
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={s.label}
-                      className="group p-2 rounded-xl border border-border/50 bg-card/40 hover:border-transparent transition-all duration-200 hover:scale-105"
-                      style={{ '--hover-color': s.color } as React.CSSProperties}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.backgroundColor = s.color + '22';
-                        (e.currentTarget as HTMLElement).style.borderColor = s.color + '66';
-                        (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('style', `color: ${s.color}`);
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.backgroundColor = '';
-                        (e.currentTarget as HTMLElement).style.borderColor = '';
-                        (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('style', 'color: currentColor');
-                      }}
-                    >
-                      <span className="text-muted-foreground transition-colors duration-200">
-                        {s.icon}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-                <Link
-                  to="/connect"
-                  className="text-xs text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1 mt-0.5"
-                >
-                  <span>All channels →</span>
-                </Link>
-              </div>
+              <a
+                href="mailto:support@aiwmcquantis.com"
+                className="mt-2 inline-block text-[20px] md:text-[22px] font-bold whitespace-nowrap"
+                style={{ color: 'var(--sdw-blue-hi)', letterSpacing: '-0.03em' }}
+              >
+                support@aiwmcquantis.com
+              </a>
             </div>
-            
-            {/* Newsletter Signup */}
-            <FooterEmailSignup />
-          </div>
-          
-          {/* Middle Row: Links */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pt-4 border-t border-border/50">
-            <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Blog
-            </Link>
-            <Link to="/methodology" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Methodology
-            </Link>
-            <Link to="/cases" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Reference Cases
-            </Link>
-            <Link to="/status" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Status
-            </Link>
-            <Link to="/state-of-quantis" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              State of Quantis
-            </Link>
-            <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Security
-            </Link>
-            <Link to="/changelog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Changelog
-            </Link>
-            <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Refund Policy
-            </Link>
-            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Privacy Policy
-            </Link>
-            <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Terms of Service
-            </Link>
-            <a
-              href="mailto:support@aiwmcquantis.com"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-
-              <Mail className="w-4 h-4" />
-              support@aiwmcquantis.com
-            </a>
-          </div>
-          
-          {/* Governance */}
-          <p className="text-xs text-muted-foreground text-center max-w-2xl mx-auto leading-relaxed">
-            Quantis is decision support, not investment advice. Always combine with human judgment.
-          </p>
-
-          {/* Bottom Row: Copyright + Compliance + Audit Badge */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} AIWMC™ LLC
+            <div className="max-w-sm">
+              <FooterEmailSignup />
+            </div>
+            <p className="text-[14px]" style={{ color: 'var(--sdw-muted)' }}>
+              AI business validation &amp; financial structuring for founders. A product of <span className="font-medium" style={{ color: 'var(--sdw-ink-2)' }}>AIWMC™ LLC</span>.
             </p>
-            <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
-            <p className="text-xs text-muted-foreground">GDPR & CCPA Rights Supported</p>
-            <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
+          </div>
+
+          {COLUMNS.map((col) => (
+            <nav key={col.label} aria-label={col.label}>
+              <p className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
+                <ScrambleText text={`/${col.label.toUpperCase()}`} />
+              </p>
+              <ul className="mt-5 space-y-4">
+                {col.links.map((l) => (
+                  <li key={l.to}>
+                    <Link to={l.to} className={linkCls}>{l.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+
+          <nav aria-label="Follow us">
+            <p className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
+              <ScrambleText text="/FOLLOW US" />
+            </p>
+            <ul className="mt-5 space-y-4">
+              {SOCIAL_LINKS.map((s) => (
+                <li key={s.id}>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" className={`${linkCls} inline-flex items-center gap-2.5`}>
+                    <span aria-hidden="true" style={{ color: 'var(--sdw-muted)' }}>{s.icon}</span>
+                    {s.label}
+                  </a>
+                </li>
+              ))}
+              <li>
+                <Link to="/connect" className="text-[14px] transition-colors hover:text-[var(--sdw-blue-hi)]" style={{ color: 'var(--sdw-muted)' }}>
+                  All channels →
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        <p className="mt-16 text-[13px] max-w-2xl" style={{ color: 'var(--sdw-muted)' }}>
+          Quantis is decision support, not investment advice. Always combine with human judgment.
+        </p>
+
+        <div className="mt-6 sdw-rule is-in" aria-hidden="true" />
+        <div className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
+            © {new Date().getFullYear()} AIWMC™ LLC. All rights reserved.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>GDPR &amp; CCPA rights supported</span>
             <LastAuditedBadge size="sm" />
           </div>
         </div>
       </div>
-    </footer>);
 
+      <div aria-hidden="true" className="sdw-container overflow-hidden">
+        <p className="sdw-wordmark -mb-[0.18em]" style={{ fontSize: 'clamp(5.5rem, 21vw, 21rem)' }}>QUANTIS.</p>
+      </div>
+    </footer>
+  );
 }

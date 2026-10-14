@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom';
 // id 41 (IndieHackers) was already featured here despite being
 // status: "not_started" at the time — now genuinely live with proof
 // (see directorySubmissions.ts), so its presence here is honest again.
-const FEATURED_IDS = [11, 45, 46, 17, 16, 2, 5, 7, 8, 6, 9, 47, 48, 14, 19, 41, 68, 67, 66, 65, 61];
+export const FEATURED_IDS = [11, 45, 46, 17, 16, 2, 5, 7, 8, 6, 9, 47, 48, 14, 19, 41, 68, 67, 66, 65, 61];
 
 function hostOf(url: string): string {
   try {
