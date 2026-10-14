@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,8 +75,8 @@ export function PublicPageShell({
       >
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-4">
-            <Link to="/" className="text-lg sm:text-xl font-bold text-foreground font-sans shrink-0">
-              AIWMC™ Quantis
+            <Link to="/" className="shrink-0" aria-label="AIWMC Quantis — home">
+              <BrandLogo height={32} />
             </Link>
             <div className="hidden md:flex items-center gap-6 lg:gap-8">
               {NAV_ITEMS.map((n) => (

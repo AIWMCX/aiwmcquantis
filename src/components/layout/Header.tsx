@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Link } from 'react-router-dom';
 import { Moon, Sun, LogOut, User, Shield, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ import { MobileNav } from './MobileNav';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
-import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 interface HeaderProps {
   darkMode?: boolean;
@@ -37,13 +37,7 @@ export function Header({ darkMode: _legacyDarkMode, onToggleTheme: _legacyToggle
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
-          <img 
-            src={aiwmcLogoText}
-            alt="​AIWMC™ Quantis"
-            width={136}
-            height={40}
-            className="h-8 sm:h-10 w-auto object-contain dark:invert"
-          />
+          <BrandLogo height={30} tile />
         </Link>
 
         <div className="flex items-center gap-2">

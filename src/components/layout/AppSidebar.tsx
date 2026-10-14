@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -198,7 +199,7 @@ export function AppSidebar() {
           width: collapsed ? '60px' : '228px',
         }}
       >
-        {/* ── HEADER — AIWMC // QUANTIS. wordmark ── */}
+        {/* ── HEADER — AIWMC QUANTIS logo ── */}
         <SidebarHeader
           className="flex items-center px-4 border-b"
           style={{
@@ -214,44 +215,13 @@ export function AppSidebar() {
             />
           ) : (
             <div className="flex items-center gap-2.5">
-              <div
-                className="w-[3px] h-7 rounded-full flex-shrink-0"
-                style={{ background: 'var(--q-accent-primary)' }}
-              />
-              <div className="flex flex-col leading-none">
-                <div className="flex items-baseline gap-1">
-                  <span
-                    className="text-[9px] font-semibold tracking-[0.15em] uppercase"
-                    style={{
-                      fontFamily: 'var(--q-font-mono)',
-                      color: 'var(--q-accent-primary)',
-                    }}
-                  >
-                    AIWMC //
-                  </span>
-                  <span
-                    className="text-sm font-extrabold tracking-tight"
-                    style={{
-                      fontFamily: 'var(--q-font-heading)',
-                      color: 'var(--q-text-primary)',
-                      letterSpacing: '-0.02em',
-                    }}
-                  >
-                    QUANTIS
-                    <span style={{ color: 'var(--q-accent-primary)' }}>.</span>
-                  </span>
-                </div>
-                <span
-                  className="text-[9px] tracking-[0.08em] uppercase"
-                  style={{
-                    fontFamily: 'var(--q-font-mono)',
-                    color: 'var(--q-text-tertiary)',
-                    marginTop: '1px',
-                  }}
-                >
-                  {tierLabel} PLAN
-                </span>
-              </div>
+              <BrandLogo height={24} tile alt="AIWMC Quantis" />
+              <span
+                className="text-[9px] tracking-[0.08em] uppercase"
+                style={{ fontFamily: 'var(--q-font-mono)', color: 'var(--q-text-tertiary)' }}
+              >
+                {tierLabel} PLAN
+              </span>
             </div>
           )}
         </SidebarHeader>

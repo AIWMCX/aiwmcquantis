@@ -13,7 +13,7 @@ import { MarketAnalysisSection } from '@/components/analysis/MarketAnalysisSecti
 import { ConfidenceIndicator } from '@/components/analysis/ConfidenceIndicator';
 import { ActionableInsights } from '@/components/analysis/ActionableInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { PageMeta } from '@/components/seo/PageMeta';
 import { GlassCard } from '@/components/ui/glass-card';
 
@@ -151,7 +151,7 @@ export default function SharedReport() {
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <img src={aiwmcLogoText} alt="AIWMC Quantis" width={109} height={32} className="h-8 w-auto object-contain dark:invert" />
+              <BrandLogo height={28} tile />
             </Link>
             <div className="flex items-center gap-3">
               <Badge variant="secondary" className="gap-1">
@@ -281,7 +281,7 @@ export default function SharedReport() {
       <footer className="border-t border-border py-8 mt-12">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <img src={aiwmcLogoText} alt="AIWMC Quantis" width={109} height={32} className="h-8 w-auto object-contain dark:invert" />
+            <BrandLogo height={28} tile />
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} AIWMC Quantis. All rights reserved.
             </p>

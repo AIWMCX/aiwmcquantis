@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Brain, 
@@ -95,12 +96,8 @@ export function MobileNav({ children }: MobileNavProps) {
         <DrawerHeader className="border-b border-border pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Brain className="w-5 h-5 text-primary" />
-              </div>
-              <DrawerTitle className="text-left">
-                AIWMC Quantis
-              </DrawerTitle>
+              <BrandLogo height={28} tile />
+              <DrawerTitle className="sr-only">AIWMC Quantis menu</DrawerTitle>
             </div>
             <DrawerClose asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">

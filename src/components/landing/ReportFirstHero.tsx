@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 import { useNavigate } from 'react-router-dom';
 import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge, ZoomIn, ZoomOut, Contrast, AlertTriangle } from 'lucide-react';
@@ -669,18 +670,7 @@ export function ReportFirstHero() {
                   }}
                 >
                   <div className="flex items-center justify-between px-6 pt-5">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[11px] font-bold"
-                        style={{ background: '#007BFF', color: '#FFFFFF', fontFamily: 'ui-monospace, Menlo, monospace' }}
-                        aria-hidden="true"
-                      >
-                        Q
-                      </span>
-                      <span className="text-[11px] uppercase tracking-[0.22em] font-semibold" style={{ color: 'rgba(230,238,255,0.85)' }}>
-                        AIWMC<sup className="text-[7px] align-super">™</sup> Quantis
-                      </span>
-                    </div>
+                    <BrandLogo height={30} />
                     <span className="text-[10px] font-mono uppercase tracking-[0.18em]" style={{ color: 'rgba(0,123,255,0.85)' }}>
                       Executive Report
                     </span>
