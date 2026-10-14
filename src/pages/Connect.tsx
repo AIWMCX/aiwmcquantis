@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { ExternalLink } from 'lucide-react';
-import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 const SOCIALS = [
   {
@@ -140,11 +140,7 @@ export default function Connect() {
         {/* Header */}
         <div className="flex flex-col items-center text-center mb-12">
           <a href="/" className="mb-6 opacity-90 hover:opacity-100 transition-opacity">
-            <img
-              src={aiwmcLogoText}
-              alt="AIWMC Quantis"
-              className="h-10 w-auto object-contain dark:invert"
-            />
+            <BrandLogo height={44} />
           </a>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3 bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
             Connect with AIWMC

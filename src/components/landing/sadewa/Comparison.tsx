@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Check, X } from 'lucide-react';
 import { InView } from '@/components/sadewa/primitives';
 
@@ -31,9 +32,7 @@ export function Comparison() {
         <div className="mt-12 md:mt-16 mx-auto max-w-[860px] grid grid-cols-1 md:grid-cols-2 gap-6">
           <InView className="sdw-dark sdw-chamfer relative p-7 md:p-8" style={{ ['--sdw-cut' as string]: '52px' }}>
             <span aria-hidden="true" className="absolute left-0 top-7 h-9 w-[5px]" style={{ background: 'var(--sdw-accent)' }} />
-            <p className="text-center text-[28px] font-extrabold" style={{ letterSpacing: '-0.03em' }}>
-              QUANTIS<span style={{ color: 'var(--sdw-accent)' }}>.</span>
-            </p>
+            <div className="flex justify-center"><BrandLogo height={46} /></div>
             <ul className="mt-8 space-y-6">
               {QUANTIS.map((t) => (
                 <li key={t} className="flex items-start gap-3 text-[17px] leading-snug">

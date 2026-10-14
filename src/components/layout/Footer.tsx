@@ -1,9 +1,9 @@
 import React from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Link } from 'react-router-dom';
 import { ScrambleText, Crosshairs } from '@/components/sadewa/primitives';
 import { FooterEmailSignup } from './FooterEmailSignup';
 import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
-import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 const SOCIAL_LINKS = [
   {
@@ -142,14 +142,7 @@ export function Footer() {
         <div className="mt-12 md:mt-16 grid grid-cols-1 lg:grid-cols-[minmax(300px,1.6fr)_repeat(4,minmax(0,1fr))] gap-12 lg:gap-8">
           <div className="flex flex-col gap-6">
             <Link to="/" aria-label="AIWMC Quantis — home" className="inline-flex w-fit">
-              <img
-                src={aiwmcLogoText}
-                alt="AIWMC™ Quantis"
-                width={109}
-                height={32}
-                className="h-8 w-auto object-contain"
-                style={{ filter: 'invert(1)', mixBlendMode: 'screen' }}
-              />
+              <BrandLogo height={44} />
             </Link>
             <div>
               <p className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>

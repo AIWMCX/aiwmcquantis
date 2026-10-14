@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -176,7 +176,7 @@ export default function Auth() {
         <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center px-12 py-16" style={{ background: '#0a0e1f' }}>
           <div className="max-w-md space-y-8">
             <div className="mb-6">
-              <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-12 w-auto object-contain dark:invert" />
+              <BrandLogo height={52} />
             </div>
             <p className="text-lg text-muted-foreground leading-relaxed">
               AI-powered business validation. Stress-test your startup idea before you commit capital.
@@ -222,7 +222,7 @@ export default function Auth() {
 
             {/* Mobile-only logo */}
             <div className="mb-8 lg:hidden">
-              <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-10 w-auto object-contain dark:invert" />
+              <BrandLogo height={36} tile />
             </div>
 
             <Card className="w-full">
