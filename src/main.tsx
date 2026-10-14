@@ -15,6 +15,7 @@ import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '@fontsource/ibm-plex-mono/600.css';
 import './index.css';
+import './styles/sadewa.css';
 
 // Initialize monitoring and analytics before rendering
 initSentry();

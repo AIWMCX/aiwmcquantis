@@ -57,7 +57,7 @@ export function LeadCaptureInline() {
             style={{
               ...MONO,
               background: 'rgba(148,163,255,0.06)',
-              border: '1px solid rgba(148,163,255,0.14)',
+              border: '1px solid hsl(var(--border))',
               color: 'hsl(var(--foreground))',
             }}
           >
@@ -76,8 +76,8 @@ export function LeadCaptureInline() {
           placeholder="you@company.com"
           className="h-12 flex-1"
           style={{
-            background: 'rgba(12,16,32,0.55)',
-            border: '1px solid rgba(148,163,255,0.18)',
+            background: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
             color: 'hsl(var(--foreground))',
           }}
           disabled={isSubmitting}

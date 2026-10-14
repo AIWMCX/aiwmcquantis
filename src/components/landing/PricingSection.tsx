@@ -360,10 +360,10 @@ function FeatureComparisonTable() {
       >
         Feature Comparison
       </h3>
-      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(148,163,255,0.14)', background: 'rgba(12,16,32,0.55)' }}>
+      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}>
         <table className="w-full">
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(148,163,255,0.14)' }}>
+            <tr style={{ borderBottom: '1px solid hsl(var(--border))' }}>
               <th className="text-left p-4 text-xs font-semibold uppercase text-muted-foreground" style={MONO}>Feature</th>
               <th className="text-center p-4 text-xs font-semibold uppercase text-muted-foreground" style={MONO}>Free</th>
               <th

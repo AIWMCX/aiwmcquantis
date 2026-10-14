@@ -151,8 +151,7 @@ export function ProductFilm() {
     <section
       ref={sectionRef}
       aria-labelledby="product-film-heading"
-      className="relative w-full overflow-hidden py-16 md:py-24"
-      style={{ borderTop: '1px solid var(--rmg-ink-2)' }}
+      className="sdw-dark sdw-stars relative w-full overflow-hidden py-20 md:py-28"
     >
       {/* soft institutional light, same hue as the film's electric blue */}
       <div
@@ -161,7 +160,7 @@ export function ProductFilm() {
         style={{ background: 'radial-gradient(55% 45% at 72% 42%, rgba(71,138,255,0.10), transparent 70%)' }}
       />
 
-      <div className="container relative max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="sdw-container relative">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-14 gap-y-10 items-start">
           {/* A — heading */}
           <header className="lg:col-span-5 lg:row-start-1 lg:pt-6">
@@ -178,10 +177,10 @@ export function ProductFilm() {
               id="product-film-heading"
               className="font-bold tracking-tight"
               style={{
-                fontFamily: "'Cabinet Grotesk', 'Sora', var(--font-heading, inherit)",
-                fontSize: 'clamp(2rem, 4vw, 3.15rem)',
-                lineHeight: 1.04,
-                letterSpacing: '-0.03em',
+                fontFamily: "var(--sdw-font-display, 'Cabinet Grotesk')",
+                fontSize: 'clamp(2.3rem, 4.4vw, 3.75rem)',
+                lineHeight: 1,
+                letterSpacing: '-0.04em',
               }}
             >
               <span style={{ color: 'var(--rmg-text-dim)' }}>Before the decision,</span>{' '}

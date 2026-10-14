@@ -70,8 +70,8 @@ export function FAQSection() {
               value={`item-${index}`}
               className="rounded-xl px-6 transition-colors"
               style={{
-                background: 'rgba(12,16,32,0.55)',
-                border: '1px solid rgba(148,163,255,0.14)',
+                background: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
               }}
             >
               <AccordionTrigger className="text-left text-foreground hover:no-underline py-5">
