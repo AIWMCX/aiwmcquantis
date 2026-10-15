@@ -116,17 +116,19 @@ function isSpamOrBot(): boolean {
   }
 }
 
-// Local development points at the production database; without this guard
-// every local page load is recorded as an anonymous production visitor
-// (observed 2026-10-13/14: localhost sessions in the 7-day homepage count).
-function isLocalDevHost(): boolean {
+// Local development and Vercel preview/staging deployments point at the
+// production database; without this guard their page loads are recorded as
+// anonymous production visitors (observed 2026-10-13/14: localhost sessions
+// in the 7-day homepage count). Only the production site is measured.
+function isNonProductionHost(): boolean {
   if (import.meta.env.MODE === 'test' || typeof window === 'undefined') return false;
   const h = window.location.hostname;
-  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h.endsWith('.local') || h.endsWith('.localhost');
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]'
+    || h.endsWith('.local') || h.endsWith('.localhost') || h.endsWith('.vercel.app');
 }
 
 function shouldTrack(): boolean {
-  if (isLocalDevHost()) return false;
+  if (isNonProductionHost()) return false;
   if (isSpamSession === null) {
     isSpamSession = isSpamOrBot();
   }
