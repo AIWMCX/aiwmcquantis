@@ -98,7 +98,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/refund-policy': {
     title: 'Refund Policy',
-    description: 'Quantis refund policy: 14-day money-back guarantee on all paid plans, no questions asked.',
+    description: 'Quantis refund policy: full refund within 14 days of the first charge on Plus and Pro plans, no questions asked. Founder-assisted reviews have their own terms.',
   },
   '/decision-review': {
     title: 'Founder Decision Review & Consultant Pilot — AIWMC Quantis',

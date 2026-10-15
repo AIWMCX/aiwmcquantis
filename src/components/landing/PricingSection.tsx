@@ -296,13 +296,6 @@ export function PricingSection() {
           />
         </div>
 
-        {/* Legacy grandfather note */}
-        <p className="text-xs text-center text-muted-foreground mb-6 max-w-2xl mx-auto">
-          Existing Plus customers on the original ${TIERS.plus.priceMonthly}/mo plan keep that price for the lifetime of
-          their subscription. New monthly signups today are billed at ${TIERS.plus.priceMonthly}/mo with the option to
-          switch to annual (${TIERS.plus.priceAnnualMonthlyEquivalent}/mo) anytime.
-        </p>
-
         {/* Money-Back Guarantee */}
         <GuaranteeBanner />
 
