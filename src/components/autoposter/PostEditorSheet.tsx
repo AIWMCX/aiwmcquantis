@@ -13,6 +13,8 @@ import {
   useApproveAndSchedule,
   useSetPostStatus,
 } from '@/hooks/useAutoposter';
+import { PostAssetPanel } from './PostAssetPanel';
+import { LinkedInPreview } from './PostAssetPanel';
 
 interface Props {
   post: AutoposterPost | null;
@@ -101,6 +103,10 @@ export function PostEditorSheet({ post, platforms, onClose }: Props) {
               </div>
             )}
           </div>
+
+          <PostAssetPanel post={post} />
+
+          <LinkedInPreview post={post} caption={drafts.linkedin ?? ''} />
 
           <div className="flex justify-end">
             <Button

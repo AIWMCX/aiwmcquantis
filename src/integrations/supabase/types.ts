@@ -1261,6 +1261,8 @@ export type Database = {
       }
       autoposter_posts: {
         Row: {
+          asset_alt: string | null
+          asset_path: string | null
           content_brief: string
           created_at: string
           cta: string | null
@@ -1278,6 +1280,8 @@ export type Database = {
           week_number: number | null
         }
         Insert: {
+          asset_alt?: string | null
+          asset_path?: string | null
           content_brief: string
           created_at?: string
           cta?: string | null
@@ -1295,6 +1299,8 @@ export type Database = {
           week_number?: number | null
         }
         Update: {
+          asset_alt?: string | null
+          asset_path?: string | null
           content_brief?: string
           created_at?: string
           cta?: string | null
