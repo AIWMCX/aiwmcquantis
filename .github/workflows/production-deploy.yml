@@ -530,8 +530,9 @@ jobs:
             run-tier-qa-harness
             run-accuracy-harness
           )
-          # Functions that must be callable without a JWT (email confirm/unsubscribe links)
-          NO_VERIFY_JWT_FNS="confirm-email-subscription"
+          # Functions that must be callable without a JWT (email confirm/unsubscribe links,
+          # OAuth callbacks that the provider redirects to). Each authenticates itself.
+          NO_VERIFY_JWT_FNS="confirm-email-subscription oauth-linkedin-callback"
 
           FAILED=()
           for fn in "${FUNCTIONS[@]}"; do
