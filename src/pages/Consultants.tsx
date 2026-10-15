@@ -1,269 +1,88 @@
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, ShieldCheck, ClipboardCheck, RefreshCw, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { StructuredData } from '@/components/seo/StructuredData';
-import { PublicPageShell } from '@/components/layout/PublicPageShell';
-import { GlassCard, Reveal, SectionHeader } from '@/components/ui/glass-card';
+import { RmgHeader } from '@/components/landing/RmgHeader';
+import { Footer } from '@/components/layout/Footer';
+import { InView, SectionLabel, SplitButton } from '@/components/sadewa/primitives';
+import { trackCtaClick } from '@/lib/analytics';
 import { TIERS } from '@/config/tiers';
-import {
-  BENCHMARK_COUNT_DISPLAY,
-  MONTE_CARLO_ITERATIONS_DISPLAY,
-  PIPELINE_LAYERS_LABEL,
-  CONSULTANT_COST_RANGE_DISPLAY,
-  CONSULTANT_HOURLY_RATE_DISPLAY,
-  FREE_ANALYSES_PER_MONTH,
-  LEGAL_ENTITY_NAME,
-} from '@/config/canonical-facts';
+import { FREE_ANALYSES_PER_MONTH, LEGAL_ENTITY_NAME } from '@/config/canonical-facts';
 
 /**
- * /consultants — Landing page positioning Quantis as a client-pre-screen tool
- * for independent consultants, fractional CFOs, and M&A advisors.
+ * /consultants — one advisor workflow, in the Sadewa layer.
  *
- * Per MP3-CONSULTANT-BUILD v1.1 Phase 1:
- * - Every price and quota renders from TIERS or canonical-facts. Zero hardcoded
- *   dollar figures or free-tier counts.
- * - "Run sample" CTA links to a real existing /examples/ route, not a fake one.
- * - White-label section describes the REAL BrandingConfig capability wired in
- *   src/hooks/usePdfExport.ts (hideQuantisBranding, logoUrl, companyName),
- *   not aspirational marketing copy.
- * - No fabricated testimonials, no fake counters, no invented "N consultants
- *   use Quantis" numbers.
- * - Voice register: Tier 3 enterprise-clinical throughout. No Tier 1 slang.
+ * Audience: an independent advisor helping an owner decide whether a hire or
+ * expansion is financially workable, who has to explain the assumptions and
+ * the downside before the client commits.
+ *
+ * Copy rules (2026-10-14):
+ * - One illustrative case, used everywhere: the fictional $120K growth decision
+ *   behind /demo/founder-decision-review.
+ * - Prices and quotas come from TIERS / canonical-facts only.
+ * - No hours-saved claims, no Monte Carlo claims, no "every number traceable"
+ *   claims, no testimonials, no guarantees.
  */
 
-const MONO: React.CSSProperties = {
-  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-  fontVariantNumeric: 'tabular-nums',
-};
+const WORKED_DEMO = '/demo/founder-decision-review';
+const CLIENT_CASE = '/decision-review';
 
-// ---- ROI calculator ---------------------------------------------------------
-// Live client-side math. Consultants supply their own inputs so the number
-// reads as "your math, not ours" per Phase 1 §2.
-function RoiCalculator() {
-  const [screenings, setScreenings] = useState(4);
-  const [hoursSaved, setHoursSaved] = useState(2);
-  const [hourlyRate, setHourlyRate] = useState(200);
-
-  const reclaimed = useMemo(
-    () => Math.max(0, screenings * hoursSaved * hourlyRate),
-    [screenings, hoursSaved, hourlyRate],
-  );
-  const proMonthly = TIERS.pro.priceMonthly;
-  const netMonthly = reclaimed - proMonthly;
-
-  return (
-    <GlassCard glow="brand" className="p-6 md:p-8">
-      <p
-        className="text-[10px] uppercase tracking-[0.18em] mb-4"
-        style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}
-      >
-        Your math, not ours
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <RoiInput
-          label="Client pre-screenings / month"
-          value={screenings}
-          min={0}
-          max={100}
-          step={1}
-          onChange={setScreenings}
-          suffix=""
-        />
-        <RoiInput
-          label="Hours saved per screening"
-          value={hoursSaved}
-          min={0}
-          max={40}
-          step={0.5}
-          onChange={setHoursSaved}
-          suffix="hrs"
-        />
-        <RoiInput
-          label="Your billing rate"
-          value={hourlyRate}
-          min={0}
-          max={2000}
-          step={25}
-          onChange={setHourlyRate}
-          prefix="$"
-          suffix="/hr"
-        />
-      </div>
-
-      <div className="space-y-2 pt-4" style={{ borderTop: '1px solid rgba(148,163,255,0.14)' }}>
-        <RoiRow label="Reclaimed billable time" value={`$${reclaimed.toLocaleString()} / mo`} tone="pos" />
-        <RoiRow label="Quantis Pro" value={`$${proMonthly} / mo`} tone="neg" />
-        <RoiRow
-          label="Net reclaimed"
-          value={`$${netMonthly.toLocaleString()} / mo`}
-          tone={netMonthly >= 0 ? 'accent' : 'neg'}
-          bold
-        />
-      </div>
-    </GlassCard>
-  );
-}
-
-function RoiInput({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  prefix,
-  suffix,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  prefix?: string;
-  suffix?: string;
-}) {
-  return (
-    <label className="block">
-      <span
-        className="block text-[10px] uppercase tracking-[0.14em] mb-2"
-        style={{ ...MONO, color: 'hsl(var(--foreground) / 0.55)' }}
-      >
-        {label}
-      </span>
-      <div
-        className="flex items-center gap-2 rounded-lg px-3 py-2"
-        style={{ background: 'hsl(var(--foreground) / 0.04)', border: '1px solid hsl(var(--foreground) / 0.10)' }}
-      >
-        {prefix && (
-          <span className="text-sm" style={{ ...MONO, color: 'hsl(var(--foreground) / 0.55)' }}>
-            {prefix}
-          </span>
-        )}
-        <input
-          type="number"
-          inputMode="numeric"
-          value={value}
-          min={min}
-          max={max}
-          step={step}
-          onChange={(e) => {
-            const next = parseFloat(e.target.value);
-            onChange(Number.isFinite(next) ? next : 0);
-          }}
-          className="w-full bg-transparent text-lg font-bold outline-none"
-          style={{ ...MONO, color: 'hsl(var(--foreground))' }}
-          aria-label={label}
-        />
-        {suffix && (
-          <span className="text-sm" style={{ ...MONO, color: 'hsl(var(--foreground) / 0.55)' }}>
-            {suffix}
-          </span>
-        )}
-      </div>
-    </label>
-  );
-}
-
-function RoiRow({
-  label,
-  value,
-  tone,
-  bold,
-}: {
-  label: string;
-  value: string;
-  tone: 'pos' | 'neg' | 'accent';
-  bold?: boolean;
-}) {
-  const color = tone === 'accent' ? 'var(--aiwmc-grad-cyan)' : tone === 'pos' ? '#4ade80' : 'hsl(var(--foreground) / 0.75)';
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={bold ? 'text-xl font-bold' : 'text-base font-semibold'} style={{ ...MONO, color }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-// ---- White-label feature list ----------------------------------------------
-// Rendered from TIERS.pro.features, never hardcoded. Only the keys relevant
-// to the consultant-facing deliverable are surfaced.
-const CONSULTANT_FEATURE_KEYS: Array<{ key: keyof typeof TIERS.pro.features; label: string }> = [
-  { key: 'whiteLabel', label: 'Remove Quantis branding from exports' },
-  { key: 'customBranding', label: 'Custom logo, colors, header, and footer' },
-  { key: 'documentStudio', label: 'Doc Studio — auto-populated client deliverables' },
-  { key: 'unlimitedHistory', label: 'Unlimited analysis history for client audit trails' },
+const STEPS: Array<{ label: string; title: string; body: string }> = [
+  {
+    label: 'Client decision',
+    title: 'Write down the decision in one line.',
+    body: 'Example: should the business put another $120K into growth this year? A single, fundable question keeps the conversation from sprawling.',
+  },
+  {
+    label: 'Assumptions',
+    title: 'Put every input where the client can see it.',
+    body: 'Revenue, margin, fixed costs, ramp time and starting cash are listed as inputs, each labeled as the client’s figure or a modeled default you can replace.',
+  },
+  {
+    label: 'Downside comparison',
+    title: 'Show what happens when the plan runs slow.',
+    body: 'Base and downside cases sit side by side, so the client sees how cash, break-even and payback move when the key assumption misses.',
+  },
+  {
+    label: 'Reviewed memo',
+    title: 'Hand over a memo you have checked.',
+    body: 'Export the result as a PDF. You review it and add your judgment before it reaches the client.',
+  },
 ];
 
-function WhiteLabelFeatures() {
-  const proFeatures = TIERS.pro.features;
-  return (
-    <ul className="space-y-2">
-      {CONSULTANT_FEATURE_KEYS.map(({ key, label }) => {
-        const enabled = proFeatures[key] === true;
-        if (!enabled) return null;
-        return (
-          <li key={key} className="flex items-start gap-2 text-sm">
-            <ShieldCheck
-              className="w-4 h-4 mt-0.5 shrink-0"
-              style={{ color: 'var(--aiwmc-grad-cyan)' }}
-              aria-hidden="true"
-            />
-            <span className="text-muted-foreground">{label}</span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-// ---- Objection FAQ ----------------------------------------------------------
 const FAQ_ITEMS = [
   {
-    q: 'Will my clients think I just ran their idea through a chatbot?',
-    a: 'No. Pro exports remove Quantis branding entirely — your logo, your header, your footer. The deliverable is under your firm name with a full audit trail behind every number. The engine\'s deterministic core computes each figure from cited benchmarks; the AI narrative layer never originates a financial number (invariant I-1).',
+    q: 'Does this replace my own model or advice?',
+    a: 'No. It structures the inputs and runs the cash, break-even and payback math so the assumptions are on the table. The interpretation and the recommendation stay yours.',
   },
   {
-    q: 'I already have my own model. Why would I add another tool?',
-    a: 'Quantis is not replacing your model or your judgment. It replaces the 15-25 hours of mechanical work — benchmark research, Monte Carlo construction, sensitivity sweeps — that has to happen before your expertise is applied. Your model still owns interpretation; Quantis owns the substrate feeding into it.',
+    q: 'Will the same inputs give the same numbers?',
+    a: 'Yes. The financial figures come from a deterministic calculation. The written narrative does not originate financial numbers.',
   },
   {
-    q: 'AI tools give different answers every time. I can\'t defend that to a board.',
-    a: 'Invariant I-1 is the answer here. The deterministic engine runs first — 97,500 benchmarks, 1,000 Monte Carlo iterations, reproducible bit-for-bit. Re-running the same inputs produces the same numbers. The AI layer sits on top and narrates; it cannot originate or override a financial figure. This is the whole point of the platform.',
+    q: 'Where do the default figures come from?',
+    a: 'Defaults come from a modeled benchmark grid, not observed companies. Each one is labeled so you can replace it with the client’s real figure — and you should, wherever you have it.',
   },
   {
-    q: '$49/month for something I might use twice a year — is this really recurring?',
-    a: 'Honest answer: today, if you run 1-2 analyses per quarter, monthly Pro is not the right structure. The retention features that make monthly cadence real — client folders, quarterly benchmark refresh alerts, portfolio re-runs — are on the roadmap, not shipped. Until those land, Pro is priced for the consultant running Quantis actively, not annually.',
+    q: 'Can the export carry my firm’s branding?',
+    a: `On ${TIERS.pro.label}, PDF exports can use your logo and company name and remove Quantis branding.`,
   },
 ];
 
-// ---- Main page --------------------------------------------------------------
 export default function Consultants() {
   return (
-    <PublicPageShell active="use-cases" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
+    <div className="sdw min-h-screen">
       <PageSEO
-        title="Quantis for Consultants — Client Pre-Screening"
-        description={`A client pre-screen under your own brand. ${BENCHMARK_COUNT_DISPLAY} benchmarks, ${MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo iterations, RVCE cross-check. For independent consultants, fractional CFOs, and M&A advisors.`}
+        title="Quantis for Business Advisors — Make the Assumptions Visible"
+        description="For independent advisors helping an owner decide on a hire or expansion: list the assumptions, compare the downside, and hand over a reviewed memo before the client commits."
         canonical="/consultants"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'Service',
-          name: 'AIWMC Quantis — Consultant Client Pre-Screening',
-          serviceType: 'Business feasibility and pre-mortem analysis',
-          provider: {
-            '@type': 'Organization',
-            name: LEGAL_ENTITY_NAME,
-            url: 'https://www.aiwmcquantis.com',
-          },
+          name: 'AIWMC Quantis — Advisor Decision Workflow',
+          serviceType: 'Business decision and downside analysis',
+          provider: { '@type': 'Organization', name: LEGAL_ENTITY_NAME, url: 'https://www.aiwmcquantis.com' },
           areaServed: 'US',
-          audience: {
-            '@type': 'BusinessAudience',
-            audienceType: 'Business consultants, fractional CFOs, M&A advisors',
-          },
+          audience: { '@type': 'BusinessAudience', audienceType: 'Independent business advisors, fractional CFOs' },
           offers: {
             '@type': 'Offer',
             price: TIERS.pro.priceMonthly,
@@ -282,272 +101,170 @@ export default function Consultants() {
         includeBreadcrumbs
         breadcrumbs={[
           { name: 'Home', url: '/' },
-          { name: 'For Consultants', url: '/consultants' },
+          { name: 'For Advisors', url: '/consultants' },
         ]}
       />
 
-      {/* Hero */}
-      <section aria-labelledby="consultants-hero-heading" className="aiwmc-section-wash py-12 md:py-20">
-        <Reveal>
-          <div
-            className="flex items-center gap-3 mb-6 text-[11px] font-semibold uppercase"
-            style={{
-              ...MONO,
-              letterSpacing: '0.18em',
-              color: 'hsl(var(--foreground) / 0.72)',
-            }}
-          >
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ background: 'var(--aiwmc-grad-brand, hsl(var(--primary)))' }}
-              aria-hidden="true"
-            />
-            For Independent Consultants &middot; Fractional CFOs &middot; M&amp;A Advisors
-          </div>
-        </Reveal>
-        <SectionHeader
-          title="Run a client pre-screen. Deliver it under your own brand."
-          subtitle={
-            <>
-              A manual feasibility study costs you 15-25 hours before you bill a dollar.
-              Quantis replaces the mechanical work — {BENCHMARK_COUNT_DISPLAY} benchmarks,{' '}
-              {MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo iterations, live cross-checks — so
-              your hours go to judgment, not spreadsheet construction.
-            </>
-          }
-        />
-        <Reveal delay={160}>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/examples/coffee-shop-denver">
-              <Button size="lg" className="gap-2 py-6 px-8">
-                Run a sample client analysis <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link to="/methodology">
-              <Button size="lg" variant="outline" className="gap-2 py-6 px-8">
-                See methodology
-              </Button>
-            </Link>
-          </div>
-        </Reveal>
-      </section>
+      <RmgHeader />
 
-      {/* ROI block */}
-      <section className="py-8 md:py-12">
-        <RoiCalculator />
-      </section>
-
-      {/* Three use cases */}
-      <section className="py-12 md:py-16">
-        <SectionHeader eyebrow="Three ways it fits your practice" title="Where consultants use it" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 mt-10">
-          <GlassCard glow="cyan" className="p-6">
-            <ClipboardCheck className="w-6 h-6 mb-4" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
-              Client pre-screening
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Know which engagements are viable before committing billable hours.
-              A fast read on unit economics, capital requirements,
-              and payback horizon — before the intake call ends.
-            </p>
-          </GlassCard>
-          <GlassCard glow="violet" revealDelay={80} className="p-6">
-            <ShieldCheck className="w-6 h-6 mb-4" style={{ color: 'var(--aiwmc-grad-violet)' }} />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
-              Board-deck stress test
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Deterministic, reproducible numbers, built to be questioned line by line.
-              The engine computes every financial number; the AI narrative layer
-              never originates one. Same inputs, same outputs, always.
-            </p>
-          </GlassCard>
-          <GlassCard glow="brand" revealDelay={160} className="p-6">
-            <RefreshCw className="w-6 h-6 mb-4" style={{ color: 'var(--aiwmc-grad-brand)' }} />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
-              Quarterly re-validation
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Benchmarks move. Rent, labor, demand, competitive intensity —
-              they all drift. Your client&apos;s plan should be re-run against
-              current market data, not the numbers from six months ago.
-            </p>
-          </GlassCard>
-        </div>
-      </section>
-
-      {/* White-label section */}
-      <section className="py-12 md:py-16">
-        <SectionHeader
-          eyebrow="Under your own brand"
-          title="Your brand on the cover. Our audit trail behind every number."
-          subtitle="Pro exports replace Quantis branding with yours — logo, company name, header, footer. The audit trail (benchmark citations, Monte Carlo distributions, RVCE validations) sits underneath, defensible to any board or investor who audits the deliverable."
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-10">
-          <GlassCard glow="cyan" className="p-6 md:p-7">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="w-5 h-5" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
-              <span
-                className="text-[10px] uppercase tracking-[0.14em]"
-                style={{ ...MONO, color: 'hsl(var(--foreground) / 0.55)' }}
-              >
-                Sample branded deliverable
-              </span>
+      <main id="main-content">
+        {/* Hero */}
+        <section aria-labelledby="advisors-heading" className="relative overflow-hidden">
+          <div className="sdw-container pt-10 md:pt-16 pb-16 md:pb-24">
+            <SectionLabel>For independent business advisors</SectionLabel>
+            {/* Above the fold: renders immediately, no reveal. */}
+            <h1
+              id="advisors-heading"
+              className="sdw-display mt-6 max-w-[15ch]"
+              style={{ fontSize: 'clamp(2.5rem, 5.8vw, 5.5rem)' }}
+            >
+              Before your client commits, make the financial assumptions visible.
+            </h1>
+            <div>
+              <p className="sdw-lead mt-8 max-w-[600px]" style={{ color: 'var(--sdw-ink-2)' }}>
+                When an owner asks whether a hire or an expansion is workable, show them the inputs, the
+                downside and the cash it needs — in one memo you have reviewed.
+              </p>
+              <div className="mt-9 flex flex-col sm:flex-row gap-3">
+                <SplitButton to={WORKED_DEMO} onClick={() => trackCtaClick('advisors_worked_decision', 'advisors_hero')}>
+                  See a worked decision
+                </SplitButton>
+                <SplitButton variant="secondary" to={CLIENT_CASE} onClick={() => trackCtaClick('advisors_client_case', 'advisors_hero')}>
+                  Discuss a client case
+                </SplitButton>
+              </div>
             </div>
-            <div
-              className="rounded-md p-6 mb-3 flex flex-col items-start gap-2"
-              style={{
-                background: 'hsl(var(--foreground) / 0.03)',
-                border: '1px dashed hsl(var(--foreground) / 0.16)',
-                minHeight: 220,
-              }}
-              aria-hidden="true"
-            >
-              <div
-                className="w-24 h-10 rounded"
-                style={{ background: 'hsl(var(--foreground) / 0.08)' }}
-                aria-label="Your logo"
-              />
-              <p className="text-xs uppercase tracking-wider mt-3" style={{ ...MONO, color: 'hsl(var(--foreground) / 0.55)' }}>
-                Your Firm Name
+          </div>
+        </section>
+
+        {/* Workflow */}
+        <section aria-labelledby="workflow-heading" className="sdw-white sdw-section">
+          <div className="sdw-container">
+            <SectionLabel id="workflow-heading">The workflow</SectionLabel>
+            <h2 className="sdw-h2 mt-6 max-w-[22ch]">Four steps from a client question to a memo you can stand behind.</h2>
+            <ol className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {STEPS.map((s, i) => (
+                <InView as="li" key={s.label} delay={i * 80} className="sdw-card p-6 flex flex-col gap-3">
+                  <span className="sdw-label text-[12px]" style={{ color: 'var(--sdw-accent)' }}>
+                    {String(i + 1).padStart(2, '0')} / {s.label}
+                  </span>
+                  <h3 className="text-[19px] font-bold leading-snug" style={{ color: 'var(--sdw-ink)' }}>{s.title}</h3>
+                  <p className="text-[15px] leading-relaxed" style={{ color: 'var(--sdw-muted)' }}>{s.body}</p>
+                </InView>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* Worked case */}
+        <section aria-labelledby="case-heading" className="sdw-dark sdw-section">
+          <div className="sdw-container grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+            <InView>
+              <SectionLabel id="case-heading">One illustrative case</SectionLabel>
+              <h2 className="sdw-h2 mt-6">Should this company put another $120K into growth?</h2>
+              <p className="sdw-lead mt-6 max-w-[520px]" style={{ color: 'var(--sdw-ink-2)' }}>
+                A fixed, fictional example running on the same engine as every Decision Run. Move one
+                assumption and watch cash, break-even and payback recompute.
               </p>
-              <p className="text-lg font-bold mt-1" style={{ color: 'hsl(var(--foreground))' }}>
-                Client Feasibility Report
-              </p>
-              <p className="text-xs mt-4" style={{ ...MONO, color: 'hsl(var(--foreground) / 0.45)' }}>
-                Verdict &middot; Payback &middot; Runway &middot; Risk matrix
-              </p>
-              <p className="text-[10px] mt-auto" style={{ ...MONO, color: 'hsl(var(--foreground) / 0.35)' }}>
-                No Quantis watermark on Pro exports
-              </p>
+              <div className="mt-8">
+                <SplitButton variant="accent" to={WORKED_DEMO} onClick={() => trackCtaClick('advisors_worked_decision', 'advisors_case')}>
+                  Open the worked decision
+                </SplitButton>
+              </div>
+            </InView>
+            <InView delay={120} aria-hidden="true">
+              <div className="sdw-card p-6 md:p-8">
+                <p className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>/What the client sees</p>
+                <ul className="mt-5 divide-y" style={{ borderColor: 'var(--sdw-line)' }}>
+                  {['The decision, in one line', 'Every input, labeled by source', 'Base vs downside, side by side', 'Cash needed before payback', 'Your review notes'].map((row) => (
+                    <li key={row} className="py-3 text-[15px]" style={{ color: 'var(--sdw-ink-2)', borderColor: 'var(--sdw-line)' }}>
+                      {row}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </InView>
+          </div>
+        </section>
+
+        {/* Plans — values from TIERS, never animated */}
+        <section aria-labelledby="plans-heading" className="sdw-section">
+          <div className="sdw-container">
+            <SectionLabel id="plans-heading">Plans</SectionLabel>
+            <h2 className="sdw-h2 mt-6">Start free. Upgrade when the work is regular.</h2>
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="sdw-card p-6">
+                <p className="sdw-label text-[12px]">/{TIERS.free.label}</p>
+                <p className="sdw-num mt-3 text-[40px] font-bold" style={{ color: 'var(--sdw-ink)' }}>$0</p>
+                <p className="mt-2 text-[15px]" style={{ color: 'var(--sdw-muted)' }}>{FREE_ANALYSES_PER_MONTH} Decision Runs a month.</p>
+              </div>
+              <div className="sdw-card p-6">
+                <p className="sdw-label text-[12px]">/{TIERS.plus.label}</p>
+                <p className="sdw-num mt-3 text-[40px] font-bold" style={{ color: 'var(--sdw-ink)' }}>
+                  ${TIERS.plus.priceMonthly}<span className="text-[16px] font-normal" style={{ color: 'var(--sdw-muted)' }}> / mo</span>
+                </p>
+                <p className="mt-2 text-[15px]" style={{ color: 'var(--sdw-muted)' }}>
+                  or ${TIERS.plus.priceAnnualMonthlyEquivalent}/mo billed annually · 14-day trial
+                </p>
+              </div>
+              <div className="sdw-card p-6" style={{ boxShadow: '0 0 0 2px var(--sdw-accent) inset' }}>
+                <p className="sdw-label text-[12px]" style={{ color: 'var(--sdw-accent)' }}>/{TIERS.pro.label} · suits advisors</p>
+                <p className="sdw-num mt-3 text-[40px] font-bold" style={{ color: 'var(--sdw-ink)' }}>
+                  ${TIERS.pro.priceMonthly}<span className="text-[16px] font-normal" style={{ color: 'var(--sdw-muted)' }}> / mo</span>
+                </p>
+                <p className="mt-2 text-[15px]" style={{ color: 'var(--sdw-muted)' }}>
+                  or ${TIERS.pro.priceAnnualMonthlyEquivalent}/mo billed annually · 14-day trial · branded PDF exports
+                </p>
+              </div>
             </div>
-          </GlassCard>
-          <GlassCard glow="violet" revealDelay={80} className="p-6 md:p-7">
-            <p
-              className="text-[10px] uppercase tracking-[0.14em] mb-4"
-              style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}
-            >
-              Available on {TIERS.pro.label} &middot; ${TIERS.pro.priceMonthly}/mo
-            </p>
-            <WhiteLabelFeatures />
-          </GlassCard>
-        </div>
-      </section>
+            <div className="mt-8">
+              <SplitButton variant="secondary" size="sm" to="/pricing">Full pricing comparison</SplitButton>
+            </div>
+          </div>
+        </section>
 
-      {/* Anchor + Pricing */}
-      <section className="py-12 md:py-16">
-        <Reveal>
-          <p
-            className="text-center text-lg md:text-xl mb-8"
-            style={{ color: 'hsl(var(--foreground) / 0.9)' }}
-          >
-            A consultant charges{' '}
-            <strong style={{ color: 'hsl(var(--foreground))' }}>{CONSULTANT_COST_RANGE_DISPLAY}</strong>
-            {' '}(or {CONSULTANT_HOURLY_RATE_DISPLAY}) for one stress-test.
-            <br />
-            <span className="text-muted-foreground">
-              This is the one you can afford to run before you write the invoice.
-            </span>
-          </p>
-        </Reveal>
+        {/* FAQ */}
+        <section aria-labelledby="advisor-faq-heading" className="sdw-white sdw-section">
+          <div className="sdw-container max-w-[860px]">
+            <SectionLabel id="advisor-faq-heading">Questions advisors ask</SectionLabel>
+            <div className="mt-8 divide-y" style={{ borderTop: '1px solid var(--sdw-line)', borderBottom: '1px solid var(--sdw-line)' }}>
+              {FAQ_ITEMS.map(({ q, a }) => (
+                <details key={q} className="group py-5" style={{ borderColor: 'var(--sdw-line)' }}>
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[18px] font-bold" style={{ color: 'var(--sdw-ink)' }}>
+                    {q}
+                    <span aria-hidden="true" className="text-[22px] transition-transform group-open:rotate-45" style={{ color: 'var(--sdw-muted)' }}>+</span>
+                  </summary>
+                  <p className="mt-3 text-[15px] leading-relaxed" style={{ color: 'var(--sdw-muted)' }}>{a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 mt-8">
-          <GlassCard glow="cyan" className="p-6">
-            <p className="text-sm font-semibold text-muted-foreground mb-1">{TIERS.free.label}</p>
-            <p className="text-3xl font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>
-              $0
-            </p>
-            <p className="text-xs text-muted-foreground mb-4" style={MONO}>
-              {FREE_ANALYSES_PER_MONTH} analyses / month
-            </p>
-            <p className="text-xs text-muted-foreground">Verdict, top risks, basic projections.</p>
-          </GlassCard>
-          <GlassCard glow="violet" revealDelay={80} className="p-6">
-            <p className="text-sm font-semibold text-muted-foreground mb-1">{TIERS.plus.label}</p>
-            <p className="text-3xl font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>
-              ${TIERS.plus.priceMonthly}
-              <span className="text-base font-normal text-muted-foreground"> / mo</span>
-            </p>
-            <p className="text-xs text-muted-foreground mb-4" style={MONO}>
-              or ${TIERS.plus.priceAnnualMonthlyEquivalent}/mo annually
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Unlimited analyses, {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo, 36-month P&amp;L.
-            </p>
-          </GlassCard>
-          <GlassCard glow="brand" revealDelay={160} className="p-6 relative">
-            <span
-              className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 text-xs font-semibold rounded-full"
-              style={{ background: 'var(--aiwmc-grad-brand)', color: '#0b0e1a' }}
-            >
-              Recommended for consultants
-            </span>
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
-              {TIERS.pro.label}
-            </p>
-            <p className="text-3xl font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>
-              ${TIERS.pro.priceMonthly}
-              <span className="text-base font-normal text-muted-foreground"> / mo</span>
-            </p>
-            <p className="text-xs text-muted-foreground mb-4" style={MONO}>
-              or ${TIERS.pro.priceAnnualMonthlyEquivalent}/mo annually &middot; 14-day trial
-            </p>
-            <p className="text-xs text-muted-foreground">
-              White-label exports, {TIERS.pro.limits.projectionMonths}-month projections, {PIPELINE_LAYERS_LABEL} pipeline.
-            </p>
-          </GlassCard>
-        </div>
+        {/* Closing CTA */}
+        <section aria-labelledby="advisors-cta-heading" className="sdw-dark sdw-stars relative overflow-hidden">
+          <div className="sdw-container py-20 md:py-28">
+            <InView>
+              <h2 id="advisors-cta-heading" className="sdw-h2 max-w-[20ch]" style={{ fontSize: 'clamp(2.4rem, 5vw, 4.25rem)' }}>
+                Have a client decision on your desk?
+              </h2>
+              <p className="mt-6 sdw-lead max-w-[520px]" style={{ color: 'var(--sdw-ink-2)' }}>
+                Walk through the worked example first, or bring the real case and we will look at it together.
+              </p>
+              <div className="mt-9 flex flex-col sm:flex-row gap-3">
+                <SplitButton variant="accent" to={WORKED_DEMO} onClick={() => trackCtaClick('advisors_worked_decision', 'advisors_final')}>
+                  See a worked decision
+                </SplitButton>
+                <SplitButton variant="ghost-dark" to={CLIENT_CASE} onClick={() => trackCtaClick('advisors_client_case', 'advisors_final')}>
+                  Discuss a client case
+                </SplitButton>
+              </div>
+            </InView>
+          </div>
+        </section>
+      </main>
 
-        <div className="text-center mt-8">
-          <Link to="/pricing">
-            <Button size="lg" variant="outline" className="gap-2">
-              Full pricing comparison <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Objection FAQ */}
-      <section className="py-12 md:py-16">
-        <SectionHeader eyebrow="Common questions" title="What consultants ask before subscribing" />
-        <div className="space-y-3 max-w-3xl mx-auto mt-10">
-          {FAQ_ITEMS.map(({ q, a }) => (
-            <details
-              key={q}
-              className="group p-5 rounded-xl"
-              style={{ background: 'rgba(12,16,32,0.55)', border: '1px solid rgba(148,163,255,0.14)' }}
-            >
-              <summary
-                className="font-semibold cursor-pointer list-none flex items-center justify-between"
-                style={{ color: 'hsl(var(--foreground))' }}
-              >
-                {q}
-                <span className="ml-2 text-muted-foreground group-open:rotate-45 transition-transform text-xl">+</span>
-              </summary>
-              <p className="mt-3 text-muted-foreground text-sm leading-relaxed">{a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      {/* Bottom CTA */}
-      <section className="py-12 md:py-16">
-        <GlassCard glow="brand" className="p-8 md:p-12 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: 'hsl(var(--foreground))' }}>
-            Run a sample analysis before you commit
-          </h2>
-          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            No credit card. Look at a real deliverable in the format your clients would see —
-            then decide whether it fits your practice.
-          </p>
-          <Link to="/examples/coffee-shop-denver">
-            <Button size="lg" className="gap-2 text-base px-8 py-6 hover:scale-[1.02] transition-transform">
-              See a sample dossier <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
-        </GlassCard>
-      </section>
-    </PublicPageShell>
+      <Footer />
+    </div>
   );
 }
