@@ -45,12 +45,18 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
 // against a real generated Decision Memo PDF before writing this test.
 function extractPdfText(buffer: Buffer): string {
   const latin1 = buffer.toString('latin1');
-  const streamRe = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  // Slice each stream by its declared /Length. A regex that trims an optional
+  // "\r" before "endstream" silently drops the last byte whenever the
+  // compressed data happens to end in 0x0D -- which depends on content (even
+  // the footer date), so the old extractor lost whole pages on some days.
+  const dictRe = /\/Length (\d+)(?![\d ]*R)[^]*?>>\s*stream\r?\n/g;
   let decoded = '';
   let match: RegExpExecArray | null;
-  while ((match = streamRe.exec(latin1))) {
+  while ((match = dictRe.exec(latin1))) {
+    const start = match.index + match[0].length;
+    const data = latin1.slice(start, start + Number(match[1]));
     try {
-      decoded += zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1') + '\n';
+      decoded += zlib.inflateSync(Buffer.from(data, 'latin1')).toString('latin1') + '\n';
     } catch {
       // not every stream object is Flate-encoded (e.g. embedded binaries) -- skip
     }
