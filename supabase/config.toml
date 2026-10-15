@@ -18,6 +18,11 @@ verify_jwt = true
 [functions.stripe-webhook]
 verify_jwt = false
 
+# LinkedIn redirects back without a Supabase JWT; the function authenticates
+# itself (admin JWT for its POST API, single-use expiring state on callback).
+[functions.oauth-linkedin-callback]
+verify_jwt = false
+
 [functions.engagement-checkout]
 verify_jwt = false
 
