@@ -1,3 +1,4 @@
+import { MARKETING_SYSTEM_PROMPT } from '../marketing-principles.ts';
 /**
  * Commercial Ops workflow Phase D: the ONE shared agent runtime.
  *
@@ -112,7 +113,7 @@ export async function runCommercialAgent<T>(
 ): Promise<CommercialAgentRunResult<T>> {
   const maxAttempts = Math.max(1, args.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
   const messages: GatewayMessage[] = [
-    { role: 'system', content: args.systemPrompt },
+    { role: 'system', content: `${args.systemPrompt}\n\n${MARKETING_SYSTEM_PROMPT}` },
     { role: 'user', content: args.userPrompt },
   ];
 
@@ -283,3 +284,4 @@ async function recordAgentRun(args: RecordArgs): Promise<string | null> {
     return null;
   }
 }
+

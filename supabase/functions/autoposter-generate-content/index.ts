@@ -1,3 +1,4 @@
+import { MARKETING_SYSTEM_PROMPT, reviewMarketingClaims } from '../_shared/marketing-principles.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -138,7 +139,7 @@ Generate a complete, publish-ready post for ${platform}. Return ONLY the post te
           body: JSON.stringify({
             model: 'claude-haiku-4-5',
             max_tokens: 1024,
-            system: PLATFORM_PROMPTS[platform],
+            system: `${PLATFORM_PROMPTS[platform]}\n\n${MARKETING_SYSTEM_PROMPT}`,
             messages: [{ role: 'user', content: userPrompt }],
           }),
         });
@@ -150,6 +151,8 @@ Generate a complete, publish-ready post for ${platform}. Return ONLY the post te
         const claudeData = await claudeRes.json();
         const content: string = claudeData?.content?.[0]?.text ?? '';
         if (!content) throw new Error('Empty Claude response');
+        const marketingIssues = reviewMarketingClaims(content);
+        if (marketingIssues.length) throw new Error(`Marketing evidence review required: ${marketingIssues.join(', ')}`);
 
         const { data: upserted, error: upErr } = await admin
           .from('autoposter_post_platforms')
@@ -209,3 +212,4 @@ Generate a complete, publish-ready post for ${platform}. Return ONLY the post te
     });
   }
 });
+

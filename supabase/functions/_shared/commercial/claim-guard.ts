@@ -1,3 +1,4 @@
+import { reviewMarketingClaims } from '../marketing-principles.ts';
 /**
  * Commercial Ops workflow -- deterministic outbound claim guard.
  *
@@ -61,7 +62,7 @@ export function scanOutbound(
   foundation: CommercialFoundation,
   opts: { maxWords?: number } = {},
 ): OutboundScanResult {
-  const violations: string[] = [];
+  const violations: string[] = reviewMarketingClaims(text);
   const lower = text.toLowerCase();
 
   for (const p of foundation.prohibited_claims) {
@@ -96,3 +97,4 @@ export function scanOutbound(
 
   return { ok: violations.length === 0, violations };
 }
+
