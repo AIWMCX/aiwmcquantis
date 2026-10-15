@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
+import { animate, stagger } from 'animejs';
 import { cn } from '@/lib/utils';
 
 export function usePrefersReducedMotion() {
@@ -241,6 +242,113 @@ export function Img3D({ name, alt = '', className, bob, priority }: { name: 'mag
       draggable={false}
       className={cn('select-none pointer-events-none', bob && 'sdw-bob', className)}
     />
+  );
+}
+
+/**
+ * Heading whose words stagger up into place (anime.js), once in view. Use
+ * for Sadewa headlines that want more weight than the plain `.sdw-in` fade.
+ * Word spans are rendered by React (not anime's `splitText`, which mutates
+ * React-owned DOM); screen readers get the sentence via `aria-label`.
+ */
+export function WordStagger({
+  text,
+  className,
+  as: Tag = 'h2',
+  delay = 0,
+  stagger: staggerMs = 55,
+  ...rest
+}: {
+  text: string;
+  className?: string;
+  as?: keyof JSX.IntrinsicElements;
+  /** ms before the first word starts */
+  delay?: number;
+  /** ms between each word's start */
+  stagger?: number;
+} & React.HTMLAttributes<HTMLElement>) {
+  const { ref, inView } = useInView<HTMLElement>();
+  const reduced = usePrefersReducedMotion();
+  const Comp = Tag as React.ElementType;
+  const played = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!inView || reduced || !el || played.current) return;
+    played.current = true;
+    animate(el.querySelectorAll('.sdw-word'), {
+      opacity: [0, 1],
+      translateY: [22, 0],
+      duration: 650,
+      ease: 'outQuad',
+      delay: stagger(staggerMs, { start: delay }),
+    });
+  }, [inView, reduced, delay, staggerMs]);
+
+  const words = text.split(' ');
+  return (
+    <Comp ref={ref} className={className} aria-label={text} {...rest}>
+      {words.map((w, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          className="sdw-word inline-block"
+          style={reduced || played.current ? undefined : { opacity: 0 }}
+        >
+          {w}
+          {i < words.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </Comp>
+  );
+}
+
+/**
+ * Odometer-style numeral: counts from `from` to `value` once in view.
+ * `format` controls the rendered string per frame (default: rounded
+ * integer with thousands separators). Use for stat callouts, step
+ * numbers, and pricing — never for anything that must be exact/legible
+ * immediately (screen readers get the final value via an sr-only copy).
+ */
+export function RollingNumber({
+  value,
+  from = 0,
+  duration = 1200,
+  format,
+  className,
+  as: Tag = 'span',
+}: {
+  value: number;
+  from?: number;
+  duration?: number;
+  format?: (n: number) => string;
+  className?: string;
+  as?: keyof JSX.IntrinsicElements;
+}) {
+  const { ref, inView } = useInView<HTMLElement>();
+  const reduced = usePrefersReducedMotion();
+  const Comp = Tag as React.ElementType;
+  const fmt = format ?? ((n: number) => Math.round(n).toLocaleString('en-US'));
+  const [display, setDisplay] = useState(fmt(reduced ? value : from));
+  const played = useRef(false);
+
+  useEffect(() => {
+    if (!inView || reduced || played.current) return;
+    played.current = true;
+    const tweened = { n: from };
+    animate(tweened, {
+      n: value,
+      duration,
+      ease: 'outExpo',
+      onUpdate: () => setDisplay(fmt(tweened.n)),
+    });
+  }, [inView, reduced, from, value, duration]);
+
+  return (
+    <Comp ref={ref} className={cn('sdw-num', className)}>
+      <span aria-hidden="true">{display}</span>
+      <span className="sr-only">{fmt(value)}</span>
+    </Comp>
   );
 }
 
