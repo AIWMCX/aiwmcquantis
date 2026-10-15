@@ -226,7 +226,7 @@ export default function UseCases() {
                       className="text-sm font-medium hover:underline inline-flex items-center gap-1"
                       style={{ color: 'var(--aiwmc-grad-cyan)' }}
                     >
-                      See a real report → {t.exampleLabel}
+                      See an illustrative example → {t.exampleLabel}
                     </Link>
                   </div>
                 </div>

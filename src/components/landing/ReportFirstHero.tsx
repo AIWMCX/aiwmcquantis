@@ -9,7 +9,7 @@ import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '@/data/sampleReport';
 import { SampleReportPages, type Density } from './SampleReportPages';
-import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_LIST } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { SectionLabel } from '@/components/sadewa/primitives';
 
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
@@ -289,24 +289,22 @@ export function ReportFirstHero() {
 
   return (
     <section
-      aria-label="See a real Quantis report, then generate yours"
+      aria-label="What a Quantis report covers, then generate yours"
       className="relative w-full"
       style={{ background: 'var(--sdw-bg, hsl(var(--background)))' }}
     >
       <div className="sdw-container sdw-section">
         <div className="mb-10 md:mb-14">
-          <SectionLabel>Sample report · The Draft Lab, Austin TX</SectionLabel>
+          <SectionLabel>Illustrative layout · fictional business</SectionLabel>
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 lg:gap-16 lg:items-end">
-            <h2 className="sdw-h2">See a real report. Then generate yours.</h2>
+            <h2 className="sdw-h2">See what a report covers. Then generate yours.</h2>
             <div className="lg:justify-self-end max-w-[460px]">
               <p className="sdw-lead text-[17px]">
-                A complete {PAGE_COUNT}-page Quantis report on an illustrative business — open any number to see how it was produced.
+                A {PAGE_COUNT}-page layout showing the sections a Quantis report contains, on a fictional business.
               </p>
-              <ul aria-label="Benchmark data sources" className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
-                {[...BENCHMARK_SOURCES_LIST, '8-Layer QSL safety'].map((src) => (
-                  <li key={src} className="sdw-label text-[11px]" style={{ color: 'var(--sdw-muted)' }}>/{src}</li>
-                ))}
-              </ul>
+              <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--sdw-ink-2)' }}>
+                <strong>Illustrative only.</strong> The figures, confidence score and scenario ranges on these pages were written by hand to show the layout — they were not produced by the Quantis engine. Run your own decision to see engine-calculated results.
+              </p>
             </div>
           </div>
         </div>
