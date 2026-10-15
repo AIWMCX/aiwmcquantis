@@ -12,7 +12,6 @@ import { SampleReportPages, type Density } from './SampleReportPages';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_LIST } from '@/config/canonical-facts';
 import { SectionLabel } from '@/components/sadewa/primitives';
 
-const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
 
 // Commercial cover card shown above the rendered report pages.
@@ -389,16 +388,6 @@ export function ReportFirstHero() {
                       }}
                     >
                       <p className="pt-3">{m.detail}</p>
-                      <a
-                        href={SAMPLE_URL}
-                        target="_blank"
-                        rel="noopener"
-                        className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold"
-                        style={{ color: 'hsl(var(--primary))' }}
-                        onClick={() => trackCtaClick(`hero_metric_open_pdf_${m.id}`, 'hero')}
-                      >
-                        Open full plan <Maximize2 className="w-3 h-3" aria-hidden="true" />
-                      </a>
                     </div>
                   </div>
                 </li>
@@ -595,15 +584,6 @@ export function ReportFirstHero() {
                     ? <Minimize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                     : <Maximize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />}
                 </button>
-                <a
-                  href={SAMPLE_URL}
-                  download="Quantis_Sample_Report.pdf"
-                  className="p-1.5 rounded hover:bg-foreground/10 transition-colors"
-                  aria-label="Download sample report PDF"
-                  onClick={() => trackCtaClick('sample_report_download', 'hero')}
-                >
-                  <Download className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
-                </a>
                 {isFullscreen && (
                   <button
                     type="button"
@@ -722,22 +702,6 @@ export function ReportFirstHero() {
                 </section>
 
                 <SampleReportPages zoom={zoom} theme={theme} density={density} pageRefs={pageRefs} />
-
-
-                <a
-                  href={SAMPLE_URL}
-                  target="_blank"
-                  rel="noopener"
-                  onClick={() => trackCtaClick('sample_report_open_end', 'hero')}
-                  className="inline-flex items-center gap-2 mt-2 mb-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
-                  style={{
-                    background: 'hsl(var(--primary) / 0.12)',
-                    color: 'hsl(var(--primary))',
-                    border: '1px solid hsl(var(--primary) / 0.3)',
-                  }}
-                >
-                  Open full PDF in new tab <Maximize2 className="w-3 h-3" />
-                </a>
               </div>
             </div>
 
