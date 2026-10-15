@@ -1,0 +1,12 @@
+{
+  "name": "quantis-marketing-motion",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Isolated HyperFrames authoring tools; never a Quantis web runtime dependency",
+  "scripts": {
+    "init:project": "hyperframes init",
+    "doctor": "hyperframes doctor"
+  },
+  "devDependencies": { "hyperframes": "0.8.160" },
+  "engines": { "node": ">=22" }
+}

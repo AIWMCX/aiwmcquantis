@@ -1,3 +1,4 @@
+import { MARKETING_SYSTEM_PROMPT, reviewMarketingClaims } from '../_shared/marketing-principles.ts';
 // AIWMC Quantis — Content Studio (admin-only)
 // ---------------------------------------------------------------------------
 // Generates viral, human-natural, platform-optimized social posts.
@@ -82,6 +83,7 @@ function buildSystemPrompt(opts: {
   tone: string; audience: string; emoji: boolean; hashtags: boolean; language: string;
 }) {
   return [
+    MARKETING_SYSTEM_PROMPT,
     'You are the Head of Content for AIWMC Quantis — a deterministic business-analysis SaaS (aiwmcquantis.com).',
     'Brand voice: brutally honest, evidence-first, no AI filler, no buzzwords like "leverage", "synergy", "unlock", "game-changer".',
     'Write for founders, fractional CFOs, and consultants. Use specific examples only when supported by the supplied evidence; label hypothetical examples as illustrative.',
@@ -296,6 +298,8 @@ Deno.serve(async (req) => {
     }
 
     const variants = parsed.variants ?? {};
+    const marketingIssues = reviewMarketingClaims(JSON.stringify(variants));
+    if (marketingIssues.length) return j({ error: 'Marketing claims need evidence review. Revise the draft without unapproved promotion or proof claims.', issues: marketingIssues }, 422);
     const modelUsed = `${provider.name}:${provider.defaultModel}`;
 
     // Best-effort cost/provider telemetry — never blocks generation on failure.
@@ -552,3 +556,4 @@ Deno.serve(async (req) => {
     return j({ error: msg }, 500);
   }
 });
+
