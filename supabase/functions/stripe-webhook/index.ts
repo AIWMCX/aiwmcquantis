@@ -7,6 +7,7 @@ import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
 import { recordServerFunnelEvent } from '../_shared/funnel-event-server.ts';
+import { canSelfHealMissingRow, decidePaymentFailed } from '../_shared/payment-failed-decision.ts';
 import {
   getEngagementOfferByPaymentLinkId,
   paymentLinkIdFromSession,
@@ -891,6 +892,7 @@ serve(async (req) => {
               await supabase.rpc("mark_subscription_canceled", {
                 p_user_id: subRow.user_id,
                 p_reason: subscription.cancellation_details?.reason || "subscription_deleted",
+                p_stripe_subscription_id: (subscription as any).id,
               });
               log.info(`[${requestId}] mark_subscription_canceled OK for ${subRow.user_id}`);
               await recordServerFunnelEvent("subscription_cancelled", {
@@ -1067,102 +1069,128 @@ serve(async (req) => {
         try {
           let { data: subRow } = await supabase
             .from("subscriptions")
-            .select("user_id, payment_failed_at, status")
+            .select("user_id, payment_failed_at, status, stripe_subscription_id")
             .eq("stripe_subscription_id", subId)
             .maybeSingle();
 
-          // QNT: self-heal a missing row instead of silently no-op'ing.
-          // Root cause (confirmed 2026-07-16 reconciliation): at least 4 real
-          // customers who completed checkout and started a trial have zero
-          // rows in this table — checkout.session.completed either never
-          // fired or its user-resolution fallbacks failed at the time. Prior
-          // to this fix, a missing row meant `payment_failed_at` could never
-          // persist (UPDATE on a non-existent row is a silent no-op), so the
-          // grace timer reset to zero on every retry and the downgrade branch
-          // below could never fire — invoices stayed "open" indefinitely.
-          if (!subRow) {
-            log.warn(`[${requestId}] No subscriptions row for ${subId} — attempting to resolve and create one`);
-            const subscription = await withRetry(
+          // Live Stripe state decides recovery and confirms a real downgrade.
+          // A failed lookup is treated as "unconfirmed" — never downgrade on it.
+          let liveSub: any = null;
+          try {
+            liveSub = await withRetry(
               () => stripe.subscriptions.retrieve(subId),
-              "Retrieve subscription (payment_failed recovery)",
+              "Retrieve subscription (payment_failed)",
               requestId
             );
-            const customerId = (subscription as any).customer as string;
-            let userId = (subscription as any).metadata?.supabase_user_id as string | undefined;
+          } catch (lookupErr) {
+            log.warn(`[${requestId}] Could not retrieve ${subId} from Stripe:`, lookupErr instanceof Error ? lookupErr.message : String(lookupErr));
+          }
+
+          // QNT: self-heal a missing row instead of silently no-op'ing.
+          // Root cause (confirmed 2026-07-16 reconciliation): some customers
+          // who completed checkout had zero rows in this table, so the grace
+          // timer could never persist. Never self-heal over a row the user
+          // already has: subscriptions is one row per user, and that row
+          // belongs to a different subscription or a manual grant
+          // (2026-10-15 fix — this path used to overwrite manual Pro grants).
+          if (!subRow && liveSub) {
+            const customerId = liveSub.customer as string;
+            let userId = liveSub.metadata?.supabase_user_id as string | undefined;
             if (!userId && customerId) {
               const email = await getCustomerEmail(customerId);
               if (email) userId = (await findUserByEmail(email)) ?? undefined;
             }
 
-            if (userId) {
-              const plan = planFromSubscription(subscription as any);
-              const recovered = await upsertSubscription({
-                user_id: userId,
-                stripe_customer_id: customerId,
-                stripe_subscription_id: subId,
-                plan_id: plan ?? "free",
-                status: "past_due",
-                payment_failed_at: new Date().toISOString(),
-                current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-                current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-              });
-              if (recovered.success) {
-                log.info(`[${requestId}] Recovered missing subscription row for user ${userId}, sub ${subId}`);
-                subRow = { user_id: userId, payment_failed_at: null, status: "past_due" } as any;
-              } else {
-                log.error(`[${requestId}] Failed to recover missing subscription row for sub ${subId}:`, recovered.error);
-              }
-            } else {
+            if (!userId) {
               log.error(`[${requestId}] Could not resolve user_id for orphaned subscription ${subId} — cannot self-heal. Customer: ${maskEmail(await getCustomerEmail(customerId))}`);
+            } else {
+              const { data: existing } = await supabase
+                .from("subscriptions")
+                .select("user_id")
+                .eq("user_id", userId)
+                .maybeSingle();
+              if (!canSelfHealMissingRow(existing)) {
+                log.warn(`[${requestId}] User ${userId} already has a subscriptions row not linked to ${subId} — stale event, leaving it untouched`);
+              } else {
+                const recovered = await upsertSubscription({
+                  user_id: userId,
+                  stripe_customer_id: customerId,
+                  stripe_subscription_id: subId,
+                  plan_id: planFromSubscription(liveSub) ?? "free",
+                  status: "past_due",
+                  payment_failed_at: new Date().toISOString(),
+                  current_period_start: new Date(liveSub.current_period_start * 1000).toISOString(),
+                  current_period_end: new Date(liveSub.current_period_end * 1000).toISOString(),
+                });
+                if (recovered.success) {
+                  log.info(`[${requestId}] Recovered missing subscription row for user ${userId}, sub ${subId}`);
+                  subRow = { user_id: userId, payment_failed_at: null, status: "past_due", stripe_subscription_id: subId } as any;
+                } else {
+                  log.error(`[${requestId}] Failed to recover missing subscription row for sub ${subId}:`, recovered.error);
+                }
+              }
             }
           }
+
+          if (!subRow) break;
 
           const nowIso = new Date().toISOString();
-          const firstFailureIso = subRow?.payment_failed_at ?? nowIso;
+          const action = decidePaymentFailed({
+            eventSubscriptionId: subId,
+            row: subRow as any,
+            stripeStatus: liveSub?.status ?? null,
+            nowMs: Date.now(),
+          });
 
-          // Always record (or refresh) the first failure timestamp + flag the
-          // status. If this is the first failure we set payment_failed_at=now;
-          // subsequent failures keep the original timestamp so the grace
-          // window doesn't reset on every retry.
-          if (subRow && !subRow.payment_failed_at) {
-            await supabase
-              .from("subscriptions")
-              .update({ payment_failed_at: nowIso, status: "past_due" })
-              .eq("stripe_subscription_id", subId);
-            // Only the FIRST failure -- Stripe re-fires this event on every
-            // smart-retry attempt, and payment_failed_at not being set yet
-            // is exactly the "first time" guard already used above.
-            if (subRow.user_id) {
-              await recordServerFunnelEvent("subscription_failed", {
-                userId: subRow.user_id,
-                metadata: { subscription_id: subId },
-              });
-            }
-          }
-
-          const ageMs = Date.now() - new Date(firstFailureIso).getTime();
-          const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
-
-          if (ageMs >= GRACE_MS) {
-            // Grace expired — canonical downgrade via RPC: flips plan_id='free',
-            // status='canceled', sets history_readonly_until = now()+30d, and
-            // writes a subscription_audit_log entry.
-            if (subRow?.user_id) {
-              try {
-                await supabase.rpc("mark_subscription_canceled", {
-                  p_user_id: subRow.user_id,
-                  p_reason: "payment_failed_grace_expired",
+          switch (action.kind) {
+            case "skip_stale":
+              log.warn(`[${requestId}] Row no longer linked to ${subId} — stale event, skipping`);
+              break;
+            case "recovered":
+              // Stale or out-of-order failure: Stripe says this subscription is paid.
+              await supabase
+                .from("subscriptions")
+                .update({ payment_failed_at: null, status: liveSub.status })
+                .eq("stripe_subscription_id", subId);
+              log.info(`[${requestId}] ${subId} is ${liveSub.status} in Stripe — cleared failure marker, no downgrade`);
+              break;
+            case "start_grace":
+              // First failure only — Stripe re-fires this event on every smart retry.
+              await supabase
+                .from("subscriptions")
+                .update({ payment_failed_at: nowIso, status: "past_due" })
+                .eq("stripe_subscription_id", subId);
+              if (subRow.user_id) {
+                await recordServerFunnelEvent("subscription_failed", {
+                  userId: subRow.user_id,
+                  metadata: { subscription_id: subId },
                 });
-                log.info(`[${requestId}] Grace expired (${Math.round(ageMs / 86400000)}d) — downgraded ${subId} to FREE via RPC`);
-              } catch (rpcErr) {
-                log.error(`[${requestId}] mark_subscription_canceled RPC failed:`, rpcErr instanceof Error ? rpcErr.message : String(rpcErr));
-                // Best-effort fallback: direct update so at least entitlement is revoked.
+              }
+              log.info(`[${requestId}] First failure for ${subId} — grace window started`);
+              break;
+            case "in_grace":
+              log.info(`[${requestId}] Keeping access (${Math.round(action.ageMs / 3600000)}h since first failure; Stripe status ${liveSub?.status ?? "unknown"})`);
+              break;
+            case "downgrade": {
+              // Canonical downgrade via RPC, scoped to this subscription so it
+              // cannot touch a row that has since moved to a grant or new sub.
+              const { data: rpcResult, error: rpcErr } = await supabase.rpc("mark_subscription_canceled", {
+                p_user_id: subRow.user_id,
+                p_reason: "payment_failed_grace_expired",
+                p_stripe_subscription_id: subId,
+              });
+              if (rpcErr) {
+                log.error(`[${requestId}] mark_subscription_canceled RPC failed:`, rpcErr.message);
+                // Best-effort fallback, also scoped to this subscription.
                 await supabase
                   .from("subscriptions")
                   .update({ plan_id: "free", status: "canceled", canceled_at: nowIso })
                   .eq("stripe_subscription_id", subId);
+              } else if (rpcResult?.success === false) {
+                log.warn(`[${requestId}] Downgrade skipped by RPC: ${rpcResult.error}`);
+                break;
               }
-
+              log.info(`[${requestId}] Grace expired (${Math.round(action.ageMs / 86400000)}d) and Stripe status ${liveSub.status} — downgraded ${subId} to FREE`);
               supabase.functions.invoke("send-lifecycle-email", {
                 body: {
                   user_id: subRow.user_id,
@@ -1170,11 +1198,8 @@ serve(async (req) => {
                   dynamic_data: {},
                 },
               }).catch((err) => log.error(`[${requestId}] downgrade email failed:`, err instanceof Error ? err.message : String(err)));
-            } else {
-              log.warn(`[${requestId}] Grace expired but no user_id resolved — skipping RPC downgrade`);
+              break;
             }
-          } else {
-            log.info(`[${requestId}] Within grace window (${Math.round(ageMs / 3600000)}h / 72h) — keeping access`);
           }
         } catch (err) {
           log.error(`[${requestId}] payment_failed handler error:`, err instanceof Error ? err.message : String(err));

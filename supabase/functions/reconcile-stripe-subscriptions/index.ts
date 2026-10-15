@@ -154,6 +154,7 @@ serve(async (req: Request): Promise<Response> => {
         const { error: cancelErr } = await supabase.rpc("mark_subscription_canceled", {
           p_user_id: row.user_id,
           p_reason: `reconciliation_drift:stripe_status_${stripeSub.status}`,
+          p_stripe_subscription_id: row.stripe_subscription_id,
         });
         if (cancelErr) {
           ambiguousCount++;
