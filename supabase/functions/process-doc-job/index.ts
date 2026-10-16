@@ -6,6 +6,7 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { claimJob, resolveCaller, type ClaimClient } from './auth.ts';
 const FUNCTION_NAME = 'process-doc-job';
 const FUNCTION_VERSION = '1.0.0';
 
@@ -35,14 +36,25 @@ Deno.serve(async (req: Request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Claim the job (atomic status update)
-    const { data: job, error: claimErr } = await supabase
-      .from("doc_generation_jobs")
-      .update({ status: "processing" })
-      .eq("job_id", job_id)
-      .eq("status", "queued")
-      .select()
-      .maybeSingle();
+    // Authorization (2026-10-15). Before this, any caller holding any valid
+    // JWT (even the public anon key) could trigger processing — and the paid
+    // generate-document-content call — for any queued job id.
+    // Allowed: the internal worker (service-role bearer, server-to-server
+    // only) or the signed-in owner of the job. Rejected callers stop here,
+    // before the job is read, claimed or processed.
+    const caller = await resolveCaller(req.headers.get("Authorization"), serviceKey, (jwt) => supabase.auth.getUser(jwt));
+    if (!caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Claim (atomic). For a user the owner filter is part of the claim, so
+    // another user's job is never touched; it reads as not found (409).
+    const claimed = await claimJob(supabase as unknown as ClaimClient, job_id, caller);
+    const claimErr = claimed.error;
+    const job = claimed.data as {
+      job_id: string; user_id: string; template_id: string; analysis_id: string | null; input_data: unknown;
+    } | null;
 
     if (claimErr || !job) {
       return new Response(
