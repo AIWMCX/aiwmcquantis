@@ -1,4 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { z } from 'npm:zod@3.23.8';
+import { r3Validate } from '../_shared/r3-validator.ts';
+
+// Model output contract (R3): 1-3 suggestions, required text fields,
+// confidence a number 0-100. Anything else is rejected, never stored.
+const SuggestionsSchema = z.object({
+  suggestions: z.array(z.object({
+    section: z.string().min(1).max(200),
+    issue: z.string().min(1).max(1000),
+    improvement: z.string().min(1).max(2000),
+    confidence: z.number().min(0).max(100),
+  })).min(1).max(3),
+});
 
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
@@ -185,8 +198,12 @@ Deno.serve(async (req: Request) => {
             const toolCall = choices?.[0]?.message?.tool_calls?.[0];
 
             if (toolCall) {
-              const parsed = JSON.parse(toolCall.function.arguments);
-              const suggestions = parsed.suggestions || [];
+              const validated = r3Validate(toolCall.function.arguments, SuggestionsSchema);
+              if (!validated.ok) {
+                log.warn("template-optimizer: model output rejected", { template_id: template.template_id, reason: validated.reason, detail: validated.detail });
+                throw new Error(`invalid model output (${validated.reason})`);
+              }
+              const suggestions = validated.data.suggestions;
 
               const avgConfidence =
                 suggestions.reduce(
