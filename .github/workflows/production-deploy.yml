@@ -515,7 +515,6 @@ jobs:
             alert-webhook
             api-analyze
             api-analyze-main
-            calculate-financials
             check-churn-signals
             check-lifecycle-emails
             doc-queue-worker
@@ -524,11 +523,8 @@ jobs:
             seed-benchmarks
             send-lead-magnet
             send-weekly-insights
-            # Called by the app but never deployed (doc queue, admin Data Sources):
-            process-doc-job
-            ingest-data-sources
-            aggregate-quality-metrics
-            # Deliberately NOT deployed (no callers): ingest-benchmark-data, ingest-benchmark-v2, score-import.
+            # Deliberately NOT deployed: see supabase/functions/.deploy-ignore (verify-deploy-coverage
+            # fails if a function appears in both lists).
             # template-optimizer: makes paid LLM calls without r3 validation (verify-r3-enforcement); fix before deploying.
             oauth-twitter-callback
             meta-credentials-setup
