@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { denverWallTimeToUtcIso } from '@/lib/denver-time';
 
 export type AutoposterPlatform = 'linkedin' | 'facebook' | 'instagram';
 export const AP_PLATFORMS: AutoposterPlatform[] = ['linkedin', 'facebook', 'instagram'];
@@ -256,12 +257,12 @@ export function useApproveAndSchedule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { post: AutoposterPost; platforms: AutoposterPlatformRow[] }) => {
-      // Set scheduled_at = post_date + best_time_mt (MT = UTC-7 / UTC-6; treat as local MT, convert to UTC-7)
+      // scheduled_at = post_date + best_time_mt in America/Denver, with the
+      // correct DST offset for that date (was hard-coded -07:00, an hour late
+      // all summer).
       const updates = input.platforms.map((p) => {
         const time = p.best_time_mt ?? '09:00:00';
-        // MT is UTC-7 (MST) — approximate. Stored as UTC.
-        const isoLocal = `${input.post.post_date}T${time}-07:00`;
-        const scheduledAt = new Date(isoLocal).toISOString();
+        const scheduledAt = denverWallTimeToUtcIso(input.post.post_date, time);
         return supabase
           .from('autoposter_post_platforms')
           .update({ status: 'scheduled', scheduled_at: scheduledAt })
