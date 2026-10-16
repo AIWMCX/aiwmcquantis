@@ -21,3 +21,23 @@ describe('autoposter-generate-content provider order (2026-10-15)', () => {
     expect(src).toContain('response_payload: { length: content.length, model }');
   });
 });
+
+describe('autoposter-generate-content draft safety and claim rules', () => {
+  it('skips platforms that already have a draft unless overwrite is explicitly requested', () => {
+    expect(src).toContain('const overwrite = body?.overwrite === true;');
+    expect(src).toContain('if (!overwrite && hasDraft.has(platform))');
+    expect(src).toContain('skipped: true');
+  });
+
+  it('applies the shared claim rules to all three platform prompts', () => {
+    const prompts = src.slice(src.indexOf('const PLATFORM_PROMPTS'), src.indexOf('Deno.serve('));
+    expect(prompts.match(/\$\{CLAIM_RULES\}/g)?.length).toBe(3);
+  });
+
+  it('no longer invites Monte Carlo claims, hard-coded prices or fear hooks', () => {
+    const prompts = src.slice(src.indexOf('const PLATFORM_PROMPTS'), src.indexOf('Deno.serve('));
+    expect(prompts).not.toMatch(/Monte Carlo scenario analysis/);
+    expect(prompts).not.toMatch(/\$17\/month/);
+    expect(prompts).not.toMatch(/fear hook/i);
+  });
+});

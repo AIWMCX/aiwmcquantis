@@ -133,19 +133,21 @@ export function useAutoposterWeekly() {
 export function useGenerateContent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { postId: string; platforms: AutoposterPlatform[] }) => {
+    mutationFn: async (input: { postId: string; platforms: AutoposterPlatform[]; overwrite?: boolean }) => {
       const { data, error } = await supabase.functions.invoke('autoposter-generate-content', {
         body: input,
       });
       if (error) throw error;
-      return data as { success: boolean; results: Array<{ platform: string; ok: boolean; error?: string }> };
+      return data as { success: boolean; results: Array<{ platform: string; ok: boolean; skipped?: boolean; error?: string }> };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['autoposter'] });
-      const ok = data.results.filter((r) => r.ok).length;
-      const fail = data.results.length - ok;
-      if (fail === 0) toast.success(`Generated ${ok} platform variant(s)`);
-      else toast.warning(`${ok} succeeded, ${fail} failed`, {
+      const made = data.results.filter((r) => r.ok && !r.skipped).length;
+      const kept = data.results.filter((r) => r.skipped).length;
+      const fail = data.results.filter((r) => !r.ok).length;
+      const keptNote = kept ? ` · kept ${kept} existing draft(s)` : '';
+      if (fail === 0) toast.success(`Generated ${made} platform variant(s)${keptNote}`);
+      else toast.warning(`${made} generated, ${fail} failed${keptNote}`, {
         description: data.results.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('\n'),
       });
     },
