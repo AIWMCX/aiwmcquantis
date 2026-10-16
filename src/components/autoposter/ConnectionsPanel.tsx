@@ -28,6 +28,13 @@ async function callFn<T>(action: 'status' | 'start'): Promise<T> {
   return data as T;
 }
 
+/** LinkedIn's error_description arrives HTML-encoded (e.g. &quot;openid&quot;). Decode as text only. */
+function decodeEntities(text: string) {
+  const el = document.createElement('textarea');
+  el.innerHTML = text;
+  return el.value;
+}
+
 function fmt(ts: string | null) {
   return ts ? new Date(ts).toLocaleString() : '—';
 }
@@ -44,7 +51,7 @@ export function ConnectionsPanel() {
     if (!r) return;
     setBanner(r === 'connected'
       ? { ok: true, text: `LinkedIn connected${params.get('name') ? ` as ${params.get('name')}` : ''}.` }
-      : { ok: false, text: `LinkedIn connection failed: ${params.get('reason') ?? 'unknown error'}` });
+      : { ok: false, text: `LinkedIn connection failed: ${decodeEntities(params.get('reason') ?? 'unknown error')}` });
     qc.invalidateQueries({ queryKey: ['autoposter', 'linkedin-status'] });
     const next = new URLSearchParams(params);
     ['linkedin', 'name', 'reason'].forEach((k) => next.delete(k));
