@@ -12,38 +12,22 @@
 
 # ── Cron / scheduled (triggered by Supabase scheduler or external cron, not the app) ──
 aggregate-quality-metrics
-check-churn-signals
-check-lifecycle-emails
-publish-due-posts
-send-weekly-insights
-doc-queue-worker
 
 # ── Admin / one-shot data tooling (run manually, not user-facing) ──
 ingest-benchmark-data
 ingest-benchmark-v2
 ingest-data-sources
-seed-benchmarks
 score-import
-replay-webhook-events
 
 # ── Monitoring / infra ──
-alert-webhook
-bot-detection
 
 # ── Marketing / lifecycle (not core revenue path) ──
-autoposter-generate-content
-send-lead-magnet
 template-optimizer
-newsletter-unsubscribe
 
 # ── Async workers / public API surface (review before relying on in prod) ──
 process-doc-job
-api-analyze
-api-analyze-main
 
 # ── Dev / QA harnesses (never deploy to prod) ──
-run-accuracy-harness
-run-tier-qa-harness
 
 # ── Decommissioned (P0-23, 2026-07-25) ──
 # Duplicate financial-calculation microservice with zero callers in src/ (only
@@ -56,3 +40,15 @@ run-tier-qa-harness
 # removal of the function object needs one manual step in the Supabase
 # Dashboard; this repo will never redeploy real logic to it again.
 calculate-financials
+
+# ── Reconciled 2026-10-16 after the #246 deploy incident ──
+# Removed from this file (now deployed, matching what was already live before
+# the incident): autoposter-generate-content, publish-due-posts,
+# check-lifecycle-emails, send-weekly-insights, check-churn-signals,
+# doc-queue-worker, alert-webhook, newsletter-unsubscribe, send-lead-magnet,
+# replay-webhook-events, seed-benchmarks, api-analyze, api-analyze-main,
+# bot-detection, run-accuracy-harness, run-tier-qa-harness.
+# Kept here: process-doc-job, ingest-data-sources, aggregate-quality-metrics
+# were first activated by #246 (unintended); they stay out of deploys and
+# should be deleted in the Supabase Dashboard. calculate-financials stays a
+# frozen 410 stub (repo index.ts is the stub; see verify-deploy-coverage).
