@@ -41,3 +41,9 @@ describe('autoposter-generate-content draft safety and claim rules', () => {
     expect(prompts).not.toMatch(/fear hook/i);
   });
 });
+
+describe('autoposter-generate-content DeepSeek V4 thinking mode', () => {
+  it('disables thinking so message.content is populated', () => {
+    expect(src).toContain("p.model.startsWith('deepseek-v4') ? { thinking: { type: 'disabled' } } : {}");
+  });
+});
