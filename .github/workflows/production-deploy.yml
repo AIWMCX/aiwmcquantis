@@ -524,12 +524,12 @@ jobs:
             seed-benchmarks
             send-lead-magnet
             send-weekly-insights
-            template-optimizer
             # Called by the app but never deployed (doc queue, admin Data Sources):
             process-doc-job
             ingest-data-sources
             aggregate-quality-metrics
-            # Deliberately NOT deployed (no callers): ingest-benchmark-data, ingest-benchmark-v2, score-import
+            # Deliberately NOT deployed (no callers): ingest-benchmark-data, ingest-benchmark-v2, score-import.
+            # template-optimizer: makes paid LLM calls without r3 validation (verify-r3-enforcement); fix before deploying.
             oauth-twitter-callback
             meta-credentials-setup
             # ── QOC orchestration layer ────────────────────────────────────
