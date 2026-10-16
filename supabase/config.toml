@@ -4,7 +4,7 @@ project_id = "dmlxrvfyqsakyjomsvdj"
 verify_jwt = false
 
 [functions.calculate-financials]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-narrator]
 verify_jwt = false
