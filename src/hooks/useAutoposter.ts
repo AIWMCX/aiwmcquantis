@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { denverWallTimeToUtcIso } from '@/lib/denver-time';
 
 export type AutoposterPlatform = 'linkedin' | 'facebook' | 'instagram';
 export const AP_PLATFORMS: AutoposterPlatform[] = ['linkedin', 'facebook', 'instagram'];
@@ -24,6 +25,9 @@ export interface AutoposterPost {
   archived_at: string | null;
   source: string;
   content_studio_generation_id: string | null;
+  /** Path in the private content-assets bucket (posts/<post_id>/<file>). */
+  asset_path: string | null;
+  asset_alt: string | null;
 }
 
 export interface AutoposterPlatformRow {
@@ -130,19 +134,21 @@ export function useAutoposterWeekly() {
 export function useGenerateContent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { postId: string; platforms: AutoposterPlatform[] }) => {
+    mutationFn: async (input: { postId: string; platforms: AutoposterPlatform[]; overwrite?: boolean }) => {
       const { data, error } = await supabase.functions.invoke('autoposter-generate-content', {
         body: input,
       });
       if (error) throw error;
-      return data as { success: boolean; results: Array<{ platform: string; ok: boolean; error?: string }> };
+      return data as { success: boolean; results: Array<{ platform: string; ok: boolean; skipped?: boolean; error?: string }> };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['autoposter'] });
-      const ok = data.results.filter((r) => r.ok).length;
-      const fail = data.results.length - ok;
-      if (fail === 0) toast.success(`Generated ${ok} platform variant(s)`);
-      else toast.warning(`${ok} succeeded, ${fail} failed`, {
+      const made = data.results.filter((r) => r.ok && !r.skipped).length;
+      const kept = data.results.filter((r) => r.skipped).length;
+      const fail = data.results.filter((r) => !r.ok).length;
+      const keptNote = kept ? ` · kept ${kept} existing draft(s)` : '';
+      if (fail === 0) toast.success(`Generated ${made} platform variant(s)${keptNote}`);
+      else toast.warning(`${made} generated, ${fail} failed${keptNote}`, {
         description: data.results.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('\n'),
       });
     },
@@ -251,12 +257,12 @@ export function useApproveAndSchedule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { post: AutoposterPost; platforms: AutoposterPlatformRow[] }) => {
-      // Set scheduled_at = post_date + best_time_mt (MT = UTC-7 / UTC-6; treat as local MT, convert to UTC-7)
+      // scheduled_at = post_date + best_time_mt in America/Denver, with the
+      // correct DST offset for that date (was hard-coded -07:00, an hour late
+      // all summer).
       const updates = input.platforms.map((p) => {
         const time = p.best_time_mt ?? '09:00:00';
-        // MT is UTC-7 (MST) — approximate. Stored as UTC.
-        const isoLocal = `${input.post.post_date}T${time}-07:00`;
-        const scheduledAt = new Date(isoLocal).toISOString();
+        const scheduledAt = denverWallTimeToUtcIso(input.post.post_date, time);
         return supabase
           .from('autoposter_post_platforms')
           .update({ status: 'scheduled', scheduled_at: scheduledAt })
@@ -288,5 +294,92 @@ export function useAddWeeklySnapshot() {
       toast.success('Snapshot added');
     },
     onError: (e: Error) => toast.error('Insert failed', { description: e.message }),
+  });
+}
+
+
+// ---------------------------------------------------------------------------
+// Post image assets (private content-assets bucket, posts/<post_id>/...)
+// ---------------------------------------------------------------------------
+
+export const POST_ASSET_BUCKET = 'content-assets';
+export const POST_ASSET_MAX_BYTES = 10 * 1024 * 1024;
+export const POST_ASSET_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+
+/** Short-lived signed URL for a post image; refreshes before it expires. */
+export function usePostAssetUrl(path: string | null | undefined) {
+  return useQuery({
+    queryKey: ['autoposter', 'asset-url', path],
+    enabled: !!path,
+    staleTime: 50 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from(POST_ASSET_BUCKET).createSignedUrl(path as string, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+}
+
+/** Upload (or replace) a post's image and store its path + alt text on the post. */
+export function useUploadPostAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { post: AutoposterPost; file: File; alt: string }) => {
+      const { post, file, alt } = input;
+      if (!(POST_ASSET_TYPES as readonly string[]).includes(file.type)) {
+        throw new Error('Use a PNG, JPEG or WebP image.');
+      }
+      if (file.size > POST_ASSET_MAX_BYTES) throw new Error('Image must be 10 MB or smaller.');
+      const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/webp' ? 'webp' : 'png';
+      const path = `posts/${post.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from(POST_ASSET_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { error } = await supabase.from('autoposter_posts').update({ asset_path: path, asset_alt: alt.trim() || null }).eq('id', post.id);
+      if (error) {
+        await supabase.storage.from(POST_ASSET_BUCKET).remove([path]);
+        throw error;
+      }
+      // Remove the replaced file only after the post points at the new one.
+      if (post.asset_path && post.asset_path !== path) {
+        await supabase.storage.from(POST_ASSET_BUCKET).remove([post.asset_path]);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Image attached');
+    },
+    onError: (e: Error) => toast.error('Upload failed', { description: e.message }),
+  });
+}
+
+export function useUpdatePostAssetAlt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; alt: string }) => {
+      const { error } = await supabase.from('autoposter_posts').update({ asset_alt: input.alt.trim() || null }).eq('id', input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Alt text saved');
+    },
+    onError: (e: Error) => toast.error('Could not save alt text', { description: e.message }),
+  });
+}
+
+export function useRemovePostAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (post: AutoposterPost) => {
+      if (!post.asset_path) return;
+      const { error } = await supabase.from('autoposter_posts').update({ asset_path: null }).eq('id', post.id);
+      if (error) throw error;
+      await supabase.storage.from(POST_ASSET_BUCKET).remove([post.asset_path]);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Image removed');
+    },
+    onError: (e: Error) => toast.error('Could not remove image', { description: e.message }),
   });
 }

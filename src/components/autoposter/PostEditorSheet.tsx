@@ -13,6 +13,8 @@ import {
   useApproveAndSchedule,
   useSetPostStatus,
 } from '@/hooks/useAutoposter';
+import { PostAssetPanel } from './PostAssetPanel';
+import { LinkedInPreview } from './PostAssetPanel';
 
 interface Props {
   post: AutoposterPost | null;
@@ -102,10 +104,24 @@ export function PostEditorSheet({ post, platforms, onClose }: Props) {
             )}
           </div>
 
+          <PostAssetPanel post={post} />
+
+          <LinkedInPreview post={post} caption={drafts.linkedin ?? ''} />
+
           <div className="flex justify-end">
             <Button
               size="sm"
-              onClick={() => generate.mutate({ postId: post.id, platforms: [...AP_PLATFORMS] })}
+              onClick={() => {
+                const existing = platforms.filter((p) => p.content?.trim()).length;
+                // Existing drafts may be hand-edited: replacing them must be an explicit choice.
+                const overwrite = existing > 0 && window.confirm(
+                  `${existing} platform(s) already have a draft.
+
+OK = replace them with new versions
+Cancel = keep them and only generate the missing ones`,
+                );
+                generate.mutate({ postId: post.id, platforms: [...AP_PLATFORMS], overwrite });
+              }}
               disabled={generate.isPending}
               className="bg-[var(--q-accent-primary)] text-black hover:bg-[var(--q-accent-primary)]/90"
             >

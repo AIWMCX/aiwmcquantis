@@ -182,6 +182,12 @@ export function PostQueue() {
                       <Badge className={`text-[10px] border ${STATUS_COLOR[post.status] ?? STATUS_COLOR.draft}`}>
                         {post.status}
                       </Badge>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${post.asset_path ? 'text-emerald-400 border-emerald-500/40' : 'text-amber-500 border-amber-500/40'}`}
+                      >
+                        {post.asset_path ? 'image ✓' : 'no image'}
+                      </Badge>
                       {AP_PLATFORMS.map((pl) => {
                         const row = ps.find((p) => p.platform === pl);
                         const has = !!row?.content;

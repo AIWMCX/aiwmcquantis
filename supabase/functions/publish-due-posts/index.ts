@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { ambiguousFromThrow, isAmbiguousHttpStatus, PUBLISH_TIMEOUT_MS, statusFor, type PublishResult } from './outcome.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
@@ -158,19 +159,16 @@ async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: 
 
 type Platform = 'linkedin' | 'facebook' | 'instagram';
 
-interface PublishResult {
-  ok: boolean;
-  platform_post_id?: string;
-  error?: string;
-  needs_credentials?: boolean;
-}
 
 async function publishLinkedIn(content: string, creds: any | null): Promise<PublishResult> {
   if (!creds?.access_token || !creds?.account_id) {
     return { ok: false, needs_credentials: true, error: 'LinkedIn credentials missing' };
   }
-  const res = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+  let res: Response;
+  try {
+    res = await fetch('https://api.linkedin.com/v2/ugcPosts', {
     method: 'POST',
+    signal: AbortSignal.timeout(PUBLISH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${creds.access_token}`,
       'Content-Type': 'application/json',
@@ -188,7 +186,14 @@ async function publishLinkedIn(content: string, creds: any | null): Promise<Publ
       visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
     }),
   });
-  if (!res.ok) return { ok: false, error: `LinkedIn ${res.status}: ${(await res.text()).slice(0, 300)}` };
+  } catch (e) {
+    // Timeout / connection reset after sending: LinkedIn may have accepted it.
+    return ambiguousFromThrow('LinkedIn', e);
+  }
+  if (!res.ok) {
+    const detail = `LinkedIn ${res.status}: ${(await res.text()).slice(0, 300)}`;
+    return isAmbiguousHttpStatus(res.status) ? { ok: false, ambiguous: true, error: `${detail} (may be live — verify on LinkedIn)` } : { ok: false, error: detail };
+  }
   const json = await res.json();
   return { ok: true, platform_post_id: json.id };
 }
@@ -342,11 +347,13 @@ Deno.serve(async (req) => {
     try {
       res = await publisher(row.content, credsByPlatform.get(platform) ?? null);
     } catch (e) {
-      res = { ok: false, error: e instanceof Error ? e.message : String(e) };
+      // Anything unexpected after the request may have been sent is treated
+      // as an unknown outcome, never as a definite failure.
+      res = ambiguousFromThrow(platform, e);
     }
     const dur = Date.now() - t1;
 
-    const newStatus = res.ok ? 'published' : res.needs_credentials ? 'needs_credentials' : 'failed';
+    const newStatus = statusFor(res);
     await supa
       .from('autoposter_post_platforms')
       .update({
