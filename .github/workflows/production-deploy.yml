@@ -508,6 +508,28 @@ jobs:
             # list, so their source changes did not ship (found 2026-10-15).
             autoposter-generate-content
             publish-due-posts
+            # Functions that were live (hand-deployed Sep 17-Oct 2) or called by the app
+            # but missing from this list, so repo changes never shipped. Verified
+            # 2026-10-15: no repo commits after each live deploy; check-lifecycle-emails
+            # live code compared line-for-line with the repo before adding.
+            alert-webhook
+            api-analyze
+            api-analyze-main
+            calculate-financials
+            check-churn-signals
+            check-lifecycle-emails
+            doc-queue-worker
+            newsletter-unsubscribe
+            replay-webhook-events
+            seed-benchmarks
+            send-lead-magnet
+            send-weekly-insights
+            template-optimizer
+            # Called by the app but never deployed (doc queue, admin Data Sources):
+            process-doc-job
+            ingest-data-sources
+            aggregate-quality-metrics
+            # Deliberately NOT deployed (no callers): ingest-benchmark-data, ingest-benchmark-v2, score-import
             oauth-twitter-callback
             meta-credentials-setup
             # ── QOC orchestration layer ────────────────────────────────────
