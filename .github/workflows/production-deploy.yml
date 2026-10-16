@@ -504,6 +504,10 @@ jobs:
             admin-health-sweep
             # ── Autoposter integration (OAuth + Meta credential bootstrap) ──
             oauth-linkedin-callback
+            # Autoposter: generation (#244) and scheduled publishing were never in this
+            # list, so their source changes did not ship (found 2026-10-15).
+            autoposter-generate-content
+            publish-due-posts
             oauth-twitter-callback
             meta-credentials-setup
             # ── QOC orchestration layer ────────────────────────────────────
