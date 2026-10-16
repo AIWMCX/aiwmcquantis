@@ -33,7 +33,16 @@ async function callProvider(p: Provider, system: string, user: string): Promise<
     : await fetch(p.url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${p.key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: p.model, max_tokens: 1024, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+        body: JSON.stringify({
+          model: p.model,
+          max_tokens: 2048,
+          messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+          // DeepSeek V4 defaults to thinking mode: the answer stays in
+          // reasoning_content and message.content comes back empty (seen in
+          // production 2026-10-16 00:58; same root cause as the 2026-06-10
+          // narrator incident, handled in _shared/llm-call.ts). Disable it.
+          ...(p.model.startsWith('deepseek-v4') ? { thinking: { type: 'disabled' } } : {}),
+        }),
       });
   if (!res.ok) throw new Error(`${p.name} ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();
