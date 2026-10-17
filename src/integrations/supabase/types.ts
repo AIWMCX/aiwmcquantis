@@ -1215,6 +1215,7 @@ export type Database = {
           id: string
           platform: string
           platform_post_id: string | null
+          published_url: string | null
           post_id: string
           published_at: string | null
           scheduled_at: string | null
@@ -1229,6 +1230,7 @@ export type Database = {
           id?: string
           platform: string
           platform_post_id?: string | null
+          published_url?: string | null
           post_id: string
           published_at?: string | null
           scheduled_at?: string | null
@@ -1243,6 +1245,7 @@ export type Database = {
           id?: string
           platform?: string
           platform_post_id?: string | null
+          published_url?: string | null
           post_id?: string
           published_at?: string | null
           scheduled_at?: string | null
