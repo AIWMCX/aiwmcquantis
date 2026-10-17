@@ -72,7 +72,7 @@ export function FooterEmailSignup() {
         </Button>
       </form>
       <p className="text-xs text-muted-foreground mt-2">
-        Join 500+ entrepreneurs. Unsubscribe anytime.
+        Occasional notes on testing business decisions. Unsubscribe anytime.
       </p>
     </div>
   );
