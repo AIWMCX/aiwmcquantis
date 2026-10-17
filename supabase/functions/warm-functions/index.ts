@@ -18,13 +18,12 @@ const FUNCTION_VERSION = '1.0.0';
  * 
  * Functions warmed:
  * - analyze-business (primary analysis endpoint)
- * - calculate-financials (financial calculations)
  * - ai-narrator (AI narrative generation)
  */
 
 const FUNCTIONS_TO_WARM = [
   'analyze-business',
-  'calculate-financials',
+  // calculate-financials removed 2026-10-16: decommissioned 410 stub (P0-23).
   'ai-narrator',
   'health-check',
 ];

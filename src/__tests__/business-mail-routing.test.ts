@@ -51,6 +51,16 @@ describe('resolveMailbox', () => {
 });
 
 describe('classifyInbound', () => {
+  it('treats noreply anywhere in the local part as system mail (LinkedIn verification, 2026-10-15)', () => {
+    expect(classifyInbound(msg({ from: 'LinkedIn <messages-noreply@linkedin.com>', subject: 'Confirm your email address' }))).toBe('system');
+    expect(classifyInbound(msg({ from: 'security-no-reply@example.com' }))).toBe('system');
+    expect(classifyInbound(msg({ from: 'alerts.donotreply@bank.example' }))).toBe('system');
+  });
+  it('does not treat a person whose name merely contains "reply" as system', () => {
+    expect(classifyInbound(msg({ from: 'replyford@acme.com', bodyText: 'Happy to take a look.' }))).toBe('human');
+    expect(classifyInbound(msg({ from: 'noreplyson@acme.com', bodyText: 'Sounds good.' }))).toBe('human');
+  });
+
   it('human reply', () => expect(classifyInbound(msg())).toBe('human'));
 
   it('bounce from mailer-daemon, and the bounced recipient is found', () => {
