@@ -19,9 +19,22 @@ describe('status view', () => {
     expect(v.tone).toBe('warning');
     expect(v.hint).toMatch(/may be live/);
   });
-  it('falls back to draft for an unrecognised status rather than crashing', () => {
-    expect(normalizeStatus('weird')).toBe('draft');
+  it('fails closed: an unrecognised status is "unknown", never a schedulable draft', () => {
+    expect(normalizeStatus('weird')).toBe('unknown');
+    expect(canReschedule('weird')).toBe(false);
     expect(normalizeStatus(null)).toBe('draft');
+  });
+  it('a post scheduled natively in LinkedIn is read-only here and can never be re-queued', () => {
+    expect(statusView('external_scheduled').label).toBe('Scheduled in LinkedIn');
+    expect(canCancel('external_scheduled')).toBe(false);
+    expect(canReschedule('external_scheduled')).toBe(false);
+    expect(canRecordUrl('external_scheduled')).toBe(true);
+  });
+  it('the publisher only ever claims status=scheduled (so external_scheduled is never posted twice)', () => {
+    const pub = readFileSync('supabase/functions/publish-due-posts/index.ts', 'utf8');
+    const claims = pub.match(/\.eq\('status', '([a-z_]+)'\)/g) ?? [];
+    expect(claims.length).toBeGreaterThan(0);
+    for (const c of claims) expect(c).toBe(".eq('status', 'scheduled')");
   });
 });
 

@@ -6,10 +6,14 @@
  * Statuses written by the system: draft, scheduled, publishing (claimed by
  * the publisher), published, failed (definite rejection), needs_credentials,
  * unknown (timeout / 5xx — the post may be live; see publish-due-posts/outcome.ts).
+ * external_scheduled: scheduled natively inside LinkedIn (or another platform),
+ * mirrored here for one shared calendar. The publisher only claims
+ * status='scheduled', so it never posts these — that is what prevents a
+ * second copy.
  */
 
 export type PlatformStatus =
-  | 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'needs_credentials' | 'unknown';
+  | 'draft' | 'scheduled' | 'external_scheduled' | 'publishing' | 'published' | 'failed' | 'needs_credentials' | 'unknown';
 
 export interface StatusView {
   label: string;
@@ -20,6 +24,11 @@ export interface StatusView {
 const VIEWS: Record<PlatformStatus, StatusView> = {
   draft: { label: 'Draft', tone: 'neutral', hint: null },
   scheduled: { label: 'Scheduled', tone: 'info', hint: null },
+  external_scheduled: {
+    label: 'Scheduled in LinkedIn',
+    tone: 'info',
+    hint: 'Scheduled directly on the platform. Autoposter will not publish it. Change the time on the platform; after it goes live, record its URL here.',
+  },
   publishing: { label: 'Publishing…', tone: 'info', hint: 'The publisher has picked this up. Do not change it now.' },
   published: { label: 'Published', tone: 'success', hint: null },
   failed: { label: 'Failed', tone: 'danger', hint: 'The platform rejected the post. Fix the cause, then reschedule.' },
@@ -32,8 +41,10 @@ const VIEWS: Record<PlatformStatus, StatusView> = {
 };
 
 export function normalizeStatus(status: string | null | undefined): PlatformStatus {
-  const s = (status ?? 'draft') as PlatformStatus;
-  return s in VIEWS ? s : 'draft';
+  if (!status) return 'draft';
+  // An unrecognised status is never treated as a schedulable draft: it could
+  // be live somewhere. Fail closed to 'unknown' (check before acting).
+  return status in VIEWS ? (status as PlatformStatus) : 'unknown';
 }
 
 export function statusView(status: string | null | undefined): StatusView {
