@@ -75,6 +75,9 @@ const BOUNCE_SUBJECT = /(undeliver|delivery status notification \(failure\)|deli
 const AUTO_SUBJECT = /^(auto(matic)?[ -]?(reply|response)|out of (the )?office|ooo\b|away from (the )?office|autoreply|auto:)/i;
 const AUTO_BODY = /\b(i am|i'm|i will be) (currently )?(out of (the )?office|away|on (annual |parental |maternity |paternity )?leave|travell?ing)\b/i;
 const SYSTEM_SENDER = /^(no-?reply|do-?not-?reply|notifications?|noreply-dmarc-support|dmarc|dmarcreport|reports?|alerts?|mailer|news(letter)?)[@+._-]/i;
+// "noreply" anywhere in the local part (messages-noreply@linkedin.com,
+// security-noreply@…) is never a person.
+const NOREPLY_ANYWHERE = /(^|[._+-])(no-?reply|do-?not-?reply)([._+-]|@)/i;
 const DMARC_SUBJECT = /^(report domain:|\[?dmarc\]? aggregate report|dmarc report)/i;
 
 /**
@@ -126,7 +129,7 @@ export function classifyInbound(msg: InboundMessage): Classification {
   if (autoSubmitted && autoSubmitted !== 'no') return 'system';
   const precedence = (h['precedence'] ?? '').toLowerCase();
   if (['bulk', 'list', 'junk'].includes(precedence) || h['list-id'] || h['list-unsubscribe']) return 'system';
-  if (SYSTEM_SENDER.test(from)) return 'system';
+  if (SYSTEM_SENDER.test(from) || NOREPLY_ANYWHERE.test(from)) return 'system';
 
   if (isOptOut(msg.bodyText, subject)) return 'unsubscribe';
   return 'human';
