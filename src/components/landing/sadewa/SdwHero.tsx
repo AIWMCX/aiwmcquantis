@@ -81,7 +81,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
           <WordStagger
             as="h1"
             id="hero-heading"
-            text="Before you invest $50K, find out if you’ll get it back."
+            text="Before you invest $50K, understand what it would take to earn it back."
             className="sdw-display"
             style={{ fontSize: 'clamp(2.75rem, 6.4vw, 6.25rem)' }}
           />
