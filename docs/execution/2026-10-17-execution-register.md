@@ -1,80 +1,107 @@
-# Execution Register & Founder Brief — 2026-10-17
+# Execution Register & Founder Brief — 2026-10-17 (rev 2, 05:00 MT)
 
-Main head: `a843ee42` · Evidence gathered 2026-10-17 from GitHub, the Supabase production DB and live `?health=1` endpoints.
-Statuses: historical / planned / in progress / failed / paused / review-ready / merged / deployed / workflow-verified / blocked.
-**Merged ≠ deployed ≠ workflow-verified.**
+Main head: `556d4c3f`. Evidence comes from GitHub, the production DB, live `?health=1` endpoints and the live bundle.
+Statuses: historical / planned / in progress / failed / paused / review-ready / merged / deployed / workflow-verified / blocked. **Merged ≠ deployed ≠ workflow-verified.**
 
 ## Founder brief
 
 ### 1. Completed and verified in production
-- **Production deploy pipeline is green.** It had failed on 5 consecutive runs. The migration ledger is reconciled (291 applied-and-present, 0 git-only, 0 ledger-only). Before the fix, `db push` had been skipping migrations since about Oct 6. Commits: #239 `ba43d9ed`, then `a843ee42`.
-- **#246 incident contained.** `calculate-financials` is back to a 410 stub with `verify_jwt=true` (401 without a token, 410 with the anon key). A CI guard rejects any function that is both deployed and in `.deploy-ignore`, and rejects a retired function whose stub is reverted (#249, #252).
+- **Deploy pipeline is green.** The migration ledger is reconciled (#239). Migration `20261017120000` was applied *by the pipeline itself* (#256). That is the first pipeline-applied migration since about Oct 6.
+- **#246 incident contained.** The `calculate-financials` stub is live (401 without a token, 410 with the anon key). A CI guard blocks a repeat (#249, #252).
 - **Publisher safety** (#253, live `afbc00df`):
-  - Scheduling uses the correct Denver offset for daylight saving time.
+  - Scheduling uses the correct DST offset.
   - LinkedIn publishing times out after 25s.
-  - A timeout or 5xx response becomes `unknown`, not `failed`, and is never retried.
-- **Business-mail classification** (#254, live `a843ee42`):
-  - `*-noreply@` senders are now system mail.
-  - The fake "Linkedin" prospect is retired to `not_fit` / do-not-contact, and its message is reclassified.
-- **Autoposter generator** (#244, #251, live `b5e74e7a`):
-  - Provider order is DeepSeek V4 flash with thinking disabled, then Anthropic, then Lovable.
-  - Existing drafts are skipped unless `overwrite` is passed.
+  - A timeout or 5xx response becomes `unknown`; nothing is retried.
+- **Content workspace** (#256, live; the strings are in the Autoposter bundle):
+  - Status badge per platform.
+  - Cancel, reschedule in Denver time, and record published URL (https, host-checked).
+  - Reconciliation choices for `unknown`.
+  - "Approve & schedule" no longer re-queues published or unknown rows.
+- **One posting line** (#257, live):
+  - New `external_scheduled` ("Scheduled in LinkedIn") status, which the publisher never claims.
+  - 4 published LinkedIn posts recorded and archived, with approximate times.
+  - 3 LinkedIn-native schedules mirrored.
+- **Business mail** (#254, live `a843ee42`): `*-noreply@` senders are now system mail. The fake "Linkedin" prospect is retired.
 
-### 2. Completed in code, not deployed (review-ready)
-- #248 `process-doc-job` owner/worker authorization. The function is excluded from deploy and its table is absent in production, so this is defense in depth.
-- #250 template-optimizer R3 validation. The function is excluded.
-- #234, #237, #238, #240, #231, #230, #235 — trust/homepage/analytics/consultants/motion. Each is mergeable and awaiting founder approval.
-- #222 is conflicting and superseded by #234. Close it.
+### 2. Completed in code, not deployed (review-ready, awaiting founder)
+- **#234 — sample-report PDF.** The live homepage links a PDF that contradicts itself ($600 revenue vs $674,460 monthly costs, −112,310% margin) and describes a different business from the preview beside it. **Highest-value merge.**
+- #237, #231, #230, #238, #240, #235: trust, homepage, consultants, motion, analytics, migration.
+- #248, #250: defense in depth for functions that are excluded from deploy.
+- #222 is superseded by #234. Close it.
 
-### 3. Remaining blockers (with evidence)
-- **Generation proof is missing.** Post `b2ed2ba9` still has only its LinkedIn row. Facebook and Instagram variants have never been generated in production. This needs one authenticated click.
-- **Dashboard gap for `unknown`.** The publisher can write `unknown`, but the Autoposter UI has no badge for it.
-- **No content-workspace actions yet** for "record published URL" or reschedule/cancel.
-- **legal@ mailbox password is wrong**, so that mailbox does not sync.
-- **Terms §4.4 vs Refund Policy conflict** is still unresolved. It is a founder decision.
+### 3. Remaining blockers (evidence)
+- **Generation proof is missing.** Post `b2ed2ba9` has only its LinkedIn row; Facebook and Instagram have never been generated. This needs the founder's click.
+- **The LinkedIn publisher is text-only** (`/v2/ugcPosts` without media). Monday's API post will go out without an image. Image upload support is planned *after* the first verified publish, so the first proof isn't confounded.
+- **Company page posting** needs LinkedIn Community Management API review. The workaround is a manual repost.
+- **legal@ password** and **Terms §4.4 vs Refund Policy** need founder decisions.
 
 ### 4. Content ready now
-- 12 posts (`QUANTIS_4W_20261019`) with LinkedIn copy and 12 PNG assets in `marketing/2026-10-autoposter-4wk/`. These files are untracked locally and not in the repo.
-- Post 1, "THE HIRE STARTS BEFORE THE REVENUE.", is **scheduled for LinkedIn Mon Oct 19 16:00 UTC (10:00 Denver)**. It has no image attached.
+- **The line:** 4 published, then Sat 07:15 · Sun 08:00 (LinkedIn-native) → Mon 10:00 (Autoposter API) → Tue 08:15 (LinkedIn-native).
+- **The 11 drafts #09–#19** (Oct 21–Nov 13) are re-angled to avoid repeats. Each has a full caption, CTA, hashtags and arithmetic checks. The original captions are preserved in notes.
+  - Plan: `marketing/2026-10-linkedin-line/PLAN_OCT21_NOV13.md`
+  - Image master prompts for all 12: `marketing/2026-10-linkedin-line/IMAGE_MASTER_PROMPTS.md`
+- **Images:** generated by the founder from those prompts, then uploaded in the asset panel. None are attached yet.
 
-### 5. Outreach / reply / customer outcomes observed
-- Sent by day (Denver): Oct 12 = 33, Oct 13 = 7, Oct 15 = 30, Oct 16 = 35.
-  - 105 sent to 73 prospects since Oct 12.
-  - 40 of these have no provider message ID (the Oct 12–13 manual/evidenced era).
-  - SMTP acceptance is not delivery.
-- Outreach is **disabled** (set by the founder account at 2026-10-16 21:21 UTC). 55 messages are queued. Cap and warm-up are unchanged.
-- Inbound mail in the last 5 days: 1 bounce, 3 system, **0 human replies**.
-- In the last 3 days: 0 new external accounts and 1 external analysis.
-- Stripe was not reconciled this session, so there are no verified external payments to report.
+### 5. Observed outcomes (America/Denver, complete days Oct 12–16; Oct 17 partial)
+
+| Day | Sessions* | UTM-attributed | Demo sessions | New ext. accounts | Ext. analyses | Checkout starts | Paid |
+|---|---|---|---|---|---|---|---|
+| Oct 12 | 10 | 0 | 1 | 0 | 0 | 2 † | 0 |
+| Oct 13 | 17 | 0 | 2 | 0 | 0 | 2 † | 0 |
+| Oct 14 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Oct 15 | 21 | 4 (email, ig) | 7 | 0 | 1 | 0 | 0 |
+| Oct 16 | 9 | 5 (email) | 5 | 0 | 0 | 0 | 0 |
+| Oct 17 (partial) | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+\* Funnel sessions excluding internal accounts and localhost/preview hosts. Anonymous sessions cannot be fully separated from founder browsing; treat them as unknown, not confirmed external.
+† Both days show the identical pattern: around 16:40 MT, no referrer, no user, both offers clicked 30 seconds apart. These are **classified unknown, likely automated**, not buyer intent.
+
+**Outreach:**
+- 106 sent so far:
+  - 41 historical step 1 with no provider evidence.
+  - 32 step 1 via SMTP with message IDs.
+  - 33 step 2 via SMTP with message IDs.
+- SMTP acceptance is not delivery.
+- Inbound since Oct 12:
+  - 1 bounce, matched to its prospect, which is suppressed and moved to lost.
+  - 5 system emails.
+  - **0 human replies.**
+- **Queue (paused by the founder, Oct 16 21:21 UTC):** 55 approved step-1 emails plus 1 step-2 email that is approved but not queued.
+  - 0 would duplicate a sent step.
+  - 0 go to suppressed contacts.
+  - 0 contain placeholders.
+  - All include the postal address.
+  - Sent rows cannot be re-sent: the sender only claims `status='approved'`.
+- **Revenue:** no verified external payments in the application records. Stripe was not reconciled this session.
 
 ### 6. References
-#239 `ba43d9ed` · #249 `a21268e0` · #251 `b5e74e7a` · #252 `0bddc939` · #253 `afbc00df` · #254 `a843ee42`
+#239 `ba43d9ed` · #249 `a21268e0` · #252 `0bddc939` · #253 `afbc00df` · #254 `a843ee42` · #255 `46e874df` · #256 `09ce5c20` · #257 `4001eec5` · #258 `5749271c` · #259 `556d4c3f`
 
 ### 7. Founder actions (max 3)
-1. On `/admin/autoposter`, post 1, click **Generate all 3**. LinkedIn is preserved; this only fills in Facebook and Instagram. Then decide whether 10:00 Denver on Monday is the time you want.
-2. Decide whether to **re-enable outreach** (55 queued) and approve or close the review-ready trust PRs, in this order: #234 → #237 → #231 → #230.
-3. Fix the **legal@ password** in IONOS, and choose the wording that resolves Terms §4.4 vs Refund Policy.
+1. **Approve #234.** It stops the homepage serving the contradictory sample PDF. This is the biggest current trust risk for any prospect who clicks through from outreach.
+2. **Re-enable outreach** (the queue was verified clean above). Then click **Generate all 3** on post 1 and upload the first images from the master prompts.
+3. **After Monday 10:00 MT:** confirm a single LinkedIn post appeared, or use the `unknown` reconcile buttons. Reset the legal@ password.
 
 ### 8. Single next commercial priority
-Get the **first real human reply** into a decision conversation. The outbound volume exists; the conversion step does not. Re-enable the authorized sequence, and the moment a reply lands, answer it with one worked example built from that prospect's own numbers.
+Turn traffic into a first real conversation. Outreach traffic is reaching the demo: 5 email-attributed sessions on Oct 16, and 7 demo sessions on Oct 15. Nobody has replied or signed up yet. Remove the trust breaker first (#234). Then every human reply gets a same-day answer with one worked example built from that prospect's own numbers.
 
 ## Register
 
 | Work item | Customer outcome | Current evidence | Status | Blocker | Next action | Acceptance check |
 |---|---|---|---|---|---|---|
-| Deploy pipeline ledger | Fixes actually reach prod | Deploy run on `a843ee42` all green; ledger 291/0/0 | workflow-verified | — | Keep ledger in sync on every manual migration | Next deploy green |
-| #246 incident / calculate-financials | No wrong NPV math served | 401 no token, 410 anon; CI guard negative-tested | deployed | Inbound logs unavailable | — | Guard fails on re-add |
-| Publisher DST + ambiguous | No late or duplicate posts | live `afbc00df`; 12 tests | deployed | Monday publish not yet observed | Observe Oct 19 16:00Z run | Post lands once at the intended time |
-| `unknown` badge in UI | Founder sees uncertain publishes | Not built | planned | — | Add status badge + "check platform" text | Badge renders for an `unknown` row |
-| Autoposter generation | FB/IG variants exist | Only LinkedIn row on b2ed2ba9 | blocked | Needs founder session | Founder clicks Generate all 3 | 3 rows, LinkedIn text unchanged |
-| Content workspace: URL / reschedule | Track what was published | PostAssetPanel + preview live (#241) | in progress | — | Add manual URL + cancel/reschedule | Founder records 1 URL |
-| 4-week package | 3 posts ready to export | 12 PNG + copy local, untracked | in progress | Assets not attached in app | Attach images to posts 1–3 | Preview shows image + caption |
-| One controlled publication | Proven LinkedIn channel | Post 1 scheduled | planned | Founder-authorized schedule | Verify post ID/URL after Oct 19 | URL recorded, single post |
-| Business-mail classification | Real replies only in pipeline | live `a843ee42`; fake prospect retired | deployed | — | — | No system mail creates prospects |
-| Outreach sequence | Replies from ICP | 105 sent / 0 human replies; disabled | paused | Founder decision | Re-enable or revise copy | ≥1 human reply classified |
-| #248 doc-job auth | No cross-user job access | 6 tests; table absent in prod | review-ready | Founder approval | Merge (no deploy effect) | CI green |
-| #250 template-optimizer R3 | Validated LLM output | Test passing; function excluded | review-ready | Founder approval | Merge | CI green |
-| Trust PRs #234/#237/#231/#230/#238/#240/#235 | Consistent public claims & prices | Mergeable | review-ready | Founder approval | Merge in stated order | Live pages match canonical prices |
-| legal@ mailbox | Legal mail reaches us | Auth failure | blocked | Password | Founder resets | Sync succeeds |
-| Terms §4.4 vs Refund | Non-conflicting policy | Conflict documented | blocked | Founder decision | Pick wording | One policy text |
-| Leaked-password protection | Account security | Advisor WARN | planned | Dashboard toggle | Founder enables in Auth settings | Advisor clears |
+| Deploy pipeline & ledger | Fixes reach prod | 5 consecutive green deploys; pipeline applied 20261017120000 | workflow-verified | — | — | Next deploy green |
+| #246 / calculate-financials | No wrong NPV served | 401/410 live; CI guard negative-tested | deployed | Inbound logs unavailable | — | Guard fails on re-add |
+| Publisher DST + ambiguous | No late or duplicate posts | live `afbc00df`, tests | deployed | First publish not yet observed | Observe Mon 16:00Z | One post, correct time |
+| Content workspace controls | Prepare/track posts in one screen | live bundle contains controls | deployed | Not clicked through (no admin session) | Founder uses on post 1 | URL recorded on 1 post |
+| One posting line (external_scheduled) | One calendar, no double posts | 7 rows recorded; publisher claims only `scheduled` (test) | deployed | Approximate times | Founder pastes post URLs | URLs recorded |
+| 4-week package #09–#19 | Useful, non-repeating posts | 11 drafts rewritten; plan + prompts merged | in progress | Images not generated | Founder generates and uploads | Preview shows image + caption |
+| Autoposter generation (FB/IG) | Variants exist | LinkedIn-only on b2ed2ba9 | blocked | Founder session | Click Generate all 3 | 3 rows, LinkedIn unchanged |
+| LinkedIn image publishing | Posts go out with images | Publisher text-only | planned | Wait for first verified text publish | Add registerUpload + media | Post with image verified |
+| Controlled publication | Proven channel | Mon Oct 19 scheduled | planned | Time | Verify ID/URL after run | URL recorded |
+| Business-mail classification | Real replies only | live `a843ee42` | deployed | — | — | — |
+| Outreach | Human replies | 106 sent / 0 human replies; queue verified clean | paused | Founder decision | Re-enable | ≥1 human reply |
+| Sample report PDF (#234) | Trustworthy example | Live PDF self-contradicts | review-ready | Founder approval | Merge #234 | Old URL redirects; no PDF links |
+| Trust PRs #237/#231/#230/#238/#240/#235 | Consistent claims & prices | Mergeable | review-ready | Founder approval | Merge in order | Live pages match canonical prices |
+| #248 / #250 | Defense in depth | Tests pass; functions excluded | review-ready | Founder approval | Merge | CI green |
+| Measurement | Honest daily counts | Table above | in progress | Checkout-start test traffic unlabelled | Tag synthetic checks | Synthetic events excluded |
+| legal@ / Terms §4.4 | Policy integrity | Auth failure / conflict | blocked | Founder | Reset / choose wording | Sync OK / one policy |
