@@ -54,7 +54,7 @@ export default function Landing() {
   return (
     <div className="sdw min-h-screen">
       <PageSEO
-        title="AIWMC Quantis — AI Business Idea Validator"
+        title="AIWMC Quantis — Test a Business Decision Before You Fund It"
         description="Test a business decision before committing capital: explicit assumptions, deterministic cash, break-even and payback math, downside scenarios. Free to start."
         canonical="/"
       />
