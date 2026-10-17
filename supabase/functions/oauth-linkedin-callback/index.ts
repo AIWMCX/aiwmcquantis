@@ -7,12 +7,17 @@
 //   the secret_id + account_id into autoposter_credentials.
 // ------------------------------------------------------------------
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeadersFor } from '../_shared/cors.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLIENT_ID = Deno.env.get('LINKEDIN_CLIENT_ID') ?? '';
 const CLIENT_SECRET = Deno.env.get('LINKEDIN_CLIENT_SECRET') ?? '';
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/oauth-linkedin-callback`;
+// Where the browser lands after LinkedIn: the Autoposter admin page.
+const APP_URL = (Deno.env.get('APP_URL') ?? 'https://www.aiwmcquantis.com').replace(/\/$/, '');
+const RETURN_PATH = '/admin/autoposter';
+const SCOPE = 'w_member_social openid profile';
 
 const supa = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -22,7 +27,69 @@ function html(body: string, status = 200) {
   ${body}</body>`, { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
+function backToApp(params: Record<string, string>) {
+  return Response.redirect(`${APP_URL}${RETURN_PATH}?${new URLSearchParams(params)}`, 302);
+}
+
+function authUrlFor(state: string) {
+  return `https://www.linkedin.com/oauth/v2/authorization?response_type=code` +
+    `&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&scope=${encodeURIComponent(SCOPE)}&state=${state}`;
+}
+
+/** Signed-in admin only. Returns the user id or null. */
+async function adminUserId(req: Request): Promise<string | null> {
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  const { data, error } = await supa.auth.getUser(token);
+  if (error || !data?.user) return null;
+  const { data: roles } = await supa.from('user_roles').select('role').eq('user_id', data.user.id).eq('role', 'admin');
+  return roles && roles.length > 0 ? data.user.id : null;
+}
+
+/**
+ * Admin API used by the Autoposter "Connections" panel (POST, JSON):
+ *   { action: 'status' } -> connection summary (never tokens)
+ *   { action: 'start' }  -> { url } to send the browser to LinkedIn
+ * This function is deployed without platform JWT verification because
+ * LinkedIn's redirect carries no Supabase token; every path authenticates
+ * itself (admin JWT here, single-use expiring state on the callback).
+ */
+async function handleApi(req: Request): Promise<Response> {
+  const cors = corsHeadersFor(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!(await adminUserId(req))) return json({ error: 'Admin sign-in required' }, 401);
+  const body = await req.json().catch(() => ({}));
+  const configured = !!(CLIENT_ID && CLIENT_SECRET);
+
+  if (body.action === 'status') {
+    const { data: cred } = await supa.from('autoposter_credentials')
+      .select('account_id, token_expires, is_active, last_tested, updated_at, refresh_token_secret_id')
+      .eq('platform', 'linkedin').maybeSingle();
+    return json({
+      configured,
+      redirect_uri: REDIRECT_URI,
+      connected: !!cred?.is_active,
+      account_id: cred?.account_id ?? null,
+      token_expires: cred?.token_expires ?? null,
+      last_tested: cred?.last_tested ?? null,
+      has_refresh_token: !!cred?.refresh_token_secret_id,
+    });
+  }
+  if (body.action === 'start') {
+    if (!configured) return json({ error: 'LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET are not set in Supabase secrets.' }, 409);
+    const state = crypto.randomUUID();
+    const { error } = await supa.from('autoposter_oauth_state').insert({ state, platform: 'linkedin', redirect_uri: REDIRECT_URI });
+    if (error) return json({ error: `Could not start: ${error.message}` }, 500);
+    return json({ url: authUrlFor(state) });
+  }
+  return json({ error: 'Unknown action' }, 400);
+}
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeadersFor(req) });
+  if (req.method === 'POST') return handleApi(req);
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return html('<h2>Missing config</h2><p>LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET not set.</p>', 500);
   }
@@ -40,11 +107,7 @@ Deno.serve(async (req) => {
     await supa.from('autoposter_oauth_state').insert({
       state, platform: 'linkedin', redirect_uri: REDIRECT_URI,
     });
-    const scope = encodeURIComponent('w_member_social openid profile');
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code` +
-      `&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-      `&scope=${scope}&state=${state}`;
-    return Response.redirect(authUrl, 302);
+    return Response.redirect(authUrlFor(state), 302);
   }
 
 
@@ -52,7 +115,7 @@ Deno.serve(async (req) => {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const err = url.searchParams.get('error');
-  if (err) return html(`<h2>LinkedIn error</h2><pre>${err}: ${url.searchParams.get('error_description') ?? ''}</pre>`, 400);
+  if (err) return backToApp({ linkedin: 'error', reason: (url.searchParams.get('error_description') ?? err).slice(0, 200) });
   if (!code || !state) return html('<h2>Missing code or state</h2>', 400);
 
   // Atomic claim: DELETE ... RETURNING in one round trip, not SELECT-then-DELETE.
@@ -124,7 +187,5 @@ Deno.serve(async (req) => {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'platform' });
 
-  return html(`<h2 style="color:#8FFF2A">✅ LinkedIn connected</h2>
-    <p>Member: <code>${profile.name ?? profile.sub}</code></p>
-    <p>You can close this tab.</p>`);
+  return backToApp({ linkedin: 'connected', name: String(profile.name ?? '').slice(0, 80) });
 });
