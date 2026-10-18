@@ -56,7 +56,7 @@ export default function FounderDecisionDemo() {
   if (!startedRef.current) {
     startedRef.current = true;
     trackEvent('demo_started', { offer: 'founder_decision_review', demo_version: fixture.version });
-    recordFunnelEvent('open_the_hood_view');
+    recordFunnelEvent('open_the_hood_view', { surface: 'demo_founder_decision_review' });
   }
 
   const result = useMemo(() => runFounderDemo(assumptions, fixture), [assumptions, fixture]);

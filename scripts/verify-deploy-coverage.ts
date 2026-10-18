@@ -78,6 +78,35 @@ if (uncovered.length > 0) {
   );
 }
 
+// ── Invariant 1b: the two lists are disjoint (2026-10-16) ───────────────────
+// #246 added functions that .deploy-ignore deliberately excluded (with
+// reasons) to the deploy list, and nothing noticed — which redeployed the
+// decommissioned calculate-financials engine. Being in both lists is now an
+// error: removing a function from .deploy-ignore must be an explicit change.
+const inBoth = [...deployed].filter((fn) => ignored.has(fn));
+if (inBoth.length > 0) {
+  fail(
+    `These functions are in BOTH the deploy list and .deploy-ignore:\n` +
+      inBoth.map((f) => `   • ${f}`).join('\n') +
+      `\n\n.deploy-ignore entries are deliberate exclusions. Remove a function from\n` +
+      `.deploy-ignore (with a reason in the PR) before deploying it — or drop it from the deploy list.`
+  );
+}
+
+// ── Invariant 1c: decommissioned functions stay inert (P0-23) ────────────────
+// The repo copy must be the 410 stub, and it must never be in the deploy list.
+const DECOMMISSIONED = ['calculate-financials'];
+for (const fn of DECOMMISSIONED) {
+  if (deployed.has(fn)) fail(`${fn} is decommissioned (P0-23) and must not be in the deploy list.`);
+  const p = join(FUNCTIONS_DIR, fn, 'index.ts');
+  if (existsSync(p)) {
+    const src = readFileSync(p, 'utf8');
+    if (!/status:\s*410/.test(src) || src.split('\n').length > 40) {
+      fail(`${fn}/index.ts must remain the inert 410 stub (P0-23); it looks like real logic was restored.`);
+    }
+  }
+}
+
 // Stale entries: a name in the deploy list or ignore file that no longer exists.
 const known = new Set(functionDirs);
 const staleDeployed = [...deployed].filter((fn) => !known.has(fn));

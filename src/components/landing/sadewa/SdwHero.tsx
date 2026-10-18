@@ -4,7 +4,7 @@ import { trackCtaClick } from '@/lib/analytics';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { directories } from '@/data/directorySubmissions';
 import { FEATURED_IDS } from '@/components/landing/FeaturedDirectories';
-import { CharReveal, Img3D, InView, Marquee, SegmentRule, SplitButton, usePrefersReducedMotion } from '@/components/sadewa/primitives';
+import { CharReveal, Img3D, InView, Marquee, RollingNumber, SegmentRule, SplitButton, WordStagger, usePrefersReducedMotion } from '@/components/sadewa/primitives';
 
 const FILM = '/video/quantis-decision-film.mp4';
 const POSTER = '/video/quantis-decision-film-poster.jpg';
@@ -78,11 +78,13 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
     <section aria-labelledby="hero-heading" className="relative overflow-hidden">
       <div className="sdw-container pt-10 md:pt-14 pb-16 md:pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-10 lg:gap-16 items-start">
-          <InView>
-            <h1 id="hero-heading" className="sdw-display" style={{ fontSize: 'clamp(2.75rem, 6.4vw, 6.25rem)' }}>
-              Before you invest $50K, find out if you’ll get it back.
-            </h1>
-          </InView>
+          <WordStagger
+            as="h1"
+            id="hero-heading"
+            text="Before you invest $50K, understand what it would take to earn it back."
+            className="sdw-display"
+            style={{ fontSize: 'clamp(2.75rem, 6.4vw, 6.25rem)' }}
+          />
           <InView delay={180} className="w-full max-w-[420px] lg:max-w-none lg:pt-3">
             <ShowreelCard onOpen={() => openFilm('hero_showreel')} />
           </InView>
@@ -113,7 +115,9 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
 
             <div className="mt-12">
               <SegmentRule />
-              <p className="sdw-label mt-4 text-[12px]">/Listed on {LISTED.length} founder &amp; AI directories</p>
+              <p className="sdw-label mt-4 text-[12px]">
+                /Listed on <RollingNumber value={LISTED.length} as="span" /> founder &amp; AI directories
+              </p>
               <Marquee duration={60} className="mt-5" label="Directories listing AIWMC Quantis">
                 {LISTED.map((name) => (
                   <span

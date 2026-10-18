@@ -41,6 +41,7 @@ export default function Pricing() {
       {/* Hero */}
       <section aria-labelledby="pricing-hero-heading" className="aiwmc-section-wash py-8 md:py-14">
         <SectionHeader
+          titleAs="h1"
           title="Simple pricing for serious founders"
           subtitle="Use the complete decision engine five times every month. Upgrade when continuity, exports, and professional workflows become valuable."
         />
@@ -85,7 +86,7 @@ export default function Pricing() {
             <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Same depth.</span> 1/200th the price.
             <span className="hidden md:inline"> · </span>
             <span className="block md:inline mt-1 md:mt-0">
-              <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>14-day money-back guarantee</span> — no questions asked.
+              <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>14-day money-back guarantee</span> on Plus and Pro — from your first charge.
             </span>
           </div>
         </GlassCard>

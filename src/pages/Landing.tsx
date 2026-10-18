@@ -43,7 +43,7 @@ export default function Landing() {
   const faqSection = useLazySection({ rootMargin: '200px' });
   const heroRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
-  // First visit: the product film opens above every layer, then reveals the homepage.
+  // The product film opens on request (hero buttons) or via a ?intro=1 share link — never over the offer on load.
   const [introOpen, setIntroOpen] = useState(shouldShowIntroFilm);
 
   // SOW §6.1 funnel event: home_view fires once per session on landing
@@ -54,7 +54,7 @@ export default function Landing() {
   return (
     <div className="sdw min-h-screen">
       <PageSEO
-        title="AIWMC Quantis — AI Business Idea Validator"
+        title="AIWMC Quantis — Test a Business Decision Before You Fund It"
         description="Test a business decision before committing capital: explicit assumptions, deterministic cash, break-even and payback math, downside scenarios. Free to start."
         canonical="/"
       />
