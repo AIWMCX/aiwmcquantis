@@ -109,6 +109,32 @@ export default function HiringDecisionDemo() {
         the hire pays for itself within {f.criteria.maxPaybackMonths} months.
       </GlassCard>
 
+      <GlassCard className="p-5 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,260px)_1fr] gap-5 items-center">
+          <video
+            className="w-full rounded-lg border border-border"
+            src="/video/hiring-decision-demo.mp4"
+            poster="/video/hiring-decision-demo-poster.jpg"
+            width={1080}
+            height={1350}
+            controls
+            muted
+            playsInline
+            preload="none"
+            aria-label="22-second walkthrough of this hiring example: payroll starts, cash dips to month 4, the hire pays for itself in month 11"
+            onPlay={() => trackEvent('demo_video_played', { offer: SLUG, demo_version: f.version })}
+          />
+          <div className="text-sm text-muted-foreground">
+            <p className="text-foreground font-semibold mb-1">22-second walkthrough</p>
+            <p>
+              The same example as the sliders below: payroll starts in month 1, cash bottoms out in month 4,
+              and the hire pays for itself in month 11. Then two assumptions that break it.
+              Every number in the video comes from this demo&apos;s engine.
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GlassCard className="p-6">
           <h2 className="text-lg font-semibold mb-1">Change the assumptions</h2>
