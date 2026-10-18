@@ -137,7 +137,7 @@ export function OpenTheHood() {
           if (!entry.isIntersecting) continue;
           if (!viewFired.current && entry.intersectionRatio >= 0.25) {
             viewFired.current = true;
-            recordFunnelEvent('open_the_hood_view');
+            recordFunnelEvent('open_the_hood_view', { surface: 'homepage_open_the_hood' });
           }
           if (!scrollFired.current && entry.intersectionRatio >= 0.75) {
             scrollFired.current = true;
