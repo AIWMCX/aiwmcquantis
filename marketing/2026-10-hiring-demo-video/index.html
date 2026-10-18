@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1350" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --navy: #071526; --navy2: #0b1d33; --ivory: #f4f0e8; --blue: #4aa3ff; --amber: #e79a43;
+        --muted: rgba(244, 240, 232, 0.62); --line: rgba(244, 240, 232, 0.16);
+        --sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        --mono: Consolas, "SF Mono", Menlo, monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1350px; overflow: hidden; background: var(--navy); }
+      #root {
+        position: relative; width: 1080px; height: 1350px; font-family: var(--sans); color: var(--ivory);
+        background:
+          radial-gradient(ellipse at 50% 38%, rgba(74, 163, 255, 0.07), transparent 60%),
+          linear-gradient(180deg, var(--navy) 0%, #050f1c 100%);
+      }
+      #grid {
+        position: absolute; inset: 0;
+        background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+        background-size: 54px 54px; opacity: 0.22;
+      }
+      .clip { position: absolute; inset: 0; }
+      .label { font-family: var(--mono); font-size: 22px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+      .head { position: absolute; left: 80px; top: 72px; }
+      #logo { position: absolute; right: 80px; top: 58px; width: 168px; opacity: 0.95; }
+      .h1 { font-weight: 800; text-transform: uppercase; letter-spacing: -0.02em; line-height: 0.98; }
+      .blue { color: var(--blue); } .amber { color: var(--amber); }
+      .foot { position: absolute; left: 80px; bottom: 70px; font-family: var(--mono); font-size: 20px; color: var(--muted); letter-spacing: 0.08em; }
+
+      /* Scene 1 — question */
+      #s1 .q { position: absolute; left: 80px; right: 80px; top: 360px; font-size: 104px; }
+      #s1 .sub { position: absolute; left: 80px; top: 820px; font-size: 38px; color: var(--muted); line-height: 1.35; max-width: 880px; }
+
+      /* Scene 2 — setup */
+      #s2 .title { position: absolute; left: 80px; top: 230px; font-size: 64px; }
+      .row { position: absolute; left: 80px; right: 80px; height: 150px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+      .row .k { font-size: 34px; color: var(--muted); }
+      .row .v { font-size: 64px; font-weight: 800; font-variant-numeric: tabular-nums; }
+      #s2 .note { position: absolute; left: 80px; top: 1010px; font-size: 40px; font-weight: 700; }
+
+      /* Scene 3 — chart */
+      #s3 .title { position: absolute; left: 80px; top: 200px; font-size: 60px; }
+      #chart { position: absolute; left: 0; top: 0; }
+      .legend { position: absolute; left: 80px; top: 360px; display: flex; gap: 36px; font-size: 26px; color: var(--muted); }
+      .legend i { display: inline-block; width: 34px; height: 4px; margin-right: 12px; vertical-align: middle; }
+      .callout { position: absolute; font-size: 28px; line-height: 1.25; padding: 14px 18px; border: 1px solid var(--line); background: rgba(7, 21, 38, 0.86); }
+      .callout b { display: block; font-size: 40px; font-variant-numeric: tabular-nums; }
+
+      /* Scene 4 — what breaks it */
+      #s4 .title { position: absolute; left: 80px; top: 230px; font-size: 76px; }
+      .case { position: absolute; left: 80px; right: 80px; padding: 34px 36px; border: 1px solid var(--line); background: rgba(11, 29, 51, 0.7); }
+      .case .if { font-family: var(--mono); font-size: 24px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+      .case .then { margin-top: 14px; font-size: 46px; font-weight: 800; }
+
+      /* Scene 5 — CTA */
+      #s5 .t { position: absolute; left: 80px; right: 80px; top: 380px; font-size: 92px; }
+      #s5 .url { position: absolute; left: 80px; top: 820px; font-family: var(--mono); font-size: 36px; color: var(--blue); }
+      #s5 .btn { position: absolute; left: 80px; top: 900px; padding: 26px 40px; background: var(--blue); color: #04101f; font-size: 36px; font-weight: 800; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="22" data-width="1080" data-height="1350">
+      <div id="grid"></div>
+      <div class="head label">Before you commit · Hiring</div>
+      <img id="logo" src="assets/logo.png" alt="AIWMC Quantis" />
+
+      <section id="s1" class="clip" data-start="0" data-duration="4" data-track-index="0">
+        <h1 class="q h1"><span class="w">Can the</span> <span class="w">business</span> <span class="w">carry</span> <span class="w blue">another</span> <span class="w blue">employee?</span></h1>
+        <p class="sub">Payroll starts on day one. Revenue only follows as new clients fill the new hours.</p>
+      </section>
+
+      <section id="s2" class="clip" data-start="4" data-duration="4.5" data-track-index="0">
+        <h2 class="title h1">The decision</h2>
+        <div class="row" style="top: 380px"><span class="k">Clients today · team already full</span><span class="v" id="n-clients">18</span></div>
+        <div class="row" style="top: 530px"><span class="k">New hire adds</span><span class="v blue">+140 h / mo</span></div>
+        <div class="row" style="top: 680px"><span class="k">Fully loaded cost</span><span class="v amber" id="n-cost">$6,500 / mo</span></div>
+        <div class="row" style="top: 830px"><span class="k">Revenue just to cover the hire</span><span class="v" id="n-cover">$11,818 / mo</span></div>
+        <p class="note">$6,500 ÷ 55% margin = <span class="blue">$11,818</span> of new revenue, every month.</p>
+      </section>
+
+      <section id="s3" class="clip" data-start="8.5" data-duration="7" data-track-index="0">
+        <h2 class="title h1">Cash, month by month</h2>
+        <div class="legend"><span><i style="background: var(--blue)"></i>With the hire</span><span><i style="background: var(--ivory); opacity: .6"></i>Without</span><span><i style="background: var(--amber)"></i>Cash floor $20K</span></div>
+        <svg id="chart" width="1080" height="1350" viewBox="0 0 1080 1350"></svg>
+        <div class="callout" id="c-low" data-layout-allow-overlap style="left: 230px; top: 990px"><span class="amber">Lowest cash</span><b>$40.0K · month 4</b></div>
+        <div class="callout" id="c-pay" data-layout-allow-overlap style="left: 330px; top: 520px"><span class="blue">Hire pays for itself</span><b>Month 11</b></div>
+      </section>
+
+      <section id="s4" class="clip" data-start="15.5" data-duration="3.5" data-track-index="0">
+        <h2 class="title h1">What breaks it?</h2>
+        <div class="case" style="top: 430px"><div class="if">If clients pay one month later</div><div class="then">Payback slips to <span class="amber">month 14</span></div></div>
+        <div class="case" style="top: 650px"><div class="if">If demand is 0.7 clients / mo, not 1.5</div><div class="then">It <span class="amber">never pays back</span> in 18 months</div></div>
+      </section>
+
+      <section id="s5" class="clip" data-start="19" data-duration="3" data-track-index="0">
+        <h2 class="t h1">Test it with <span class="blue">your</span> assumptions.</h2>
+        <div class="url">aiwmcquantis.com/demo/hiring-decision</div>
+        <div class="btn">Explore the hiring example →</div>
+      </section>
+
+      <div class="foot">Illustrative example · not a forecast for your business</div>
+    </div>
+
+    <script>
+      // Real engine output (hiring-demo-v1 base case), exported from src/lib/demo/hiring-decision-demo.ts.
+      const WITH = [49160,44231,41176,39957,40537,42880,46952,52717,60142,69194,79839,92046,105785,121080,138879,156677,174476,192274];
+      const WITHOUT = [61199,62397,63596,64794,65993,67191,68390,69588,70787,71985,73184,74382,75581,76779,77978,79176,80375,81573];
+      const FLOOR = 20000;
+      const X0 = 120, X1 = 980, Y0 = 1090, Y1 = 470, MAXV = 200000;
+      const x = (i) => X0 + (i / (WITH.length - 1)) * (X1 - X0);
+      const y = (v) => Y0 - (v / MAXV) * (Y0 - Y1);
+      const path = (arr) => arr.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.getElementById('chart');
+      const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; };
+      [0, 50000, 100000, 150000, 200000].forEach((v) => {
+        el('line', { x1: X0, x2: X1, y1: y(v), y2: y(v), stroke: 'rgba(244,240,232,0.12)', 'stroke-width': 1 });
+        const t = el('text', { x: X0 - 14, y: y(v) + 8, fill: 'rgba(244,240,232,0.55)', 'font-size': 22, 'text-anchor': 'end', 'font-family': 'Consolas, monospace' });
+        t.textContent = v === 0 ? '$0' : `$${v / 1000}K`;
+      });
+      [1, 6, 12, 18].forEach((m) => {
+        const t = el('text', { x: x(m - 1), y: Y0 + 40, fill: 'rgba(244,240,232,0.55)', 'font-size': 22, 'text-anchor': 'middle', 'font-family': 'Consolas, monospace' });
+        t.textContent = `M${m}`;
+      });
+      el('line', { id: 'floor', x1: X0, x2: X1, y1: y(FLOOR), y2: y(FLOOR), stroke: '#e79a43', 'stroke-width': 3, 'stroke-dasharray': '10 8' });
+      const pWithout = el('path', { d: path(WITHOUT), fill: 'none', stroke: 'rgba(244,240,232,0.6)', 'stroke-width': 4, 'stroke-dasharray': '12 9' });
+      const pWith = el('path', { id: 'pwith', d: path(WITH), fill: 'none', stroke: '#4aa3ff', 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+      const lowDot = el('circle', { cx: x(3), cy: y(WITH[3]), r: 12, fill: '#e79a43' });
+      const payDot = el('circle', { cx: x(10), cy: y(WITH[10]), r: 12, fill: '#4aa3ff', stroke: '#071526', 'stroke-width': 4 });
+      const L = pWith.getTotalLength();
+      pWith.style.strokeDasharray = `${L} ${L}`;
+
+      const tl = gsap.timeline({ paused: true });
+      // S1
+      tl.from('#s1 .w', { y: 40, opacity: 0, duration: 0.5, stagger: 0.12, ease: 'power3.out' }, 0.2);
+      tl.from('#s1 .sub', { opacity: 0, y: 20, duration: 0.6 }, 1.4);
+      // S2
+      tl.from('#s2 .title', { opacity: 0, y: 24, duration: 0.5 }, 4.1);
+      tl.from('#s2 .row', { opacity: 0, x: -30, duration: 0.45, stagger: 0.35, ease: 'power2.out' }, 4.4);
+      tl.from('#s2 .note', { opacity: 0, duration: 0.6 }, 6.4);
+      // S3
+      tl.from('#s3 .title, #s3 .legend', { opacity: 0, y: 20, duration: 0.5, stagger: 0.15 }, 8.6);
+      tl.from([pWithout, '#floor'], { opacity: 0, duration: 0.5 }, 9.0);
+      tl.fromTo(pWith, { strokeDashoffset: L }, { strokeDashoffset: 0, duration: 3.6, ease: 'none' }, 9.3);
+      tl.from(lowDot, { scale: 0, transformOrigin: 'center', duration: 0.35 }, 10.2);
+      tl.from('#c-low', { opacity: 0, y: 16, duration: 0.4 }, 10.3);
+      tl.from(payDot, { scale: 0, transformOrigin: 'center', duration: 0.35 }, 11.6);
+      tl.from('#c-pay', { opacity: 0, y: 16, duration: 0.4 }, 11.7);
+      // S4
+      tl.from('#s4 .title', { opacity: 0, y: 24, duration: 0.45 }, 15.6);
+      tl.from('#s4 .case', { opacity: 0, y: 30, duration: 0.45, stagger: 0.6 }, 16.0);
+      // S5
+      tl.from('#s5 .t', { opacity: 0, y: 30, duration: 0.55 }, 19.1);
+      tl.from('#s5 .url, #s5 .btn', { opacity: 0, y: 16, duration: 0.45, stagger: 0.2 }, 19.6);
+      tl.set({}, {}, 22);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines['main'] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

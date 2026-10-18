@@ -106,6 +106,11 @@ export default function DecisionReview() {
                   </Button>
                 </Link>
               )}
+              {offer.code === 'founder_decision_review' && (
+                <Link to="/demo/hiring-decision" className="mt-3 text-center text-sm text-primary underline-offset-4 hover:underline">
+                  Or explore the hiring example
+                </Link>
+              )}
               {offer.code === 'consultant_founding_pilot' && (
                 <Link to="/demo/consultant-founding-pilot" className="mt-6">
                   <Button variant="outline" size="lg" className="w-full gap-2">
