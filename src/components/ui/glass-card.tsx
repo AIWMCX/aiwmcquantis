@@ -87,9 +87,12 @@ export function SectionHeader({
   subtitle,
   align = 'center',
   className,
+  titleAs: TitleTag = 'h2',
 }: {
   eyebrow?: string;
   title: React.ReactNode;
+  /** Use 'h1' when this header is the page's main heading. */
+  titleAs?: 'h1' | 'h2';
   subtitle?: React.ReactNode;
   align?: 'left' | 'center';
   className?: string;
@@ -102,7 +105,7 @@ export function SectionHeader({
         </Reveal>
       )}
       <Reveal delay={60}>
-        <h2 className="aiwmc-section-title">{title}</h2>
+        <TitleTag className="aiwmc-section-title">{title}</TitleTag>
       </Reveal>
       {subtitle && (
         <Reveal delay={120}>

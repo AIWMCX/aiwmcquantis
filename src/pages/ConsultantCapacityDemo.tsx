@@ -51,7 +51,7 @@ export default function ConsultantCapacityDemo() {
   if (!startedRef.current) {
     startedRef.current = true;
     trackEvent('demo_started', { offer: 'consultant_founding_pilot', demo_version: fixture.version });
-    recordFunnelEvent('open_the_hood_view');
+    recordFunnelEvent('open_the_hood_view', { surface: 'demo_consultant_capacity' });
   }
 
   const result = useMemo(() => runConsultantDemo(assumptions, fixture), [assumptions, fixture]);

@@ -41,6 +41,7 @@ export default function Pricing() {
       {/* Hero */}
       <section aria-labelledby="pricing-hero-heading" className="aiwmc-section-wash py-8 md:py-14">
         <SectionHeader
+          titleAs="h1"
           title="Simple pricing for serious founders"
           subtitle="Use the complete decision engine five times every month. Upgrade when continuity, exports, and professional workflows become valuable."
         />
