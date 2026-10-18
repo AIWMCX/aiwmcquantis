@@ -48,7 +48,7 @@ const faqItems = [
   },
   {
     question: 'Do you offer refunds?',
-    answer: 'Yes, we offer a 14-day money-back guarantee on all paid plans. If you are not satisfied with AIWMC Quantis within the first 14 days, contact our support team for a full refund.'
+    answer: 'Yes. Plus and Pro plans, monthly or annual, can be refunded in full within 14 days of your first charge, no questions asked — email support@aiwmcquantis.com. If you start with a free trial, you can cancel before being charged. Renewals after that window and the one-time founder-assisted reviews have their own terms; see the Refund Policy.'
   }
 ];
 

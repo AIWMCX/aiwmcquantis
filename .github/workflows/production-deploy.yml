@@ -504,6 +504,28 @@ jobs:
             admin-health-sweep
             # ── Autoposter integration (OAuth + Meta credential bootstrap) ──
             oauth-linkedin-callback
+            # Autoposter: generation (#244) and scheduled publishing were never in this
+            # list, so their source changes did not ship (found 2026-10-15).
+            autoposter-generate-content
+            publish-due-posts
+            # Functions that were live (hand-deployed Sep 17-Oct 2) or called by the app
+            # but missing from this list, so repo changes never shipped. Verified
+            # 2026-10-15: no repo commits after each live deploy; check-lifecycle-emails
+            # live code compared line-for-line with the repo before adding.
+            alert-webhook
+            api-analyze
+            api-analyze-main
+            check-churn-signals
+            check-lifecycle-emails
+            doc-queue-worker
+            newsletter-unsubscribe
+            replay-webhook-events
+            seed-benchmarks
+            send-lead-magnet
+            send-weekly-insights
+            # Deliberately NOT deployed: see supabase/functions/.deploy-ignore (verify-deploy-coverage
+            # fails if a function appears in both lists).
+            # template-optimizer: makes paid LLM calls without r3 validation (verify-r3-enforcement); fix before deploying.
             oauth-twitter-callback
             meta-credentials-setup
             # ── QOC orchestration layer ────────────────────────────────────
@@ -530,8 +552,9 @@ jobs:
             run-tier-qa-harness
             run-accuracy-harness
           )
-          # Functions that must be callable without a JWT (email confirm/unsubscribe links)
-          NO_VERIFY_JWT_FNS="confirm-email-subscription"
+          # Functions that must be callable without a JWT (email confirm/unsubscribe links,
+          # OAuth callbacks that the provider redirects to). Each authenticates itself.
+          NO_VERIFY_JWT_FNS="confirm-email-subscription oauth-linkedin-callback"
 
           FAILED=()
           for fn in "${FUNCTIONS[@]}"; do
