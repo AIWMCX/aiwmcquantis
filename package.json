@@ -7,7 +7,7 @@
     "dev": "vite",
     "predev": "bunx tsx scripts/generate-sitemap.ts",
     "prebuild": "bunx tsx scripts/generate-sitemap.ts",
-    "build": "bun run typecheck:financial && bun run verify:business-logic && bun run verify:payback && vite build && node scripts/generate-static-bodies.mjs && bunx tsx scripts/prerender-seo.ts && node scripts/generate-sitemap.mjs && node scripts/verify-visibility.mjs",
+    "build": "node scripts/generate-release-evidence.mjs && bun run typecheck:financial && bun run verify:business-logic && bun run verify:payback && vite build && node scripts/generate-static-bodies.mjs && bunx tsx scripts/prerender-seo.ts && node scripts/generate-sitemap.mjs && node scripts/verify-visibility.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "lint:report": "eslint . --format json --output-file lint-report.json || true",
