@@ -49,6 +49,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 ## Data rules
 - **Internal accounts:** exclude emails matching `jeltov|aiwmc|jjbalaganvasya` from every customer metric. Always join to `auth.users` before trusting a count.
 - **Metrics** use complete America/Denver days; report today separately as partial.
+- **Metrics come from the `funnel_events_clean` view** (alias-mapped events, `is_internal`, `is_first_in_session`, `denver_day`), never raw `COUNT(*)` on `funnel_events`.
 - **`funnel_events` sessions are anonymous.** Rows tagged `metadata.internal_qa=true` are test traffic. Visiting production with `utm_*` params creates fake attribution, so don't, or tag the session afterwards.
 - **Autoposter:**
   - The publisher only claims `status='scheduled'` rows.
