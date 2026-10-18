@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./node_modules/**)",
+      "Read(./dist/**)",
+      "Read(./coverage/**)",
+      "Read(./bun.lock)",
+      "Read(./package-lock.json)",
+      "Read(./public/**/*.jpg)",
+      "Read(./public/**/*.png)",
+      "Read(./public/**/*.mp4)",
+      "Read(./public/**/*.pdf)",
+      "Read(./.vercel/**)"
+    ]
+  }
+}
