@@ -7,7 +7,6 @@ import {
   getLatestAuditInfo, 
   getAuditFreshness, 
   getQSLLabel, 
-  DEFAULT_AUDIT_INFO,
   type AuditInfo 
 } from '@/services/safety-evaluation-service';
 import { cn } from '@/lib/utils';
@@ -27,7 +26,7 @@ export function LastAuditedBadge({ size = 'md' }: LastAuditedBadgeProps) {
         setAuditInfo(info);
       } catch (err) {
         logger.error('Failed to fetch audit info', err);
-        setAuditInfo(DEFAULT_AUDIT_INFO);
+        setAuditInfo(null);
       } finally {
         setLoading(false);
       }
@@ -45,7 +44,9 @@ export function LastAuditedBadge({ size = 'md' }: LastAuditedBadgeProps) {
     return <Skeleton className="h-32 w-72 rounded-xl" />;
   }
 
-  const info = auditInfo || DEFAULT_AUDIT_INFO;
+  // No recorded audit → show nothing rather than an invented one.
+  if (!auditInfo) return null;
+  const info = auditInfo;
   const freshness = getAuditFreshness(info.lastAuditedAt);
   const qslLabel = getQSLLabel(info.safetyLevel);
 
@@ -177,10 +178,9 @@ export function useAuditFreshness(): { label: string; loading: boolean } {
     async function fetch() {
       try {
         const info = await getLatestAuditInfo();
-        const freshness = getAuditFreshness(info.lastAuditedAt);
-        setLabel(freshness.label.toLowerCase());
+        setLabel(info ? getAuditFreshness(info.lastAuditedAt).label.toLowerCase() : '');
       } catch {
-        setLabel('today');
+        setLabel('');
       } finally {
         setLoading(false);
       }
