@@ -24,6 +24,11 @@ ALTER TABLE public.plan_invites
   ADD CONSTRAINT plan_invites_expected_email_lower_chk
   CHECK (expected_email IS NULL OR expected_email = lower(expected_email));
 
+-- Return shape gains email_locked; CREATE OR REPLACE cannot change a
+-- function's return type, so drop the old one first (2026-10-15 fix --
+-- without this the migration fails and never reached production).
+DROP FUNCTION IF EXISTS public.preview_plan_invite(text);
+
 CREATE OR REPLACE FUNCTION public.preview_plan_invite(_token text)
 RETURNS TABLE (status text, plan_id text, duration_days integer, redeem_by timestamptz, email_locked boolean)
 LANGUAGE plpgsql
@@ -50,6 +55,11 @@ BEGIN
     (i.expected_email IS NOT NULL);
 END;
 $function$;
+
+-- Restore the grants the DROP above removed (anon must preview a link
+-- before signing in).
+REVOKE ALL ON FUNCTION public.preview_plan_invite(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.preview_plan_invite(text) TO anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.redeem_plan_invite(_token text)
 RETURNS TABLE (result text, plan_id text, current_period_end timestamptz)
