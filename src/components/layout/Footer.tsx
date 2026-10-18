@@ -117,6 +117,7 @@ const COLUMNS: { label: string; links: { to: string; label: string }[] }[] = [
       { to: '/pricing', label: 'Pricing' },
       { to: '/examples', label: 'Examples' },
       { to: '/use-cases', label: 'Use Cases' },
+      { to: '/demo/hiring-decision', label: 'Hiring Decision Demo' },
       { to: '/consultants', label: 'For Consultants' },
     ],
   },

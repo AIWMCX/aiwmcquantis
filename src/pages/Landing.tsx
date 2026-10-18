@@ -20,6 +20,7 @@ import { SdwHero } from '@/components/landing/sadewa/SdwHero';
 import { PainPoints } from '@/components/landing/sadewa/PainPoints';
 import { Comparison } from '@/components/landing/sadewa/Comparison';
 import { FinalCTA } from '@/components/landing/sadewa/FinalCTA';
+import { HiringDemoBand } from '@/components/landing/sadewa/HiringDemoBand';
 import { TIERS } from '@/config/tiers';
 
 // Testimonials removed (2026-07-06): replaced by TrustStrip until real linkable founder profiles are verified.
@@ -80,6 +81,9 @@ export default function Landing() {
 
         {/* 3. Product film — 25s decision film in the cosmic dark band */}
         <ProductFilm />
+
+        {/* 3b. Hiring decision — interactive example + walkthrough */}
+        <HiringDemoBand />
 
         {/* 4. Sample report + the real input form */}
         <div ref={heroRef} id="single-input-hero" data-hero-form>
