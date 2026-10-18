@@ -15,7 +15,7 @@ export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   // Audit-approved control (2026-06-22): personalises stakes, time-bounds the promise,
   // bridges directly to outcome. Replaces the old "90% fail" stat headline (no urgency, no bridge).
   control: {
-    title: 'Before you invest $50K, find out if you’ll get it back.',
+    title: 'Before you invest $50K, understand what it would take to earn it back.',
     subtitle: `Quantis stress-tests your idea against a ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid informed by ${BENCHMARK_SOURCES_DISPLAY} and returns a profitability verdict and reliability score. No credit card. First analysis free.`,
     ctaText: 'Stress-test my idea — free',
   },
