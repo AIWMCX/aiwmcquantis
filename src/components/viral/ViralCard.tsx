@@ -164,7 +164,7 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
               <div style={{ fontSize: '18px', fontWeight: 700, color: roi > 0 ? '#22c55e' : '#ef4444' }}>{pct(roi)}</div>
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Confidence</div>
+              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Evidence</div>
               <div style={{ fontSize: '18px', fontWeight: 700, color: confidence >= 70 ? '#3b82f6' : '#f59e0b' }}>{confidence}%</div>
             </div>
           </div>

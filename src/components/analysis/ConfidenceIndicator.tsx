@@ -44,7 +44,7 @@ export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ sco
       color: 'text-success',
       bg: 'bg-success/10',
       border: 'border-success/30',
-      label: 'High Confidence',
+      label: 'Strong evidence',
       icon: CheckCircle2,
       description: 'Analysis based on comprehensive input data and validated calculations.'
     };
@@ -52,7 +52,7 @@ export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ sco
       color: 'text-primary',
       bg: 'bg-primary/10',
       border: 'border-primary/30',
-      label: 'Medium Confidence',
+      label: 'Moderate evidence',
       icon: Info,
       description: 'Analysis uses some assumptions. Provide more details to increase accuracy.'
     };
@@ -60,7 +60,7 @@ export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ sco
       color: 'text-warning',
       bg: 'bg-warning/10',
       border: 'border-warning/30',
-      label: 'Low Confidence',
+      label: 'Limited evidence',
       icon: AlertCircle,
       description: 'Analysis heavily relies on industry averages. Critical data missing.'
     };
@@ -68,7 +68,7 @@ export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ sco
       color: 'text-destructive',
       bg: 'bg-destructive/10',
       border: 'border-destructive/30',
-      label: 'Very Low Confidence',
+      label: 'Very limited evidence',
       icon: AlertCircle,
       description: 'Insufficient data for reliable analysis. This is a rough estimate only.'
     };
