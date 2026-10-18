@@ -175,7 +175,7 @@ export function AdvancedFinancialInputs({
               <p className="text-xs text-[var(--q-text-tertiary)]">
                 {filledCount > 0 
                   ? `${filledCount}/${totalFields} fields filled · +${confidenceBoost}% confidence`
-                  : 'Optional — boosts confidence up to 40%'
+                  : 'Optional — strengthens the evidence score up to 40%'
                 }
               </p>
             </div>
@@ -257,7 +257,7 @@ export function AdvancedFinancialInputs({
                 style={{ background: 'hsla(160, 84%, 39%, 0.08)', border: '1px solid hsla(160, 84%, 39%, 0.2)' }}>
                 <Zap className="w-3.5 h-3.5 text-[var(--q-status-green)]" />
                 <span className="text-[13px] font-medium text-[var(--q-status-green)]" style={{ fontFamily: 'var(--q-font-mono)' }}>
-                  +{confidenceBoost}% confidence boost · {filledCount}/{totalFields} fields filled
+                  +{confidenceBoost}% on the evidence score · {filledCount}/{totalFields} fields filled
                 </span>
               </div>
             )}

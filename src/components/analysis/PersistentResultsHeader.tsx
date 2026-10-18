@@ -219,7 +219,7 @@ export function PersistentResultsHeader({
             warning={cashRunway < 8}
           />
           <KPIChip
-            label="Data Confidence"
+            label="Evidence score"
             value={<TrafficLightBadge confidenceScore={confidenceScore} size="sm" showTooltip={false} />}
           />
         </div>

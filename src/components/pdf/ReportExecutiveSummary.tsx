@@ -95,7 +95,7 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
           </span>
         </div>
         <div style={pdfStyles.metricInline}>
-          <span style={pdfStyles.metricInlineLabel}>Confidence Level:</span>
+          <span style={pdfStyles.metricInlineLabel}>Evidence Score:</span>
           <span style={pdfStyles.metricInlineValue}>{result.confidence_score}%</span>
         </div>
         {financial.unit_economics && (
