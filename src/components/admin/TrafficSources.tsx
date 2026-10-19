@@ -5,6 +5,7 @@ export type TrafficRow = {
   channel: string;
   source?: string;
   sessions: number;
+  engaged?: number;
   analysis_started: number;
   analysis_completed: number;
   signups: number;
@@ -21,6 +22,8 @@ export type TrafficReport = {
     external: number;
     utm_tagged: number;
     direct_unknown: number;
+    recovered_by_first_touch?: number;
+    engaged?: number;
   };
   channels: TrafficRow[];
   sources: TrafficRow[];
@@ -30,6 +33,7 @@ const pct = (n: number, d: number) => (d > 0 ? `${Math.round((n / d) * 100)}%` :
 
 const COLS: Array<{ key: keyof TrafficRow; label: string }> = [
   { key: 'sessions', label: 'Visits' },
+  { key: 'engaged', label: 'Engaged' },
   { key: 'analysis_started', label: 'Started' },
   { key: 'analysis_completed', label: 'Completed' },
   { key: 'signups', label: 'Signups' },
@@ -73,7 +77,7 @@ export function TrafficSources({ report }: { report: TrafficReport | null }) {
   const stats = t
     ? [
         { label: 'External visits', value: t.external.toLocaleString(), note: `${t.internal_excluded.toLocaleString()} internal visits excluded` },
-        { label: 'Attributed', value: pct(t.external - t.direct_unknown, t.external), note: 'have a referrer or UTM tag' },
+        { label: 'Attributed', value: pct(t.external - t.direct_unknown, t.external), note: `referrer, UTM or click id${t.recovered_by_first_touch ? ` · ${t.recovered_by_first_touch} via first visit` : ''}` },
         { label: 'Direct / unknown', value: t.direct_unknown.toLocaleString(), note: 'typed URL, app, or stripped referrer' },
         { label: 'UTM-tagged', value: t.utm_tagged.toLocaleString(), note: 'visits from tagged links' },
       ]
@@ -84,7 +88,7 @@ export function TrafficSources({ report }: { report: TrafficReport | null }) {
       <header className="mb-4">
         <h2 id="traffic-sources-heading" className="text-xl font-bold">Traffic sources</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          First touch of each visit. Internal traffic is excluded: your accounts, founder grants, localhost, previews and QA-tagged links.
+          Source of each visit; a visit with none of its own uses the visitor's recorded first visit (90 days), never a guess. Internal traffic is excluded: your accounts, founder grants, localhost, previews and QA-tagged links.
         </p>
       </header>
 
@@ -119,7 +123,7 @@ export function TrafficSources({ report }: { report: TrafficReport | null }) {
         </Card>
       </div>
       <p className="text-xs text-muted-foreground mt-3">
-        Odd campaign tags on email links are often security scanners clicking links, not people. Visits with no engagement after landing are the usual sign.
+        Engaged = more than one event in the visit. Odd campaign tags on email links with no engagement are usually security scanners, not people.
       </p>
     </section>
   );
