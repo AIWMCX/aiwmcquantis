@@ -567,7 +567,6 @@ export default function QocMonitor() {
         </DialogContent>
       </Dialog>
 
-      <Footer />
     </div>
   );
 }

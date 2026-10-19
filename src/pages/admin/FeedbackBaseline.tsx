@@ -7,7 +7,6 @@
  * prominent number on this page, not a footnote.
  */
 import React, { useEffect, useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Users } from 'lucide-react';
@@ -54,7 +53,7 @@ export default function FeedbackBaseline() {
   const missingDecisionThemes = rows.map((r) => r.missing_decision).filter((v): v is string => !!v && v.trim().length > 0);
 
   return (
-    <AppLayout>
+    <>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -148,6 +147,6 @@ export default function FeedbackBaseline() {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </>
   );
 }

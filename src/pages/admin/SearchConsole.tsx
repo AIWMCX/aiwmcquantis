@@ -95,7 +95,6 @@ export default function SearchConsole() {
     <>
       <PageMeta title="Search Console — Admin" description="Google Search Console verification for aiwmcquantis.com" path="/admin/search-console" noIndex />
       <div className="min-h-screen bg-background text-foreground">
-        <Header />
         <main className="max-w-4xl mx-auto px-4 py-10 space-y-6">
           <Link to="/admin" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
@@ -221,7 +220,6 @@ export default function SearchConsole() {
             </CardContent>
           </Card>
         </main>
-        <Footer />
       </div>
     </>
   );
