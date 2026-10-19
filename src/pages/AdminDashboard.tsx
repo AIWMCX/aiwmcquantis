@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { AdminMetricsDashboard } from '@/components/admin/AdminMetricsDashboard';
 import { SystemHealthDashboard } from '@/components/admin/SystemHealthDashboard';
 import { UptimeStatusCard } from '@/components/admin/UptimeStatusCard';
@@ -9,10 +8,7 @@ import { ABTestingCard } from '@/components/admin/ABTestingCard';
 import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
 import { ActivationKpiCard } from '@/components/admin/ActivationKpiCard';
 import { AdminNotificationsBell } from '@/components/admin/AdminNotificationsBell';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
-import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen, Workflow, Scale, MessageSquare, HandCoins, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Shield, Activity } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageSEO } from '@/components/seo/PageSEO';
 
@@ -36,10 +32,9 @@ export default function AdminDashboard() {
       <PageSEO
         title="Admin Dashboard | AIWMC Quantis"
         description="Admin dashboard for monitoring metrics and system health."
-        canonical="/admin"
+        canonical="/admin/insights"
         noindex={true}
       />
-      <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
       
       <main className="flex-1 container max-w-7xl mx-auto px-4 py-8">
         {/* Admin Header */}
@@ -49,87 +44,13 @@ export default function AdminDashboard() {
               <Shield className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+              <h1 className="text-2xl font-bold text-foreground">Metrics &amp; experiments</h1>
               <p className="text-sm text-muted-foreground">
                 Monitor business metrics, performance, and experiments
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <AdminNotificationsBell />
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/app">
-
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to App
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/benchmarks">
-                <Database className="w-4 h-4 mr-2" />
-                Benchmarks
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/health">
-                <Activity className="w-4 h-4 mr-2" />
-                Quantis Health
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/accuracy">
-                <Target className="w-4 h-4 mr-2" />
-                Accuracy & Safety
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/denials">
-                <ShieldAlert className="w-4 h-4 mr-2" />
-                Denials
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/invariant-sweeps">
-                <Scale className="w-4 h-4 mr-2" />
-                Invariant Sweeps
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/incidents">
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Incidents
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/feedback-baseline">
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Feedback Baseline
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/paid-engagements">
-                <HandCoins className="w-4 h-4 mr-2" />
-                Paid Engagements
-              </Link>
-            </Button>
-            <Button variant="default" size="sm" asChild>
-              <Link to="/admin/engine">
-                <BookOpen className="w-4 h-4 mr-2" />
-                Engine &amp; Spec v4
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/qoc">
-                <Workflow className="w-4 h-4 mr-2" />
-                QOC Monitor
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/search-console">
-                Search Console
-              </Link>
-            </Button>
-          </div>
+          <AdminNotificationsBell />
         </div>
 
         {/* Tabbed Dashboard */}
@@ -229,7 +150,6 @@ export default function AdminDashboard() {
         </Tabs>
       </main>
 
-      <Footer />
     </div>
   );
 }

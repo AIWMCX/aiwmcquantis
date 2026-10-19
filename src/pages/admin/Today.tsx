@@ -1,90 +1,66 @@
 /**
- * /admin/today -- the single founder-only "what happened today" screen.
+ * /admin — the founder's daily overview.
  *
- * CTO Execution Mandate (2026-09-11), P0.5 + section 14: the founder should
- * not need ~19 separate admin pages (AiCosts, EdgeHealth, InvariantSweeps,
- * Funnel, PaidEngagements, ...) to answer "what happened today." This page
- * does not reimplement any of their queries -- it reads the SAME tables
- * and the SAME admin-gated RLS policies those pages already use (all
- * verified live: `Admins can read all ai_calls`, `Admins can read sweep
- * run history`, `Admins can manage paid engagements`, `Admins can read all
- * analyses`), just assembled into one screen with a "since midnight UTC"
- * window. It links out to the detailed pages for drill-down rather than
- * duplicating their full UI.
+ * One screen for "what happened": external-only growth numbers (from the
+ * admin_traffic_sources RPC, which excludes internal accounts, founder
+ * grants, localhost/preview and QA traffic), the funnel ladder, top traffic
+ * channels with a data-quality line, then revenue, engine and AI/ops health
+ * from the same admin-gated tables their detail pages use. Every panel links
+ * to its detail page; nothing here is a second source of truth.
  *
- * Every card shows its raw numerator/denominator or an explicit "no data
- * yet today" / "query failed" state -- per the mandate's own rule, a rate
- * or a zero without that context is not decision-ready and must not be
- * rendered as if it were a real zero.
+ * Rule kept from the CTO mandate: a zero or a rate is never shown without its
+ * context ("no data in this window", "query failed", numerator/denominator).
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, ExternalLink } from 'lucide-react';
+import { RefreshCw, ArrowUpRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import type { TrafficReport } from '@/components/admin/TrafficSources';
+import { cn } from '@/lib/utils';
 
 type LoadState<T> = { status: 'loading' | 'ok' | 'error'; data: T | null; errorMessage?: string };
+type EventRow = { event_name: string; unique_sessions: number };
+type Growth = TrafficReport & { events: EventRow[] };
 
-interface ProductToday {
-  signups: number;
-  analysesStarted: number;
-  analysesCompleted: number;
-  analysesFailed: number;
-}
+interface CommercialWindow { engaged: number; paid: number; revenueUsd: number; refunds: number }
+interface EngineState { latestSweepAt: string | null; latestSweepViolations: number | null; latestSweepScanned: number | null; quarantinedTotal: number }
+interface AiOps { calls: number; errors: number; costUsd: number; avgLatencyMs: number | null }
+interface Failures { completed: number; failed: number }
 
-interface CommercialToday {
-  checkoutsStarted: number;
-  paymentsConfirmed: number;
-  revenueUsd: number;
-  refunds: number;
-}
+const WINDOWS = [
+  { days: 1, label: '24 hours' },
+  { days: 7, label: '7 days' },
+  { days: 30, label: '30 days' },
+] as const;
 
-interface EngineToday {
-  latestSweepAt: string | null;
-  latestSweepViolations: number | null;
-  latestSweepScanned: number | null;
-  quarantinedTotal: number;
-}
+const FUNNEL = [
+  { key: 'home_view', label: 'Homepage visits' },
+  { key: 'analysis_start', label: 'Analysis started' },
+  { key: 'analysis_complete', label: 'Analysis completed' },
+  { key: 'free_signup_complete', label: 'Signed up' },
+  { key: 'paid_checkout_start', label: 'Checkout started' },
+] as const;
 
-interface AiOpsToday {
-  calls: number;
-  errors: number;
-  costUsd: number;
-  avgLatencyMs: number | null;
-}
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : String(e));
+const pct = (n: number, d: number) => (d > 0 ? `${((n / d) * 100).toFixed(n / d < 0.1 ? 1 : 0)}%` : '—');
 
-const todayStartUtcIso = () => {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
-};
-
-function StatRow({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
+function Section({ title, description, link, children, className }: { title: string; description?: string; link?: { href: string; label: string }; children: React.ReactNode; className?: string }) {
   return (
-    <div className="flex items-baseline justify-between py-1.5">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-right">
-        <span className="text-lg font-semibold tabular-nums">{value}</span>
-        {sub && <span className="block text-xs text-muted-foreground">{sub}</span>}
-      </span>
-    </div>
-  );
-}
-
-function PanelCard({ title, description, link, children }: { title: string; description: string; link: { href: string; label: string }; children: React.ReactNode }) {
-  return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base">{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+            {description && <CardDescription>{description}</CardDescription>}
           </div>
-          <Link to={link.href} className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0">
-            {link.label}<ExternalLink className="w-3 h-3" />
-          </Link>
+          {link && (
+            <Link to={link.href} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {link.label}<ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </Link>
+          )}
         </div>
       </CardHeader>
       <CardContent>{children}</CardContent>
@@ -92,212 +68,296 @@ function PanelCard({ title, description, link, children }: { title: string; desc
   );
 }
 
-function ErrorState({ message }: { message: string }) {
-  return <p className="text-sm text-destructive">Query failed: {message}</p>;
+function Stat({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="text-right">
+        <span className="text-lg font-semibold tabular-nums">{value}</span>
+        {sub && <span className="block text-xs text-muted-foreground">{sub}</span>}
+      </dd>
+    </div>
+  );
+}
+
+function Pending<T>({ state, children }: { state: LoadState<T>; children: (d: T) => React.ReactNode }) {
+  if (state.status === 'loading') return <p className="text-sm text-muted-foreground" aria-busy="true">Loading…</p>;
+  if (state.status === 'error' || !state.data) return <p className="text-sm text-destructive">Query failed: {state.errorMessage}</p>;
+  return <>{children(state.data)}</>;
+}
+
+function Kpi({ label, value, sub, good }: { label: string; value: React.ReactNode; sub?: string; good?: boolean }) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className={cn('mt-2 text-3xl font-bold tabular-nums', good && 'text-emerald-600 dark:text-emerald-400')}>{value}</p>
+        {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AdminToday() {
-  const [product, setProduct] = useState<LoadState<ProductToday>>({ status: 'loading', data: null });
-  const [commercial, setCommercial] = useState<LoadState<CommercialToday>>({ status: 'loading', data: null });
-  const [engine, setEngine] = useState<LoadState<EngineToday>>({ status: 'loading', data: null });
-  const [aiOps, setAiOps] = useState<LoadState<AiOpsToday>>({ status: 'loading', data: null });
+  const [days, setDays] = useState<number>(7);
+  const [growth, setGrowth] = useState<LoadState<Growth>>({ status: 'loading', data: null });
+  const [commercial, setCommercial] = useState<LoadState<CommercialWindow>>({ status: 'loading', data: null });
+  const [engine, setEngine] = useState<LoadState<EngineState>>({ status: 'loading', data: null });
+  const [aiOps, setAiOps] = useState<LoadState<AiOps>>({ status: 'loading', data: null });
+  const [failures, setFailures] = useState<LoadState<Failures>>({ status: 'loading', data: null });
   const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
-  const load = useCallback(async () => {
-    const since = todayStartUtcIso();
+  const load = useCallback(async (windowDays: number) => {
+    const since = new Date(Date.now() - windowDays * 86_400_000).toISOString();
+    setGrowth({ status: 'loading', data: null });
 
-    // Product today. "Started" comes from analyses (every created row);
-    // "completed/failed" comes from analysis_complete_events.ok, the same
-    // signal the CTO mandate itself names as the completion source of truth
-    // -- analyses has no status column at all.
-    try {
-      const [{ count: signups, error: sErr }, { count: started, error: aErr }, { data: events, error: eErr }] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
-        supabase.from('analyses').select('id', { count: 'exact', head: true }).gte('created_at', since),
-        supabase.from('analysis_complete_events').select('ok').gte('created_at', since),
-      ]);
-      if (sErr) throw sErr;
-      if (aErr) throw aErr;
-      if (eErr) throw eErr;
-      const eventRows = events ?? [];
-      const failed = eventRows.filter((r) => r.ok === false).length;
-      setProduct({
-        status: 'ok',
-        data: {
-          signups: signups ?? 0,
-          analysesStarted: started ?? 0,
-          analysesCompleted: eventRows.length - failed,
-          analysesFailed: failed,
-        },
-      });
-    } catch (err) {
-      logger.error('admin/today: product query failed', err);
-      setProduct({ status: 'error', data: null, errorMessage: err instanceof Error ? err.message : String(err) });
-    }
-
-    // Commercial today (paid engagements only -- the two one-time offers;
-    // subscription checkout/payment activity already lives on Funnel.tsx)
-    try {
-      const { data, error } = await supabase
-        .from('paid_engagements')
-        .select('payment_status,amount_paid_minor,engaged_at,paid_at,status')
-        .or(`engaged_at.gte.${since},paid_at.gte.${since}`);
-      if (error) throw error;
-      const rows = data ?? [];
-      const paid = rows.filter((r) => r.payment_status === 'paid');
-      setCommercial({
-        status: 'ok',
-        data: {
-          checkoutsStarted: rows.length,
-          paymentsConfirmed: paid.length,
-          revenueUsd: paid.reduce((sum, r) => sum + (r.amount_paid_minor ?? 0), 0) / 100,
-          refunds: rows.filter((r) => r.payment_status === 'refunded' || r.payment_status === 'partially_refunded').length,
-        },
-      });
-    } catch (err) {
-      logger.error('admin/today: commercial query failed', err);
-      setCommercial({ status: 'error', data: null, errorMessage: err instanceof Error ? err.message : String(err) });
-    }
-
-    // Engine today (latest sweep run, regardless of when it ran -- freshness
-    // is shown explicitly rather than silently querying "today only" and
-    // rendering an empty state that looks like "no violations")
-    try {
-      const [{ data: sweep, error: sweepErr }, { count: quarantined, error: qErr }] = await Promise.all([
-        supabase.from('financial_invariant_sweep_runs').select('run_at,violation_count,scanned_count').order('run_at', { ascending: false }).limit(1).maybeSingle(),
-        // report_integrity lives inside the result JSONB, not a top-level
-        // column (confirmed against schema -- see 2026-09-11 register entry).
-        supabase.from('analyses').select('id', { count: 'exact', head: true }).eq('result->>report_integrity', 'BLOCK'),
-      ]);
-      if (sweepErr) throw sweepErr;
-      if (qErr) throw qErr;
-      setEngine({
-        status: 'ok',
-        data: {
-          latestSweepAt: sweep?.run_at ?? null,
-          latestSweepViolations: sweep?.violation_count ?? null,
-          latestSweepScanned: sweep?.scanned_count ?? null,
-          quarantinedTotal: quarantined ?? 0,
-        },
-      });
-    } catch (err) {
-      logger.error('admin/today: engine query failed', err);
-      setEngine({ status: 'error', data: null, errorMessage: err instanceof Error ? err.message : String(err) });
-    }
-
-    // AI & ops today
-    try {
-      const { data, error } = await supabase
-        .from('ai_calls')
-        .select('cost_usd,ok,latency_ms')
-        .gte('created_at', since);
-      if (error) throw error;
-      const rows = data ?? [];
-      const latencies = rows.map((r) => r.latency_ms).filter((v): v is number => typeof v === 'number');
-      setAiOps({
-        status: 'ok',
-        data: {
-          calls: rows.length,
-          errors: rows.filter((r) => r.ok === false).length,
-          costUsd: rows.reduce((sum, r) => sum + (Number(r.cost_usd) || 0), 0),
-          avgLatencyMs: latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : null,
-        },
-      });
-    } catch (err) {
-      logger.error('admin/today: AI/ops query failed', err);
-      setAiOps({ status: 'error', data: null, errorMessage: err instanceof Error ? err.message : String(err) });
-    }
+    await Promise.all([
+      (async () => {
+        const { data, error } = await supabase.rpc('admin_traffic_sources' as never, { p_days: windowDays } as never);
+        if (error) { logger.error('admin overview: traffic', error); setGrowth({ status: 'error', data: null, errorMessage: errMsg(error) }); return; }
+        setGrowth({ status: 'ok', data: data as unknown as Growth });
+      })(),
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('paid_engagements')
+            .select('payment_status,amount_paid_minor,engaged_at,paid_at')
+            .or(`engaged_at.gte.${since},paid_at.gte.${since}`);
+          if (error) throw error;
+          const rows = data ?? [];
+          const paid = rows.filter((r) => r.payment_status === 'paid');
+          setCommercial({ status: 'ok', data: {
+            engaged: rows.length,
+            paid: paid.length,
+            revenueUsd: paid.reduce((s, r) => s + (r.amount_paid_minor ?? 0), 0) / 100,
+            refunds: rows.filter((r) => r.payment_status === 'refunded' || r.payment_status === 'partially_refunded').length,
+          } });
+        } catch (e) { logger.error('admin overview: commercial', e); setCommercial({ status: 'error', data: null, errorMessage: errMsg(e) }); }
+      })(),
+      (async () => {
+        try {
+          const [{ data: sweep, error: se }, { count: quarantined, error: qe }] = await Promise.all([
+            supabase.from('financial_invariant_sweep_runs').select('run_at,violation_count,scanned_count').order('run_at', { ascending: false }).limit(1).maybeSingle(),
+            supabase.from('analyses').select('id', { count: 'exact', head: true }).eq('result->>report_integrity', 'BLOCK'),
+          ]);
+          if (se) throw se;
+          if (qe) throw qe;
+          setEngine({ status: 'ok', data: {
+            latestSweepAt: sweep?.run_at ?? null,
+            latestSweepViolations: sweep?.violation_count ?? null,
+            latestSweepScanned: sweep?.scanned_count ?? null,
+            quarantinedTotal: quarantined ?? 0,
+          } });
+        } catch (e) { logger.error('admin overview: engine', e); setEngine({ status: 'error', data: null, errorMessage: errMsg(e) }); }
+      })(),
+      (async () => {
+        try {
+          const { data, error } = await supabase.from('ai_calls').select('cost_usd,ok,latency_ms').gte('created_at', since);
+          if (error) throw error;
+          const rows = data ?? [];
+          const lat = rows.map((r) => r.latency_ms).filter((v): v is number => typeof v === 'number');
+          setAiOps({ status: 'ok', data: {
+            calls: rows.length,
+            errors: rows.filter((r) => r.ok === false).length,
+            costUsd: rows.reduce((s, r) => s + (Number(r.cost_usd) || 0), 0),
+            avgLatencyMs: lat.length ? Math.round(lat.reduce((a, b) => a + b, 0) / lat.length) : null,
+          } });
+        } catch (e) { logger.error('admin overview: ai', e); setAiOps({ status: 'error', data: null, errorMessage: errMsg(e) }); }
+      })(),
+      (async () => {
+        try {
+          const { data, error } = await supabase.from('analysis_complete_events').select('ok').gte('created_at', since);
+          if (error) throw error;
+          const rows = data ?? [];
+          const failed = rows.filter((r) => r.ok === false).length;
+          setFailures({ status: 'ok', data: { completed: rows.length - failed, failed } });
+        } catch (e) { logger.error('admin overview: failures', e); setFailures({ status: 'error', data: null, errorMessage: errMsg(e) }); }
+      })(),
+    ]);
+    setUpdatedAt(new Date());
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(days); }, [days, load]);
 
   async function refresh() {
     setRefreshing(true);
-    await load();
+    await load(days);
     setRefreshing(false);
   }
 
+  const g = growth.data;
+  const ev = new Map((g?.events ?? []).map((e) => [e.event_name, Number(e.unique_sessions) || 0]));
+  const at = (k: string) => ev.get(k) ?? 0;
+  const top = at('home_view');
+  const windowLabel = WINDOWS.find((w) => w.days === days)?.label ?? `${days} days`;
+
   return (
-    <AppLayout>
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Today</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Since {new Date(todayStartUtcIso()).toLocaleString(undefined, { dateStyle: 'medium' })} 00:00 UTC — your local time zone applies to timestamps shown below, the window itself is UTC.
-            </p>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Overview</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Last {windowLabel}. Growth numbers are external visitors only{updatedAt ? ` · updated ${updatedAt.toLocaleTimeString(undefined, { timeStyle: 'short' })}` : ''}.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Time window">
+            {WINDOWS.map((w) => (
+              <button
+                key={w.days}
+                type="button"
+                onClick={() => setDays(w.days)}
+                aria-pressed={days === w.days}
+                className={cn(
+                  'px-3 py-1.5 text-sm rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  days === w.days ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {w.label}
+              </button>
+            ))}
           </div>
-          <button onClick={refresh} className="text-muted-foreground hover:text-foreground" aria-label="Refresh">
-            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          <button type="button" onClick={refresh} className="p-2 rounded-md border text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Refresh data">
+            <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} aria-hidden="true" />
           </button>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <PanelCard title="Product today" description="Signups and Decision Run volume" link={{ href: '/admin/email-funnel', label: 'Funnel' }}>
-            {product.status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
-            {product.status === 'error' && <ErrorState message={product.errorMessage!} />}
-            {product.status === 'ok' && product.data && (
-              <>
-                <StatRow label="New signups" value={product.data.signups} />
-                <StatRow label="Analyses started" value={product.data.analysesStarted} />
-                <StatRow label="Analyses completed" value={product.data.analysesCompleted} />
-                <StatRow label="Analyses failed" value={product.data.analysesFailed} />
-                {product.data.analysesStarted === 0 && <p className="text-xs text-muted-foreground mt-2">No analyses yet today — not the same as zero activity ever.</p>}
-              </>
-            )}
-          </PanelCard>
-
-          <PanelCard title="Commercial today" description="Founder Decision Review / Consultant Founding Pilot" link={{ href: '/admin/paid-engagements', label: 'Paid engagements' }}>
-            {commercial.status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
-            {commercial.status === 'error' && <ErrorState message={commercial.errorMessage!} />}
-            {commercial.status === 'ok' && commercial.data && (
-              <>
-                <StatRow label="Checkouts / engaged today" value={commercial.data.checkoutsStarted} />
-                <StatRow label="Payments confirmed" value={commercial.data.paymentsConfirmed} />
-                <StatRow label="Revenue today" value={`$${commercial.data.revenueUsd.toLocaleString()}`} />
-                <StatRow label="Refunds" value={commercial.data.refunds} />
-              </>
-            )}
-          </PanelCard>
-
-          <PanelCard title="Engine today" description="Latest financial-invariant sweep, not necessarily run today" link={{ href: '/admin/invariant-sweeps', label: 'Invariant sweeps' }}>
-            {engine.status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
-            {engine.status === 'error' && <ErrorState message={engine.errorMessage!} />}
-            {engine.status === 'ok' && engine.data && (
-              <>
-                <StatRow
-                  label="Last sweep"
-                  value={engine.data.latestSweepAt ? new Date(engine.data.latestSweepAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : 'Never run'}
-                  sub={engine.data.latestSweepAt ? undefined : 'MONITORING_UNAVAILABLE — not the same as zero violations'}
-                />
-                <StatRow
-                  label="Violations found"
-                  value={engine.data.latestSweepViolations ?? '—'}
-                  sub={engine.data.latestSweepScanned != null ? `of ${engine.data.latestSweepScanned} scanned` : undefined}
-                />
-                <StatRow label="Analyses currently quarantined" value={<Badge variant={engine.data.quarantinedTotal > 0 ? 'destructive' : 'outline'}>{engine.data.quarantinedTotal}</Badge>} />
-              </>
-            )}
-          </PanelCard>
-
-          <PanelCard title="AI & operations today" description="Provider calls, cost, and errors since midnight UTC" link={{ href: '/admin/ai-costs', label: 'AI costs' }}>
-            {aiOps.status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
-            {aiOps.status === 'error' && <ErrorState message={aiOps.errorMessage!} />}
-            {aiOps.status === 'ok' && aiOps.data && (
-              <>
-                <StatRow label="AI calls" value={aiOps.data.calls} />
-                <StatRow label="Errors" value={aiOps.data.errors} sub={aiOps.data.calls > 0 ? `${((aiOps.data.errors / aiOps.data.calls) * 100).toFixed(1)}% of ${aiOps.data.calls}` : undefined} />
-                <StatRow label="Cost today" value={`$${aiOps.data.costUsd.toFixed(2)}`} />
-                <StatRow label="Avg latency" value={aiOps.data.avgLatencyMs != null ? `${aiOps.data.avgLatencyMs}ms` : 'No calls yet'} />
-              </>
-            )}
-          </PanelCard>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          This page reads the same admin-gated tables as Funnel, Paid Engagements, Invariant Sweeps, and AI Costs — it does not compute a second source of truth. For deploy SHA / edge-function health, see <Link className="underline" to="/status">/status</Link>.
-        </p>
       </div>
-    </AppLayout>
+
+      <section aria-label="Key numbers" className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {growth.status === 'error' ? (
+          <Card className="col-span-full"><CardContent className="p-4 text-sm text-destructive">Growth numbers unavailable: {growth.errorMessage}</CardContent></Card>
+        ) : (
+          <>
+            <Kpi label="External visits" value={g ? g.totals.external.toLocaleString() : '…'} sub={g ? `${g.totals.internal_excluded} internal excluded` : undefined} />
+            <Kpi label="Analyses completed" value={g ? at('analysis_complete') : '…'} sub={g ? `${pct(at('analysis_complete'), top)} of homepage visits` : undefined} />
+            <Kpi label="Signups" value={g ? at('free_signup_complete') : '…'} />
+            <Kpi label="Checkouts started" value={g ? at('paid_checkout_start') : '…'} />
+            <Kpi
+              label="Paid revenue"
+              value={commercial.data ? `$${commercial.data.revenueUsd.toLocaleString()}` : commercial.status === 'error' ? '—' : '…'}
+              sub={commercial.data ? `${commercial.data.paid} paid engagement${commercial.data.paid === 1 ? '' : 's'}` : undefined}
+              good={!!commercial.data && commercial.data.revenueUsd > 0}
+            />
+          </>
+        )}
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-5">
+        <Section className="lg:col-span-3" title="Funnel" description="Visits that reached each step (external)" link={{ href: '/admin/funnel', label: 'Funnel & sources' }}>
+          <Pending state={growth}>
+            {() => (
+              <>
+                <ol className="space-y-3">
+                  {FUNNEL.map((step, i) => {
+                    const n = at(step.key);
+                    const prev = i === 0 ? n : at(FUNNEL[i - 1].key);
+                    const width = top > 0 ? Math.max(n > 0 ? 2 : 0, (n / top) * 100) : 0;
+                    return (
+                      <li key={step.key}>
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                          <span>{step.label}</span>
+                          <span className="tabular-nums">
+                            <span className="font-semibold">{n.toLocaleString()}</span>
+                            {i > 0 && <span className="ml-2 text-xs text-muted-foreground">{pct(n, prev)} of previous</span>}
+                          </span>
+                        </div>
+                        <div className="mt-1 h-2 rounded-full bg-muted overflow-hidden" aria-hidden="true">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${width}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {top === 0 && <p className="mt-3 text-xs text-muted-foreground">No external homepage visits in this window.</p>}
+              </>
+            )}
+          </Pending>
+        </Section>
+
+        <Section className="lg:col-span-2" title="Where visitors came from" description="Top channels, external visits" link={{ href: '/admin/funnel', label: 'All sources' }}>
+          <Pending state={growth}>
+            {(d) => (
+              <>
+                <ul className="divide-y">
+                  {d.channels.slice(0, 6).map((c) => (
+                    <li key={c.channel} className="flex items-baseline justify-between gap-3 py-2 text-sm">
+                      <span>{c.channel}</span>
+                      <span className="tabular-nums">
+                        <span className="font-semibold">{Number(c.sessions).toLocaleString()}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{pct(Number(c.sessions), d.totals.external)}</span>
+                      </span>
+                    </li>
+                  ))}
+                  {d.channels.length === 0 && <li className="py-2 text-sm text-muted-foreground">No external visits in this window.</li>}
+                </ul>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Data quality: {pct(d.totals.external - d.totals.direct_unknown, d.totals.external)} of visits have a known source · {d.totals.utm_tagged} UTM-tagged.
+                </p>
+              </>
+            )}
+          </Pending>
+        </Section>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Section title="Paid engagements" description="Founder Decision Review / Consultant Pilot" link={{ href: '/admin/paid-engagements', label: 'Open' }}>
+          <Pending state={commercial}>
+            {(d) => (
+              <dl>
+                <Stat label="Engaged" value={d.engaged} />
+                <Stat label="Paid" value={d.paid} />
+                <Stat label="Revenue" value={`$${d.revenueUsd.toLocaleString()}`} />
+                <Stat label="Refunds" value={d.refunds} />
+              </dl>
+            )}
+          </Pending>
+        </Section>
+
+        <Section title="Decision Runs" description="All users, incl. internal" link={{ href: '/admin/accuracy', label: 'Accuracy' }}>
+          <Pending state={failures}>
+            {(d) => (
+              <dl>
+                <Stat label="Completed" value={d.completed} />
+                <Stat label="Failed" value={d.failed} sub={d.completed + d.failed > 0 ? `${pct(d.failed, d.completed + d.failed)} failure rate` : 'No runs in this window'} />
+              </dl>
+            )}
+          </Pending>
+        </Section>
+
+        <Section title="Engine integrity" description="Latest invariant sweep (any date)" link={{ href: '/admin/invariant-sweeps', label: 'Sweeps' }}>
+          <Pending state={engine}>
+            {(d) => (
+              <dl>
+                <Stat
+                  label="Last sweep"
+                  value={d.latestSweepAt ? new Date(d.latestSweepAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : 'Never run'}
+                  sub={d.latestSweepAt ? undefined : 'Monitoring unavailable, not the same as zero violations'}
+                />
+                <Stat label="Violations" value={d.latestSweepViolations ?? '—'} sub={d.latestSweepScanned != null ? `of ${d.latestSweepScanned} scanned` : undefined} />
+                <Stat label="Quarantined" value={<Badge variant={d.quarantinedTotal > 0 ? 'destructive' : 'outline'}>{d.quarantinedTotal}</Badge>} />
+              </dl>
+            )}
+          </Pending>
+        </Section>
+
+        <Section title="AI & operations" description="Provider calls in this window" link={{ href: '/admin/ai-costs', label: 'AI costs' }}>
+          <Pending state={aiOps}>
+            {(d) => (
+              <dl>
+                <Stat label="Calls" value={d.calls} />
+                <Stat label="Errors" value={d.errors} sub={d.calls > 0 ? `${pct(d.errors, d.calls)} of calls` : undefined} />
+                <Stat label="Cost" value={`$${d.costUsd.toFixed(2)}`} />
+                <Stat label="Avg latency" value={d.avgLatencyMs != null ? `${d.avgLatencyMs} ms` : 'No calls'} />
+              </dl>
+            )}
+          </Pending>
+        </Section>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Windows are rolling (last 24 hours, 7 or 30 days). Deploy and edge-function versions: <Link className="underline" to="/status">/status</Link>.
+      </p>
+    </div>
   );
 }

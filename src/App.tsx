@@ -300,122 +300,33 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
-                {/* Admin routes - require authentication + admin role */}
-                <Route path="/admin" element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/benchmarks" element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminBenchmarkUpload />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/health" element={
-                  <ProtectedRoute requireAdmin>
-                    <QuantisHealth />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/edge-health" element={
-                  <ProtectedRoute requireAdmin>
-                    <EdgeHealth />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/formulas" element={
-                  <ProtectedRoute requireAdmin>
-                    <FormulasDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/accuracy" element={
-                  <ProtectedRoute requireAdmin>
-                    <AccuracyDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/invariant-sweeps" element={
-                  <ProtectedRoute requireAdmin>
-                    <InvariantSweeps />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/feedback-baseline" element={
-                  <ProtectedRoute requireAdmin>
-                    <FeedbackBaseline />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/paid-engagements" element={
-                  <ProtectedRoute requireAdmin>
-                    <PaidEngagements />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/today" element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminToday />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/incidents" element={
-                  <ProtectedRoute requireAdmin>
-                    <IncidentManager />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/data-sources" element={
-                  <ProtectedRoute requireAdmin>
-                    <DataSources />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/denials" element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminDenials />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/engine" element={
-                  <ProtectedRoute requireAdmin>
-                    <EngineInfo />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/search-console" element={
-                  <ProtectedRoute requireAdmin>
-                    <SearchConsole />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/autoposter" element={
-                  <ProtectedRoute requireAdmin>
-                    <Autoposter />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/content-studio" element={
-                  <ProtectedRoute requireAdmin>
-                    <ContentStudio />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/commercial" element={
-                  <ProtectedRoute requireAdmin>
-                    <CommercialOps />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/inbox" element={
-                  <ProtectedRoute requireAdmin>
-                    <BusinessInbox />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/ai-costs" element={
-                  <ProtectedRoute requireAdmin>
-                    <AiCosts />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/email-funnel" element={
-                  <ProtectedRoute requireAdmin>
-                    <EmailFunnel />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/funnel" element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminFunnel />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/qoc" element={
-                  <ProtectedRoute requireAdmin>
-                    <QocMonitor />
-                  </ProtectedRoute>
-                } />
+                                {/* Admin: one shell for every /admin page, never the customer app shell */}
+                <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminLayout /></ProtectedRoute>}>
+                  <Route index element={<AdminToday />} />
+                  <Route path="insights" element={<AdminDashboard />} />
+                  <Route path="benchmarks" element={<AdminBenchmarkUpload />} />
+                  <Route path="health" element={<QuantisHealth />} />
+                  <Route path="edge-health" element={<EdgeHealth />} />
+                  <Route path="formulas" element={<FormulasDashboard />} />
+                  <Route path="accuracy" element={<AccuracyDashboard />} />
+                  <Route path="invariant-sweeps" element={<InvariantSweeps />} />
+                  <Route path="feedback-baseline" element={<FeedbackBaseline />} />
+                  <Route path="paid-engagements" element={<PaidEngagements />} />
+                  <Route path="today" element={<Navigate to="/admin" replace />} />
+                  <Route path="incidents" element={<IncidentManager />} />
+                  <Route path="data-sources" element={<DataSources />} />
+                  <Route path="denials" element={<AdminDenials />} />
+                  <Route path="engine" element={<EngineInfo />} />
+                  <Route path="search-console" element={<SearchConsole />} />
+                  <Route path="autoposter" element={<Autoposter />} />
+                  <Route path="content-studio" element={<ContentStudio />} />
+                  <Route path="commercial" element={<CommercialOps />} />
+                  <Route path="inbox" element={<BusinessInbox />} />
+                  <Route path="ai-costs" element={<AiCosts />} />
+                  <Route path="email-funnel" element={<EmailFunnel />} />
+                  <Route path="funnel" element={<AdminFunnel />} />
+                  <Route path="qoc" element={<QocMonitor />} />
+                </Route>
                 <Route path="/directory-tracker" element={<DirectoryTracker />} />
 
                 <Route path="/quote" element={<ProtectedRoute><QuoteIndex /></ProtectedRoute>} />

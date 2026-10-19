@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdmin } from '@/hooks/useAdmin';
 import { PostQueue } from '@/components/autoposter/PostQueue';
@@ -21,16 +20,16 @@ export default function Autoposter() {
 
   if (isLoading || !isAdmin) {
     return (
-      <AppLayout title="Autoposter">
+      <>
         <div className="min-h-[400px] flex items-center justify-center text-[var(--q-text-secondary)]">
           {isLoading ? 'Checking access…' : 'Redirecting…'}
         </div>
-      </AppLayout>
+      </>
     );
   }
 
   return (
-    <AppLayout title="Autoposter">
+    <>
       <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold font-sora">Autoposter</h1>
@@ -65,6 +64,6 @@ export default function Autoposter() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
+    </>
   );
 }
