@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { currentTouches } from './attribution';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -304,45 +305,6 @@ function getSessionId(): string {
   }
 }
 
-const UTM_KEY = 'aiwmc_funnel_utm';
-
-// Domain 16 audit (2026-07-25): this re-read window.location.search fresh on
-// every recordFunnelEvent call, with no persistence -- unlike session_id just
-// above, which is captured once and reused for the whole session. Since
-// almost every funnel event (signup, analysis complete, checkout) fires well
-// after the visitor has navigated away from the tagged landing URL, the
-// query string was already gone by the time these events fired, even when a
-// campaign link WAS correctly UTM-tagged. Confirmed live: 618 funnel_events
-// in the last 30 days, only 4 (0.6%) carried real utm_source. Fixed by
-// capturing UTM params once, on first read, into sessionStorage (mirroring
-// getSessionId()'s exact pattern) and reusing them for the rest of the
-// session -- landing on a tagged link now attributes every later event in
-// that session, not just the one that happened to land on it.
-function readUtm(): {
-  utm_source?: string;
-  utm_medium?: string;
-  utm_campaign?: string;
-} {
-  if (typeof window === 'undefined') return {};
-  try {
-    const p = new URLSearchParams(window.location.search);
-    const fromUrl = {
-      utm_source: p.get('utm_source') || undefined,
-      utm_medium: p.get('utm_medium') || undefined,
-      utm_campaign: p.get('utm_campaign') || undefined,
-    };
-    if (fromUrl.utm_source || fromUrl.utm_medium || fromUrl.utm_campaign) {
-      window.sessionStorage.setItem(UTM_KEY, JSON.stringify(fromUrl));
-      return fromUrl;
-    }
-    const stored = window.sessionStorage.getItem(UTM_KEY);
-    if (stored) return JSON.parse(stored);
-    return {};
-  } catch {
-    return {};
-  }
-}
-
 /**
  * Record a canonical SOW funnel event (writes to Supabase + GA4).
  * Safe to call from anon and authed contexts. Bot/spam sessions are
@@ -359,9 +321,17 @@ export function recordFunnelEvent(
 
   // 2. Supabase sink (powers /admin/funnel)
   try {
-    const utm = readUtm();
+    // Session touch fills the utm_* columns; extras and the 90-day first touch
+    // ride in metadata.attr (see src/lib/attribution.ts).
+    const { session: touch, first } = currentTouches();
     const path = typeof window !== 'undefined' ? window.location.pathname : null;
     const referrer = typeof document !== 'undefined' ? document.referrer || null : null;
+    const attr: Record<string, unknown> = {};
+    if (touch) {
+      const { utm_source: _s, utm_medium: _m, utm_campaign: _c, ts: _t, ...extra } = touch;
+      if (Object.keys(extra).length) attr.s = extra;
+    }
+    if (first) attr.ft = first;
 
     // Fire-and-forget; never block the UI on analytics.
     void supabase
@@ -370,10 +340,10 @@ export function recordFunnelEvent(
         _session_id: getSessionId(),
         _path: path,
         _referrer: referrer,
-        _utm_source: utm.utm_source ?? null,
-        _utm_medium: utm.utm_medium ?? null,
-        _utm_campaign: utm.utm_campaign ?? null,
-        _metadata: metadata as never,
+        _utm_source: touch?.utm_source ?? null,
+        _utm_medium: touch?.utm_medium ?? null,
+        _utm_campaign: touch?.utm_campaign ?? null,
+        _metadata: (Object.keys(attr).length ? { ...metadata, attr } : metadata) as never,
       })
       .then(({ error }) => {
         if (error && import.meta.env.DEV) {

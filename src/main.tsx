@@ -16,12 +16,14 @@ import '@fontsource/ibm-plex-mono/500.css';
 import '@fontsource/ibm-plex-mono/600.css';
 import './index.css';
 import './styles/sadewa.css';
+import { currentTouches } from './lib/attribution';
 
 // Initialize monitoring and analytics before rendering
 initSentry();
 initAnalytics();
 initClarity(); // Session replay + heatmaps. No-op unless VITE_CLARITY_PROJECT_ID is set.
 scheduleAnonymousResultsSweep(); // Idle-time TTL + cap eviction for anon /r/:id cache.
+currentTouches(); // Capture landing UTM/referrer before SPA navigation drops them.
 
 const container = document.getElementById("root");
 if (container) {
