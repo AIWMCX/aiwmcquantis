@@ -49,7 +49,8 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 ## Data rules
 - **Internal accounts:** exclude emails matching `jeltov|aiwmc|jjbalaganvasya` from every customer metric. Always join to `auth.users` before trusting a count.
 - **Metrics** use complete America/Denver days; report today separately as partial.
-- **Metrics come from the `funnel_events_clean` view** (alias-mapped events, `is_internal`, `is_first_in_session`, `denver_day`), never raw `COUNT(*)` on `funnel_events`.
+- **Metrics come from the `funnel_events_clean` view** (alias-mapped events, `is_internal`, `is_first_in_session`, `denver_day`), never raw `COUNT(*)` on `funnel_events`. `is_internal` is session-level and also covers founder-granted accounts (`founder_%`, `sub_plus_%`), `*.chatgpt.site` previews and `utm_medium=internal` / `utm_source=qa_test` links.
+- **Traffic sources:** `admin_traffic_sources(p_days)` (admin-only RPC) returns external first-touch channels/sources plus clean per-event counts; `/admin/funnel` reads only this. Unattributed visits are `Direct / unknown`, never guessed.
 - **`funnel_events` sessions are anonymous.** Rows tagged `metadata.internal_qa=true` are test traffic. Visiting production with `utm_*` params creates fake attribution, so don't, or tag the session afterwards.
 - **Autoposter:**
   - The publisher only claims `status='scheduled'` rows.
