@@ -508,6 +508,8 @@ jobs:
             # list, so their source changes did not ship (found 2026-10-15).
             autoposter-generate-content
             publish-due-posts
+            # Founder email when an external visitor starts a paid checkout (2026-10-20).
+            notify-checkout-intent
             # Functions that were live (hand-deployed Sep 17-Oct 2) or called by the app
             # but missing from this list, so repo changes never shipped. Verified
             # 2026-10-15: no repo commits after each live deploy; check-lifecycle-emails
