@@ -1,0 +1,873 @@
+{
+ "2026-10-20-different-forecasts": {
+  "kicker": "Before you commit",
+  "headline": [
+   {
+    "text": "SAME DECISION."
+   },
+   {
+    "text": "DIFFERENT"
+   },
+   {
+    "text": "FORECASTS.",
+    "accent": true
+   }
+  ],
+  "sub": "Before spending $100,000 on a decision, know what has to go right.",
+  "blocks": [
+   {
+    "chart": {
+     "type": "fan",
+     "months": [
+      "Now",
+      "M3",
+      "M6",
+      "M9",
+      "M12"
+     ],
+     "series": [
+      {
+       "label": "Upside",
+       "tone": "blue",
+       "values": [
+        10,
+        12.5,
+        16,
+        20,
+        25
+       ]
+      },
+      {
+       "label": "Base",
+       "tone": "ink",
+       "values": [
+        10,
+        11,
+        12.6,
+        14.2,
+        16
+       ]
+      },
+      {
+       "label": "Downside",
+       "tone": "amber",
+       "values": [
+        10,
+        8.8,
+        8.2,
+        8.4,
+        9
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "cards": [
+     {
+      "title": "What has to go right",
+      "body": "The few assumptions the outcome depends on."
+     },
+     {
+      "title": "What breaks it",
+      "tone": "amber",
+      "body": "The point where the downside stops being survivable."
+     }
+    ]
+   }
+  ],
+  "footnote": "Illustrative shape."
+ },
+ "2026-10-21-hire-needs-revenue": {
+  "kicker": "Before you commit",
+  "headlineSize": 124,
+  "headline": [
+   {
+    "text": "A $6,500 HIRE"
+   },
+   {
+    "text": "NEEDS $13,000",
+    "accent": true
+   },
+   {
+    "text": "IN REVENUE."
+   }
+  ],
+  "sub": "New monthly revenue needed just to cover the hire, at three gross margins.",
+  "blocks": [
+   {
+    "chart": {
+     "type": "bars",
+     "height": 420,
+     "bars": [
+      {
+       "label": "35% margin",
+       "value": 18571,
+       "valueLabel": "≈ $18,600",
+       "tone": "mute"
+      },
+      {
+       "label": "50% margin",
+       "value": 13000,
+       "valueLabel": "$13,000",
+       "tone": "blue"
+      },
+      {
+       "label": "70% margin",
+       "value": 9286,
+       "valueLabel": "≈ $9,300",
+       "tone": "mute"
+      }
+     ],
+     "ref": {
+      "value": 6500,
+      "label": "Hire cost",
+      "valueLabel": "$6,500/mo"
+     }
+    }
+   },
+   {
+    "cards": [
+     {
+      "title": "The math",
+      "body": "$6,500 ÷ 0.50 = $13,000 a month."
+     },
+     {
+      "title": "Same salary",
+      "tone": "amber",
+      "body": "Very different hiring decision."
+     }
+    ]
+   }
+  ]
+ },
+ "2026-10-23-stop-rule": {
+  "kicker": "Before you commit",
+  "headlineSize": 122,
+  "headline": [
+   {
+    "text": "DECIDE WHAT WOULD"
+   },
+   {
+    "text": "MAKE YOU STOP"
+   },
+   {
+    "text": "BEFORE YOU START.",
+    "accent": true
+   }
+  ],
+  "sub": "Write three lines before the first dollar goes out.",
+  "blocks": [
+   {
+    "numbered": true,
+    "columns": 1,
+    "cards": [
+     {
+      "title": "The cash floor",
+      "tone": "amber",
+      "body": "“We don't go below $X in the bank.”"
+     },
+     {
+      "title": "The evidence date",
+      "body": "“By month 4 we need Y recurring clients.”"
+     },
+     {
+      "title": "The action",
+      "body": "“If not, we pause hire #2 and keep the lease short.”"
+     }
+    ]
+   }
+  ],
+  "footnote": "Illustrative example."
+ },
+ "2026-10-26-discount-33": {
+  "kicker": "Before you commit",
+  "headlineSize": 124,
+  "headline": [
+   {
+    "text": "A 10% DISCOUNT"
+   },
+   {
+    "text": "CAN REQUIRE"
+   },
+   {
+    "text": "33% MORE SALES.",
+    "accent": true
+   }
+  ],
+  "blocks": [
+   {
+    "chart": {
+     "type": "bars",
+     "height": 400,
+     "bars": [
+      {
+       "label": "Price before",
+       "value": 100,
+       "valueLabel": "$100",
+       "tone": "mute"
+      },
+      {
+       "label": "Contribution",
+       "value": 40,
+       "valueLabel": "$40",
+       "tone": "blue"
+      },
+      {
+       "label": "Price after",
+       "value": 90,
+       "valueLabel": "$90",
+       "tone": "mute"
+      },
+      {
+       "label": "Contribution",
+       "value": 30,
+       "valueLabel": "$30",
+       "tone": "amber"
+      }
+     ]
+    }
+   },
+   {
+    "stats": [
+     {
+      "label": "Variable cost per sale",
+      "value": "$60",
+      "note": "Unchanged by the discount",
+      "tone": "ink"
+     },
+     {
+      "label": "To earn the same total",
+      "value": "+33%",
+      "note": "$40 ÷ $30 = 1.33× the sales",
+      "tone": "amber"
+     }
+    ]
+   }
+  ]
+ },
+ "2026-10-28-breakeven-vs-payback": {
+  "kicker": "Before you commit",
+  "headlineSize": 112,
+  "headline": [
+   {
+    "text": "BREAK-EVEN IN MONTH 1."
+   },
+   {
+    "text": "PAYBACK IN",
+    "accent": true
+   },
+   {
+    "text": "MONTH 12.",
+    "accent": true
+   }
+  ],
+  "sub": "$30,000 paid upfront. $2,500 extra contribution a month once running.",
+  "blocks": [
+   {
+    "chart": {
+     "type": "cumulative",
+     "months": [
+      "M0",
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6",
+      "M7",
+      "M8",
+      "M9",
+      "M10",
+      "M11",
+      "M12"
+     ],
+     "monthlyNet": [
+      -30000,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500,
+      2500
+     ],
+     "lowLabel": "−$30K",
+     "labels": {
+      "breakEven": "BREAK-EVEN · M1",
+      "payback": "PAYBACK · M12"
+     }
+    }
+   },
+   {
+    "cards": [
+     {
+      "title": "Break-even",
+      "body": "The activity isn't losing money."
+     },
+     {
+      "title": "Payback",
+      "tone": "amber",
+      "body": "$30,000 ÷ $2,500 = 12 months until your cash comes home."
+     }
+    ]
+   }
+  ]
+ },
+ "2026-10-30-forecast-decoration": {
+  "kicker": "Before you commit",
+  "headlineSize": 108,
+  "headline": [
+   {
+    "text": "IF YOUR FORECAST"
+   },
+   {
+    "text": "DOESN'T CHANGE"
+   },
+   {
+    "text": "A DECISION,"
+   },
+   {
+    "text": "IT'S DECORATION.",
+    "accent": true
+   }
+  ],
+  "sub": "A useful forecast ends with four lines.",
+  "blocks": [
+   {
+    "cards": [
+     {
+      "title": "The decision",
+      "body": "“Hire a second technician in January.”"
+     },
+     {
+      "title": "What would change it",
+      "tone": "amber",
+      "body": "“Fewer than 30 jobs a month.”"
+     },
+     {
+      "title": "What we don't know",
+      "body": "“Whether the new contract renews.”"
+     },
+     {
+      "title": "Next action + owner",
+      "body": "“Bogdan calls the client by Friday.”"
+     }
+    ]
+   }
+  ],
+  "footnote": "Illustrative example."
+ },
+ "2026-11-02-best-week-vs-average": {
+  "kicker": "Before you commit",
+  "headlineSize": 118,
+  "headline": [
+   {
+    "text": "YOUR BEST WEEK"
+   },
+   {
+    "text": "WAS 70 HOURS."
+   },
+   {
+    "text": "YOUR AVERAGE WAS 49.",
+    "accent": true
+   }
+  ],
+  "sub": "Billable hours, last 8 weeks. Payroll is paid every week, including the 38-hour ones.",
+  "blocks": [
+   {
+    "chart": {
+     "type": "bars",
+     "height": 440,
+     "bars": [
+      {
+       "label": "W1",
+       "value": 52,
+       "valueLabel": "52"
+      },
+      {
+       "label": "W2",
+       "value": 38,
+       "valueLabel": "38"
+      },
+      {
+       "label": "W3",
+       "value": 61,
+       "valueLabel": "61"
+      },
+      {
+       "label": "W4",
+       "value": 40,
+       "valueLabel": "40"
+      },
+      {
+       "label": "W5",
+       "value": 44,
+       "valueLabel": "44"
+      },
+      {
+       "label": "W6",
+       "value": 70,
+       "valueLabel": "70",
+       "tone": "amber"
+      },
+      {
+       "label": "W7",
+       "value": 39,
+       "valueLabel": "39"
+      },
+      {
+       "label": "W8",
+       "value": 48,
+       "valueLabel": "48"
+      }
+     ],
+     "ref": {
+      "value": 49,
+      "label": "Average",
+      "valueLabel": "49 hrs"
+     }
+    }
+   }
+  ],
+  "footnote": "Illustrative. 392 ÷ 8 = 49."
+ },
+ "2026-11-04-loan-before-revenue": {
+  "kicker": "Before you commit",
+  "headlineSize": 122,
+  "headline": [
+   {
+    "text": "THE LOAN PAYMENT"
+   },
+   {
+    "text": "STARTS BEFORE THE"
+   },
+   {
+    "text": "NEW REVENUE.",
+    "accent": true
+   }
+  ],
+  "sub": "$1,500 a month from month 1. First new job in month 3. Customers pay 30 days later.",
+  "blocks": [
+   {
+    "chart": {
+     "type": "bars",
+     "height": 380,
+     "max": 4500,
+     "bars": [
+      {
+       "label": "Month 1",
+       "value": 1500,
+       "valueLabel": "$1,500",
+       "tone": "amber"
+      },
+      {
+       "label": "Month 2",
+       "value": 3000,
+       "valueLabel": "$3,000",
+       "tone": "amber"
+      },
+      {
+       "label": "Month 3",
+       "value": 4500,
+       "valueLabel": "$4,500",
+       "tone": "amber"
+      },
+      {
+       "label": "Month 4",
+       "value": 0,
+       "valueLabel": "First cash in",
+       "tone": "blue"
+      }
+     ]
+    }
+   },
+   {
+    "stats": [
+     {
+      "label": "Paid before a dollar comes in",
+      "value": "$4,500",
+      "note": "Three payments, $0 new revenue",
+      "tone": "amber"
+     },
+     {
+      "label": "Its cash arrives",
+      "value": "Month 4",
+      "note": "Job in month 3, paid 30 days later"
+     }
+    ]
+   }
+  ]
+ },
+ "2026-11-06-test-demand": {
+  "kicker": "Before you commit",
+  "headlineSize": 122,
+  "headline": [
+   {
+    "text": "TEST THE DEMAND"
+   },
+   {
+    "text": "BEFORE YOU SIGN"
+   },
+   {
+    "text": "FOR FIVE YEARS.",
+    "accent": true
+   }
+  ],
+  "sub": "Cheaper questions before expensive commitments.",
+  "blocks": [
+   {
+    "cards": [
+     {
+      "title": "Contractor, 3 months",
+      "body": "Before a full-time hire."
+     },
+     {
+      "title": "Short-term space",
+      "body": "Before a 5-year lease."
+     },
+     {
+      "title": "Rent or lease-to-own",
+      "body": "Before buying equipment outright."
+     },
+     {
+      "title": "Pilot with 5 clients",
+      "body": "Before building a new service line."
+     }
+    ]
+   }
+  ],
+  "footnote": "Buy the evidence first."
+ },
+ "2026-11-09-lender-minus-20": {
+  "kicker": "Before you commit",
+  "headlineSize": 112,
+  "headline": [
+   {
+    "text": "YOUR LENDER WILL ASK:"
+   },
+   {
+    "text": "WHAT IF SALES"
+   },
+   {
+    "text": "DROP 20%?",
+    "accent": true
+   }
+  ],
+  "sub": "Variable costs at 45% of revenue.",
+  "blocks": [
+   {
+    "chart": {
+     "type": "bars",
+     "height": 400,
+     "bars": [
+      {
+       "label": "Revenue today",
+       "value": 50000,
+       "valueLabel": "$50,000",
+       "tone": "mute"
+      },
+      {
+       "label": "Revenue −20%",
+       "value": 40000,
+       "valueLabel": "$40,000",
+       "tone": "mute"
+      },
+      {
+       "label": "Contribution",
+       "value": 27500,
+       "valueLabel": "$27,500",
+       "tone": "blue"
+      },
+      {
+       "label": "Contribution −20%",
+       "value": 22000,
+       "valueLabel": "$22,000",
+       "tone": "amber"
+      }
+     ]
+    }
+   },
+   {
+    "stats": [
+     {
+      "label": "Monthly cushion lost",
+      "value": "$5,500",
+      "tone": "amber"
+     },
+     {
+      "label": "Must cover fixed costs + loan",
+      "value": "$22,000",
+      "note": "Walk in with it already worked out",
+      "tone": "ink"
+     }
+    ]
+   }
+  ]
+ },
+ "2026-11-11-location-2": {
+  "kicker": "Before you commit",
+  "headlineSize": 126,
+  "headline": [
+   {
+    "text": "LOCATION #2"
+   },
+   {
+    "text": "IS NOT A COPY OF"
+   },
+   {
+    "text": "LOCATION #1.",
+    "accent": true
+   }
+  ],
+  "sub": "What usually doesn't copy when you change the address:",
+  "blocks": [
+   {
+    "cards": [
+     {
+      "title": "Demand",
+      "body": "The reputation is local. The new area hasn't heard of you."
+     },
+     {
+      "title": "The owner",
+      "body": "You can't be in two places at full strength."
+     },
+     {
+      "title": "The manager",
+      "tone": "amber",
+      "body": "Someone has to run it, and they need a salary."
+     },
+     {
+      "title": "The ramp",
+      "body": "Location #1's revenue is the result of its history."
+     }
+    ]
+   }
+  ],
+  "footnote": "Illustrative example."
+ },
+ "2026-11-13-bring-one-decision": {
+  "kicker": "Before you commit",
+  "headlineSize": 110,
+  "headline": [
+   {
+    "text": "BRING ONE"
+   },
+   {
+    "text": "REAL DECISION.",
+    "accent": true
+   },
+   {
+    "text": "WE'LL QUESTION"
+   },
+   {
+    "text": "THE ASSUMPTIONS."
+   }
+  ],
+  "blocks": [
+   {
+    "numbered": true,
+    "columns": 1,
+    "cards": [
+     {
+      "title": "Assumptions first",
+      "body": "We write them down before any number."
+     },
+     {
+      "title": "Base and downside",
+      "body": "We compare both cases side by side."
+     },
+     {
+      "title": "The one number",
+      "tone": "amber",
+      "body": "We find what the decision depends on most."
+     }
+    ]
+   }
+  ],
+  "cta": "Reply “decision”",
+  "footnote": "No promises about outcomes."
+ },
+ "demo-hiring-decision": {
+  "kicker": "Live demo",
+  "headlineSize": 104,
+  "headline": [
+   {
+    "text": "CAN THE BUSINESS"
+   },
+   {
+    "text": "CARRY ONE MORE"
+   },
+   {
+    "text": "EMPLOYEE?",
+    "accent": true
+   }
+  ],
+  "sub": "18 clients, $60,000 in the bank, a $6,500/mo hire.",
+  "blocks": [
+   {
+    "stats": [
+     {
+      "label": "Lowest cash",
+      "value": "$40.0K",
+      "note": "Month 4",
+      "tone": "amber"
+     },
+     {
+      "label": "Hire pays for itself",
+      "value": "Month 11"
+     },
+     {
+      "label": "Revenue to cover it",
+      "value": "$11.8K",
+      "note": "per month at 55% margin",
+      "tone": "ink"
+     }
+    ]
+   },
+   {
+    "rowsTitle": "What must be true (each, alone)",
+    "rows": [
+     {
+      "label": "New clients won per month",
+      "value": "at least 1.3"
+     },
+     {
+      "label": "Hire: fully loaded cost / month",
+      "value": "up to $7,969"
+     },
+     {
+      "label": "Clients pay after",
+      "value": "within 1 month"
+     },
+     {
+      "label": "Gross margin on client work",
+      "value": "at least 50%",
+      "tone": "amber"
+     }
+    ]
+   }
+  ],
+  "cta": "Move the sliders yourself",
+  "footnote": "Fixed example.",
+  "url": "aiwmcquantis.com/demo/hiring-decision"
+ },
+ "demo-founder-decision-review": {
+  "kicker": "Live demo",
+  "headlineSize": 108,
+  "headline": [
+   {
+    "text": "SHOULD IT PUT"
+   },
+   {
+    "text": "ANOTHER $120K",
+    "accent": true
+   },
+   {
+    "text": "INTO GROWTH?"
+   }
+  ],
+  "sub": "420 customers, $300K cash, $120K of acquisition spend.",
+  "blocks": [
+   {
+    "stats": [
+     {
+      "label": "Payback",
+      "value": "Month 14"
+     },
+     {
+      "label": "Lowest cash",
+      "value": "$212K",
+      "note": "Month 3",
+      "tone": "amber"
+     }
+    ]
+   },
+   {
+    "rowsTitle": "What must be true (each, alone)",
+    "rows": [
+     {
+      "label": "Blended CAC",
+      "value": "up to $1K"
+     },
+     {
+      "label": "Monthly churn",
+      "value": "up to 7.0%",
+      "tone": "amber"
+     },
+     {
+      "label": "Price / month",
+      "value": "at least $121"
+     },
+     {
+      "label": "Gross margin",
+      "value": "at least 66%"
+     }
+    ]
+   }
+  ],
+  "cta": "Break the model yourself",
+  "footnote": "Fixed example.",
+  "url": "aiwmcquantis.com/demo/founder-decision-review"
+ },
+ "demo-consultant-founding-pilot": {
+  "kicker": "Live demo",
+  "headlineSize": 110,
+  "headline": [
+   {
+    "text": "YOUR CLIENT SAYS"
+   },
+   {
+    "text": "30 NEW CUSTOMERS",
+    "accent": true
+   },
+   {
+    "text": "A MONTH."
+   }
+  ],
+  "sub": "Can the team serve them? 12 existing + 30 claimed, 52 hrs each.",
+  "blocks": [
+   {
+    "chart": {
+     "type": "bars",
+     "height": 300,
+     "bars": [
+      {
+       "label": "Hours the claim needs",
+       "value": 2184,
+       "valueLabel": "2,184 hrs",
+       "tone": "amber"
+      },
+      {
+       "label": "Hours the team has",
+       "value": 1040,
+       "valueLabel": "1,040 hrs",
+       "tone": "blue"
+      }
+     ]
+    }
+   },
+   {
+    "stats": [
+     {
+      "label": "Max customers served",
+      "value": "20"
+     },
+     {
+      "label": "Hours short / month",
+      "value": "1,144",
+      "tone": "amber"
+     }
+    ]
+   }
+  ],
+  "cta": "Reconcile the claim",
+  "footnote": "Fixed example.",
+  "url": "aiwmcquantis.com/demo/consultant-founding-pilot"
+ }
+}

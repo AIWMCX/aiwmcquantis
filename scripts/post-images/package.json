@@ -1,0 +1,11 @@
+{
+  "name": "quantis-post-images",
+  "private": true,
+  "type": "module",
+  "description": "Renders AIWMC Quantis LinkedIn post images from autoposter_posts.asset_spec.",
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "opentype.js": "1.3.4",
+    "satori": "0.12.2"
+  }
+}
