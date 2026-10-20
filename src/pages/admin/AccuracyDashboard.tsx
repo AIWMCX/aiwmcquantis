@@ -122,7 +122,7 @@ export default function AccuracyDashboard() {
   const underestimatingIndustries = stats.realismData.filter(r => r.avg_score > 4.0);
 
   return (
-    <AppLayout>
+    <>
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -305,6 +305,6 @@ export default function AccuracyDashboard() {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </>
   );
 }

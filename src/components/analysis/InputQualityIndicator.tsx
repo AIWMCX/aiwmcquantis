@@ -137,7 +137,7 @@ export function InputQualityIndicator({
         score: industryResult.score,
         status: industryResult.status,
         improvement: industryResult.status !== 'complete'
-          ? 'Select your industry for +10% confidence boost'
+          ? 'Select your industry for +10% on the evidence score'
           : undefined,
       },
       {

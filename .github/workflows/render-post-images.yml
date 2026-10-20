@@ -1,0 +1,46 @@
+name: Render post images (scheduled)
+
+# Turns autoposter_posts.asset_spec into a branded PNG in content-assets and
+# writes asset_path, so every LinkedIn post carries an image. Code-drawn
+# (satori + resvg), not an AI image model: text and numbers are exact, and the
+# truth gate refuses any image that shows a number the post text doesn't state.
+# Runs 4x/day to keep Actions minutes low; run it by hand after adding specs.
+
+on:
+  schedule:
+    - cron: '20 */6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-post-images
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install renderer
+        working-directory: scripts/post-images
+        run: npm ci
+      - name: Render pending images
+        working-directory: scripts/post-images
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error title=Missing PAT::SUPABASE_ACCESS_TOKEN is not set in the production environment."
+            exit 1
+          fi
+          node render-pending.mjs | tee -a "$GITHUB_STEP_SUMMARY"

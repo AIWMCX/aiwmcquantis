@@ -14,7 +14,6 @@
  *  - postmortem  -> optional postmortem_url, addable any time (usually at resolve)
  */
 import React, { useEffect, useState, useCallback } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -139,7 +138,7 @@ export default function IncidentManager() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -255,6 +254,6 @@ export default function IncidentManager() {
           ))}
         </div>
       </div>
-    </AppLayout>
+    </>
   );
 }

@@ -136,7 +136,7 @@ export function ReportCoverPage({ result }: ReportCoverPageProps) {
         </div>
       </div>
 
-      {/* Quality dimensions -- replaces the single "Confidence Score" with
+      {/* Quality dimensions -- replaces the single "Evidence Score" with
           separately-labeled reconciliation checks. Only rendered when the
           engine populated them (older stored reports won't have this). */}
       {qd && (

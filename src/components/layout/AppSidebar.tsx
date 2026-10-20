@@ -23,16 +23,11 @@ import {
   Home,
   Clock,
   FileText,
-  BarChart3,
   Settings,
   CreditCard,
   HelpCircle,
   Zap,
   Crown,
-  Megaphone,
-  Radio,
-  Handshake,
-  Inbox,
   Plus,
   ChevronRight,
   ShieldAlert,
@@ -41,6 +36,7 @@ import {
   Receipt,
   FolderOpen,
   TrendingUp,
+  Shield,
 } from 'lucide-react';
 import { isEnabled } from '@/lib/flags';
 
@@ -90,12 +86,6 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    label: 'INTELLIGENCE',
-    items: [
-      { title: 'Benchmarks', url: '/admin/benchmarks', icon: BarChart3, adminOnly: true },
-    ],
-  },
-  {
     label: 'OUTPUTS',
     items: [
       { title: 'Reports', url: '/docs', icon: FileText },
@@ -118,18 +108,10 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    label: 'ADMIN',
-    items: [
-      { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, adminOnly: true },
-      { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
-      { title: 'Commercial Ops', url: '/admin/commercial', icon: Handshake, adminOnly: true, flag: 'commercial_workflow' },
-      { title: 'Business Inbox', url: '/admin/inbox', icon: Inbox, adminOnly: true },
-      { title: 'Funnel', url: '/admin/funnel', icon: TrendingUp, adminOnly: true },
-    ],
-  },
-  {
     label: '',
     items: [
+      // Admin tools live in their own shell (/admin), not in the customer app.
+      { title: 'Admin panel', url: '/admin', icon: Shield, adminOnly: true },
       { title: 'Billing', url: '__settings__?tab=billing', icon: CreditCard },
       { title: 'Settings', url: '__settings__', icon: Settings },
       { title: 'Help', url: 'https://aiwmcquantis.com/how-it-works', icon: HelpCircle, external: true },

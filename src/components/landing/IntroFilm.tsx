@@ -29,7 +29,7 @@ export function IntroFilm({ onDone }: { onDone: () => void }) {
   const [entered, setEntered] = useState(false);
   const closedRef = useRef(false);
 
-  const close = useCallback((reason: 'ended' | 'skip' | 'escape') => {
+  const close = useCallback((reason: 'ended' | 'skip' | 'escape' | 'error') => {
     if (closedRef.current) return;
     closedRef.current = true;
     markSeen();
@@ -196,6 +196,8 @@ export function IntroFilm({ onDone }: { onDone: () => void }) {
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
               onEnded={() => close('ended')}
+              // Video failed to load: never leave the visitor on a black layer.
+              onError={() => close('error')}
               onVolumeChange={(e) => setMuted(e.currentTarget.muted)}
             />
             {!playing && !closing && (

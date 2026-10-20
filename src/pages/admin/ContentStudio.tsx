@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -183,16 +182,16 @@ export default function ContentStudio() {
 
   if (isLoading || !canAccess) {
     return (
-      <AppLayout title="Content Studio">
+      <>
         <div className="min-h-[400px] flex items-center justify-center text-[var(--q-text-secondary)]">
           {isLoading ? 'Checking access…' : 'Redirecting…'}
         </div>
-      </AppLayout>
+      </>
     );
   }
 
   return (
-    <AppLayout title="Content Studio">
+    <>
       <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-6">
         <header>
           <h1 className="text-2xl md:text-3xl font-bold font-sora flex items-center gap-2">
@@ -471,6 +470,6 @@ export default function ContentStudio() {
           )}
         </section>
       </div>
-    </AppLayout>
+    </>
   );
 }

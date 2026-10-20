@@ -103,7 +103,7 @@ export default function InvariantSweeps() {
   const currentlyClean = latest ? latest.status === "completed" && latest.violation_count === 0 : null;
 
   return (
-    <AppLayout>
+    <>
       <div className="container mx-auto py-8 px-4 max-w-5xl">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -253,6 +253,6 @@ export default function InvariantSweeps() {
           </Card>
         )}
       </div>
-    </AppLayout>
+    </>
   );
 }

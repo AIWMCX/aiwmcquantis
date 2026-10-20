@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { QuantisMath } from '@/lib/quantis-math';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -661,7 +659,6 @@ export default function QuantisHealth() {
           </TabsContent>
         </Tabs>
       </main>
-      <Footer />
     </div>
   );
 }
