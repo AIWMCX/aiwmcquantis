@@ -160,9 +160,75 @@ async function refreshLinkedInTokenIfNeeded(cred: any): Promise<{ access_token: 
 type Platform = 'linkedin' | 'facebook' | 'instagram';
 
 
-async function publishLinkedIn(content: string, creds: any | null): Promise<PublishResult> {
+// Post image attached to autoposter_posts.asset_path (bucket content-assets).
+type PostImage = { bytes: Uint8Array; contentType: string; alt: string };
+const POST_ASSET_BUCKET = 'content-assets';
+
+async function loadPostImage(postId: string): Promise<{ image: PostImage | null; error?: string }> {
+  const { data: post } = await supa.from('autoposter_posts').select('asset_path, asset_alt, hook').eq('id', postId).maybeSingle();
+  if (!post?.asset_path) return { image: null };
+  const { data: blob, error } = await supa.storage.from(POST_ASSET_BUCKET).download(post.asset_path);
+  if (error || !blob) return { image: null, error: `Post image could not be read from storage (${post.asset_path})` };
+  return {
+    image: {
+      bytes: new Uint8Array(await blob.arrayBuffer()),
+      contentType: blob.type || 'image/png',
+      alt: (post.asset_alt || post.hook || 'AIWMC Quantis').slice(0, 300),
+    },
+  };
+}
+
+// Image share flow: register the upload, PUT the bytes, then post a ugcPost that references the asset.
+// Upload failures happen before any post exists, so they are definite failures
+// (never ambiguous) and the post is NOT silently published as text-only.
+async function uploadLinkedInImage(image: PostImage, creds: any): Promise<{ asset?: string; error?: string }> {
+  const owner = `urn:li:person:${creds.account_id}`;
+  let reg: Response;
+  try {
+    reg = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+      method: 'POST',
+      signal: AbortSignal.timeout(PUBLISH_TIMEOUT_MS),
+      headers: { Authorization: `Bearer ${creds.access_token}`, 'Content-Type': 'application/json', 'X-Restli-Protocol-Version': '2.0.0' },
+      body: JSON.stringify({
+        registerUploadRequest: {
+          recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+          owner,
+          serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
+        },
+      }),
+    });
+  } catch (e) {
+    return { error: `LinkedIn image register failed: ${(e as Error).message}` };
+  }
+  if (!reg.ok) return { error: `LinkedIn image register ${reg.status}: ${(await reg.text()).slice(0, 200)}` };
+  const regJson = await reg.json();
+  const uploadUrl = regJson?.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
+  const asset = regJson?.value?.asset;
+  if (!uploadUrl || !asset) return { error: 'LinkedIn image register returned no upload URL' };
+  let put: Response;
+  try {
+    put = await fetch(uploadUrl, {
+      method: 'PUT',
+      signal: AbortSignal.timeout(PUBLISH_TIMEOUT_MS),
+      headers: { Authorization: `Bearer ${creds.access_token}`, 'Content-Type': image.contentType },
+      body: image.bytes,
+    });
+  } catch (e) {
+    return { error: `LinkedIn image upload failed: ${(e as Error).message}` };
+  }
+  if (!put.ok) return { error: `LinkedIn image upload ${put.status}` };
+  return { asset };
+}
+
+async function publishLinkedIn(content: string, creds: any | null, image: PostImage | null = null): Promise<PublishResult> {
   if (!creds?.access_token || !creds?.account_id) {
     return { ok: false, needs_credentials: true, error: 'LinkedIn credentials missing' };
+  }
+  let media: unknown[] | null = null;
+  if (image) {
+    const up = await uploadLinkedInImage(image, creds);
+    if (!up.asset) return { ok: false, error: up.error ?? 'LinkedIn image upload failed' };
+    media = [{ status: 'READY', media: up.asset, description: { text: image.alt }, title: { text: image.alt.slice(0, 200) } }];
   }
   let res: Response;
   try {
@@ -180,7 +246,8 @@ async function publishLinkedIn(content: string, creds: any | null): Promise<Publ
       specificContent: {
         'com.linkedin.ugc.ShareContent': {
           shareCommentary: { text: content },
-          shareMediaCategory: 'NONE',
+          shareMediaCategory: media ? 'IMAGE' : 'NONE',
+          ...(media ? { media } : {}),
         },
       },
       visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
@@ -225,7 +292,7 @@ async function publishInstagram(content: string, creds: any | null): Promise<Pub
   };
 }
 
-const PUBLISHERS: Record<Platform, (content: string, creds: any | null) => Promise<PublishResult>> = {
+const PUBLISHERS: Record<Platform, (content: string, creds: any | null, image?: PostImage | null) => Promise<PublishResult>> = {
   linkedin: publishLinkedIn,
   facebook: publishFacebook,
   instagram: publishInstagram,
@@ -345,7 +412,10 @@ Deno.serve(async (req) => {
     const t1 = Date.now();
     let res: PublishResult;
     try {
-      res = await publisher(row.content, credsByPlatform.get(platform) ?? null);
+      const { image, error: imageError } = await loadPostImage(row.post_id);
+      res = imageError
+        ? { ok: false, error: imageError }
+        : await publisher(row.content, credsByPlatform.get(platform) ?? null, image);
     } catch (e) {
       // Anything unexpected after the request may have been sent is treated
       // as an unknown outcome, never as a definite failure.
@@ -374,7 +444,8 @@ Deno.serve(async (req) => {
         .eq('post_id', row.post_id);
       const allDone = (siblings ?? []).every((s: any) => s.status === 'published');
       if (allDone) {
-        await supa.from('autoposter_posts').update({ status: 'published' }).eq('id', row.post_id);
+        // autoposter_posts_status_check allows 'posted', not 'published' (the old value failed silently).
+        await supa.from('autoposter_posts').update({ status: 'posted' }).eq('id', row.post_id);
       }
     }
 
