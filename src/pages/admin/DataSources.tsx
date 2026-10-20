@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -112,7 +111,7 @@ export default function DataSources() {
   });
 
   return (
-    <AppLayout title="Data Sources">
+    <>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
@@ -261,6 +260,6 @@ export default function DataSources() {
           </div>
         )}
       </div>
-    </AppLayout>
+    </>
   );
 }

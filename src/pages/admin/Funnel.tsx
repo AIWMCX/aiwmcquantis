@@ -4,10 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { logger } from '@/lib/logger';
+import { TrafficSources, type TrafficReport } from '@/components/admin/TrafficSources';
 
 /**
  * /admin/funnel — SOW §6.1 canonical 8-event funnel dashboard.
- * Reads from public.funnel_summary_30d (admin-only via security_invoker view).
+ * Reads public.admin_traffic_sources(p_days): external visits only (internal
+ * accounts, founder grants, localhost/preview and QA traffic excluded), with
+ * alias event names merged (funnel_events_clean).
  */
 
 const SOW_EVENTS = [
@@ -65,23 +68,31 @@ type Row = {
 };
 
 export default function AdminFunnel() {
+  const [days, setDays] = useState(30);
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [report, setReport] = useState<TrafficReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setRows(null);
+    setReport(null);
     (async () => {
-      const { data, error } = await supabase
-        .from('funnel_summary_30d' as never)
-        .select('*');
+      const { data, error } = await supabase.rpc('admin_traffic_sources' as never, { p_days: days } as never);
+      if (cancelled) return;
       if (error) {
-        logger.error('funnel_summary_30d read failed', error);
+        logger.error('admin_traffic_sources failed', error);
         setError(error.message);
         setRows([]);
         return;
       }
-      setRows((data as unknown as Row[]) ?? []);
+      setError(null);
+      const r = data as unknown as TrafficReport & { events: Row[] };
+      setReport(r);
+      setRows(r?.events ?? []);
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [days]);
 
   const byEvent = new Map<string, Row>(
     (rows ?? []).map(r => [r.event_name, r]),
@@ -98,10 +109,27 @@ export default function AdminFunnel() {
       </Helmet>
 
       <header className="mb-6">
-        <h1 className="text-2xl font-bold">Funnel — last 30 days</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          SOW §6.1 canonical events. Conversion percentages are stage-vs-home.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Funnel — last {days} days</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              External visitors only. Canonical events; conversion percentages are stage-vs-home.
+            </p>
+          </div>
+          <div className="flex gap-1" role="group" aria-label="Time window">
+            {[7, 30, 90].map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDays(d)}
+                aria-pressed={days === d}
+                className={`px-3 py-1.5 text-sm rounded-md border ${days === d ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+              >
+                {d} days
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
       {error && (
@@ -112,6 +140,9 @@ export default function AdminFunnel() {
         </Card>
       )}
 
+      <TrafficSources report={report} />
+
+      <h2 className="text-xl font-bold mb-4">Funnel stages</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {SOW_EVENTS.map(({ key, label }) => {
           const row = byEvent.get(key);

@@ -253,7 +253,6 @@ export default function EngineInfo() {
         </Card>
       </main>
 
-      <Footer />
     </div>
   );
 }

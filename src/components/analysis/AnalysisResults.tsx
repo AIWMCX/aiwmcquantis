@@ -254,7 +254,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             <div className="space-y-1">
               <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Accuracy Notice</p>
               <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                This analysis uses deterministic financial calculations with AI-assisted narrative. Scenario projections, benchmark comparisons, and confidence scores are under active accuracy improvements. Cross-section reconciliation is partially implemented. Independently verify all material assumptions before making investment decisions.
+                This analysis uses deterministic financial calculations with AI-assisted narrative. Scenario projections, benchmark comparisons, and evidence scores (input completeness and data quality — not a probability of success) are under active accuracy improvements. Cross-section reconciliation is partially implemented. Independently verify all material assumptions before making investment decisions.
               </p>
             </div>
           </div>

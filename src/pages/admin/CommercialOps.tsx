@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { useAdmin } from '@/hooks/useAdmin';
 import { isEnabled } from '@/lib/flags';
 import { supabase } from '@/integrations/supabase/client';
@@ -263,7 +262,7 @@ export default function CommercialOps() {
   ];
 
   return (
-    <AppLayout title="Commercial Ops">
+    <>
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center gap-3">
           <Handshake className="w-6 h-6 text-primary" />
@@ -609,7 +608,7 @@ export default function CommercialOps() {
           </DialogContent>
         </Dialog>
       </div>
-    </AppLayout>
+    </>
   );
 }
 

@@ -25,7 +25,7 @@ interface RouteMeta {
 // descriptions <160 chars. Pages with dynamic content set their own PageMeta.
 const ROUTE_META: Record<string, RouteMeta> = {
   '/': {
-    title: 'AIWMC Quantis — AI Business Idea Validator',
+    title: 'AIWMC Quantis — Test a Business Decision Before You Fund It',
     description: 'Test a business decision before committing capital: explicit assumptions, deterministic cash, break-even and payback math, downside scenarios. Free to start.',
   },
   '/app': {
@@ -98,7 +98,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/refund-policy': {
     title: 'Refund Policy',
-    description: 'Quantis refund policy: 14-day money-back guarantee on all paid plans, no questions asked.',
+    description: 'Quantis refund policy: full refund within 14 days of the first charge on Plus and Pro plans, no questions asked. Founder-assisted reviews have their own terms.',
   },
   '/decision-review': {
     title: 'Founder Decision Review & Consultant Pilot — AIWMC Quantis',
@@ -147,6 +147,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
   '/demo/founder-decision-review': {
     title: 'Interactive Decision Demo — Founder Decision Review',
     description: 'See how Quantis tests a real spending decision: change one assumption and watch cash, payback, and the decision gate recompute live.',
+  },
+  '/demo/hiring-decision': {
+    title: 'Hiring Decision Demo — Can the business carry another employee?',
+    description: 'Before the next hire, understand the cash commitment: payroll, revenue ramp-up and collection timing on an illustrative example.',
   },
   '/demo/consultant-founding-pilot': {
     title: 'Interactive Demo — Consultant Capacity vs Client Demand',

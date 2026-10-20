@@ -20,6 +20,7 @@ import { SdwHero } from '@/components/landing/sadewa/SdwHero';
 import { PainPoints } from '@/components/landing/sadewa/PainPoints';
 import { Comparison } from '@/components/landing/sadewa/Comparison';
 import { FinalCTA } from '@/components/landing/sadewa/FinalCTA';
+import { HiringDemoBand } from '@/components/landing/sadewa/HiringDemoBand';
 import { TIERS } from '@/config/tiers';
 
 // Testimonials removed (2026-07-06): replaced by TrustStrip until real linkable founder profiles are verified.
@@ -43,7 +44,7 @@ export default function Landing() {
   const faqSection = useLazySection({ rootMargin: '200px' });
   const heroRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
-  // First visit: the product film opens above every layer, then reveals the homepage.
+  // The product film opens on request (hero buttons) or via a ?intro=1 share link — never over the offer on load.
   const [introOpen, setIntroOpen] = useState(shouldShowIntroFilm);
 
   // SOW §6.1 funnel event: home_view fires once per session on landing
@@ -54,7 +55,7 @@ export default function Landing() {
   return (
     <div className="sdw min-h-screen">
       <PageSEO
-        title="AIWMC Quantis — AI Business Idea Validator"
+        title="AIWMC Quantis — Test a Business Decision Before You Fund It"
         description="Test a business decision before committing capital: explicit assumptions, deterministic cash, break-even and payback math, downside scenarios. Free to start."
         canonical="/"
       />
@@ -80,6 +81,9 @@ export default function Landing() {
 
         {/* 3. Product film — 25s decision film in the cosmic dark band */}
         <ProductFilm />
+
+        {/* 3b. Hiring decision — interactive example + walkthrough */}
+        <HiringDemoBand />
 
         {/* 4. Sample report + the real input form */}
         <div ref={heroRef} id="single-input-hero" data-hero-form>

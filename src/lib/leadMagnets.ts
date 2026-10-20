@@ -110,7 +110,7 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
     headline: 'Validate Before You Build',
     subheadline: 'The 10 questions investors ask before funding',
     benefits: [
-      'Proven validation framework used by top accelerators',
+      'Make your assumptions explicit. Compare the financial consequences.',
       'Financial red flags scoring rubric',
       'Business model stress-test checklist',
     ],

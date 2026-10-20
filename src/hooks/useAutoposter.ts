@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { denverWallTimeToUtcIso } from '@/lib/denver-time';
 
 export type AutoposterPlatform = 'linkedin' | 'facebook' | 'instagram';
 export const AP_PLATFORMS: AutoposterPlatform[] = ['linkedin', 'facebook', 'instagram'];
@@ -38,6 +39,8 @@ export interface AutoposterPlatformRow {
   scheduled_at: string | null;
   published_at: string | null;
   platform_post_id: string | null;
+  /** Public URL of the live post (recorded by the founder, https only). */
+  published_url?: string | null;
   status: string;
   error_message: string | null;
   updated_at: string;
@@ -256,12 +259,12 @@ export function useApproveAndSchedule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { post: AutoposterPost; platforms: AutoposterPlatformRow[] }) => {
-      // Set scheduled_at = post_date + best_time_mt (MT = UTC-7 / UTC-6; treat as local MT, convert to UTC-7)
+      // scheduled_at = post_date + best_time_mt in America/Denver, with the
+      // correct DST offset for that date (was hard-coded -07:00, an hour late
+      // all summer).
       const updates = input.platforms.map((p) => {
         const time = p.best_time_mt ?? '09:00:00';
-        // MT is UTC-7 (MST) — approximate. Stored as UTC.
-        const isoLocal = `${input.post.post_date}T${time}-07:00`;
-        const scheduledAt = new Date(isoLocal).toISOString();
+        const scheduledAt = denverWallTimeToUtcIso(input.post.post_date, time);
         return supabase
           .from('autoposter_post_platforms')
           .update({ status: 'scheduled', scheduled_at: scheduledAt })
@@ -278,6 +281,116 @@ export function useApproveAndSchedule() {
       toast.success('Approved & scheduled');
     },
     onError: (e: Error) => toast.error('Schedule failed', { description: e.message }),
+  });
+}
+
+/**
+ * Cancel one scheduled platform row. Guarded on status='scheduled' so it can
+ * never race the publisher: once publish-due-posts has claimed the row
+ * ('publishing'), the update matches nothing and we say so.
+ */
+export function useCancelPlatform() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { row: AutoposterPlatformRow }) => {
+      const { data, error } = await supabase
+        .from('autoposter_post_platforms')
+        .update({ status: 'draft', scheduled_at: null })
+        .eq('id', input.row.id)
+        .eq('status', 'scheduled')
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('It was already picked up by the publisher — refresh to see its status.');
+      // If nothing else on this post is still scheduled, the post is a draft again.
+      const { data: left } = await supabase
+        .from('autoposter_post_platforms')
+        .select('id')
+        .eq('post_id', input.row.post_id)
+        .eq('status', 'scheduled');
+      if (!left || left.length === 0) {
+        await supabase.from('autoposter_posts').update({ status: 'draft' }).eq('id', input.row.post_id).eq('status', 'scheduled');
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Cancelled — back to draft');
+    },
+    onError: (e: Error) => toast.error('Cancel failed', { description: e.message }),
+  });
+}
+
+/** Reschedule one platform row to a Denver wall-clock date/time. Never for unknown/publishing/published. */
+export function useReschedulePlatform() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { row: AutoposterPlatformRow; date: string; time: string }) => {
+      const scheduledAt = denverWallTimeToUtcIso(input.date, input.time);
+      if (new Date(scheduledAt).getTime() <= Date.now()) throw new Error('Pick a time in the future.');
+      const { data, error } = await supabase
+        .from('autoposter_post_platforms')
+        .update({ status: 'scheduled', scheduled_at: scheduledAt, error_message: null })
+        .eq('id', input.row.id)
+        .in('status', ['draft', 'scheduled', 'failed', 'needs_credentials'])
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('This post can no longer be rescheduled — refresh to see its status.');
+      await supabase.from('autoposter_posts').update({ status: 'scheduled' }).eq('id', input.row.post_id).eq('status', 'draft');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Rescheduled');
+    },
+    onError: (e: Error) => toast.error('Reschedule failed', { description: e.message }),
+  });
+}
+
+/** Record where the post actually lives (manual publish, or reconciling an 'unknown'). */
+export function useRecordPublishedUrl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { row: AutoposterPlatformRow; url: string }) => {
+      const { data, error } = await supabase
+        .from('autoposter_post_platforms')
+        .update({
+          status: 'published',
+          published_url: input.url.trim(),
+          published_at: input.row.published_at ?? new Date().toISOString(),
+          scheduled_at: null,
+          error_message: null,
+        })
+        .eq('id', input.row.id)
+        .neq('status', 'publishing')
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('The publisher is working on this post right now — try again in a minute.');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Published URL recorded');
+    },
+    onError: (e: Error) => toast.error('Could not record the URL', { description: e.message }),
+  });
+}
+
+/** Reconcile an 'unknown' publish the founder checked and found NOT live: back to draft, no retry. */
+export function useMarkNotLive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { row: AutoposterPlatformRow }) => {
+      const { data, error } = await supabase
+        .from('autoposter_post_platforms')
+        .update({ status: 'draft', scheduled_at: null, error_message: 'Checked by founder: not live on the platform.' })
+        .eq('id', input.row.id)
+        .eq('status', 'unknown')
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Its status changed — refresh to see it.');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['autoposter'] });
+      toast.success('Marked not live — back to draft');
+    },
+    onError: (e: Error) => toast.error('Update failed', { description: e.message }),
   });
 }
 

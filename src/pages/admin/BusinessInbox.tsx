@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -121,7 +120,7 @@ export default function BusinessInbox() {
   const needsSetup = status && (!status.configured || !status.dns?.ready);
 
   return (
-    <AppLayout title="Business Inbox">
+    <>
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center gap-3">
           <Inbox className="w-6 h-6 text-primary" />
@@ -164,7 +163,7 @@ export default function BusinessInbox() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
+    </>
   );
 }
 

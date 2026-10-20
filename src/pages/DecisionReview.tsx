@@ -8,43 +8,16 @@ import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { supabase } from '@/integrations/supabase/client';
 import { recordFunnelEvent, trackEvent } from '@/lib/analytics';
+import { ENGAGEMENT_OFFERS, type EngagementOfferCode } from '@/config/engagement-offers';
 
-type OfferCode = 'founder_decision_review' | 'consultant_founding_pilot';
+type OfferCode = EngagementOfferCode;
 
-const OFFERS = [
-  {
-    code: 'founder_decision_review' as const,
-    name: 'Founder Decision Review',
-    price: 349,
-    audience: 'For one active founder decision',
-    cases: '1 decision',
-    icon: FileCheck2,
-    included: [
-      '30-minute decision intake',
-      'Fact, assumption, and unknown register',
-      'Base, downside, and upside scenarios',
-      'Cash, break-even, and payback reconciliation',
-      'Five decision-changing assumptions',
-      'Decision Memo, live review, and one revision',
-    ],
-  },
-  {
-    code: 'consultant_founding_pilot' as const,
-    name: 'Consultant Founding Pilot',
-    price: 499,
-    audience: 'For consultants, fractional CFOs, and advisors',
-    cases: '2 client cases',
-    icon: Users,
-    included: [
-      'Two client cases submitted within 30 days',
-      'Founder-led pilot setup and structured intake',
-      'Three scenarios and reconciled economics per case',
-      'Source and uncertainty register per case',
-      'Two consultant-ready Decision Memos',
-      'One review and one revision per case',
-    ],
-  },
-] as const;
+const OFFER_ICON: Record<OfferCode, typeof FileCheck2> = {
+  founder_decision_review: FileCheck2,
+  consultant_founding_pilot: Users,
+};
+
+const OFFERS = ENGAGEMENT_OFFERS.map((offer) => ({ ...offer, icon: OFFER_ICON[offer.code] }));
 
 export default function DecisionReview() {
   const [loading, setLoading] = useState<OfferCode | null>(null);
@@ -74,7 +47,7 @@ export default function DecisionReview() {
     <PublicPageShell active="pricing" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title="Founder Decision Review & Consultant Pilot — AIWMC Quantis"
-        description="Founder-assisted decision reviews with reconciled scenarios, a decision memo, and live review. $349 for one founder decision or $499 for two consultant client cases."
+        description={`Founder-assisted decision reviews with reconciled scenarios, a decision memo, and live review. $${ENGAGEMENT_OFFERS[0].price} for one founder decision or $${ENGAGEMENT_OFFERS[1].price} for two consultant client cases.`}
         canonical="/decision-review"
         jsonLd={{
           '@context': 'https://schema.org',
@@ -130,6 +103,14 @@ export default function DecisionReview() {
                   <Button variant="outline" size="lg" className="w-full gap-2">
                     <PlayCircle className="h-4 w-4" />
                     See the interactive demo first
+                  </Button>
+                </Link>
+              )}
+              {offer.code === 'founder_decision_review' && (
+                <Link to="/demo/hiring-decision" className="mt-3">
+                  <Button variant="outline" size="lg" className="w-full gap-2">
+                    <PlayCircle className="h-4 w-4" />
+                    Explore the hiring example
                   </Button>
                 </Link>
               )}

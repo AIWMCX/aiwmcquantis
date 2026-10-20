@@ -40,6 +40,7 @@ export const PUBLIC_ROUTES = [
   { path: "/decision-review", title: "Founder Decision Review",
     must: ["$349", "$499", "Founder Decision Review", "Consultant Founding Pilot"] },
   { path: "/demo/founder-decision-review", title: "Founder Decision Review" },
+  { path: "/demo/hiring-decision", title: "Hiring Decision" },
   { path: "/demo/consultant-founding-pilot", title: "Consultant Capacity" },
   { path: "/connect", title: "Connect" },
   { path: "/changelog",       title: "Changelog" },

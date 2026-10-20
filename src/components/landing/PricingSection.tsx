@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useExperiment, trackExperimentConversion } from '@/lib/abTesting';
@@ -9,6 +9,7 @@ import { ValueAnchor } from './ValueAnchor';
 import { PricingCard } from './PricingCard';
 import { GuaranteeBanner } from './GuaranteeBanner';
 import { TIERS } from '@/config/tiers';
+import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
 import { DOC_TEMPLATE_COUNT, MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
 import { PricingFAQ } from './PricingFAQ';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -16,19 +17,29 @@ import { SectionHeader } from '@/components/ui/glass-card';
 
 type BillingPeriod = 'monthly' | 'annual';
 
+// Derived from TIERS so the homepage can never drift from checkout prices.
+function paidPricing(tier: { priceMonthly: number; priceAnnual: number; priceAnnualMonthlyEquivalent: number }) {
+  const monthlyYear = tier.priceMonthly * 12;
+  const savings = monthlyYear - tier.priceAnnual;
+  return {
+    monthly: { price: tier.priceMonthly, period: 'mo', totalYear: monthlyYear },
+    annual: {
+      price: tier.priceAnnualMonthlyEquivalent,
+      period: 'mo',
+      totalYear: tier.priceAnnual,
+      savings,
+      savingsPercent: Math.floor((savings / monthlyYear) * 100),
+    },
+  };
+}
+
 const PRICING = {
   free: {
     monthly: { price: 0, period: 'forever' },
     annual: { price: 0, period: 'forever' },
   },
-  plus: {
-    monthly: { price: 17, period: 'mo', totalYear: 204 },
-    annual: { price: 14, period: 'mo', totalYear: 168, savings: 36, savingsPercent: 17 },
-  },
-  pro: {
-    monthly: { price: 49, period: 'mo', totalYear: 588 },
-    annual: { price: 41, period: 'mo', totalYear: 492, savings: 96, savingsPercent: 16 },
-  },
+  plus: paidPricing(TIERS.plus),
+  pro: paidPricing(TIERS.pro),
 };
 
 const FREE_FEATURES = [
@@ -285,15 +296,20 @@ export function PricingSection() {
           />
         </div>
 
-        {/* Legacy grandfather note */}
-        <p className="text-xs text-center text-muted-foreground mb-6 max-w-2xl mx-auto">
-          Existing Plus customers on the original ${TIERS.plus.priceMonthly}/mo plan keep that price for the lifetime of
-          their subscription. New monthly signups today are billed at ${TIERS.plus.priceMonthly}/mo with the option to
-          switch to annual (${TIERS.plus.priceAnnualMonthlyEquivalent}/mo) anytime.
-        </p>
-
         {/* Money-Back Guarantee */}
         <GuaranteeBanner />
+
+        {/* Founder-assisted option: deliberately secondary to the plan cards. */}
+        <p className="text-sm text-center text-muted-foreground mt-6 mb-10 max-w-2xl mx-auto">
+          Prefer a founder to review one real decision with you?{' '}
+          <Link
+            to="/decision-review"
+            className="font-semibold text-foreground underline underline-offset-4 hover:text-primary"
+            onClick={() => trackEvent('pricing_founder_review_click', { surface: 'homepage_pricing' })}
+          >
+            {ENGAGEMENT_OFFER.founderReview.name} — ${ENGAGEMENT_OFFER.founderReview.price} one-time
+          </Link>
+        </p>
 
         {/* Feature Comparison Table — permanent per MP2-DESIGN-LAYOUT-02 (was
             previously gated behind the pricing_display A/B experiment;

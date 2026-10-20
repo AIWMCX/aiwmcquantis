@@ -36,7 +36,7 @@ export function ReportAppendix({ result }: ReportAppendixProps) {
       {/* Confidence Score Breakdown */}
       {confidenceBreakdown && (
         <>
-          <div style={pdfStyles.sectionTitle}>Confidence Score Breakdown</div>
+          <div style={pdfStyles.sectionTitle}>Evidence Score Breakdown</div>
           <table style={pdfStyles.table}>
             <thead>
               <tr>
@@ -75,7 +75,7 @@ export function ReportAppendix({ result }: ReportAppendixProps) {
                 </td>
               </tr>
               <tr style={{ backgroundColor: '#1e3a5f' }}>
-                <td style={{ ...pdfStyles.tableCell, fontWeight: 'bold' }}>Overall Confidence</td>
+                <td style={{ ...pdfStyles.tableCell, fontWeight: 'bold' }}>Overall Evidence Score</td>
                 <td style={{ ...pdfStyles.tableCell, textAlign: 'center', fontWeight: 'bold' }}>100%</td>
                 <td style={{ ...pdfStyles.tableCell, textAlign: 'center', fontWeight: 'bold' }}>
                   {result.confidence_score}%
@@ -83,6 +83,10 @@ export function ReportAppendix({ result }: ReportAppendixProps) {
               </tr>
             </tbody>
           </table>
+          <div style={pdfStyles.paragraph}>
+            The evidence score measures how complete and well-supported this analysis&apos;s inputs are. It is not a
+            probability that the business will succeed.
+          </div>
         </>
       )}
 

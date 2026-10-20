@@ -19,9 +19,18 @@ export const DEFAULT_AUDIT_INFO: AuditInfo = {
 
 /**
  * Fetches the latest system-level audit from safety_evaluations.
- * Returns DEFAULT_AUDIT_INFO on failure.
+ *
+ * Returns null when there is no recorded audit (no row, missing table, or an
+ * error). Callers must then show nothing — never DEFAULT_AUDIT_INFO, which
+ * would display an audit "today" that never happened (observed 2026-10-17:
+ * the table is absent in production and every footer read "Automated
+ * internal checks ran Today · QSL-2").
  */
-export async function getLatestAuditInfo(): Promise<AuditInfo> {
+export async function getLatestAuditInfo(): Promise<AuditInfo | null> {
+  // No audit pipeline writes this table in production (it is absent there;
+  // its only writer is the client-side safety agent). Querying it produced a
+  // 404 on every page. Opt in once a real audit source exists.
+  if (import.meta.env.VITE_ENABLE_AUDIT_BADGE !== 'true') return null;
   try {
     const { data, error } = await supabase
       .from('safety_evaluations')
@@ -32,19 +41,16 @@ export async function getLatestAuditInfo(): Promise<AuditInfo> {
       .limit(1)
       .maybeSingle();
 
-    // No row yet → return defaults silently (expected on a fresh DB).
-    if (!data) return DEFAULT_AUDIT_INFO;
-
-    // Real error → log once at debug level (no console noise in prod).
     if (error) {
       if (import.meta.env.DEV) {
-        logger.debug('[audit-info] using defaults:', error.message);
+        logger.debug('[audit-info] no audit available:', error.message);
       }
-      return DEFAULT_AUDIT_INFO;
+      return null;
     }
+    if (!data || !data.evaluated_at) return null;
 
     return {
-      lastAuditedAt: new Date(data.evaluated_at || new Date()),
+      lastAuditedAt: new Date(data.evaluated_at),
       safetyLevel: data.safety_level ?? 2,
       passedChecks: Array.isArray(data.passed_checks) ? data.passed_checks.length : 8,
       totalChecks: 10,
@@ -54,7 +60,7 @@ export async function getLatestAuditInfo(): Promise<AuditInfo> {
     if (import.meta.env.DEV) {
       logger.debug('[audit-info] error:', (err as Error)?.message);
     }
-    return DEFAULT_AUDIT_INFO;
+    return null;
   }
 }
 
