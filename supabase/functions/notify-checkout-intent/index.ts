@@ -11,7 +11,7 @@ import { maybeHealthResponse } from '../_shared/health.ts';
 import { renderEmail, type IntentSession } from './format.ts';
 
 const FUNCTION_NAME = 'notify-checkout-intent';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 const LOOKBACK_HOURS = 48;
 const ALERT_TO = Deno.env.get('CHECKOUT_ALERT_EMAIL') || 'jeltovbogdan@gmail.com';
 const FROM = 'AIWMC Quantis Alerts <noreply@aiwmcquantis.com>';
@@ -34,15 +34,15 @@ Deno.serve(async (req) => {
   const dryRun = new URL(req.url).searchParams.get('dry') === '1';
 
   const since = new Date(Date.now() - LOOKBACK_HOURS * 3600_000).toISOString();
-  const { data: clicks, error } = await supa
-    .from('funnel_events_clean')
-    .select('id, session_id, user_id, metadata, created_at')
-    .eq('event_name', 'paid_checkout_start')
-    .eq('is_internal', false)
-    .gte('created_at', since)
-    .order('created_at', { ascending: true })
-    .limit(200);
+  // funnel_events_clean is security_invoker and joins auth.users, which
+  // service_role can't read; checkout_intent_feed (security definer,
+  // service_role-only) returns external clicks plus their session events.
+  type Click = { id: string; session_id: string | null; user_id: string | null; metadata: Record<string, unknown> | null; created_at: string };
+  type Ev = { session_id: string; event_name: string; path: string | null; referrer: string | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; created_at: string };
+  const { data: feed, error } = await supa.rpc('checkout_intent_feed', { p_since: since });
   if (error) return json({ error: error.message }, 500);
+  const clicks = ((feed as { clicks?: Click[] })?.clicks ?? []);
+  const allEvents = ((feed as { events?: Ev[] })?.events ?? []);
   if (!clicks?.length) return json({ ok: true, alerted: 0 });
 
   const { data: done } = await supa.from('checkout_intent_alerts').select('funnel_event_id').in('funnel_event_id', clicks.map((c) => c.id));
@@ -55,12 +55,7 @@ Deno.serve(async (req) => {
 
   const sessions: IntentSession[] = [];
   for (const [sessionId, rows] of bySession) {
-    const { data: events } = await supa
-      .from('funnel_events_clean')
-      .select('event_name, path, referrer, utm_source, utm_medium, utm_campaign, created_at')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
-      .limit(40);
+    const events = allEvents.filter((e) => e.session_id === sessionId).slice(0, 40);
     const firstEv = events?.[0] ?? { utm_source: null, utm_medium: null, referrer: null, utm_campaign: null, path: null };
     const userId = rows.find((r) => r.user_id)?.user_id ?? null;
     let userEmail: string | null = null;
