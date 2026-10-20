@@ -33,7 +33,7 @@ describe('notify-checkout-intent wiring', () => {
   const src = readFileSync('supabase/functions/notify-checkout-intent/index.ts', 'utf8');
   it('is cron-secret protected, excludes internal sessions, dedupes after sending', () => {
     expect(src).toContain("req.headers.get('x-cron-secret') !== expected");
-    expect(src).toContain(".eq('is_internal', false)");
+    expect(src).toContain(".rpc('checkout_intent_feed'");
     expect(src.indexOf("api.resend.com")).toBeLessThan(src.indexOf("from('checkout_intent_alerts').upsert"));
   });
   it('is listed for production deploy', () => {
