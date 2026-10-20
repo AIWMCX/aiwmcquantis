@@ -126,5 +126,9 @@ verify_jwt = false
 [functions.publish-due-posts]
 verify_jwt = false
 
+# pg_cron caller; authenticates itself with x-cron-secret.
+[functions.notify-checkout-intent]
+verify_jwt = false
+
 [functions.rvce-validate]
 verify_jwt = false
