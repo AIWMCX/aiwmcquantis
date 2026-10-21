@@ -31,10 +31,14 @@ describe('status view', () => {
     expect(canRecordUrl('external_scheduled')).toBe(true);
   });
   it('the publisher only ever claims status=scheduled (so external_scheduled is never posted twice)', () => {
-    const pub = readFileSync('supabase/functions/publish-due-posts/index.ts', 'utf8');
-    const claims = pub.match(/\.eq\('status', '([a-z_]+)'\)/g) ?? [];
+    const pub = readFileSync('supabase/functions/publish-due-posts/index.ts', 'utf8').replace(/\r\n/g, '\n');
+    const candidateStart = pub.indexOf('const { data: candidates');
+    const candidateEnd = pub.indexOf('if (candidateErr)', candidateStart);
+    const claimBlock = pub.slice(candidateStart, candidateEnd);
+    const claims = claimBlock.match(/\.eq\('status', '([a-z_]+)'\)/g) ?? [];
     expect(claims.length).toBeGreaterThan(0);
     for (const c of claims) expect(c).toBe(".eq('status', 'scheduled')");
+    expect(pub.slice(0, candidateStart)).toContain(".eq('status', 'publishing')"); // stale claims become unknown, never requeued
   });
 });
 

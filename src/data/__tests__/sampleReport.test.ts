@@ -22,7 +22,7 @@ describe('validateSampleReportIntegrity()', () => {
     expect(byId.investment.value).toBe(SAMPLE_REPORT.metrics.investment.label);
     expect(byId.payback.value).toBe(SAMPLE_REPORT.metrics.paybackMonths.label);
     expect(byId.profit.value).toBe(SAMPLE_REPORT.metrics.monthlyProfitY2.label);
-    expect(byId.confidence.value).toBe(SAMPLE_REPORT.meta.confidenceLabel);
+    expect(byId.status.value).toBe(SAMPLE_REPORT.meta.evidenceLabel);
   });
 
   it('page 3 KPI table echoes the canonical headline numbers', () => {
@@ -55,8 +55,24 @@ describe('validateSampleReportIntegrity()', () => {
     expect(SAMPLE_REPORT.meta.company).toBeTruthy();
     expect(SAMPLE_REPORT.meta.location).toBeTruthy();
     expect(SAMPLE_REPORT.meta.generated).toBeTruthy();
-    expect(SAMPLE_REPORT.meta.confidenceLabel).toMatch(/^\d{1,3}%$/);
+    expect(SAMPLE_REPORT.meta.evidenceLabel).toBe('Fictional example');
     expect(SAMPLE_REPORT.meta.pages).toBe(SAMPLE_REPORT.pages.length);
+  });
+
+  it('keeps the illustrative gross margin and contribution LTV consistent with its displayed P&L', () => {
+    const page5 = SAMPLE_REPORT.pages.find((p) => p.id === 5) as { kpis: ReadonlyArray<{ label: string; value: string }> };
+    const page7 = SAMPLE_REPORT.pages.find((p) => p.id === 7) as { table: ReadonlyArray<readonly [string, string]> };
+    const kpis = Object.fromEntries(page5.kpis.map((k) => [k.label, k.value]));
+    const rows = Object.fromEntries(page7.table);
+    const revenue = Number(rows['Total monthly revenue'].replace(/[^0-9.]/g, ''));
+    const directCost = Number(rows['COGS (walk-in coffee/retail only)'].replace(/[^0-9.]/g, ''));
+    const grossMargin = (revenue - directCost) / revenue;
+    const ltv = Math.round(89 * 14 * grossMargin);
+
+    expect(kpis['Gross margin']).toBe(`${Math.round(grossMargin * 100)}%`);
+    expect(kpis['Contribution LTV (14-mo assumption)']).toBe(`$${ltv.toLocaleString('en-US')}`);
+    expect(kpis['LTV : CAC']).toBe(`${(ltv / 42).toFixed(1)} ×`);
+    expect(JSON.stringify(SAMPLE_REPORT)).not.toMatch(/79% confidence|multi-model cross-check/i);
   });
 
   it('every page has a non-empty title and a numeric id', () => {

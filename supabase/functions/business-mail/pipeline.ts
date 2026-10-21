@@ -656,8 +656,13 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
     }
     if (!subject) subject = 'Quick question';
 
+    let smtpAttemptStarted = false;
     try {
       const fromName = await senderName(svc, f.campaign_id, sender.box.display_name);
+      // SMTP cannot provide an idempotent send guarantee. If the connection
+      // drops after the server accepted DATA, automatic retry could duplicate
+      // a real cold email while the CRM still says it is unsent.
+      smtpAttemptStarted = true;
       const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text: f.draft, inReplyTo: parent, references: parent ? [parent] : [] });
       const { error } = await svc.rpc('record_commercial_followup_provider_send', {
         _followup_id: f.id,
@@ -677,12 +682,16 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
       result.sent = { followup_id: f.id, to: gate.to, from: sender.box.address, message_id: res.messageId };
     } catch (e) {
       const attempts = f.send_attempts + 1;
+      const failure = (e as Error).message.slice(0, 500);
+      const heldForReconciliation = smtpAttemptStarted
+        ? `held: SMTP delivery outcome must be reconciled before retry (${failure})`
+        : failure;
       await svc.from('commercial_followups').update({
         send_attempts: attempts,
-        send_last_error: (e as Error).message.slice(0, 500),
-        ...(attempts >= 3 ? { send_requested_at: null } : {}),
+        send_last_error: heldForReconciliation,
+        ...(smtpAttemptStarted || attempts >= 3 ? { send_requested_at: null } : {}),
       }).eq('id', f.id);
-      result.held.push({ followup_id: f.id, reason: (e as Error).message });
+      result.held.push({ followup_id: f.id, reason: heldForReconciliation });
     }
     break; // one message per tick: pacing comes from the 5-minute schedule + min gap
   }

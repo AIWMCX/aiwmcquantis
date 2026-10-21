@@ -8,20 +8,20 @@ import { TrafficSources, type TrafficReport } from '@/components/admin/TrafficSo
 
 /**
  * /admin/funnel — SOW §6.1 canonical 8-event funnel dashboard.
- * Reads public.admin_traffic_sources(p_days): external visits only (internal
+ * Reads public.admin_traffic_sources(p_days): external sessions only (internal
  * accounts, founder grants, localhost/preview and QA traffic excluded), with
  * alias event names merged (funnel_events_clean).
  */
 
 const SOW_EVENTS = [
-  { key: 'home_view', label: 'Home view' },
-  { key: 'pricing_view', label: 'Pricing view' },
-  { key: 'free_signup_start', label: 'Free signup start' },
-  { key: 'free_signup_complete', label: 'Free signup complete' },
-  { key: 'analysis_start', label: 'Analysis start' },
-  { key: 'analysis_complete', label: 'Analysis complete' },
-  { key: 'paid_checkout_start', label: 'Paid checkout start' },
-  { key: 'paid_checkout_complete', label: 'Paid checkout complete' },
+  { key: 'home_view', label: 'Sessions with home view' },
+  { key: 'pricing_view', label: 'Sessions with pricing view' },
+  { key: 'free_signup_start', label: 'Sessions starting signup' },
+  { key: 'free_signup_complete', label: 'Sessions completing signup' },
+  { key: 'analysis_start', label: 'Sessions starting analysis' },
+  { key: 'analysis_complete', label: 'Sessions completing analysis' },
+  { key: 'paid_checkout_start', label: 'Sessions starting paid checkout' },
+  { key: 'paid_checkout_complete', label: 'Sessions completing paid checkout' },
 ] as const;
 
 // Phase 5 (Growth & GTM), added 2026-08-03: the gap this session's own

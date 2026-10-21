@@ -91,7 +91,7 @@ function toCanonicalSnapshot(
  * location/industry aren't part of the canonical mapper's registry (it
  * only covers financial_analysis/market_analysis paths), so those are
  * still resolved directly here. */
-function toAutoFillData(
+export function toAutoFillData(
   analysis: AnalysisSummary,
   variables: Record<string, DocumentVariable>,
 ): AutoFillData {
@@ -104,7 +104,10 @@ function toAutoFillData(
     return typeof v === 'string' ? v : undefined;
   };
 
-  const monthlyRevenue = num('baseRevenue') ?? analysis.monthly_profit ?? undefined;
+  // Profit is not revenue. Keep revenue unavailable unless the canonical
+  // model actually produced it; substituting profit silently corrupts
+  // downstream forecasts and client-facing documents.
+  const monthlyRevenue = num('baseRevenue');
 
   return {
     // BusinessAnalysisResult has no business_name field; deriving a

@@ -235,7 +235,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
     {
       label: 'Payback Period',
       value: (() => {
-        const raw = financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0;
+        const raw = financial.returns?.payback_period_months ?? 0;
         return formatPaybackDisplay(raw, baseProfit);
       })(),
       icon: Clock,
@@ -297,10 +297,10 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
           <CopyableMetricCard
             label="Payback Period"
             value={(() => {
-              const raw = financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0;
+              const raw = financial.returns?.payback_period_months ?? 0;
               return formatPaybackDisplay(raw, baseProfit);
             })()}
-            rawValue={financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0}
+            rawValue={financial.returns?.payback_period_months ?? 0}
             icon={Clock}
             color="text-amber-600 dark:text-amber-400"
             bgColor="bg-amber-500/10"

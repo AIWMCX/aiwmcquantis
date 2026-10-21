@@ -377,7 +377,10 @@ export default function ScenarioWorkspace() {
     setIsPromoting(runId);
     try {
       const ref = await promoteScenario(runId);
-      navigate('/docs', { state: { scenarioRunRef: ref } });
+      if (ref.analysisId !== analysisId) {
+        throw new Error('Promoted scenario is not linked to the analysis currently open.');
+      }
+      navigate(`/docs?analysis=${encodeURIComponent(ref.analysisId)}&scenarioRunId=${encodeURIComponent(ref.scenarioRunId)}`);
     } catch (e) {
       if (e instanceof ScenarioEntitlementError) {
         toast.error(e.message, { description: 'Upgrade to Plus or Pro to promote scenarios to documents.' });

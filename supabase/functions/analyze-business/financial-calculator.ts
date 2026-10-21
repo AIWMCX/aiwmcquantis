@@ -19,6 +19,7 @@ import { calculateInvestmentPayback, type MonthsMetricResult } from "./payback-c
 import { calculateCvp, type CvpResult } from "./contribution-margin.ts";
 import { calculateProfitabilityMargins, type ProfitabilityMarginsResult } from "./profitability-margins.ts";
 import { calculateLeverageRatios, type LeverageRatiosResult } from "./leverage-ratios.ts";
+import { calculateOperatingBreakEvenMonth, projectOperatingMonth } from "./operating-projection.ts";
 import type { IndustryBenchmarks } from "./index.ts";
 
 const log = createLogger('analyze-business', 'financial-calculator');
@@ -54,6 +55,7 @@ export interface StrictFinancialResult {
   clientsActive: number;
   newClientsNeeded: number;
   startupInvestment: number;
+  breakEvenMonths: number | null;
   paybackMonths: number;
   paybackResult: MonthsMetricResult | null;
   roiYear1Percent: number;
@@ -101,9 +103,9 @@ export function calculateStrictFinancials(
   const adjustedOther = Math.round(benchmarks.other_fixed * locationMultipliers.overall);
 
   // Log location adjustment details
-  log.info(`Location adjustments: salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, utility=${locationMultipliers.utility}x, marketing=${locationMultipliers.marketing}x`);
+  log.info('Location multipliers applied');
   if (locationMultipliers.matched) {
-    log.info(`Matched city: ${locationMultipliers.matchedCity} (${locationMultipliers.region})`);
+    log.info('Location benchmark matched');
   }
 
   // ===== ENHANCED: Apply sub-industry modifiers to benchmarks =====
@@ -145,7 +147,7 @@ export function calculateStrictFinancials(
 
     log.info(`Sub-industry detected: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale})`);
     log.info(`Applied modifiers: CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x, Churn=${subIndustry.modifiers.churn_multiplier}x`);
-    log.info(`Effective churn rate: ${(effectiveChurnRate * 100).toFixed(1)}%/month`);
+    log.info('Effective churn assumption selected');
 
     audit.push({
       formula: 'Sub-Industry Detection',
@@ -330,7 +332,7 @@ export function calculateStrictFinancials(
   const revenuePerClient = avgCheck * benchmarks.orders_per_client;
 
   // Use user-provided customers if available
-  const clientsActive = userProvidedCustomers && userProvidedCustomers > 0
+  const clientsActive = userProvidedCustomers !== undefined
     ? userProvidedCustomers
     : Math.ceil(mrr / revenuePerClient);
 
@@ -349,7 +351,7 @@ export function calculateStrictFinancials(
     },
     result: marketing,
     isValid: true,
-    notes: `${clientsActive} clients × ${monthlyChurnPercent.toFixed(1)}% churn = ${newClientsNeeded} new clients × $${cac} = $${marketing}${userProvidedCustomers ? ' (user-provided customer count)' : ''}`
+    notes: `${clientsActive} clients × ${monthlyChurnPercent.toFixed(1)}% churn = ${newClientsNeeded} new clients × $${cac} = $${marketing}${userProvidedCustomers !== undefined ? ' (user-provided customer count)' : ''}`
   });
 
   // 2.4 Total expenses - CRITICAL: Use user-provided costs if available
@@ -370,7 +372,7 @@ export function calculateStrictFinancials(
   // real production report.
   let reconciledMarketing = marketing;
 
-  if (userProvidedCosts && userProvidedCosts > 0) {
+  if (userProvidedCosts !== undefined) {
     // User provided their own monthly costs - use them directly
     totalExpenses = userProvidedCosts;
     expenseSource = 'user';
@@ -485,7 +487,7 @@ export function calculateStrictFinancials(
       corrected: maxAllowedMargin,
       reason: `Net margin ${netMarginPercent}% is unusually high -- typical maximum for ${benchmarks.name} is ${benchmarks.net_margin_max}%. Flagged for review; your reported revenue and expenses are shown as calculated, not adjusted.`
     });
-    log.info(`Margin ceiling flagged (not enforced): ${netMarginPercent}% vs typical max ${benchmarks.net_margin_max}% for ${benchmarks.name}`);
+    log.info('Net margin ceiling flagged for review');
   }
 
   audit.push({
@@ -531,6 +533,7 @@ export function calculateStrictFinancials(
   // ===== STEP 4: Calculate investment metrics =====
 
   const startupInvestment = rawInvestment;
+  const breakEvenMonths = calculateOperatingBreakEvenMonth(mrr, finalTotalExpenses);
 
   // RAMP-UP AWARE PAYBACK: Uses 6-month ramp schedule (30%→100% of revenue)
   // instead of assuming full Month 1 profit. This fixes the "1 month payback" template artifact.
@@ -548,27 +551,13 @@ export function calculateStrictFinancials(
   if (startupInvestment > 0) {
     if (finalNetProfit > 0) {
       // Simulate ramp-up cash flow to find true payback month
-      const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
-      const fixedCostPortion = finalTotalExpenses * 0.6;
-      const variableCostPortion = finalTotalExpenses * 0.4;
       let cumulative = 0;
       let foundPayback = false;
       const monthlyFcf: number[] = [];
 
       for (let m = 1; m <= 60; m++) {
-        let monthRevenue: number;
-        let monthCosts: number;
-
-        if (m <= RAMP.length) {
-          monthRevenue = mrr * RAMP[m - 1];
-          monthCosts = fixedCostPortion + variableCostPortion * RAMP[m - 1];
-        } else {
-          const growth = Math.pow(1.05, m - RAMP.length);
-          monthRevenue = mrr * growth;
-          monthCosts = finalTotalExpenses * Math.pow(1.025, m - RAMP.length);
-        }
-
-        const fcf = monthRevenue - monthCosts;
+        const projection = projectOperatingMonth(mrr, finalTotalExpenses, m);
+        const fcf = projection.revenue - projection.expenses;
         monthlyFcf.push(fcf);
         cumulative += fcf;
         if (cumulative >= startupInvestment) {
@@ -608,9 +597,7 @@ export function calculateStrictFinancials(
           : `Cash roll-forward mismatch: running total ${cumulative} vs. independent re-sum ${independentCashSum} — investigate before trusting payback/runway figures.`,
       });
       if (!cashRollForwardHolds) {
-        log.error(
-          `⚠️ Cash roll-forward failed: running=${cumulative}, resum=${independentCashSum}`,
-        );
+        log.error('Cash roll-forward reconciliation failed');
       }
 
       // Handbook §19 Wave 2 — cross-validate the ramp loop above against the
@@ -627,12 +614,10 @@ export function calculateStrictFinancials(
         const typedMonths = paybackResult.status === "VALUE" ? Math.ceil(Number(paybackResult.months)) : null;
         const legacyMonths = foundPayback ? paybackMonths : null;
         if (typedMonths !== legacyMonths && Math.abs((typedMonths ?? 999) - (legacyMonths ?? 999)) > 1) {
-          log.warn(
-            `⚠️ Payback engine drift: ramp loop=${legacyMonths ?? "NOT_ACHIEVED"}, typed calculator=${typedMonths ?? paybackResult.reasonCode}`,
-          );
+          log.warn('Investment payback implementations materially disagree');
         }
-      } catch (paybackContractErr) {
-        log.warn(`Payback contract cross-check failed (non-fatal): ${String(paybackContractErr)}`);
+      } catch {
+        log.warn('Investment payback contract cross-check failed (non-fatal)');
       }
     } else {
       paybackMonths = 999;
@@ -819,6 +804,7 @@ export function calculateStrictFinancials(
     clientsActive,
     newClientsNeeded,
     startupInvestment,
+    breakEvenMonths,
     paybackMonths,
     paybackResult,
     roiYear1Percent,

@@ -97,6 +97,7 @@ import { runAntiBS, type SanityFlag } from "./bulletproof-validator.ts";
 import { runReconciliationCheck, type ReconciliationResult } from "./reconciliation-check.ts";
 import { defaultFinancialReconciler } from "../_shared/r3-validator.ts";
 import { computeModelConfidence, type ModelConfidenceResult } from "./prediction-engine.ts";
+import { hasFiniteNumber } from "../_shared/financial-inputs.ts";
 
 // ========== MARKET PRIOR ENGINE ==========
 import { mapToNAICS, fetchDistributions, computeAnomalyScores, generateMarketPrior, type MarketPriorResult, type AnomalyScore } from "./market-prior.ts";
@@ -1403,10 +1404,10 @@ function generateDeterministicFallbackResult(
   locationMultipliers: LocationMultiplierResult,
   userInputs?: OptionalFinancialInputs
 ): any {
-  const investmentAmount = userInputs?.startup_investment || Math.round((benchmarks.salaries_fixed + benchmarks.rent_fixed) * 12);
-  const monthlyRevenue = userInputs?.monthly_revenue || Math.round(benchmarks.average_check_max * benchmarks.orders_per_client * 80);
-  const cacValue = userInputs?.cac || benchmarks.cac_typical;
-  const avgCheck = userInputs?.average_price || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
+  const investmentAmount = userInputs?.startup_investment ?? Math.round((benchmarks.salaries_fixed + benchmarks.rent_fixed) * 12);
+  const monthlyRevenue = userInputs?.monthly_revenue ?? Math.round(benchmarks.average_check_max * benchmarks.orders_per_client * 80);
+  const cacValue = userInputs?.cac ?? benchmarks.cac_typical;
+  const avgCheck = userInputs?.average_price ?? (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
   const ltvValue = Math.round(avgCheck * benchmarks.orders_per_client * benchmarks.client_lifetime_months);
   
   // Generate professional launch steps
@@ -1686,11 +1687,11 @@ function transformResponse(
   // as a real "$Infinity startup investment" with no protection. See the R3
   // plausibility check above, which logs how often this actually happens.
   const finite = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
-  const rawMrr = userInputs?.monthly_revenue || finite(fa.mrr) || 50000;
-  const rawInvestment = userInputs?.startup_investment || finite(fa.startup_investment) || 100000;
-  const rawCac = userInputs?.cac || finite(fa.cac) || finite(mp.cac) || benchmarks.cac_typical;
+  const rawMrr = userInputs?.monthly_revenue ?? finite(fa.mrr) ?? 50000;
+  const rawInvestment = userInputs?.startup_investment ?? finite(fa.startup_investment) ?? 100000;
+  const rawCac = userInputs?.cac ?? finite(fa.cac) ?? finite(mp.cac) ?? benchmarks.cac_typical;
   const rawLtv = finite(fa.ltv) || finite(mp.ltv) || 500;
-  const rawAvgCheck = userInputs?.average_price || finite(fa.average_check) || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
+  const rawAvgCheck = userInputs?.average_price ?? finite(fa.average_check) ?? (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
   
   // User-provided operational data
   const userProvidedCosts = userInputs?.monthly_costs;
@@ -1698,19 +1699,23 @@ function transformResponse(
   const userProvidedCustomers = userInputs?.expected_customers;
   
   // Log input source for debugging
-  log.info(`Input sources: MRR=${userInputs?.monthly_revenue ? 'USER' : 'AI'}($${rawMrr}), Investment=${userInputs?.startup_investment ? 'USER' : 'AI'}($${rawInvestment}), CAC=${userInputs?.cac ? 'USER' : 'AI'}($${rawCac})`);
+  log.info('Financial input sources', {
+    mrr: userInputs?.monthly_revenue !== undefined ? 'user' : 'estimated',
+    investment: userInputs?.startup_investment !== undefined ? 'user' : 'estimated',
+    cac: userInputs?.cac !== undefined ? 'user' : 'estimated',
+  });
   
   // Validation: warn if AI values significantly differ from user inputs
-  if (userInputs?.monthly_revenue && fa.mrr) {
+  if (userInputs?.monthly_revenue !== undefined && userInputs.monthly_revenue !== 0 && Number.isFinite(fa.mrr)) {
     const diff = Math.abs(fa.mrr - userInputs.monthly_revenue) / userInputs.monthly_revenue;
     if (diff > 0.2) {
-      log.warn(`⚠️ AI estimated revenue $${fa.mrr} differs ${Math.round(diff * 100)}% from user input $${userInputs.monthly_revenue}`);
+      log.warn('AI-estimated revenue differs materially from user input', { differencePercent: Math.round(diff * 100) });
     }
   }
-  if (userInputs?.startup_investment && fa.startup_investment) {
+  if (userInputs?.startup_investment !== undefined && userInputs.startup_investment !== 0 && Number.isFinite(fa.startup_investment)) {
     const diff = Math.abs(fa.startup_investment - userInputs.startup_investment) / userInputs.startup_investment;
     if (diff > 0.2) {
-      log.warn(`⚠️ AI estimated investment $${fa.startup_investment} differs ${Math.round(diff * 100)}% from user input $${userInputs.startup_investment}`);
+      log.warn('AI-estimated investment differs materially from user input', { differencePercent: Math.round(diff * 100) });
     }
   }
   
@@ -2108,7 +2113,7 @@ serve(async (req) => {
     if (workerAuthedUserId) {
       userId = workerAuthedUserId;
       isAnonymous = false;
-      log.info(`Worker-authenticated request for user: ${userId}`);
+      log.info('Worker-authenticated analysis request');
 
       const { data: subscription } = await supabaseService
         .from('subscriptions')
@@ -2135,7 +2140,7 @@ serve(async (req) => {
       if (!userError && user) {
         userId = user.id;
         isAnonymous = false;
-        log.info(`Authenticated user: ${user.email}`);
+        log.info('Authenticated user accepted');
 
         // Check subscription
         const { data: subscription } = await supabaseAuth
@@ -2165,7 +2170,7 @@ serve(async (req) => {
           freeUsageBeforeRun = currentUsage;
           
           if (currentUsage >= FREE_TIER_LIMIT) {
-            log.info(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
+            log.info('Free tier usage limit reached', { currentUsage, limit: FREE_TIER_LIMIT });
             // Spec §09.2 — canonical TIER_GATE / QUOTA_EXCEEDED envelope.
             // Mirrors `evaluateGate()` so the frontend's `unwrap()` helper
             // surfaces the same toast (with upgrade CTA) for both ad-hoc
@@ -2203,7 +2208,7 @@ serve(async (req) => {
         || req.headers.get('x-real-ip')
         || 'unknown-ip';
       
-      log.info(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}..., Fingerprint: ${fingerprint.substring(0, 8)}...`);
+      log.info('Anonymous analysis request');
       
       // Create hashes for storage (privacy-preserving)
       const encoder = new TextEncoder();
@@ -2252,7 +2257,7 @@ serve(async (req) => {
           const resetAt = new Date(rateLimitResult.reset_at);
           const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
           
-          log.info(`Anonymous rate limit exceeded - Reason: ${reason}, Device: ${deviceId.substring(0, 8)}`);
+          log.info('Anonymous rate limit exceeded', { reason });
           
           return new Response(
             JSON.stringify({ 
@@ -2302,7 +2307,7 @@ serve(async (req) => {
           log.error('Rate limit check failed:', rateLimitError);
           // Fail open - allow request but log the error
         } else if (rateLimitResult && !rateLimitResult.allowed) {
-          log.info(`Rate limit exceeded for user ${userId}: ${rateLimitResult.current_count}/${rateLimitResult.limit}`);
+          log.info('Authenticated rate limit exceeded', { current: rateLimitResult.current_count, limit: rateLimitResult.limit });
           
           const resetAt = new Date(rateLimitResult.reset_at);
           const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
@@ -2349,7 +2354,9 @@ serve(async (req) => {
       const rawJson = await req.json();
       const parsed = (await import('./boundary-schemas.ts')).RequestSchema.safeParse(rawJson);
       if (!parsed.success) {
-        log.error('Request schema validation failed:', parsed.error.flatten());
+        log.error('Request schema validation failed', {
+          fields: Object.keys(parsed.error.flatten().fieldErrors),
+        });
         return new Response(
           JSON.stringify({
             error: "Request validation failed",
@@ -2575,7 +2582,7 @@ serve(async (req) => {
     _idea_clean = idea_clean;
     _location_clean = location_clean;
 
-    log.info(`Processing analysis: idea=${idea_clean.substring(0, 50)}... location=${location_clean}`);
+    log.info('Processing analysis request', { hasIdea: idea_clean.length > 0, hasLocation: location_clean.length > 0 });
 
     // Domain 5/12 audit (Q41/Q45/Q119/Q165/Q179): classify the business's
     // operating archetype from the canonical registry (informational --
@@ -2645,46 +2652,46 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     if (documentExtractedFinancials.length > 0) {
       for (const docFin of documentExtractedFinancials) {
         // Revenue
-        if (!documentDerivedInputs.monthly_revenue) {
-          if (docFin.metrics?.mrr) {
+        if (documentDerivedInputs.monthly_revenue === undefined) {
+          if (hasFiniteNumber(docFin.metrics?.mrr)) {
             documentDerivedInputs.monthly_revenue = docFin.metrics.mrr;
-            log.info(`Document data: MRR $${docFin.metrics.mrr} from ${docFin.source_document}`);
-          } else if (docFin.revenue?.monthly) {
+            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_metrics' });
+          } else if (hasFiniteNumber(docFin.revenue?.monthly)) {
             documentDerivedInputs.monthly_revenue = docFin.revenue.monthly;
-            log.info(`Document data: Monthly revenue $${docFin.revenue.monthly} from ${docFin.source_document}`);
-          } else if (docFin.revenue?.quarterly) {
+            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_monthly_revenue' });
+          } else if (hasFiniteNumber(docFin.revenue?.quarterly)) {
             documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.quarterly / 3);
-            log.info(`Document data: Quarterly revenue $${docFin.revenue.quarterly} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
-          } else if (docFin.revenue?.total) {
+            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_quarterly_revenue' });
+          } else if (hasFiniteNumber(docFin.revenue?.total)) {
             // Assume quarterly if > 50k, otherwise monthly
             const divisor = docFin.revenue.total > 50000 ? 3 : 1;
             documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.total / divisor);
-            log.info(`Document data: Total revenue $${docFin.revenue.total} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
+            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_total_revenue' });
           }
         }
         
         // Costs
-        if (!documentDerivedInputs.monthly_costs && docFin.costs?.monthly) {
+        if (documentDerivedInputs.monthly_costs === undefined && hasFiniteNumber(docFin.costs?.monthly)) {
           documentDerivedInputs.monthly_costs = docFin.costs.monthly;
-          log.info(`Document data: Monthly costs $${docFin.costs.monthly} from ${docFin.source_document}`);
+          log.info('Document financial field extracted', { field: 'monthly_costs' });
         }
         
         // Investment
-        if (!documentDerivedInputs.startup_investment && docFin.investment?.total) {
+        if (documentDerivedInputs.startup_investment === undefined && hasFiniteNumber(docFin.investment?.total)) {
           documentDerivedInputs.startup_investment = docFin.investment.total;
-          log.info(`Document data: Investment $${docFin.investment.total} from ${docFin.source_document}`);
+          log.info('Document financial field extracted', { field: 'startup_investment' });
         }
         
         // CAC
-        if (!documentDerivedInputs.cac && docFin.metrics?.cac) {
+        if (documentDerivedInputs.cac === undefined && hasFiniteNumber(docFin.metrics?.cac)) {
           documentDerivedInputs.cac = docFin.metrics.cac;
-          log.info(`Document data: CAC $${docFin.metrics.cac} from ${docFin.source_document}`);
+          log.info('Document financial field extracted', { field: 'cac' });
         }
         
         // Customers
-        if (!documentDerivedInputs.expected_customers && docFin.metrics?.customer_count) {
+        if (documentDerivedInputs.expected_customers === undefined && hasFiniteNumber(docFin.metrics?.customer_count)) {
           documentDerivedInputs.expected_customers = docFin.metrics.customer_count;
-          log.info(`Document data: Customers ${docFin.metrics.customer_count} from ${docFin.source_document}`);
+          log.info('Document financial field extracted', { field: 'expected_customers' });
         }
       }
     }
@@ -2698,9 +2705,10 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
 
     // Log data sources
     if (Object.keys(documentDerivedInputs).length > 0) {
-      log.info('Document-derived inputs:', documentDerivedInputs);
-      log.info('User-provided inputs:', financial_inputs);
-      log.info('Merged inputs:', mergedFinancialInputs);
+      log.info('Financial input merge completed', {
+        documentFields: Object.keys(documentDerivedInputs),
+        userFields: Object.keys(financial_inputs ?? {}),
+      });
     }
 
     // LOVABLE_API_KEY absence no longer blocks — the deterministic engine runs
@@ -2812,8 +2820,14 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // ========== SUB-INDUSTRY DETECTION ==========
     const subIndustry = detectSubIndustry(idea_clean, detectedIndustry.id);
     
-    log.info(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${benchmarkSource}${industryWasManuallySelected ? ', user-selected' : ', auto-detected'}) | Confidence: ${benchmarkConfidence}%`);
-    log.info(`Location: ${locationMultipliers.matched ? locationMultipliers.matchedCity : 'regional'} (${locationMultipliers.region}) | salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, marketing=${locationMultipliers.marketing}x`);
+    log.info('Analysis classification completed', {
+      industry: detectedIndustry.id,
+      benchmarkSource,
+      industryWasManuallySelected,
+      benchmarkConfidence,
+      locationMatched: locationMultipliers.matched,
+      region: locationMultipliers.region,
+    });
     if (subIndustry.confidence > 50) {
       log.info(`Sub-industry: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale}) | CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x`);
     }
@@ -2821,13 +2835,13 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // Build user financial context for AI prompt
     const userFinancialContext = financial_inputs ? `
 ## USER-PROVIDED FINANCIAL DATA (IMPORTANT - USE THESE VALUES IN YOUR ANALYSIS!)
-${financial_inputs.monthly_revenue ? `- Monthly Revenue: $${financial_inputs.monthly_revenue.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
-${financial_inputs.startup_investment ? `- Initial Investment: $${financial_inputs.startup_investment.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
-${financial_inputs.monthly_costs ? `- Monthly Operating Costs: $${financial_inputs.monthly_costs.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
-${financial_inputs.average_price ? `- Average Price/Transaction: $${financial_inputs.average_price}` : ''}
-${financial_inputs.expected_customers ? `- Expected Monthly Customers: ${financial_inputs.expected_customers}` : ''}
-${financial_inputs.cac ? `- Customer Acquisition Cost: $${financial_inputs.cac}` : ''}
-${financial_inputs.churn_rate ? `- Monthly Churn Rate: ${financial_inputs.churn_rate}%` : ''}
+${hasFiniteNumber(financial_inputs.monthly_revenue) ? `- Monthly Revenue: $${financial_inputs.monthly_revenue.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
+${hasFiniteNumber(financial_inputs.startup_investment) ? `- Initial Investment: $${financial_inputs.startup_investment.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
+${hasFiniteNumber(financial_inputs.monthly_costs) ? `- Monthly Operating Costs: $${financial_inputs.monthly_costs.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
+${hasFiniteNumber(financial_inputs.average_price) ? `- Average Price/Transaction: $${financial_inputs.average_price}` : ''}
+${hasFiniteNumber(financial_inputs.expected_customers) ? `- Expected Monthly Customers: ${financial_inputs.expected_customers}` : ''}
+${hasFiniteNumber(financial_inputs.cac) ? `- Customer Acquisition Cost: $${financial_inputs.cac}` : ''}
+${hasFiniteNumber(financial_inputs.churn_rate) ? `- Monthly Churn Rate: ${financial_inputs.churn_rate}%` : ''}
 
 Note: The user has provided specific financial data. Base your qualitative analysis (business plan, marketing, market analysis) on these realistic numbers.
 ` : '';
@@ -3004,7 +3018,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     const RETRY_DELAY_MS = 500; // Short delay between retries
     
     let response: { ok: true; data: Record<string, unknown> } | null = null;
-    let lastError: string | null = null;
     let lastStatus: number | null = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -3061,8 +3074,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         }
 
         lastStatus = aiResult.status;
-        lastError = `${aiResult.error}: ${aiResult.message}`;
-        log.error(`AI error on attempt ${attempt}: ${lastError}`);
+        log.error('AI request failed', { attempt, status: aiResult.status, errorCode: aiResult.error });
 
         // Don't retry on rate limit / credits / config
         if (aiResult.status === 429 || aiResult.status === 402 || aiResult.error === 'CONFIG') {
@@ -3074,8 +3086,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
       } catch (fetchError) {
-        lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
-        log.error(`Fetch error on attempt ${attempt}: ${lastError}`);
+        log.error('AI request transport failed', {
+          attempt,
+          errorType: fetchError instanceof Error ? fetchError.name : 'UnknownError',
+        });
         if (attempt < MAX_RETRIES) {
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
@@ -3088,7 +3102,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     let usedFallback = false;
     
     if (!response) {
-      log.info(`All ${MAX_RETRIES} AI attempts failed. Last status=${lastStatus} error=${lastError}`);
+      log.info('All AI attempts failed; using deterministic fallback', { attempts: MAX_RETRIES, lastStatus });
       log.info("Generating deterministic fallback analysis...");
 
       if (lastStatus === 429) {
@@ -3407,34 +3421,34 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     let providedOptional = 0;
     
     // Count user-provided financial inputs (these are HIGH VALUE for confidence)
-    const userProvidedCount = financial_inputs ? Object.values(financial_inputs).filter(v => v !== undefined && v !== null && v > 0).length : 0;
+    const userProvidedCount = financial_inputs ? Object.values(financial_inputs).filter(hasFiniteNumber).length : 0;
     const userProvidedFields: string[] = [];
     
-    if (financial_inputs?.startup_investment) {
+    if (hasFiniteNumber(financial_inputs?.startup_investment)) {
       providedRequired++;
       userProvidedFields.push('investment');
     }
-    if (financial_inputs?.monthly_revenue) {
+    if (hasFiniteNumber(financial_inputs?.monthly_revenue)) {
       providedRequired++;
       userProvidedFields.push('revenue');
     }
-    if (financial_inputs?.cac) {
+    if (hasFiniteNumber(financial_inputs?.cac)) {
       providedRequired++;
       userProvidedFields.push('CAC');
     }
-    if (financial_inputs?.average_price) {
+    if (hasFiniteNumber(financial_inputs?.average_price)) {
       providedOptional++;
       userProvidedFields.push('pricing');
     }
-    if (financial_inputs?.expected_customers) {
+    if (hasFiniteNumber(financial_inputs?.expected_customers)) {
       providedOptional++;
       userProvidedFields.push('customers');
     }
-    if (financial_inputs?.monthly_costs) {
+    if (hasFiniteNumber(financial_inputs?.monthly_costs)) {
       providedOptional++;
       userProvidedFields.push('costs');
     }
-    if (financial_inputs?.churn_rate) {
+    if (hasFiniteNumber(financial_inputs?.churn_rate)) {
       providedOptional++;
       userProvidedFields.push('churn');
     }
@@ -3674,7 +3688,11 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       result.confidence_score = Math.min(result.confidence_score, 50);
     }
 
-    log.info(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
+    log.info('Analysis calculation completed', {
+      industry: calc.industryDetected,
+      correctionCount: calc.corrections.length,
+      reliabilityScore,
+    });
 
     // ========== RECORD USAGE ==========
     // Record anonymous usage for rate limiting
@@ -3775,7 +3793,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
     let sensitivityAnalysis: SensitivityResult | undefined;
     try {
-      const churnRate = mergedFinancialInputs?.churn_rate ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months);
+      const churnRate = hasFiniteNumber(mergedFinancialInputs?.churn_rate) ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months);
       sensitivityAnalysis = analyzeSensitivity({
         mrr: calc.mrr, totalExpenses: calc.totalExpenses, netProfit: calc.netProfit,
         averageCheck: calc.averageCheck, cac: calc.cac, cogsPercent: detectedIndustry.cogs_percent,
@@ -3806,7 +3824,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       sanityFlags = runAntiBS({
         ltvCacRatio: calc.ltvCacRatio,
         netMarginPercent: calc.netMarginPercent,
-        churnRate: mergedFinancialInputs?.churn_rate ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months),
+        churnRate: hasFiniteNumber(mergedFinancialInputs?.churn_rate) ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months),
         mrr: calc.mrr,
         clientsActive: calc.clientsActive,
       }, detectedIndustry.id);
@@ -3939,7 +3957,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // ========== ASSUMPTION GRAPH ==========
     let assumptionGraph: AssumptionGraphResult | undefined;
     try {
-      const churnRate = mergedFinancialInputs?.churn_rate ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months);
+      const churnRate = hasFiniteNumber(mergedFinancialInputs?.churn_rate) ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months);
       assumptionGraph = computeAssumptionGraph(
         {
           averageCheck: calc.averageCheck,
@@ -3966,7 +3984,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     try {
       const maxSwing = sensitivityAnalysis?.tornado?.[0]?.profitSwing || 0;
       modelConfidence = await computeModelConfidence({
-        hasFinancialInputs: !!(financial_inputs?.startup_investment || financial_inputs?.monthly_revenue || financial_inputs?.average_price),
+        hasFinancialInputs: [financial_inputs?.startup_investment, financial_inputs?.monthly_revenue, financial_inputs?.average_price].some(hasFiniteNumber),
         hasDocuments: documentExtractedFinancials.length > 0,
         hasSpecificIndustry: detectedIndustry.id !== 'general',
         ideaLength: idea_clean.length,
@@ -4517,10 +4535,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     );
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : '';
-    log.error("[outermost-catch] Unhandled error:", errorMessage);
-    log.error("[outermost-catch] Stack:", errorStack);
+    const errorType = error instanceof Error ? error.name : 'UnknownError';
+    log.error('[outermost-catch] Unhandled analysis failure', { errorType });
 
     // ── WS3: ZERO-FAIL outermost catch ──
     // If GOLDEN exists, the deterministic engine already produced a valid result.
@@ -4531,7 +4547,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         ...GOLDEN,
         _degraded: true,
         _degraded_reason: GOLDEN_reason || 'outermost_catch',
-        _error_context: errorMessage,
+        _error_context: 'analysis_degraded',
       };
       return new Response(
         JSON.stringify({ success: true, data: goldenPayload }),
@@ -4554,7 +4570,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         ...lastResort,
         _degraded: true,
         _degraded_reason: 'last_resort_deterministic',
-        _error_context: errorMessage,
+        _error_context: 'analysis_degraded',
       };
       return new Response(
         JSON.stringify({ success: true, data: lastResortPayload }),

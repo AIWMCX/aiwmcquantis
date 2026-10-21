@@ -32,7 +32,7 @@ export type TrafficReport = {
 const pct = (n: number, d: number) => (d > 0 ? `${Math.round((n / d) * 100)}%` : '—');
 
 const COLS: Array<{ key: keyof TrafficRow; label: string }> = [
-  { key: 'sessions', label: 'Visits' },
+  { key: 'sessions', label: 'Sessions' },
   { key: 'engaged', label: 'Engaged' },
   { key: 'analysis_started', label: 'Started' },
   { key: 'analysis_completed', label: 'Completed' },
@@ -42,7 +42,7 @@ const COLS: Array<{ key: keyof TrafficRow; label: string }> = [
 ];
 
 function Table({ rows, first }: { rows: TrafficRow[]; first: 'channel' | 'source' }) {
-  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No external visits in this window.</p>;
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No external sessions in this window.</p>;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -71,15 +71,15 @@ function Table({ rows, first }: { rows: TrafficRow[]; first: 'channel' | 'source
   );
 }
 
-/** Where external visitors came from, by first touch of each visit. */
+/** Where external sessions came from, by first touch in each session. */
 export function TrafficSources({ report }: { report: TrafficReport | null }) {
   const t = report?.totals;
   const stats = t
     ? [
-        { label: 'External visits', value: t.external.toLocaleString(), note: `${t.internal_excluded.toLocaleString()} internal visits excluded` },
+        { label: 'External sessions', value: t.external.toLocaleString(), note: `${t.internal_excluded.toLocaleString()} internal sessions excluded` },
         { label: 'Attributed', value: pct(t.external - t.direct_unknown, t.external), note: `referrer, UTM or click id${t.recovered_by_first_touch ? ` · ${t.recovered_by_first_touch} via first visit` : ''}` },
         { label: 'Direct / unknown', value: t.direct_unknown.toLocaleString(), note: 'typed URL, app, or stripped referrer' },
-        { label: 'UTM-tagged', value: t.utm_tagged.toLocaleString(), note: 'visits from tagged links' },
+        { label: 'UTM-tagged', value: t.utm_tagged.toLocaleString(), note: 'sessions with tagged links' },
       ]
     : [];
 

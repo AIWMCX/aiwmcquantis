@@ -82,9 +82,11 @@ export function AISuggestionButton({
         readString(context.geographic_focus) ||
         'small and medium businesses',
       location: readString(context.location) || readString(context.geographic_focus),
-      revenue: readNumber(context.revenue) ?? readNumber(context.monthly_revenue) ?? readNumber(context.mrr) ?? 0,
-      roi: readNumber(context.roi) ?? 0,
-      payback_months: readNumber(context.payback_months) ?? readNumber(context.break_even_months) ?? 0,
+      revenue: readNumber(context.revenue) ?? readNumber(context.monthly_revenue) ?? readNumber(context.mrr),
+      roi: readNumber(context.roi),
+      // Operating break-even is not investment payback. Keep the latter
+      // unavailable unless the caller supplied that exact metric.
+      payback_months: readNumber(context.payback_months),
     };
 
     try {

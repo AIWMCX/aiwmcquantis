@@ -22,7 +22,7 @@ const COVER = {
   location: SAMPLE_REPORT.meta.location,
   generated: SAMPLE_REPORT.meta.generated,
   pages: SAMPLE_REPORT.meta.pages,
-  confidence: SAMPLE_REPORT.meta.confidenceLabel,
+  evidenceStatus: SAMPLE_REPORT.meta.evidenceLabel,
   summary: SAMPLE_REPORT.meta.summary,
 } as const;
 
@@ -30,7 +30,7 @@ const METRIC_ICONS: Record<string, typeof DollarSign> = {
   investment: DollarSign,
   payback: Clock,
   profit: TrendingUp,
-  confidence: Gauge,
+  status: Gauge,
 };
 
 type ReadingTheme = 'dark' | 'highContrast' | 'sepia';
@@ -303,7 +303,7 @@ export function ReportFirstHero() {
                 A {PAGE_COUNT}-page layout showing the sections a Quantis report contains, on a fictional business.
               </p>
               <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--sdw-ink-2)' }}>
-                <strong>Illustrative only.</strong> The figures, confidence score and scenario ranges on these pages were written by hand to show the layout — they were not produced by the Quantis engine. Run your own decision to see engine-calculated results.
+                <strong>Illustrative only.</strong> The figures and scenario ranges on these pages were written by hand to show the layout — they were not produced by the Quantis engine. Run your own decision to see engine-calculated results.
               </p>
             </div>
           </div>
@@ -692,9 +692,9 @@ export function ReportFirstHero() {
                     <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono" style={{ color: 'rgba(230,238,255,0.55)' }}>
                       <span>{COVER.pages} pages</span>
                       <span aria-hidden="true">·</span>
-                      <span>Confidence {COVER.confidence}</span>
+                      <span>{COVER.evidenceStatus}</span>
                       <span aria-hidden="true">·</span>
-                      <span>Multi-model cross-checked</span>
+                      <span>Hand-authored sample</span>
                     </div>
                   </div>
                 </section>
@@ -712,7 +712,7 @@ export function ReportFirstHero() {
                 color: 'hsl(var(--muted-foreground))',
               }}
             >
-              <span>15 pages · Confidence 79% · Generated Jun 13 2026</span>
+              <span>15 pages · Fictional example · Generated Jun 13 2026</span>
               <span className="hidden sm:inline">Industry: Consulting / F&amp;B hybrid · Austin, TX</span>
             </div>
           </div>

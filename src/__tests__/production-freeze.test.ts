@@ -847,10 +847,13 @@ describe('T17 — reconciliation module map is honestly labeled, not silently de
     expect(src).toContain('financialPlausibilityIssue');
   });
 
-  it('the rawMrr/rawInvestment/rawCac/rawLtv fallback chains are guarded against non-finite AI values', () => {
+  it('the raw MRR/investment/CAC fallback chains preserve explicit zero and reject non-finite estimates', () => {
     const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
-    expect(src).toMatch(/const rawMrr = userInputs\?\.\w+ \|\| finite\(fa\.mrr\)/);
-    expect(src).toMatch(/const rawInvestment = userInputs\?\.\w+ \|\| finite\(fa\.startup_investment\)/);
+    expect(src).toMatch(/const rawMrr = userInputs\?\.monthly_revenue \?\? finite\(fa\.mrr\)/);
+    expect(src).toMatch(/const rawInvestment = userInputs\?\.startup_investment \?\? finite\(fa\.startup_investment\)/);
+    expect(src).toMatch(/const rawCac = userInputs\?\.cac \?\? finite\(fa\.cac\)/);
+    expect(src).toContain('import { hasFiniteNumber } from "../_shared/financial-inputs.ts";');
+    expect(src).not.toMatch(/const raw(?:Mrr|Investment|Cac|AvgCheck) = userInputs\?\.[^\n]+ \|\|/);
   });
 });
 

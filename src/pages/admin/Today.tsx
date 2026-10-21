@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, ArrowUpRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { readAdminRows } from '@/lib/admin-read-all';
 import type { TrafficReport } from '@/components/admin/TrafficSources';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,13 @@ type EventRow = { event_name: string; unique_sessions: number };
 type Growth = TrafficReport & { events: EventRow[] };
 
 interface CommercialWindow { engaged: number; paid: number; revenueUsd: number; refunds: number }
+type PaidEngagementMetricRow = {
+  payment_status: string;
+  amount_paid_minor: number | null;
+  engaged_at: string | null;
+  paid_at: string | null;
+  refunded_at: string | null;
+};
 interface EngineState { latestSweepAt: string | null; latestSweepViolations: number | null; latestSweepScanned: number | null; quarantinedTotal: number }
 interface AiOps { calls: number; errors: number; costUsd: number; avgLatencyMs: number | null }
 interface Failures { completed: number; failed: number }
@@ -37,11 +45,11 @@ const WINDOWS = [
 ] as const;
 
 const FUNNEL = [
-  { key: 'home_view', label: 'Homepage visits' },
-  { key: 'analysis_start', label: 'Analysis started' },
-  { key: 'analysis_complete', label: 'Analysis completed' },
-  { key: 'free_signup_complete', label: 'Signed up' },
-  { key: 'paid_checkout_start', label: 'Checkout started' },
+  { key: 'home_view', label: 'Homepage sessions' },
+  { key: 'analysis_start', label: 'Analysis-start sessions' },
+  { key: 'analysis_complete', label: 'Analysis-completion sessions' },
+  { key: 'free_signup_complete', label: 'Signup sessions' },
+  { key: 'paid_checkout_start', label: 'Checkout-start sessions' },
 ] as const;
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : String(e));
@@ -111,6 +119,11 @@ export default function AdminToday() {
   const load = useCallback(async (windowDays: number) => {
     const since = new Date(Date.now() - windowDays * 86_400_000).toISOString();
     setGrowth({ status: 'loading', data: null });
+    setCommercial({ status: 'loading', data: null });
+    setEngine({ status: 'loading', data: null });
+    setAiOps({ status: 'loading', data: null });
+    setFailures({ status: 'loading', data: null });
+    setUpdatedAt(null);
 
     await Promise.all([
       (async () => {
@@ -120,18 +133,24 @@ export default function AdminToday() {
       })(),
       (async () => {
         try {
-          const { data, error } = await supabase
-            .from('paid_engagements')
-            .select('payment_status,amount_paid_minor,engaged_at,paid_at')
-            .or(`engaged_at.gte.${since},paid_at.gte.${since}`);
-          if (error) throw error;
-          const rows = data ?? [];
-          const paid = rows.filter((r) => r.payment_status === 'paid');
+          const rows = await readAdminRows<PaidEngagementMetricRow>(async (from, to) => {
+            const { data, error } = await supabase
+              .from('paid_engagements')
+              .select('payment_status,amount_paid_minor,engaged_at,paid_at,refunded_at')
+              .or(`engaged_at.gte.${since},paid_at.gte.${since},refunded_at.gte.${since}`)
+              .order('created_at', { ascending: true })
+              .order('id', { ascending: true })
+              .range(from, to);
+            return { data: data as unknown as PaidEngagementMetricRow[] | null, error };
+          });
+          const inWindow = (value: string | null) => !!value && new Date(value).getTime() >= new Date(since).getTime();
+          const engaged = rows.filter((r) => inWindow(r.engaged_at));
+          const paid = rows.filter((r) => r.payment_status === 'paid' && inWindow(r.paid_at));
           setCommercial({ status: 'ok', data: {
-            engaged: rows.length,
+            engaged: engaged.length,
             paid: paid.length,
             revenueUsd: paid.reduce((s, r) => s + (r.amount_paid_minor ?? 0), 0) / 100,
-            refunds: rows.filter((r) => r.payment_status === 'refunded' || r.payment_status === 'partially_refunded').length,
+            refunds: rows.filter((r) => (r.payment_status === 'refunded' || r.payment_status === 'partially_refunded') && inWindow(r.refunded_at)).length,
           } });
         } catch (e) { logger.error('admin overview: commercial', e); setCommercial({ status: 'error', data: null, errorMessage: errMsg(e) }); }
       })(),
@@ -153,9 +172,12 @@ export default function AdminToday() {
       })(),
       (async () => {
         try {
-          const { data, error } = await supabase.from('ai_calls').select('cost_usd,ok,latency_ms').gte('created_at', since);
-          if (error) throw error;
-          const rows = data ?? [];
+          const rows = await readAdminRows((from, to) => supabase.from('ai_calls')
+            .select('id,created_at,cost_usd,ok,latency_ms')
+            .gte('created_at', since)
+            .order('created_at', { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to));
           const lat = rows.map((r) => r.latency_ms).filter((v): v is number => typeof v === 'number');
           setAiOps({ status: 'ok', data: {
             calls: rows.length,
@@ -167,9 +189,12 @@ export default function AdminToday() {
       })(),
       (async () => {
         try {
-          const { data, error } = await supabase.from('analysis_complete_events').select('ok').gte('created_at', since);
-          if (error) throw error;
-          const rows = data ?? [];
+          const rows = await readAdminRows((from, to) => supabase.from('analysis_complete_events')
+            .select('id,created_at,ok')
+            .gte('created_at', since)
+            .order('created_at', { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to));
           const failed = rows.filter((r) => r.ok === false).length;
           setFailures({ status: 'ok', data: { completed: rows.length - failed, failed } });
         } catch (e) { logger.error('admin overview: failures', e); setFailures({ status: 'error', data: null, errorMessage: errMsg(e) }); }
@@ -229,14 +254,14 @@ export default function AdminToday() {
           <Card className="col-span-full"><CardContent className="p-4 text-sm text-destructive">Growth numbers unavailable: {growth.errorMessage}</CardContent></Card>
         ) : (
           <>
-            <Kpi label="External visits" value={g ? g.totals.external.toLocaleString() : '…'} sub={g ? `${g.totals.internal_excluded} internal excluded` : undefined} />
-            <Kpi label="Analyses completed" value={g ? at('analysis_complete') : '…'} sub={g ? `${pct(at('analysis_complete'), top)} of homepage visits` : undefined} />
-            <Kpi label="Signups" value={g ? at('free_signup_complete') : '…'} />
-            <Kpi label="Checkouts started" value={g ? at('paid_checkout_start') : '…'} />
+            <Kpi label="External sessions" value={g ? g.totals.external.toLocaleString() : '…'} sub={g ? `${g.totals.internal_excluded} internal excluded` : undefined} />
+            <Kpi label="Analysis-completion sessions" value={g ? at('analysis_complete') : '…'} sub={g ? `${pct(at('analysis_complete'), top)} of homepage sessions` : undefined} />
+            <Kpi label="Signup sessions" value={g ? at('free_signup_complete') : '…'} />
+            <Kpi label="Checkout-start sessions" value={g ? at('paid_checkout_start') : '…'} />
             <Kpi
-              label="Paid revenue"
+              label="Non-refunded review receipts"
               value={commercial.data ? `$${commercial.data.revenueUsd.toLocaleString()}` : commercial.status === 'error' ? '—' : '…'}
-              sub={commercial.data ? `${commercial.data.paid} paid engagement${commercial.data.paid === 1 ? '' : 's'}` : undefined}
+              sub={commercial.data ? `${commercial.data.paid} paid review engagement${commercial.data.paid === 1 ? '' : 's'} · SaaS and partial refunds excluded` : undefined}
               good={!!commercial.data && commercial.data.revenueUsd > 0}
             />
           </>
@@ -244,7 +269,7 @@ export default function AdminToday() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <Section className="lg:col-span-3" title="Funnel" description="Visits that reached each step (external)" link={{ href: '/admin/funnel', label: 'Funnel & sources' }}>
+        <Section className="lg:col-span-3" title="Funnel" description="External sessions containing each event; session counts, not total event or user counts" link={{ href: '/admin/funnel', label: 'Funnel & sources' }}>
           <Pending state={growth}>
             {() => (
               <>
@@ -301,7 +326,7 @@ export default function AdminToday() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Section title="Paid engagements" description="Founder Decision Review / Consultant Pilot" link={{ href: '/admin/paid-engagements', label: 'Open' }}>
+        <Section title="Paid engagements" description="Founder Decision Review / Consultant Pilot; excludes SaaS subscriptions and partial-refund amounts" link={{ href: '/admin/paid-engagements', label: 'Open' }}>
           <Pending state={commercial}>
             {(d) => (
               <dl>
@@ -314,7 +339,7 @@ export default function AdminToday() {
           </Pending>
         </Section>
 
-        <Section title="Decision Runs" description="All users, incl. internal" link={{ href: '/admin/accuracy', label: 'Accuracy' }}>
+        <Section title="Analysis completion events" description="Recorded completion events, including internal traffic" link={{ href: '/admin/accuracy', label: 'Accuracy' }}>
           <Pending state={failures}>
             {(d) => (
               <dl>

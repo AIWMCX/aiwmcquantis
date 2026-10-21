@@ -1,10 +1,11 @@
-import React, { useState, useCallback, lazy, Suspense } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import type { ScenarioRunRef } from '@/types/canonical-document-model';
+import { promoteScenario } from '@/services/scenario-sets-api';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
 import { useCreateDocument, useDocuments } from '@/hooks/useDocuments';
@@ -193,19 +194,47 @@ const TEMPLATE_CARDS = [
 
 export default function DocsStudio() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get('analysis') || undefined;
-  const { hasFeature } = useEntitlements();
-  // Phase D — a promoted scenario run arrives via navigation state from
-  // ScenarioWorkspace. Gated on 'scenarioDocument': there is no server-side
-  // enforcement point for this (document creation is a direct client-side
-  // `documents` table insert, not an edge function), so this client check is
-  // the only gate — consistent with Docs Studio access itself already being
-  // Free users can use the starter templates; scenario promotion remains a
-  // paid document workflow and is enforced here as well as by entitlements.
-  const incomingScenarioRunRef = (location.state as { scenarioRunRef?: ScenarioRunRef } | null)?.scenarioRunRef;
-  const scenarioRunRef = incomingScenarioRunRef && hasFeature('scenarioDocument') ? incomingScenarioRunRef : undefined;
+  const scenarioRunId = searchParams.get('scenarioRunId') || undefined;
+  const { entitlements, loading: entitlementsLoading } = useEntitlements();
+  const [scenarioRunRef, setScenarioRunRef] = useState<ScenarioRunRef>();
+  const [scenarioRunLoading, setScenarioRunLoading] = useState(false);
+
+  // The URL carries only a durable run ID. Re-fetch the authoritative,
+  // owner-scoped run from the server after reload/back navigation; never
+  // trust router state for financial values or lineage.
+  useEffect(() => {
+    if (!scenarioRunId || entitlementsLoading) {
+      setScenarioRunRef(undefined);
+      setScenarioRunLoading(false);
+      return;
+    }
+    if (!entitlements?.features?.scenarioDocument) {
+      setScenarioRunRef(undefined);
+      setScenarioRunLoading(false);
+      toast.error('Scenario documents require an eligible plan.');
+      return;
+    }
+
+    let cancelled = false;
+    setScenarioRunRef(undefined);
+    setScenarioRunLoading(true);
+    promoteScenario(scenarioRunId)
+      .then((ref) => {
+        if (ref.analysisId !== analysisId) {
+          throw new Error('This scenario run does not belong to the selected analysis.');
+        }
+        if (!cancelled) setScenarioRunRef(ref);
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : 'Could not verify the scenario run.');
+      })
+      .finally(() => {
+        if (!cancelled) setScenarioRunLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [scenarioRunId, analysisId, entitlementsLoading, entitlements]);
 
   // ALL HOOKS MUST BE AT THE TOP - before any conditional returns
   const [step, setStep] = useState<Step>('home');
@@ -266,6 +295,10 @@ export default function DocsStudio() {
     format: 'pdf' | 'html',
     downloadFn: (html: string, title?: string) => void,
   ) => {
+    if (scenarioRunId && (!scenarioRunRef || scenarioRunLoading)) {
+      toast.error('The scenario run must be verified before generating this document.');
+      return;
+    }
     const templateCard = TEMPLATE_CARDS.find(t => t.id === templateId);
     const title = documentTitle || templateCard?.name || 'Untitled Document';
 
@@ -327,7 +360,7 @@ export default function DocsStudio() {
 
     // Trigger download
     downloadFn(html, title);
-  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal, getCanonicalVariables, scenarioRunRef]);
+  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal, getCanonicalVariables, scenarioRunRef, scenarioRunId, scenarioRunLoading]);
 
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
     // No-op: forms no longer have submit buttons; downloads happen via PreviewDownloadBar
