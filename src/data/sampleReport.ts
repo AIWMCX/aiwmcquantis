@@ -11,7 +11,7 @@
 import { MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
 
 export interface SampleMetric {
-  id: 'investment' | 'payback' | 'profit' | 'confidence';
+  id: 'investment' | 'payback' | 'profit' | 'status';
   label: string;
   value: string;
   /** Raw numeric form used by the integrity validator. */
@@ -19,6 +19,17 @@ export interface SampleMetric {
   sub: string;
   detail: string;
 }
+
+const SAMPLE_UNIT_ECONOMICS = {
+  monthlyRevenue: 28_400,
+  directCosts: 4_000,
+  monthlyRevenuePerMember: 89,
+  modeledRetentionMonths: 14,
+  cac: 42,
+} as const;
+const sampleGrossMargin = (SAMPLE_UNIT_ECONOMICS.monthlyRevenue - SAMPLE_UNIT_ECONOMICS.directCosts) / SAMPLE_UNIT_ECONOMICS.monthlyRevenue;
+const sampleContributionLtv = Math.round(SAMPLE_UNIT_ECONOMICS.monthlyRevenuePerMember * SAMPLE_UNIT_ECONOMICS.modeledRetentionMonths * sampleGrossMargin);
+const sampleLtvCac = (sampleContributionLtv / SAMPLE_UNIT_ECONOMICS.cac).toFixed(1);
 
 export const SAMPLE_REPORT = {
   meta: {
@@ -28,11 +39,10 @@ export const SAMPLE_REPORT = {
     location: 'Austin, TX',
     generated: 'Jun 13, 2026',
     pages: 15,
-    confidenceLabel: '79%',
-    confidence: 79,
+    evidenceLabel: 'Fictional example',
     verdict: 'Conditional Go — pivot pricing model before launch',
     summary:
-      'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, cross-model checked at 79% confidence.',
+      'Illustrative coffee and co-working concept targeting 180 paying members at $89/mo. The hand-authored example shows 18-month payback and $11.8k monthly Y2 profit; these figures are not an engine-generated forecast.',
   },
   metrics: {
     investment: { value: 142_500, label: '$142,500' },
@@ -54,7 +64,7 @@ export const SAMPLE_REPORT = {
       kicker: 'Executive Verdict',
       title: 'Conditional Go — pivot pricing before launch',
       bullets: [
-        'Confidence: 79% (multi-model cross-check, 4 of 5 stress tests passed)',
+        'Evidence status: fictional, hand-authored example; validate assumptions before a real decision',
         'Unit economics workable only above 145 paying members and ≥ $74 ARPU',
         'Largest fragility: location rent at $9.4k/mo (28% of OPEX)',
         'Recommended pivot: per-hour drop-in @ $14/hr + $89/mo unlimited tier',
@@ -89,12 +99,12 @@ export const SAMPLE_REPORT = {
       title: 'CAC, LTV and the ratio that matters',
       kpis: [
         { label: 'Blended CAC', value: '$42' },
-        { label: 'LTV (24-mo retention)', value: '$1,068' },
-        { label: 'LTV : CAC', value: '25.4 ×' },
-        { label: 'Gross margin', value: '71%' },
+        { label: 'Contribution LTV (14-mo assumption)', value: `$${sampleContributionLtv.toLocaleString('en-US')}` },
+        { label: 'LTV : CAC', value: `${sampleLtvCac} ×` },
+        { label: 'Gross margin', value: `${Math.round(sampleGrossMargin * 100)}%` },
       ],
       body: [
-        'CAC is dominated by Instagram + local creator partnerships ($1,250/mo budget producing ~30 paying signups). LTV assumes $89 ARPU × 14-month median retention × 0.86 gross margin contribution. The LTV:CAC ratio (25.4×) sits well above the SaaS-style 3× floor, but the absolute CAC must stay under $60 — at $80+ payback breaks the 18-month base case.',
+        `Illustrative CAC is $42 (about $1,250 of acquisition spending divided by 30 signups). Contribution LTV assumes $89 monthly revenue per member × 14 modeled months × ${Math.round(sampleGrossMargin * 100)}% gross margin = $${sampleContributionLtv.toLocaleString('en-US')}. The ${sampleLtvCac}× LTV:CAC ratio is conditional on those unverified inputs, not an observed cohort result.`,
       ],
     },
     {
@@ -202,11 +212,11 @@ export const SAMPLE_REPORT = {
     },
     {
       id: 15,
-      kicker: 'Methodology & Confidence',
-      title: 'Why 79% and not 95%',
+      kicker: 'Methodology & Limitations',
+      title: 'How to read this fictional example',
       body: [
-        'Model Confidence Score = weighted blend of benchmark match quality (0.82), assumption fragility (0.71), narrative coherence (0.84), cross-model agreement between the DeepSeek primary analysis and the Claude RVCE cross-check (0.79). Final composite = 0.79.',
-        'Confidence is capped below 85% on any single-location physical business until ≥ 6 months of real operating data is fed back into the Reality Loop. This report is decision-grade, not investment advice.',
+        'The figures and scenario outcomes in this sample were written by hand to demonstrate a report layout. They are not actual operating data, a generated Quantis result, an independent model check, or a measured probability of success.',
+        'A real decision needs verified inputs, a saved model version, a cash-flow review, and evidence from the business. Quantis provides decision support, not investment advice.',
       ],
     },
   ],
@@ -245,13 +255,13 @@ export const HEADLINE_METRICS: SampleMetric[] = [
       'Steady-state monthly net income at month 24, assuming 180 paying members × blended ARPU $89 and 4.1% monthly churn. Bottom-up P&L on page 7.',
   },
   {
-    id: 'confidence',
-    label: 'Confidence',
-    value: SAMPLE_REPORT.meta.confidenceLabel,
-    raw: SAMPLE_REPORT.meta.confidence,
-    sub: 'Multi-model cross-checked',
+    id: 'status',
+    label: 'Evidence status',
+    value: SAMPLE_REPORT.meta.evidenceLabel,
+    raw: SAMPLE_REPORT.meta.evidenceLabel,
+    sub: 'Hand-authored layout',
     detail:
-      'Model Confidence Score: benchmark match 0.82, fragility 0.71, narrative coherence 0.84, cross-model agreement 0.79. Page 15.',
+      'Every company and financial figure is illustrative. This sample was not calculated or independently validated by the Quantis engine. See page 15.',
   },
 ];
 
@@ -275,9 +285,9 @@ export function validateSampleReportIntegrity(): string[] {
   if (prof && prof.value !== SAMPLE_REPORT.metrics.monthlyProfitY2.label) {
     issues.push(`profit card "${prof.value}" ≠ report "${SAMPLE_REPORT.metrics.monthlyProfitY2.label}"`);
   }
-  const conf = find('confidence');
-  if (conf && conf.value !== SAMPLE_REPORT.meta.confidenceLabel) {
-    issues.push(`confidence card "${conf.value}" ≠ report "${SAMPLE_REPORT.meta.confidenceLabel}"`);
+  const status = find('status');
+  if (status && status.value !== SAMPLE_REPORT.meta.evidenceLabel) {
+    issues.push(`evidence card "${status.value}" ≠ report "${SAMPLE_REPORT.meta.evidenceLabel}"`);
   }
 
   // Cross-check: page 3 KPI table must echo headline numbers.
