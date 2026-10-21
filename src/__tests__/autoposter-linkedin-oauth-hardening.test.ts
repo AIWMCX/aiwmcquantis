@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const callbackSource = readFileSync(
   resolve(process.cwd(), "supabase/functions/oauth-linkedin-callback/index.ts"),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const publishSource = readFileSync(
   resolve(process.cwd(), "supabase/functions/publish-due-posts/index.ts"),
   "utf8",
@@ -113,7 +113,7 @@ describe("autoposter LinkedIn OAuth hardening (Workstream I.1 gap fixes)", () =>
   });
 
   it("claims due posts atomically (UPDATE ... WHERE status='scheduled' ... SELECT), not via a plain SELECT then a later UPDATE", () => {
-    const claimIdx = publishSource.indexOf(".update({ status: 'publishing' })");
+    const claimIdx = publishSource.indexOf(".update({ status: 'publishing', updated_at: nowIso })");
     const inIdx = publishSource.indexOf(".in('id', candidates.map", claimIdx);
     const rescheckIdx = publishSource.indexOf(".eq('status', 'scheduled')", inIdx);
     expect(claimIdx).toBeGreaterThan(-1);
@@ -122,7 +122,7 @@ describe("autoposter LinkedIn OAuth hardening (Workstream I.1 gap fixes)", () =>
   });
 
   it("treats zero newly-claimed rows as a normal empty result, not an error", () => {
-    const claimIdx = publishSource.indexOf(".update({ status: 'publishing' })");
+    const claimIdx = publishSource.indexOf(".update({ status: 'publishing', updated_at: nowIso })");
     const afterClaim = publishSource.slice(claimIdx);
     expect(afterClaim).toContain("already claimed by a concurrent invocation");
   });

@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const migrationSource = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260911224116_seed_content_studio_as_archived_posts.sql"),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const hookSource = readFileSync(resolve(process.cwd(), "src/hooks/useAutoposter.ts"), "utf8");
 const editorSource = readFileSync(resolve(process.cwd(), "src/components/autoposter/PostEditorSheet.tsx"), "utf8");
 const archiveSource = readFileSync(resolve(process.cwd(), "src/components/autoposter/PostArchive.tsx"), "utf8");

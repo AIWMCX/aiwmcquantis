@@ -32,7 +32,10 @@ function walk(dir, test, acc = []) {
 }
 
 // Edge functions: deployed = FUNCTIONS=( … ) list; excluded = .deploy-ignore.
-const deployYml = read('.github', 'workflows', 'production-deploy.yml').split('\n');
+// Normalize CRLF before parsing the shell array. Otherwise `#...$` does not
+// consume the comment because `$` sees the carriage return, and comments are
+// counted as deployed function names on Windows checkouts.
+const deployYml = read('.github', 'workflows', 'production-deploy.yml').replace(/\r\n/g, '\n').split('\n');
 const start = deployYml.findIndex((l) => /FUNCTIONS=\(/.test(l));
 const deployed = [];
 for (let i = start + 1; start >= 0 && i < deployYml.length; i++) {
@@ -40,7 +43,7 @@ for (let i = start + 1; start >= 0 && i < deployYml.length; i++) {
   if (raw === ')') break;
   if (raw) deployed.push(raw);
 }
-const ignored = read('supabase', 'functions', '.deploy-ignore').split('\n').map((l) => l.replace(/#.*$/, '').trim()).filter(Boolean);
+const ignored = read('supabase', 'functions', '.deploy-ignore').replace(/\r\n/g, '\n').split('\n').map((l) => l.replace(/#.*$/, '').trim()).filter(Boolean);
 const functionDirs = readdirSync(p('supabase', 'functions')).filter((n) => !n.startsWith('_') && !n.startsWith('.') && statSync(p('supabase', 'functions', n)).isDirectory());
 
 const migrations = readdirSync(p('supabase', 'migrations')).filter((f) => /^\d{14}_.+\.sql$/.test(f)).sort();

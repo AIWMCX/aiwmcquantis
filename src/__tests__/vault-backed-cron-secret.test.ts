@@ -10,7 +10,7 @@ const cronMigrationFile = readdirSync(migrationsDir).find((f) =>
 describe("Vault-backed cron secret migration", () => {
   it("exists and never contains a literal x-cron-secret value", () => {
     expect(cronMigrationFile).toBeDefined();
-    const source = readFileSync(resolve(migrationsDir, cronMigrationFile!), "utf8");
+    const source = readFileSync(resolve(migrationsDir, cronMigrationFile!), "utf8").replace(/\r\n/g, "\n");
     // The two known literal secret values that have appeared in this repo's
     // git history (one wrong, one correct) must never reappear in a new
     // migration file -- this is the exact class of exposure the auto-mode
@@ -22,7 +22,7 @@ describe("Vault-backed cron secret migration", () => {
   });
 
   it("schedules reconcile-stripe-subscriptions and reschedules both existing lifecycle-email jobs", () => {
-    const source = readFileSync(resolve(migrationsDir, cronMigrationFile!), "utf8");
+    const source = readFileSync(resolve(migrationsDir, cronMigrationFile!), "utf8").replace(/\r\n/g, "\n");
     expect(source).toContain("cron.schedule(\n  'reconcile-stripe-subscriptions-daily'");
     expect(source).toContain("functions/v1/reconcile-stripe-subscriptions");
     expect(source).toContain("cron.alter_job(\n  4,");

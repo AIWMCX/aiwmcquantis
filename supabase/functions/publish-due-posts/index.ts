@@ -340,6 +340,26 @@ Deno.serve(async (req) => {
   // client-supplied idempotency key, so a request that times out after
   // LinkedIn already accepted it remains a real, unresolved residual risk.
   const nowIso = new Date().toISOString();
+  // A worker can be terminated after claiming rows but before recording an
+  // outcome. Never silently strand those rows in `publishing`, and never
+  // auto-requeue them: the platform may already have accepted the post.
+  const stalePublishingBefore = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { error: staleClaimError } = await supa
+    .from('autoposter_post_platforms')
+    .update({
+      status: 'unknown',
+      error_message: 'Publishing worker stopped before recording an outcome. Check the platform before retrying.',
+      updated_at: nowIso,
+    })
+    .eq('status', 'publishing')
+    .lt('updated_at', stalePublishingBefore);
+  if (staleClaimError) {
+    return new Response(JSON.stringify({ error: 'Could not reconcile stale publishing claims safely.' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const { data: candidates, error: candidateErr } = await supa
     .from('autoposter_post_platforms')
     .select('id')
@@ -362,7 +382,7 @@ Deno.serve(async (req) => {
 
   const { data: due, error } = await supa
     .from('autoposter_post_platforms')
-    .update({ status: 'publishing' })
+    .update({ status: 'publishing', updated_at: nowIso })
     .in('id', candidates.map((c) => c.id))
     .eq('status', 'scheduled')
     .select('id, post_id, platform, content, scheduled_at');
