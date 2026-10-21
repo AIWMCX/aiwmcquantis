@@ -1,6 +1,8 @@
 # Quantis financial integrity and buyer trust release review
 
-Status: local review branch `codex-redteam-financial-integrity-20261020`; not pushed, deployed or production verified. Base commit: `fe4f4364`. Financial commit: `034bf5fa`; operations commit: `40c367d9`.
+Status: local review branch `codex-redteam-financial-integrity-20261020`; not pushed or deployed. Base commit: `fe4f4364`. Financial commit: `034bf5fa`; operations commit: `40c367d9`; document-default commit: `0181d01b`; public-sample commit: `6d731781`.
+
+Read-only production observation on 2026-10-20 (Denver local date): `https://www.aiwmcquantis.com/release.json` reported frontend SHA `fe4f43649b46c18d83992dd7fd8f74669cc8f97f`, built `2026-10-20T02:16:02.394Z`, engine version `2.0.0-precision`, and migration head `20261020100000_checkout_intent_feed`. `https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/health-check` returned `healthy` at `2026-10-21T04:26:26.696Z`; database, vault, storage and AI configuration checks reported `up`. That endpoint did not expose a backend commit SHA or perform a financial analysis, so it does not prove the branch is live or the full SaaS journey works.
 
 ## Reproduced consulting case
 
@@ -39,6 +41,6 @@ The repository payback gate passed for 51 complete examples, but it flagged two 
 - Payback integrity script: passed with the two manual-review warnings above.
 - `git diff --check` with CRLF-aware Git setting: passed.
 - GitHub CLI: token invalid; branch cannot be pushed from this session yet.
-- Production frontend release, deployed function versions, migration ledger, live mailbox status, scheduled posts, lead queue, paid rehearsal, and actual exported files: not verified.
+- Production frontend release identity: observed at the base SHA above. Backend health: observed healthy, but deployed function commit versions remain unknown. Migration ledger, live mailbox status, scheduled posts, lead queue, paid rehearsal, and actual exported files: not verified.
 
 Next release gate: refresh GitHub authentication, reconcile Supabase migration history, run CI on a PR, then perform read-only source-to-KPI checks and synthetic end-to-end export/fulfillment checks before any production deployment claim.
