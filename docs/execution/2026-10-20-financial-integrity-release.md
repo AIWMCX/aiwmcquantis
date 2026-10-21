@@ -1,6 +1,6 @@
 # Quantis financial integrity and buyer trust release review
 
-Status: code changed in `codex-redteam-financial-integrity-20261020`; not deployed or production verified. Base commit: `fe4f4364`.
+Status: local review branch `codex-redteam-financial-integrity-20261020`; not pushed, deployed or production verified. Base commit: `fe4f4364`. Financial commit: `034bf5fa`; operations commit: `40c367d9`.
 
 ## Reproduced consulting case
 
@@ -16,6 +16,7 @@ The existing six-month revenue ramp and its stated 60% fixed / 40% variable cost
 | P0 | Scenario document handoff could lose the selected analysis and scenario identity. | Durable references and server ownership checks added in Scenario Workspace, Docs Studio and promotion endpoint. | Authenticated save, reload, direct navigation and exported-file check. |
 | P0 | Supplied total costs could be counted again as direct costs; break-even and investment payback could be conflated. | Total-cost allocation and separate operating/payback functions; synthetic fixture above. | Validate production result versions and more cost structures. |
 | P1 | Business-plan preview/export showed missing break-even as `0 mo`. | Missing month is optional and renders `Not provided`; a real month must be a positive integer. | Inspect a generated PDF/HTML export end to end. |
+| P1 | An untouched business plan also displayed zero revenue, zero market size and a seed funding request for $0. | Missing numeric projections and market sizes are optional and render `Not provided`; an unspecified funding request is labeled as such. The rendered preview regression test passes. | Verify the generated document file and all other template defaults. |
 | P1 | Advanced-input form promised about 40% accuracy and displayed a calculated confidence gain from field count. | Claims removed; form describes supplied assumptions, counts genuine zero, and focused UI test passes. | Sweep remaining claims on public and paid surfaces. |
 | P1 | Founder panel mixed session counts with user/event labels, review receipts with SaaS revenue, and could silently truncate large source tables. | Labels, timestamps and bounded pagination corrected; errors are surfaced when the 20,000-row ceiling is exceeded. | Compare authenticated panel values against production source queries and SaaS billing ledger. |
 | P1 | Ambiguous SMTP outcome could retry an accepted email. | Send is held for mailbox reconciliation after SMTP begins. | Verify live mailbox status, queued leads and provider reconciliation. |
@@ -30,6 +31,7 @@ The repository payback gate passed for 51 complete examples, but it flagged two 
 ## Verification and release gates
 
 - Focused financial/UI tests: 8 passed.
+- Business-plan preview regression and focused component TypeScript check: passed after the additional missing-data correction.
 - Full suite: 2,015 passed, 23 skipped, one local Git ownership failure. That test passed separately (3 tests) with a process-local `safe.directory` setting; no global Git configuration changed.
 - Financial TypeScript check and focused app TypeScript check: passed.
 - Payback integrity script: passed with the two manual-review warnings above.

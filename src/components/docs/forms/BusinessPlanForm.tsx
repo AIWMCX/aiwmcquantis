@@ -36,9 +36,9 @@ const BusinessPlanFormSchema = z.object({
   
   // Market Analysis
   target_market: z.string().min(20, 'Target market description required'),
-  market_size_tam: z.number().min(0, 'TAM required'),
-  market_size_sam: z.number().min(0, 'SAM required'),
-  market_size_som: z.number().min(0, 'SOM required'),
+  market_size_tam: z.number().min(0).optional(),
+  market_size_sam: z.number().min(0).optional(),
+  market_size_som: z.number().min(0).optional(),
   competitive_advantage: z.string().min(30, 'Competitive advantage required'),
   
   // Business Model
@@ -47,11 +47,11 @@ const BusinessPlanFormSchema = z.object({
   sales_channels: z.string().min(10, 'Sales channels required'),
   
   // Financial Projections
-  year1_revenue: z.number().min(0),
-  year2_revenue: z.number().min(0),
-  year3_revenue: z.number().min(0),
-  startup_costs: z.number().min(0),
-  monthly_burn_rate: z.number().min(0),
+  year1_revenue: z.number().min(0).optional(),
+  year2_revenue: z.number().min(0).optional(),
+  year3_revenue: z.number().min(0).optional(),
+  startup_costs: z.number().min(0).optional(),
+  monthly_burn_rate: z.number().min(0).optional(),
   break_even_months: z.number().int().min(1).max(120).optional(),
   
   // Team
@@ -65,7 +65,7 @@ const BusinessPlanFormSchema = z.object({
   
   // Funding
   funding_stage: z.string(),
-  funding_amount: z.number().min(0),
+  funding_amount: z.number().min(0).optional(),
   use_of_funds: z.string().min(20, 'Use of funds required'),
 });
 
@@ -89,20 +89,20 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
     unique_value_proposition: '',
     
     target_market: '',
-    market_size_tam: 0,
-    market_size_sam: 0,
-    market_size_som: 0,
+    market_size_tam: undefined,
+    market_size_sam: undefined,
+    market_size_som: undefined,
     competitive_advantage: '',
     
     revenue_model: '',
     pricing_strategy: '',
     sales_channels: '',
     
-    year1_revenue: 0,
-    year2_revenue: 0,
-    year3_revenue: 0,
-    startup_costs: 0,
-    monthly_burn_rate: 0,
+    year1_revenue: undefined,
+    year2_revenue: undefined,
+    year3_revenue: undefined,
+    startup_costs: undefined,
+    monthly_burn_rate: undefined,
     break_even_months: undefined,
     
     founders: '',
@@ -112,8 +112,8 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
     key_risks: '',
     milestones: '',
     
-    funding_stage: 'seed',
-    funding_amount: 0,
+    funding_stage: '',
+    funding_amount: undefined,
     use_of_funds: '',
   }), [template]);
 
@@ -142,7 +142,11 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
   useEffect(() => {
     const safeValues = escapeFormValues(formValues);
     const formatCurrency = (n: number) => `$${n.toLocaleString('en-US')}`;
+    const formatOptionalCurrency = (n: number | undefined) =>
+      typeof n === 'number' && Number.isFinite(n) ? formatCurrency(n) : 'Not provided';
     const formatMillions = (n: number) => `$${(n / 1000000000).toFixed(1)}B`;
+    const formatOptionalMarket = (n: number | undefined) =>
+      typeof n === 'number' && Number.isFinite(n) ? formatMillions(n) : 'Not provided';
     
     const rawHTML = `
       <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
@@ -168,9 +172,9 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
           <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Market Analysis</h2>
           <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 12px 0;"><strong>Target Market:</strong> ${safeValues.target_market || ''}</p>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 12px 0;">
-            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">TAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_tam || 0)}</p></div>
-            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_sam || 0)}</p></div>
-            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SOM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_som || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">TAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatOptionalMarket(formValues.market_size_tam)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatOptionalMarket(formValues.market_size_sam)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SOM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatOptionalMarket(formValues.market_size_som)}</p></div>
           </div>
           <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Competitive Advantage:</strong> ${safeValues.competitive_advantage || ''}</p>
         </section>
@@ -198,15 +202,15 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
             <tbody>
               <tr>
                 <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px;">Revenue</td>
-                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.year1_revenue || 0)}</td>
-                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.year2_revenue || 0)}</td>
-                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.year3_revenue || 0)}</td>
+                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatOptionalCurrency(formValues.year1_revenue)}</td>
+                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatOptionalCurrency(formValues.year2_revenue)}</td>
+                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatOptionalCurrency(formValues.year3_revenue)}</td>
               </tr>
             </tbody>
           </table>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Startup Costs</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.startup_costs || 0)}</p></div>
-            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Monthly Burn</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.monthly_burn_rate || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Startup Costs</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatOptionalCurrency(formValues.startup_costs)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0; font-family: 'Courier New',Courier,monospace;">Monthly Burn</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatOptionalCurrency(formValues.monthly_burn_rate)}</p></div>
             <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Break-Even</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${typeof formValues.break_even_months === 'number' ? `${formValues.break_even_months} mo` : 'Not provided'}</p></div>
           </div>
         </section>
@@ -225,7 +229,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         </section>
         <section style="margin-bottom: 24px;">
           <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Funding Request</h2>
-          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;">Seeking <strong>${safeValues.funding_stage?.toUpperCase() || 'SEED'} round</strong> &mdash; <strong style="font-family: 'Courier New',Courier,monospace; font-size: 15px;">${formatCurrency(formValues.funding_amount || 0)}</strong></p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;">${safeValues.funding_stage && typeof formValues.funding_amount === 'number' ? `Seeking <strong>${safeValues.funding_stage.toUpperCase()} round</strong> &mdash; <strong style="font-family: 'Courier New',Courier,monospace; font-size: 15px;">${formatCurrency(formValues.funding_amount)}</strong>` : 'Funding request not specified'}</p>
           <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Use of Funds:</strong> ${safeValues.use_of_funds || ''}</p>
         </section>
         <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">CONFIDENTIAL &middot; ${safeValues.company_name || 'Company'} &middot; &copy; ${new Date().getFullYear()} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
@@ -246,10 +250,10 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
     // Year 2/3 are deliberately left for the user to fill — the engine
     // doesn't produce multi-year projections, and this form previously
     // guessed them via hardcoded *2.5 / *5 growth multipliers.
-    if (data.monthly_revenue) {
+    if (data.monthly_revenue !== undefined) {
       form.setValue('year1_revenue', data.monthly_revenue * 12);
     }
-    if (data.startup_investment) form.setValue('startup_costs', data.startup_investment);
+    if (data.startup_investment !== undefined) form.setValue('startup_costs', data.startup_investment);
     // Do not populate operating break-even from investment payback; these
     // are distinct financial measures and the canonical auto-fill payload
     // currently exposes only investment payback.
@@ -377,31 +381,31 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="market_size_tam">TAM (Total Addressable Market) <span className="text-destructive">*</span></Label>
+              <Label htmlFor="market_size_tam">TAM (Total Addressable Market)</Label>
               <Input
                 id="market_size_tam"
                 type="number"
-                {...form.register('market_size_tam', { valueAsNumber: true })}
+                {...form.register('market_size_tam', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
                 placeholder="$150,000,000,000"
               />
               <p className="text-xs text-muted-foreground mt-1">In USD</p>
             </div>
             <div>
-              <Label htmlFor="market_size_sam">SAM (Serviceable Market) <span className="text-destructive">*</span></Label>
+              <Label htmlFor="market_size_sam">SAM (Serviceable Market)</Label>
               <Input
                 id="market_size_sam"
                 type="number"
-                {...form.register('market_size_sam', { valueAsNumber: true })}
+                {...form.register('market_size_sam', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="market_size_som">SOM (Obtainable Market) <span className="text-destructive">*</span></Label>
+              <Label htmlFor="market_size_som">SOM (Obtainable Market)</Label>
               <Input
                 id="market_size_som"
                 type="number"
-                {...form.register('market_size_som', { valueAsNumber: true })}
+                {...form.register('market_size_som', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
@@ -456,7 +460,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
               <Input
                 id="year1_revenue"
                 type="number"
-                {...form.register('year1_revenue', { valueAsNumber: true })}
+                {...form.register('year1_revenue', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
@@ -465,7 +469,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
               <Input
                 id="year2_revenue"
                 type="number"
-                {...form.register('year2_revenue', { valueAsNumber: true })}
+                {...form.register('year2_revenue', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
@@ -474,7 +478,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
               <Input
                 id="year3_revenue"
                 type="number"
-                {...form.register('year3_revenue', { valueAsNumber: true })}
+                {...form.register('year3_revenue', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
@@ -485,7 +489,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
               <Input
                 id="startup_costs"
                 type="number"
-                {...form.register('startup_costs', { valueAsNumber: true })}
+                {...form.register('startup_costs', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
@@ -494,7 +498,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
               <Input
                 id="monthly_burn_rate"
                 type="number"
-                {...form.register('monthly_burn_rate', { valueAsNumber: true })}
+                {...form.register('monthly_burn_rate', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
@@ -608,7 +612,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
               <Input
                 id="funding_amount"
                 type="number"
-                {...form.register('funding_amount', { valueAsNumber: true })}
+                {...form.register('funding_amount', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>
