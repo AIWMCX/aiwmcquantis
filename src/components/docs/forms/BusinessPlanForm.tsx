@@ -52,7 +52,7 @@ const BusinessPlanFormSchema = z.object({
   year3_revenue: z.number().min(0),
   startup_costs: z.number().min(0),
   monthly_burn_rate: z.number().min(0),
-  break_even_months: z.number().min(0).max(120),
+  break_even_months: z.number().int().min(1).max(120).optional(),
   
   // Team
   founders: z.string().min(10, 'Founders information required'),
@@ -103,7 +103,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
     year3_revenue: 0,
     startup_costs: 0,
     monthly_burn_rate: 0,
-    break_even_months: 0,
+    break_even_months: undefined,
     
     founders: '',
     team_size: 1,
@@ -207,7 +207,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
             <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Startup Costs</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.startup_costs || 0)}</p></div>
             <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Monthly Burn</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.monthly_burn_rate || 0)}</p></div>
-            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Break-Even</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.break_even_months || 0} mo</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Break-Even</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${typeof formValues.break_even_months === 'number' ? `${formValues.break_even_months} mo` : 'Not provided'}</p></div>
           </div>
         </section>
         <section style="margin-bottom: 24px;">
@@ -250,7 +250,9 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
       form.setValue('year1_revenue', data.monthly_revenue * 12);
     }
     if (data.startup_investment) form.setValue('startup_costs', data.startup_investment);
-    if (data.payback_months) form.setValue('break_even_months', data.payback_months);
+    // Do not populate operating break-even from investment payback; these
+    // are distinct financial measures and the canonical auto-fill payload
+    // currently exposes only investment payback.
   }, [form]);
 
   return (
@@ -501,9 +503,9 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
               <Input
                 id="break_even_months"
                 type="number"
-                min={0}
+                min={1}
                 max={120}
-                {...form.register('break_even_months', { valueAsNumber: true })}
+                {...form.register('break_even_months', { setValueAs: (value) => value === '' ? undefined : Number(value) })}
                 className="mt-1"
               />
             </div>

@@ -147,6 +147,9 @@ export function mapCanonicalModelToDocumentVariables(
   scenarioRun?: ScenarioRunRef,
   quoteVersion?: QuoteVersionRef,
 ): Record<string, DocumentVariable> {
+  if (scenarioRun?.analysisId && scenarioRun.analysisId !== modelSnapshot.analysisId) {
+    throw new Error('Scenario run belongs to a different analysis; refusing to map mismatched financial data.');
+  }
   const source: Partial<BusinessAnalysisResult> = scenarioRun?.output ?? modelSnapshot.result;
   const engineVersion = scenarioRun?.engineVersion ?? modelSnapshot.engineVersion;
   const formulaVersion = scenarioRun?.formulaVersion ?? modelSnapshot.formulaVersion;

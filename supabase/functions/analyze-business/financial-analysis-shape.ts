@@ -259,7 +259,9 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
     breakeven: {
       breakeven_units: Math.ceil(calc.breakEvenRevenue / Math.max(calc.averageCheck, 1)),
       breakeven_revenue: calc.breakEvenRevenue,
-      breakeven_months: calc.isProfitable ? Math.min(calc.paybackMonths, 24) : 0
+      // Operating break-even is the first modeled positive operating month;
+      // it is independent from cumulative recovery of startup investment.
+      breakeven_months: calc.breakEvenMonths ?? 0
     },
     returns: {
       payback_period_months: calc.paybackMonths,

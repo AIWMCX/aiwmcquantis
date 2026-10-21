@@ -37,4 +37,27 @@ describe('emergencyFallbackAnalysis', () => {
     const result = emergencyFallbackAnalysis(request, 'timeout after 3 retries');
     expect(result.limitations.some((l) => l.includes('timeout after 3 retries'))).toBe(true);
   });
+
+  it('uses the supplied monthly total costs once and reconciles the base case', () => {
+    const result = emergencyFallbackAnalysis({
+      ...request,
+      financial_inputs: {
+        monthly_revenue: 30_000,
+        startup_investment: 60_000,
+        monthly_costs: 22_000,
+        average_price: 3_000,
+        expected_customers: 10,
+      },
+    }, 'synthetic regression');
+    const financial = result.financial_analysis;
+    const base = financial.scenarios?.base;
+    expect(financial.monthly_expenses?.total).toBe(22_000);
+    expect(financial.monthly_profit).toBe(8_000);
+    expect(base).toBeDefined();
+    const baseCase = base!;
+    expect(baseCase.revenue - baseCase.variable_costs - baseCase.fixed_costs).toBe(baseCase.net_profit);
+    expect(baseCase.net_profit).toBe(8_000);
+    expect(financial.breakeven?.breakeven_months).toBe(4);
+    expect(financial.returns?.payback_period_months).toBe(11);
+  });
 });

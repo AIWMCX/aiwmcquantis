@@ -1,11 +1,10 @@
 /**
- * Phase D — validates ownership + the 'scenarioPromote' entitlement and
+ * Phase D — validates ownership + scenario promotion/document entitlements and
  * hands back a ScenarioRunRef-shaped payload the client passes straight
  * into mapCanonicalModelToDocumentVariables(modelSnapshot, scenarioRunRef)
  * (src/lib/canonical-document-mapper.ts). No new table writes — creating
- * the actual document is a separate step in whatever Docs Studio function
- * already does that (which must separately gate on 'scenarioDocument' when
- * the request includes a scenario_run_id).
+ * the actual document is a separate step; this endpoint also resolves the
+ * run's authoritative analysis identity for client-side lineage validation.
  *
  * Follows queue-export/index.ts's auth/entitlement/ownership pattern.
  */
@@ -61,9 +60,9 @@ Deno.serve(async (req) => {
 
     const body: PromoteScenarioRequest = await req.json();
     const { scenario_run_id } = body;
-    if (!scenario_run_id) {
+    if (typeof scenario_run_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(scenario_run_id)) {
       return new Response(
-        JSON.stringify({ error: 'scenario_run_id is required' }),
+        JSON.stringify({ error: 'A valid scenario_run_id is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -75,6 +74,7 @@ Deno.serve(async (req) => {
 
     try {
       await requireFeature(adminClient, userId, 'scenarioPromote', '/promote-scenario');
+      await requireFeature(adminClient, userId, 'scenarioDocument', '/promote-scenario');
     } catch (e) {
       if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
       throw e;
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     const { data: run, error: runError } = await supabase
       .from('scenario_runs')
-      .select('id, output, output_hash, engine_version, formula_version')
+      .select('id, scenario_version_id, output, output_hash, engine_version, formula_version')
       .eq('id', scenario_run_id)
       .eq('user_id', userId)
       .maybeSingle();
@@ -94,17 +94,41 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Resolve lineage through owner-scoped rows instead of trusting an
+    // analysis ID supplied by browser navigation state or URL parameters.
+    const { data: version, error: versionError } = await supabase
+      .from('scenario_versions')
+      .select('scenario_id')
+      .eq('id', run.scenario_version_id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    const { data: scenario, error: scenarioError } = version
+      ? await supabase.from('scenarios').select('scenario_set_id').eq('id', version.scenario_id).eq('user_id', userId).maybeSingle()
+      : { data: null, error: versionError };
+    const { data: scenarioSet, error: scenarioSetError } = scenario
+      ? await supabase.from('scenario_sets').select('analysis_id').eq('id', scenario.scenario_set_id).eq('user_id', userId).maybeSingle()
+      : { data: null, error: scenarioError };
+
+    if (versionError || scenarioError || scenarioSetError || !scenarioSet?.analysis_id) {
+      log.error('Scenario lineage could not be resolved for document promotion');
+      return new Response(
+        JSON.stringify({ error: 'Scenario lineage unavailable; document promotion was refused', code: 'LINEAGE_UNAVAILABLE' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     log.info(`Promoted scenario_run=${run.id} for user=${userId}`);
 
     return new Response(
       JSON.stringify({
         scenarioRunId: run.id,
+        analysisId: scenarioSet.analysis_id,
         outputHash: run.output_hash,
         engineVersion: run.engine_version,
         formulaVersion: run.formula_version,
         output: run.output,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
     log.error('promote-scenario error:', error);

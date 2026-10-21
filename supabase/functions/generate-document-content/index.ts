@@ -68,9 +68,11 @@ function normalizeContext(rawContext: GenerateContentRequest['context']): Genera
       'small and medium businesses'
     ),
     location: getStringField(ctx, ['location', 'geographic_focus', 'territory']),
-    revenue: getNumberField(ctx, ['revenue', 'monthly_revenue', 'mrr']) ?? 0,
-    roi: getNumberField(ctx, ['roi']) ?? 0,
-    payback_months: getNumberField(ctx, ['payback_months', 'break_even_months']) ?? 0,
+    revenue: getNumberField(ctx, ['revenue', 'monthly_revenue', 'mrr']),
+    roi: getNumberField(ctx, ['roi']),
+    // Investment payback and operating break-even are different measures.
+    // Do not silently substitute one for the other.
+    payback_months: getNumberField(ctx, ['payback_months']),
   };
 }
 
@@ -81,9 +83,9 @@ Generate a compelling executive summary for a business plan.
 Business: ${ctx.business_name}
 Industry: ${ctx.industry}
 Target Market: ${ctx.target_market}
-${ctx.revenue ? `Monthly Revenue: $${ctx.revenue.toLocaleString()}` : ''}
-${ctx.roi ? `ROI: ${ctx.roi}%` : ''}
-${ctx.payback_months ? `Payback Period: ${ctx.payback_months} months` : ''}
+${typeof ctx.revenue === 'number' ? `Monthly Revenue: $${ctx.revenue.toLocaleString()}` : ''}
+${typeof ctx.roi === 'number' ? `ROI: ${ctx.roi}%` : ''}
+${typeof ctx.payback_months === 'number' ? `Investment Payback Period: ${ctx.payback_months} months` : ''}
 
 Write a 200-300 word executive summary that:
 1. Opens with the business opportunity and problem being solved

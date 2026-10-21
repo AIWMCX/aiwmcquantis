@@ -107,6 +107,7 @@ export interface RunScenarioResult {
 
 export interface ScenarioRunRefPayload {
   scenarioRunId: string;
+  analysisId: string;
   outputHash: string;
   engineVersion: string;
   formulaVersion: string;

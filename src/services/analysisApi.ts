@@ -13,6 +13,10 @@ import { logger } from '@/lib/logger';
 import { mergeCanonicalDataSources } from '@/lib/canonical-data-sources';
 import { classifyIndustry, isRichPrior, type IndustryPrior } from '@/lib/industry-priors';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
+import {
+  calculateInvestmentPaybackMonth,
+  calculateOperatingBreakEvenMonth,
+} from '../../supabase/functions/analyze-business/operating-projection';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 
@@ -58,10 +62,18 @@ export function emergencyFallbackAnalysis(request: AnalysisRequest, reason: stri
   const usedRichPrior = isRichPrior(prior);
   const revenue = QuantisMath.round(f.monthly_revenue ?? QuantisMath.multiply(f.average_price ?? 75, f.expected_customers ?? 100));
   const startup = QuantisMath.round(f.startup_investment ?? QuantisMath.multiply(revenue || 7500, 6));
-  const fixedCosts = QuantisMath.round(f.monthly_costs ?? QuantisMath.multiply(revenue || 7500, prior.fixed_cost_pct_of_revenue));
-  const cogs = QuantisMath.round(QuantisMath.multiply(revenue, prior.cogs_pct / 100));
+  const benchmarkCogs = QuantisMath.round(QuantisMath.multiply(revenue, prior.cogs_pct / 100));
+  const totalExpenses = QuantisMath.round(f.monthly_costs ?? QuantisMath.add(
+    benchmarkCogs,
+    QuantisMath.multiply(revenue || 7500, prior.fixed_cost_pct_of_revenue),
+  ));
+  // Canonical contract: a user-supplied monthly_costs value is the total
+  // monthly cost, including COGS. Allocate that total between variable and
+  // fixed costs without adding COGS a second time.
+  const cogs = f.monthly_costs !== undefined ? Math.min(benchmarkCogs, totalExpenses) : benchmarkCogs;
+  const fixedCosts = Math.max(0, totalExpenses - cogs);
   const grossProfit = QuantisMath.round(QuantisMath.subtract(revenue, cogs));
-  const netProfit = QuantisMath.round(QuantisMath.subtract(grossProfit, fixedCosts));
+  const netProfit = QuantisMath.round(QuantisMath.subtract(revenue, totalExpenses));
   const grossMargin = QuantisMath.toNumber(QuantisMath.percentage(grossProfit, revenue), 1);
   const netMargin = QuantisMath.toNumber(QuantisMath.percentage(netProfit, revenue), 1);
   const cac = QuantisMath.round(f.cac ?? prior.cac_usd);
@@ -74,14 +86,23 @@ export function emergencyFallbackAnalysis(request: AnalysisRequest, reason: stri
   // costs eat the gross profit. The reviewer-flagged "0.1 mo vs 999 mo" contradiction
   // came from skipping this guard in the fallback path.
   const isUnprofitable = netProfit <= 0;
-  const contribRatio = prior.contribution_margin_ratio;
+  const contribRatio = revenue > 0 ? grossProfit / revenue : prior.contribution_margin_ratio;
   const rawLtv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, contribRatio), lifetimeMonths));
   const ltv = isUnprofitable ? QuantisMath.round(Math.min(rawLtv, QuantisMath.toNumber(QuantisMath.multiply(cac, 4)))) : rawLtv;
   const rawLtvCac = QuantisMath.toNumber(QuantisMath.ltvCacRatio(ltv, cac), 2);
   const ltvCac = isUnprofitable ? Math.min(rawLtvCac, 4) : Math.min(rawLtvCac, 50);
   const rawCacPayback = QuantisMath.toNumber(QuantisMath.divide(cac, QuantisMath.multiply(avgPrice, contribRatio)), 1);
   const cacPaybackMonths = isUnprofitable ? 999 : Math.max(0.5, Math.min(rawCacPayback, 240));
-  const payback = QuantisMath.ceil(QuantisMath.paybackMonths(startup, netProfit));
+  const payback = calculateInvestmentPaybackMonth(startup, revenue, totalExpenses);
+  const breakEvenMonths = calculateOperatingBreakEvenMonth(revenue, totalExpenses) ?? 0;
+  const pessimisticRevenue = QuantisMath.round(QuantisMath.multiply(revenue, 0.75));
+  const pessimisticCogs = QuantisMath.round(QuantisMath.multiply(cogs, 0.75));
+  const pessimisticGrossProfit = QuantisMath.round(QuantisMath.subtract(pessimisticRevenue, pessimisticCogs));
+  const pessimisticNetProfit = QuantisMath.round(QuantisMath.subtract(pessimisticGrossProfit, fixedCosts));
+  const optimisticRevenue = QuantisMath.round(QuantisMath.multiply(revenue, 1.25));
+  const optimisticCogs = QuantisMath.round(QuantisMath.multiply(cogs, 1.25));
+  const optimisticGrossProfit = QuantisMath.round(QuantisMath.subtract(optimisticRevenue, optimisticCogs));
+  const optimisticNetProfit = QuantisMath.round(QuantisMath.subtract(optimisticGrossProfit, fixedCosts));
   const now = new Date().toISOString();
 
   return {
@@ -90,33 +111,33 @@ export function emergencyFallbackAnalysis(request: AnalysisRequest, reason: stri
       arr: QuantisMath.round(QuantisMath.multiply(revenue, 12)),
       scenarios: {
         pessimistic: {
-          revenue: QuantisMath.round(QuantisMath.multiply(revenue, 0.75)),
-          variable_costs: QuantisMath.round(QuantisMath.multiply(cogs, 0.85)),
+          revenue: pessimisticRevenue,
+          variable_costs: pessimisticCogs,
           fixed_costs: fixedCosts,
-          gross_profit: QuantisMath.round(QuantisMath.multiply(grossProfit, 0.7)),
-          net_profit: QuantisMath.round(QuantisMath.multiply(netProfit, 0.55)),
-          gross_margin: grossMargin,
-          net_margin: QuantisMath.toNumber(QuantisMath.multiply(netMargin, 0.55), 1),
+          gross_profit: pessimisticGrossProfit,
+          net_profit: pessimisticNetProfit,
+          gross_margin: QuantisMath.toNumber(QuantisMath.percentage(pessimisticGrossProfit, pessimisticRevenue), 1),
+          net_margin: QuantisMath.toNumber(QuantisMath.percentage(pessimisticNetProfit, pessimisticRevenue), 1),
         },
         base: { revenue, variable_costs: cogs, fixed_costs: fixedCosts, gross_profit: grossProfit, net_profit: netProfit, gross_margin: grossMargin, net_margin: netMargin },
         optimistic: {
-          revenue: QuantisMath.round(QuantisMath.multiply(revenue, 1.25)),
-          variable_costs: QuantisMath.round(QuantisMath.multiply(cogs, 1.15)),
+          revenue: optimisticRevenue,
+          variable_costs: optimisticCogs,
           fixed_costs: fixedCosts,
-          gross_profit: QuantisMath.round(QuantisMath.multiply(grossProfit, 1.3)),
-          net_profit: QuantisMath.round(QuantisMath.multiply(netProfit, 1.45)),
-          gross_margin: grossMargin,
-          net_margin: QuantisMath.toNumber(QuantisMath.multiply(netMargin, 1.25), 1),
+          gross_profit: optimisticGrossProfit,
+          net_profit: optimisticNetProfit,
+          gross_margin: QuantisMath.toNumber(QuantisMath.percentage(optimisticGrossProfit, optimisticRevenue), 1),
+          net_margin: QuantisMath.toNumber(QuantisMath.percentage(optimisticNetProfit, optimisticRevenue), 1),
         },
       },
       unit_economics: { contribution_margin: QuantisMath.round(QuantisMath.multiply(avgPrice, contribRatio)), contribution_margin_ratio: contribRatio, cac, cac_payback_months: cacPaybackMonths, ltv, ltv_cac_ratio: ltvCac },
-      breakeven: { breakeven_units: QuantisMath.ceil(QuantisMath.divide(fixedCosts, QuantisMath.multiply(avgPrice, contribRatio))), breakeven_revenue: QuantisMath.round(QuantisMath.divide(fixedCosts, contribRatio)), breakeven_months: payback >= 999 ? 0 : payback },
+      breakeven: { breakeven_units: QuantisMath.ceil(QuantisMath.divide(fixedCosts, QuantisMath.multiply(avgPrice, contribRatio))), breakeven_revenue: QuantisMath.round(QuantisMath.divide(fixedCosts, contribRatio)), breakeven_months: breakEvenMonths },
       returns: { payback_period_months: payback, roi_year_1: QuantisMath.toNumber(QuantisMath.roi(QuantisMath.multiply(netProfit, 12), startup), 1), roi_year_3: QuantisMath.toNumber(QuantisMath.roi(QuantisMath.multiply(netProfit, 36), startup), 1), npv_3_years: QuantisMath.round(QuantisMath.npv(startup, netProfit, 36, 0.12)) },
       startup_investment: { total: startup, breakdown: { rent_deposit: QuantisMath.round(QuantisMath.multiply(startup, 0.18)), equipment: QuantisMath.round(QuantisMath.multiply(startup, 0.32)), inventory: QuantisMath.round(QuantisMath.multiply(startup, 0.15)), legal: QuantisMath.round(QuantisMath.multiply(startup, 0.05)), marketing_initial: QuantisMath.round(QuantisMath.multiply(startup, 0.12)), working_capital: QuantisMath.round(QuantisMath.multiply(startup, 0.18)) }, reasoning: 'Emergency deterministic fallback generated because the analysis service did not return a completed result.' },
-      monthly_expenses: { total: QuantisMath.round(QuantisMath.add(cogs, fixedCosts)), variable_costs: cogs, fixed_costs: fixedCosts, breakdown: { rent: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.25)), utilities: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.08)), salaries: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.42)), inventory_replenishment: cogs, marketing: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.15)), other: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.10)) } },
+      monthly_expenses: { total: totalExpenses, variable_costs: cogs, fixed_costs: fixedCosts, breakdown: { rent: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.25)), utilities: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.08)), salaries: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.42)), inventory_replenishment: cogs, marketing: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.15)), other: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.10)) } },
       monthly_profit: netProfit,
       payback_period_months: payback,
-      break_even_months: payback >= 999 ? 0 : payback,
+      break_even_months: breakEvenMonths,
       roi_year_1: QuantisMath.toNumber(QuantisMath.roi(QuantisMath.multiply(netProfit, 12), startup), 1),
       calculations_summary: 'Deterministic calculations completed locally as a reliability fallback.',
     },

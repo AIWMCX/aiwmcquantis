@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronUp, HelpCircle, TrendingUp, DollarSign, Users, Percent, Sparkles, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, HelpCircle, TrendingUp, DollarSign, Users, Percent, Sparkles } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -106,7 +106,7 @@ function countFilledFields(inputs: OptionalFinancialInputs): number {
   const numericKeys: NumericFinancialKeys[] = ['startup_investment', 'monthly_revenue', 'average_price', 'expected_customers', 'monthly_costs', 'cac', 'churn_rate'];
   return numericKeys.filter(key => {
     const v = inputs[key];
-    return v !== undefined && v !== null && v > 0;
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0;
   }).length;
 }
 
@@ -126,7 +126,6 @@ export function AdvancedFinancialInputs({
   const [isOpen, setIsOpen] = React.useState(false);
   const filledCount = countFilledFields(financialInputs);
   const totalFields = FIELD_CONFIGS.length;
-  const confidenceBoost = Math.round((filledCount / totalFields) * 40);
 
   const handleChange = (key: NumericFinancialKeys, value: string) => {
     const formatted = formatNumber(value);
@@ -174,8 +173,8 @@ export function AdvancedFinancialInputs({
               <p className="font-semibold text-sm text-[var(--q-text-primary)]">Advanced Financial Details</p>
               <p className="text-xs text-[var(--q-text-tertiary)]">
                 {filledCount > 0 
-                  ? `${filledCount}/${totalFields} fields filled · +${confidenceBoost}% confidence`
-                  : 'Optional — strengthens the evidence score up to 40%'
+                  ? `${filledCount}/${totalFields} financial assumptions provided`
+                  : 'Optional — add your own financial assumptions'
                 }
               </p>
             </div>
@@ -183,7 +182,7 @@ export function AdvancedFinancialInputs({
           <div className="flex items-center gap-2">
             {filledCount > 0 && (
               <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-[var(--q-accent-primary)]/15 text-[var(--q-accent-primary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>
-                +{confidenceBoost}%
+                {filledCount}/{totalFields}
               </span>
             )}
             {isOpen ? (
@@ -196,11 +195,11 @@ export function AdvancedFinancialInputs({
 
         <CollapsibleContent className="mt-4">
           <div className="p-5 rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)]">
-            {/* Compact Confidence Boost Banner */}
+            {/* Explain what user inputs change without claiming measured accuracy. */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--q-accent-glow)] border border-[var(--q-accent-primary)]/15 mb-6">
               <TrendingUp className="w-4 h-4 text-[var(--q-accent-primary)] flex-shrink-0" />
               <p className="text-xs text-[var(--q-text-secondary)] leading-snug flex-1">
-                Real financial data increases accuracy by ~40%. All fields optional.
+                Your inputs replace generic estimates where the model supports them. Check each assumption before relying on the result. All fields are optional.
               </p>
               {industryType && (
                 <button
@@ -251,13 +250,12 @@ export function AdvancedFinancialInputs({
               />
             )}
 
-            {/* Confidence Boost Pill */}
+            {/* Input completeness is not predictive accuracy. */}
             {filledCount > 0 && (
               <div className="flex items-center gap-2 mt-6 px-4 py-2.5 rounded-full w-fit"
                 style={{ background: 'hsla(160, 84%, 39%, 0.08)', border: '1px solid hsla(160, 84%, 39%, 0.2)' }}>
-                <Zap className="w-3.5 h-3.5 text-[var(--q-status-green)]" />
                 <span className="text-[13px] font-medium text-[var(--q-status-green)]" style={{ fontFamily: 'var(--q-font-mono)' }}>
-                  +{confidenceBoost}% on the evidence score · {filledCount}/{totalFields} fields filled
+                  {filledCount}/{totalFields} financial assumptions provided
                 </span>
               </div>
             )}

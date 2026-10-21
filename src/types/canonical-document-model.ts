@@ -24,6 +24,8 @@ export interface CanonicalModelSnapshot {
  */
 export interface ScenarioRunRef {
   scenarioRunId: string;
+  /** Server-resolved analysis identity for this immutable run. */
+  analysisId?: string;
   outputHash: string;
   engineVersion: string;
   formulaVersion: string;

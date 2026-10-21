@@ -3,11 +3,11 @@
  * mappers read break-even from a stored analysis.
  *
  * Why this exists (financial reconciliation audit, 2026-09-28):
- *  - `financial_analysis.breakeven.breakeven_months` is written by the
- *    engine as `isProfitable ? min(paybackMonths, 24) : 0`, so `0` is a
- *    sentinel for "never reached", not "reached immediately". Four surfaces
- *    rendered it as "0 mo" for loss-making businesses (107 of 116 reports
- *    in the 90 days before this fix carried the sentinel).
+ *  - Older engine versions wrote `breakeven_months` from the investment
+ *    payback result, so historical reports may conflate operating break-even
+ *    with cumulative capital recovery. The current engine emits an operating
+ *    break-even month separately; zero remains the legacy "not reached / not
+ *    available" sentinel, never "reached immediately".
  *  - `breakeven.breakeven_revenue/_units` (legacy) is computed from the
  *    benchmark COGS % with contribution margin floor-guarded at 1%, while
  *    `cvp.breakEven` (formula cvp.contribution_margin_breakeven.v1) uses the

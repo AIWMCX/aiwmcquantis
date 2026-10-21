@@ -122,6 +122,19 @@ describe('mapCanonicalModelToDocumentVariables', () => {
     expect(vars.mrr.engineVersion).toBe('v2.1');
   });
 
+  it('refuses to map a scenario run against a different analysis snapshot', () => {
+    const scenarioRun: ScenarioRunRef = {
+      scenarioRunId: 'run-1',
+      analysisId: 'analysis-2',
+      outputHash: 'hash-scenario',
+      engineVersion: 'v2.1',
+      formulaVersion: 'f2',
+      output: {},
+    };
+    expect(() => mapCanonicalModelToDocumentVariables(SNAPSHOT, scenarioRun))
+      .toThrow(/different analysis/);
+  });
+
   it('threads quoteVersionId through when provided', () => {
     const vars = mapCanonicalModelToDocumentVariables(SNAPSHOT, undefined, { quoteVersionId: 'qv-1' });
     expect(vars.mrr.quoteVersionId).toBe('qv-1');
