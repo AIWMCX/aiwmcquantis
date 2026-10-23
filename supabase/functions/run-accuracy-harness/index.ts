@@ -31,50 +31,14 @@ import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
 import { ENGINE_VERSION, FORMULA_REGISTRY_VERSION } from '../_shared/analysis-snapshot.ts';
 import { BENCHMARK_COUNT } from '../_shared/canonical-facts.ts';
+import { expectationProblem, isApproved, judgeVector, summarize, type VectorRow } from './evaluate.ts';
 
 const FUNCTION_NAME = 'run-accuracy-harness';
-const FUNCTION_VERSION = '2.0.0';
+const FUNCTION_VERSION = '3.0.0';
 
-interface ExpectedRange {
-  min?: number;
-  max?: number;
-  target?: number;
-}
-
-/** Walk a JSON object using dot/bracket path: e.g. "financial_analysis.scenarios.base.net_margin". */
-// deno-lint-ignore no-explicit-any
-function getByPath(obj: any, path: string): any {
-  if (!obj || !path) return undefined;
-  return path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
-}
-
-function compareMetric(
-  actual: unknown,
-  expected: ExpectedRange,
-  tolerancePct: number,
-): { passed: boolean; deviation_pct: number | null } {
-  if (typeof actual !== 'number' || !Number.isFinite(actual)) {
-    return { passed: false, deviation_pct: null };
-  }
-  if (expected.min != null && actual < expected.min) {
-    const dev = ((expected.min - actual) / Math.max(1e-9, Math.abs(expected.min))) * 100;
-    return { passed: false, deviation_pct: dev };
-  }
-  if (expected.max != null && actual > expected.max) {
-    const dev = ((actual - expected.max) / Math.max(1e-9, Math.abs(expected.max))) * 100;
-    return { passed: false, deviation_pct: dev };
-  }
-  if (expected.target != null) {
-    const dev = (Math.abs(actual - expected.target) / Math.max(1e-9, Math.abs(expected.target))) * 100;
-    return { passed: dev <= tolerancePct, deviation_pct: dev };
-  }
-  return { passed: true, deviation_pct: 0 };
-}
-
-async function sha256Hex(input: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+// 3.0.0 (fail-closed): zero vectors, unapproved vectors, empty or bound-less
+// expectations, unchecked statuses/invariants and failed evidence writes can
+// no longer report success. Logic lives in ./evaluate.ts (unit-tested).
 
 Deno.serve(async (req: Request) => {
   const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
@@ -107,69 +71,48 @@ Deno.serve(async (req: Request) => {
   const commitSha = Deno.env.get('COMMIT_SHA') ?? 'unknown';
   const datasetVersion = String(BENCHMARK_COUNT);
 
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  const outputHashOf = async (v: unknown) => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(v ?? null)));
+    return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  };
+
   try {
-    const { data: vectors, error: vErr } = await admin
+    const { data: rows, error: vErr } = await admin
       .from('golden_test_vectors')
-      .select('id, vector_code, input_data, expected_ranges, tolerance_pct, promotion_status')
+      .select('id, vector_code, input_data, expected_ranges, expected_statuses, expected_invariants, tolerance_pct, promotion_status, reviewer_finance, reviewer_engineering')
       .eq('active', true)
       .neq('promotion_status', 'retired');
-
     if (vErr) throw vErr;
-    if (!vectors || vectors.length === 0) {
-      return new Response(
-        JSON.stringify({ ok: true, run_id: runId, vectors: 0, message: 'No active vectors' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
 
-    const summaries: Array<{ vector_code: string; passed: boolean; failed_metrics: string[] }> = [];
+    const active = (rows ?? []) as VectorRow[];
+    const approved = active.filter(isApproved);
+    let evaluated = 0, passed = 0, persisted = 0, invalid = 0, persistErrors = 0;
+    const summaries: Array<{ vector_code: string; passed: boolean; failed: string[] }> = [];
 
-    for (const vec of vectors) {
-      const tolerancePct = (vec.tolerance_pct as number | null) ?? 1;
-      const expected = (vec.expected_ranges as Record<string, ExpectedRange>) ?? {};
+    for (const vec of approved) {
       const stepStart = Date.now();
-      // deno-lint-ignore no-explicit-any
-      let actual: any = {};
-      let errorCode: string | null = null;
-
-      try {
-        const { data: engineRes, error: engineErr } = await admin.functions.invoke(
-          'analyze-business',
-          {
-            body: {
-              ...(vec.input_data as Record<string, unknown>),
-              _harness_run: true,
-              _harness_run_id: runId,
-            },
-          },
-        );
-        if (engineErr) throw new Error(engineErr.message);
-        if (!engineRes?.success) throw new Error(`engine_error: ${engineRes?.error ?? 'unknown'}`);
-        actual = engineRes.data ?? {};
-      } catch (err) {
-        errorCode = err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200);
-      }
-
-      const metricResults: Record<string, { passed: boolean; deviation_pct: number | null; actual: unknown }> = {};
-      const failedMetrics: string[] = [];
-      let worstDeviation = 0;
-      let allPassed = errorCode === null;
-
-      for (const [metricPath, exp] of Object.entries(expected)) {
-        const actualVal = getByPath(actual, metricPath);
-        const cmp = compareMetric(actualVal, exp, tolerancePct);
-        metricResults[metricPath] = { passed: cmp.passed, deviation_pct: cmp.deviation_pct, actual: actualVal };
-        if (!cmp.passed) {
-          allPassed = false;
-          failedMetrics.push(metricPath);
-          if (cmp.deviation_pct != null && Math.abs(cmp.deviation_pct) > Math.abs(worstDeviation)) {
-            worstDeviation = cmp.deviation_pct;
-          }
+      const problem = expectationProblem(vec);
+      let actual: unknown = null;
+      let engineError: string | null = problem ? `INVALID_EXPECTATION:${problem}` : null;
+      if (problem) invalid++;
+      else {
+        try {
+          const { data: engineRes, error: engineErr } = await admin.functions.invoke('analyze-business', {
+            body: { ...(vec.input_data as Record<string, unknown>), _harness_run: true, _harness_run_id: runId },
+          });
+          if (engineErr) throw new Error(engineErr.message);
+          if (!engineRes?.success) throw new Error(`engine_error: ${engineRes?.error ?? 'unknown'}`);
+          actual = engineRes.data ?? null;
+        } catch (err) {
+          engineError = (err instanceof Error ? err.message : String(err)).slice(0, 200);
         }
       }
 
-      const latencyMs = Date.now() - stepStart;
-      const outputHash = await sha256Hex(JSON.stringify(actual));
+      const verdict = judgeVector(vec, actual, engineError);
+      evaluated++;
+      if (verdict.passed) passed++;
 
       const { error: insertErr } = await admin.from('accuracy_runs').insert({
         run_id: runId,
@@ -178,45 +121,37 @@ Deno.serve(async (req: Request) => {
         formula_registry_version: FORMULA_REGISTRY_VERSION,
         dataset_version: datasetVersion,
         commit_sha: commitSha,
-        passed: allPassed,
-        metric_results: metricResults,
-        invariant_results: [],
-        worst_deviation_pct: worstDeviation || null,
-        duration_ms: latencyMs,
-        error_code: errorCode,
-        output_hash: outputHash,
+        passed: verdict.passed,
+        metric_results: { metrics: verdict.metric_results, statuses: verdict.status_results },
+        invariant_results: verdict.invariant_results,
+        worst_deviation_pct: verdict.worst_deviation_pct,
+        duration_ms: Date.now() - stepStart,
+        error_code: engineError,
+        output_hash: await outputHashOf(actual),
       });
       if (insertErr) {
+        persistErrors++;
         log.error('accuracy_runs insert failed', insertErr, { vectorCode: vec.vector_code, runId });
-      }
+      } else persisted++;
 
-      summaries.push({
-        vector_code: vec.vector_code ?? '(no-code)',
-        passed: allPassed,
-        failed_metrics: failedMetrics,
-      });
+      summaries.push({ vector_code: vec.vector_code ?? '(no-code)', passed: verdict.passed, failed: verdict.failed });
     }
 
-    const totalMs = Date.now() - startedAt;
-    const passCount = summaries.filter((s) => s.passed).length;
-
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        run_id: runId,
-        vectors_run: summaries.length,
-        passed: passCount,
-        failed: summaries.length - passCount,
-        pass_rate_pct: Math.round((passCount / summaries.length) * 1000) / 10,
-        total_ms: totalMs,
-        summaries,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    const summary = summarize({ active: active.length, approved: approved.length, evaluated, passed, persisted, invalid, persistErrors });
+    return json({
+      ...summary,
+      run_id: runId,
+      commit_sha: commitSha,
+      engine_version: ENGINE_VERSION,
+      formula_registry_version: FORMULA_REGISTRY_VERSION,
+      dataset_version: datasetVersion,
+      total_ms: Date.now() - startedAt,
+      summaries,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error('failed', err, { message, runId });
-    return new Response(JSON.stringify({ ok: false, error: message, run_id: runId }), {
+    return new Response(JSON.stringify({ status: 'ERROR', ok: false, reason: 'HARNESS_EXCEPTION', error: message, run_id: runId }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
