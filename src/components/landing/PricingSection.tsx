@@ -89,7 +89,7 @@ const PLUS_FEATURES = [
   {
     text: 'TAM / SAM / SOM Calculator ✓',
     highlight: true,
-    subtext: 'Market sizing with cited sources for investors',
+    subtext: 'Market sizing with stated assumptions',
   },
   {
     text: 'Custom branding & PDF export',
@@ -99,7 +99,7 @@ const PLUS_FEATURES = [
   {
     text: 'AI Document Intelligence',
     highlight: false,
-    subtext: 'Extract data from any PDF or Excel',
+    subtext: 'Extract figures from text-based PDF and Excel files; you review them',
   },
   { text: 'Unlimited downloads + history', highlight: false },
   { text: 'Priority support', highlight: false },

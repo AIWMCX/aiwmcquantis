@@ -83,7 +83,7 @@ export default function Pricing() {
             className="px-6 py-3 text-center text-xs md:text-sm text-muted-foreground"
             style={{ background: 'rgba(148,163,255,0.05)', borderTop: '1px solid rgba(148,163,255,0.14)' }}
           >
-            <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Same depth.</span> 1/200th the price.
+            <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Same depth.</span> A fraction of a consultant engagement.
             <span className="hidden md:inline"> · </span>
             <span className="block md:inline mt-1 md:mt-0">
               <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>14-day money-back guarantee</span> on Plus and Pro — from your first charge.

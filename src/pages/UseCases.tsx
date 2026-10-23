@@ -60,7 +60,7 @@ const TIERS = [
     title: 'Early Founders',
     uses: 'idea validation · runway math · pivot decisions',
     detail:
-      `Before writing code or signing a lease, run the numbers against ${BENCHMARK_COUNT_DISPLAY} modeled benchmarks. Get a profitability verdict and reliability score with cited sources on every line.`,
+      `Before writing code or signing a lease, run the numbers against ${BENCHMARK_COUNT_DISPLAY} modeled benchmarks. Get a profitability verdict and reliability score, with each line labeled as your input or a modeled benchmark.`,
     exampleSlug: 'coffee-shop-denver',
     exampleLabel: 'Coffee shop · Denver',
     glow: 'brand' as const,
