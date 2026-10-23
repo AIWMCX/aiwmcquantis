@@ -16,6 +16,7 @@ import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
 import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT, BENCHMARK_SOURCES_DISPLAY } from '../_shared/canonical-facts.ts';
+import { monthlyRevenueFromDocument } from './document-revenue.ts';
 import { buildQualityDimensions } from '../_shared/quality-dimensions.ts';
 
 const FUNCTION_NAME = 'analyze-business';
@@ -2648,25 +2649,19 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // ========== AGGREGATE DOCUMENT FINANCIALS ==========
     // Priority: User inputs > Document data > AI estimates
     let documentDerivedInputs: Partial<OptionalFinancialInputs> = {};
-    
+    const documentInputNotes: string[] = [];
+
     if (documentExtractedFinancials.length > 0) {
       for (const docFin of documentExtractedFinancials) {
         // Revenue
         if (documentDerivedInputs.monthly_revenue === undefined) {
-          if (hasFiniteNumber(docFin.metrics?.mrr)) {
-            documentDerivedInputs.monthly_revenue = docFin.metrics.mrr;
-            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_metrics' });
-          } else if (hasFiniteNumber(docFin.revenue?.monthly)) {
-            documentDerivedInputs.monthly_revenue = docFin.revenue.monthly;
-            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_monthly_revenue' });
-          } else if (hasFiniteNumber(docFin.revenue?.quarterly)) {
-            documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.quarterly / 3);
-            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_quarterly_revenue' });
-          } else if (hasFiniteNumber(docFin.revenue?.total)) {
-            // Assume quarterly if > 50k, otherwise monthly
-            const divisor = docFin.revenue.total > 50000 ? 3 : 1;
-            documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.total / divisor);
-            log.info('Document financial field extracted', { field: 'monthly_revenue', source: 'document_total_revenue' });
+          // D6: only convert figures whose period the document states (see document-revenue.ts).
+          const rev = monthlyRevenueFromDocument(docFin);
+          if (rev.monthly !== null) {
+            documentDerivedInputs.monthly_revenue = rev.monthly;
+            log.info('Document financial field extracted', { field: 'monthly_revenue', source: rev.basis });
+          } else if (rev.note) {
+            documentInputNotes.push(`${docFin.source_document}: ${rev.note}`);
           }
         }
         
@@ -3495,6 +3490,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       confidenceBreakdown.input_completeness = Math.min(100, confidenceBreakdown.input_completeness + documentBonus);
       confidenceBreakdown.details.push(`Extracted ${documentDataCount} metrics from uploaded documents`);
     }
+    for (const note of documentInputNotes) confidenceBreakdown.details.push(note);
     
     // Extra bonus for high-value document types
     const revenueStatementCount = documentExtractedFinancials.filter(ef => ef.document_type === 'revenue_statement').length;
@@ -3774,7 +3770,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       totalDocuments: documentExtractedFinancials.length,
       confidenceBoost: documentConfidenceBoost,
       dataPointsUsed: documentsUsed.reduce((acc, d) => acc + d.metrics_extracted.length, 0),
-      primaryDataSource: documentExtractedFinancials[0]?.source_document || 'N/A'
+      primaryDataSource: documentExtractedFinancials[0]?.source_document || 'N/A',
+      notes: documentInputNotes,
     } : undefined;
 
     // ========== CROSS-VALIDATION + SENSITIVITY + BENCHMARK CONFIDENCE ==========

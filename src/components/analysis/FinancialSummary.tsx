@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { FinancialAnalysis, ScenarioMetrics } from '@/types/analysis';
 import type { ScenarioType } from './ScenarioSelector';
+import { expenseBreakdownNote } from '@/lib/expense-basis';
 
 interface FinancialSummaryProps {
   financial: FinancialAnalysis;
@@ -536,6 +537,9 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     <span className="text-lg font-bold text-primary">{formatCurrency(financial.monthly_expenses.total)}</span>
                   </div>
                 </div>
+              )}
+              {financial.monthly_expenses && (
+                <p className="text-xs text-muted-foreground">{expenseBreakdownNote(financial.monthly_expenses)}</p>
               )}
             </div>
           </TabsContent>

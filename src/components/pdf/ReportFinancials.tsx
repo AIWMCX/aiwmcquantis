@@ -3,6 +3,7 @@ import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyRevenue } from '@/types/analysis';
 import { pdfStyles, formatCurrency, formatNumber } from './pdfStyles';
 import { ReportHeader, ReportFooter } from './ReportPageElements';
+import { expenseBreakdownNote } from '@/lib/expense-basis';
 
 interface ReportFinancialsProps {
   result: BusinessAnalysisResult;
@@ -92,6 +93,7 @@ export function ReportFinancials({ result }: ReportFinancialsProps) {
             </tr>
           </tbody>
         </table>
+        <p style={{ fontSize: 10, color: '#64748b', marginTop: 6 }}>{expenseBreakdownNote(expenses)}</p>
 
         <ReportFooter pageNumber={3} />
       </div>

@@ -30,4 +30,11 @@ describe('public claims truth', () => {
       expect(s).not.toMatch(bad);
     }
   });
+
+  it("report shows flagged inputs next to reconciliation and claims no real-time calibration", () => {
+    const r = read('src/components/analysis/AccuracyTransparentResults.tsx');
+    expect(r).not.toMatch(/real-time calibration/);
+    expect(r).toContain('<ReconciliationPassLabel flagged=');
+    expect(r).toContain("inputs'} to check");
+  });
 });
