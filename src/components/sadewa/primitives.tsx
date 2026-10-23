@@ -257,6 +257,7 @@ export function WordStagger({
   as: Tag = 'h2',
   delay = 0,
   stagger: staggerMs = 55,
+  keepVisible = false,
   ...rest
 }: {
   text: string;
@@ -266,6 +267,12 @@ export function WordStagger({
   delay?: number;
   /** ms between each word's start */
   stagger?: number;
+  /**
+   * Never hide the words: animate position only. For the page's main
+   * headline (the LCP element), which otherwise stays at opacity 0 until JS,
+   * the IntersectionObserver and the animation library have all run.
+   */
+  keepVisible?: boolean;
 } & React.HTMLAttributes<HTMLElement>) {
   const { ref, inView } = useInView<HTMLElement>();
   const reduced = usePrefersReducedMotion();
@@ -277,13 +284,13 @@ export function WordStagger({
     if (!inView || reduced || !el || played.current) return;
     played.current = true;
     animate(el.querySelectorAll('.sdw-word'), {
-      opacity: [0, 1],
+      ...(keepVisible ? {} : { opacity: [0, 1] }),
       translateY: [22, 0],
       duration: 650,
       ease: 'outQuad',
       delay: stagger(staggerMs, { start: delay }),
     });
-  }, [inView, reduced, delay, staggerMs]);
+  }, [inView, reduced, delay, staggerMs, keepVisible]);
 
   const words = text.split(' ');
   return (
@@ -293,7 +300,7 @@ export function WordStagger({
           key={i}
           aria-hidden="true"
           className="sdw-word inline-block"
-          style={reduced || played.current ? undefined : { opacity: 0 }}
+          style={reduced || played.current || keepVisible ? undefined : { opacity: 0 }}
         >
           {w}
           {i < words.length - 1 ? ' ' : ''}

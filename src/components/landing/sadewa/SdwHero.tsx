@@ -90,6 +90,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
               id="hero-heading"
               text="Before you invest $50K, understand what it would take to earn it back."
               className="sdw-display"
+              keepVisible
               style={{ fontSize: 'clamp(2.75rem, 6.4vw, 6.25rem)' }}
             />
             {/* The real input, on the first screen. 1 of 191 home visitors in

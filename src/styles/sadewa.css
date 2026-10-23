@@ -328,7 +328,9 @@
 /* ---------- Reveal helpers ---------- */
 .sdw-in { opacity: 0; transform: translate3d(var(--sdw-from-x, 0), var(--sdw-from-y, 24px), 0); transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: var(--sdw-delay, 0ms); }
 .sdw-in.is-in { opacity: 1; transform: none; }
-.sdw-char { display: inline-block; opacity: 0.12; transition: opacity 0.5s ease; transition-delay: calc(var(--i) * 9ms); }
+/* Starts legible (was 0.12, i.e. unreadable) and finishes in ~0.8s instead of
+   ~2.3s for the ~200-char hero lead: this is the value proposition. */
+.sdw-char { display: inline-block; opacity: 0.45; transition: opacity 0.4s ease; transition-delay: calc(var(--i) * 2ms); }
 .is-in .sdw-char { opacity: 1; }
 
 @keyframes sdw-bob {
