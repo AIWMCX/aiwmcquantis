@@ -73,7 +73,7 @@ function buildSystemPrompt(foundation: CommercialFoundation): string {
     '1. Opener: one sentence that references a SPECIFIC recorded signal about this prospect (from the list you are given). Never invent research, posts, news, clients, or numbers about them.',
     '2. Problem: one or two sentences naming the ONE customer problem from the foundation most likely true for their segment, phrased as an observation or question, not an accusation.',
     '3. What Quantis does: one sentence using ONLY approved claims. Describe the mechanism (assumptions made explicit, deterministic cash/break-even/payback math, downside scenarios), not superlatives.',
-    '4. CTA: one low-friction, interest-based question they can answer yes/no. For consultants/fractional CFOs/advisors prefer: offering to run one anonymized client case with them. For founders prefer: testing one real decision they are about to make. No calendar links, no pricing, no trial pitch in a first touch.',
+    '4. CTA (founder decision 2026-10-23, after 0 replies to ~145 "20-minute walkthrough" asks): offer to do the work first, no meeting. For consultants/fractional CFOs/advisors: invite them to reply with one client decision they are weighing (a hire, a price change, a lease, a contract) and say you will send back the base and downside case within 24 hours, free, no call. For founders: the same, with one decision they are about to make. Never ask for a call, meeting, demo or walkthrough. No calendar links, no pricing, no trial pitch in a first touch.',
     '',
     'RULES:',
     '- Write like a busy operator writing to a peer: short sentences, concrete, no hype words (revolutionary, game-changing, cutting-edge, unlock, supercharge, AI-powered).',
