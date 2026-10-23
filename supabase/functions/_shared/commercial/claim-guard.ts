@@ -34,6 +34,11 @@ const HARD_PATTERNS: Array<{ re: RegExp; label: string; negatable?: boolean }> =
   { re: /\b(last chance|act now|only \d+ (spots|seats|places)|limited[- ]time|expires (today|tonight|soon))\b/i, label: 'fake urgency/scarcity' },
   { re: /\b(our|my) (clients|customers|users) (saw|got|achieved|increased|saved|grew)\b/i, label: 'fabricated customer result' },
   { re: /\b(hundreds|thousands|dozens) of (consultants|founders|cfos|firms|customers|users)\b/i, label: 'fabricated adoption claim' },
+  // 2026-10-23: step-2 drafts said "in most acquisition cases I see" -- an
+  // implied client track record Quantis does not have yet.
+  { re: /\b(cases|models|deals|engagements|decisions|clients) (I|we) (see|have seen|'ve seen|work on|worked on)\b/i, label: 'implied track record' },
+  { re: /\b(I|we)(?: have|'ve) seen (this|it|that)? ?(many|countless|again|over and over|a lot)\b/i, label: 'implied track record' },
+  { re: /\bin (my|our) experience\b/i, label: 'implied track record' },
   { re: /\bpredicts?\b[^.]*\b(success|failure|outcome)/gi, label: 'prediction claim', negatable: true },
 ];
 
