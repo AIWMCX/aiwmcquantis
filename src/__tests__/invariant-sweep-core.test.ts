@@ -139,3 +139,14 @@ describe('buildInterruptedRunRecord — SEEDED INTERRUPTED-RUN fixture (charter 
     expect(record.failureSummary).toBe('HTTP 503: Service Unavailable');
   });
 });
+
+describe('unacknowledgedViolations (scheduled sweep alerts only on NEW violations)', () => {
+  it('drops rows already flagged report_integrity=BLOCK and keeps unflagged ones', async () => {
+    const { unacknowledgedViolations } = await import('../../scripts/invariant-sweep-core');
+    const v = (id: string) => ({ id, issues: [{ scope: 'base', code: 'OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT' }] }) as never;
+    const rows = [{ id: 'old', already_blocked: true }, { id: 'new', already_blocked: false }, { id: 'nul', already_blocked: null }];
+    const fresh = unacknowledgedViolations([v('old'), v('new'), v('nul')], rows);
+    expect(fresh.map((x: { id: string }) => x.id)).toEqual(['new', 'nul']);
+    expect(unacknowledgedViolations([v('old')], rows)).toEqual([]);
+  });
+});

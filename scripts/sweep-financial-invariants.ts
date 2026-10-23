@@ -43,6 +43,7 @@ import {
   buildInterruptedRunRecord,
   type ViolationRecord,
   type SweepRunRecord,
+  unacknowledgedViolations,
 } from "./invariant-sweep-core.ts";
 
 const PROJECT_REF = "dmlxrvfyqsakyjomsvdj";
@@ -180,11 +181,24 @@ async function main() {
   }
 
   if (!APPLY) {
-    console.log("\nReport-only mode -- no rows written. Re-run with --apply to flag these for review.");
+    const fresh = unacknowledgedViolations(violations, rows);
+    const acknowledged = violations.length - fresh.length;
+    if (acknowledged > 0) {
+      console.log(`\n${acknowledged} of these are already flagged report_integrity='BLOCK' (known, shown to their owners as unverified).`);
+    }
     const record = buildCompletedRunRecord({ mode: "report-only", engineVersion: ENGINE_VERSION, scanned: rows.length, violations, malformedCount: malformed.length, appliedCount: 0 });
     const persisted = await recordSweepRun(record);
     if (!persisted) console.error("Additionally: this run's summary was NOT persisted (see PERSISTENCE FAILURE above).");
-    Deno.exit(1); // non-zero so a scheduled job alerts on any violation found
+    if (fresh.length > 0) {
+      console.log(`\nNEW (unflagged) violations: ${fresh.length}. Report-only mode -- no rows written. Re-run with --apply to flag these for review.`);
+      for (const v of fresh) console.log(`  - NEW ${v.id}`);
+      Deno.exit(1); // alert: a violation nobody has acknowledged yet
+    }
+    // Only already-flagged (acknowledged) violations remain: green, so the
+    // next genuinely new violation is visible instead of lost in a
+    // permanently red job.
+    console.log("\nPASS (known issues only): every violation is already flagged for review; no new violations.");
+    Deno.exit(persisted ? 0 : 1);
   }
 
   const toFlag = violations
