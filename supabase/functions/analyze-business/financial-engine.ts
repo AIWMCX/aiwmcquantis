@@ -23,6 +23,7 @@ import type {
 } from './schemas.ts';
 
 import { QMath } from './quantis-math-server.ts';
+import { year1ModeledProfit, roiYear1Percent as roiYear1PercentOf, ROI_YEAR1_EXPRESSION } from './roi-year1.ts';
 
 // ========== INDUSTRY BENCHMARK TYPE ==========
 
@@ -361,7 +362,8 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   }
   
   // ROI calculations using QMath
-  const roiYear1Percent = QMath.round(QMath.roi(netProfit, startupInvestment, 12));
+  // Year-1 ROI: the single ramp-model definition (roi-year1.ts), same as the live calculator.
+  const roiYear1Percent = roiYear1PercentOf(mrr, totalExpenses, startupInvestment);
   const roiYear3Percent = QMath.round(QMath.roi(netProfit, startupInvestment, 36));
   
   // True DCF NPV using QMath precision
@@ -374,11 +376,11 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   );
   
   audit.push({
-    formula: 'ROI_Year1 = (Net_Profit × 12 / Investment) × 100%',
-    inputs: { 'Monthly Profit': netProfit, Investment: startupInvestment },
+    formula: ROI_YEAR1_EXPRESSION,
+    inputs: { 'Year-1 modeled profit': Math.round(year1ModeledProfit(mrr, totalExpenses)), 'Steady-state profit/mo': netProfit, Investment: startupInvestment },
     result: roiYear1Percent,
     isValid: roiYear1Percent > 0,
-    notes: `($${netProfit} × 12 / $${startupInvestment}) × 100 = ${roiYear1Percent}%`,
+    notes: `Year-1 modeled profit (ramp + growth) ÷ investment = ${roiYear1Percent}%; not steady-state profit × 12.`,
   });
   
   audit.push({

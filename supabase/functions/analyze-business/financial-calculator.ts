@@ -11,6 +11,7 @@
  * Behavior is unchanged: same inputs, same outputs, same call sites in
  * index.ts (which now imports this function instead of defining it).
  */
+import { year1ModeledProfit as modeledYear1Profit, roiYear1Percent as roiYear1PercentOf, ROI_YEAR1_EXPRESSION } from './roi-year1.ts';
 import { applySubIndustryModifiers, getSubIndustryChurnRate, type SubIndustryResult } from "./sub-industry-detection.ts";
 import type { LocationMultiplierResult } from "./location-intelligence.ts";
 import { QMath } from "./quantis-math-server.ts";
@@ -647,26 +648,15 @@ export function calculateStrictFinancials(
   let roiYear1Percent = 0;
   let year1ModeledProfit = 0;
   if (startupInvestment > 0) {
-    // Calculate actual Year 1 profit with ramp
-    const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
-    const fixedP = finalTotalExpenses * 0.6;
-    const varP = finalTotalExpenses * 0.4;
-    let year1Profit = 0;
-    for (let m = 1; m <= 12; m++) {
-      if (m <= RAMP.length) {
-        year1Profit += mrr * RAMP[m - 1] - (fixedP + varP * RAMP[m - 1]);
-      } else {
-        const g = Math.pow(1.05, m - RAMP.length);
-        year1Profit += mrr * g - finalTotalExpenses * Math.pow(1.025, m - RAMP.length);
-      }
-    }
-    roiYear1Percent = Math.round((year1Profit / startupInvestment) * 100);
+    // Year-1 modeled profit: the single shared ramp-model definition.
+    const year1Profit = modeledYear1Profit(mrr, finalTotalExpenses);
+    roiYear1Percent = roiYear1PercentOf(mrr, finalTotalExpenses, startupInvestment);
     year1ModeledProfit = Math.round(year1Profit);
   }
 
   audit.push({
     // R&D F04: the text previously said "Profit × 12", which is not what runs.
-    formula: 'ROI_year1 = (Σ month 1–12 modeled profit / Investment) × 100%; months 1–6 ramp revenue 30%→100% with 60% of costs fixed, months 7–12 revenue +5%/mo and costs +2.5%/mo',
+    formula: ROI_YEAR1_EXPRESSION,
     inputs: { 'Year-1 modeled profit': year1ModeledProfit, 'Steady-state profit/mo': finalNetProfit, 'Investment': startupInvestment },
     result: roiYear1Percent,
     isValid: roiYear1Percent > 0,

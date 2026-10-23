@@ -143,10 +143,13 @@ describe('Formula: payback_months', () => {
   it('zero investment → 0', () => assertFormula('payback_months', [0, 5000], 0));
 });
 
+// Ramp-model Year-1 ROI (founder decision 2026-10-22). Inputs: steady revenue,
+// steady expenses, investment. Expected values from an independent Python
+// Decimal derivation, not from this code.
 describe('Formula: roi_year1', () => {
-  it('120% ROI', () => assertFormula('roi_year1', [5000, 50000], 120));
-  it('negative ROI', () => assertFormula('roi_year1', [-2000, 50000], -48));
-  it('zero investment → 0', () => assertFormula('roi_year1', [5000, 0], 0));
+  it('profitable ramp model', () => assertFormula('roi_year1', [10000, 8000, 20000], 87));
+  it('loss-making ramp model', () => assertFormula('roi_year1', [10000, 12000, 30000], -98));
+  it('zero investment → 0', () => assertFormula('roi_year1', [10000, 8000, 0], 0));
 });
 
 describe('Formula: npv_3year', () => {
