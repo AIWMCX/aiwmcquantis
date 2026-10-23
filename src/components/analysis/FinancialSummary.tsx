@@ -412,6 +412,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                   const be = canonicalBreakEven(financial);
                   const notAchievable = be.status === 'not_achievable';
                   const inconsistent = be.status === 'inconsistent';
+                  const insufficient = be.status === 'insufficient_inputs';
                   return (
                   <div className="p-4 rounded-lg border border-border bg-card md:col-span-2">
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
@@ -422,6 +423,11 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                       <p className="text-sm text-amber-600 flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                         Needs review: the monthly costs you entered don't reconcile with the itemized cost defaults in this report, so no break-even figure is shown. Re-run with itemized costs to get a reliable break-even.
+                      </p>
+                    ) : insufficient ? (
+                      <p className="text-sm text-amber-600 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                        Not enough data to calculate break-even: it needs a price per unit and a variable cost per unit. Add them and re-run to get a break-even figure.
                       </p>
                     ) : notAchievable ? (
                       <p className="text-sm text-amber-600 flex items-start gap-2">
