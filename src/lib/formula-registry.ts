@@ -15,6 +15,7 @@
  */
 
 import { QuantisMath, Decimal } from './quantis-math';
+import { roiYear1Percent as roiYear1PercentShared, ROI_YEAR1_EXPRESSION } from '../../supabase/functions/analyze-business/roi-year1';
 
 import { logger } from '@/lib/logger';
 // ========== TYPES ==========
@@ -429,32 +430,26 @@ FormulaRegistry.register({
 FormulaRegistry.register({
   id: 'roi_year1',
   name: 'Year 1 ROI',
-  description: 'Return on investment for the first year.',
+  description: 'Return on investment for the first year: modeled Year-1 profit (6-month ramp, then growth) over investment. Same definition as the analysis engine (roi-year1.ts).',
   category: 'investment',
   criticality: 'critical',
   units: '%',
   validRange: { min: -100, max: 10000 },
-  formulaExpression: 'ROI_Y1 = (Net_Profit × 12 / Investment) × 100',
+  formulaExpression: ROI_YEAR1_EXPRESSION,
   inputs: [
-    { name: 'monthlyProfit', description: 'Monthly net profit', unit: 'USD', required: true },
+    { name: 'steadyRevenue', description: 'Steady-state monthly revenue', unit: 'USD', required: true },
+    { name: 'steadyExpenses', description: 'Steady-state monthly expenses', unit: 'USD', required: true },
     { name: 'investment', description: 'Startup investment', unit: 'USD', min: 0, required: true },
   ],
-  formula: (monthlyProfit, investment) => {
-    if (investment <= 0) return 0;
-    return QuantisMath.round(
-      QuantisMath.multiply(
-        QuantisMath.divide(QuantisMath.multiply(monthlyProfit, 12), investment),
-        100
-      )
-    );
-  },
+  formula: (steadyRevenue, steadyExpenses, investment) => roiYear1PercentShared(steadyRevenue, steadyExpenses, investment),
   confidenceWeight: 85,
   version: '1.0.0',
   lastVerified: TODAY,
   testCases: [
-    { name: '120% ROI', inputs: [5000, 50000], expectedOutput: 120 },
-    { name: 'Negative ROI', inputs: [-2000, 50000], expectedOutput: -48 },
-    { name: 'Zero investment', inputs: [5000, 0], expectedOutput: 0 },
+    // Expected values derived independently with Python Decimal (prec 40), not from this code.
+    { name: 'Ramp model, profitable', inputs: [10000, 8000, 20000], expectedOutput: 87 },
+    { name: 'Ramp model, loss-making', inputs: [10000, 12000, 30000], expectedOutput: -98 },
+    { name: 'Zero investment', inputs: [10000, 8000, 0], expectedOutput: 0 },
   ],
 });
 

@@ -12,6 +12,7 @@
  * All calculations go through this deterministic engine.
  */
 
+import { roiYear1Percent as roiYear1PercentOf } from './roi-year1.ts';
 import { 
   validateBusinessInput, 
   type BusinessInput, 
@@ -313,19 +314,8 @@ export function processQuantisAnalysis(
   // already sign-agnostic and needs no other change.
   let roiYear1Percent = 0;
   if (investment > 0) {
-    const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
-    const fixedP = totalExpenses * 0.6;
-    const varP = totalExpenses * 0.4;
-    let y1Profit = 0;
-    for (let m = 1; m <= 12; m++) {
-      if (m <= RAMP.length) {
-        y1Profit += mrr * RAMP[m - 1] - (fixedP + varP * RAMP[m - 1]);
-      } else {
-        const g = Math.pow(1.05, m - RAMP.length);
-        y1Profit += mrr * g - totalExpenses * Math.pow(1.025, m - RAMP.length);
-      }
-    }
-    roiYear1Percent = Math.round((y1Profit / investment) * 100);
+    // Single shared ramp-model definition (roi-year1.ts).
+    roiYear1Percent = roiYear1PercentOf(mrr, totalExpenses, investment);
   }
   
   // Break-even calculations
