@@ -200,6 +200,8 @@ export interface FinancialAnalysis {
   // Monthly Expenses Breakdown
   monthly_expenses: {
     total: number;
+    /** How the line items were produced: a benchmark split of the user's total, or a full benchmark estimate (D8). */
+    breakdown_basis?: 'user_total_benchmark_split' | 'benchmark_estimate';
     variable_costs?: number;
     fixed_costs?: number;
     breakdown: {

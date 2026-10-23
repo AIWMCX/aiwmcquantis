@@ -368,7 +368,10 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         total: calc.totalExpenses,
         variable_costs: Math.round((calc.expenses.cogs + calc.expenses.marketing) * reconciliationScale),
         fixed_costs: Math.round((calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other) * reconciliationScale),
-        breakdown
+        breakdown,
+        // D8: the user enters one monthly total; the line items are an
+        // industry-benchmark split of it, never the client's own ledger.
+        breakdown_basis: calc.expenseSource === 'user' ? 'user_total_benchmark_split' as const : 'benchmark_estimate' as const,
       };
     })(),
     risk_analysis: {

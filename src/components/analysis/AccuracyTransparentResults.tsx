@@ -689,7 +689,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       {(result as any)?.report_integrity === 'BLOCK' ? (
                         <span className="text-[var(--q-status-red)] font-medium">⚠ Contradiction detected</span>
                       ) : (
-                        <span className="text-[var(--q-status-green)] font-medium">✓ Passed</span>
+                        <ReconciliationPassLabel flagged={(result as any)?.validation?.corrections?.length ?? 0} />
                       )}
                     </div>
                   </div>
@@ -698,7 +698,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="text-[11px] font-semibold text-foreground">Benchmark-matched analysis</p>
-                      <p className="text-[10px] text-muted-foreground">V2 engine • 5 tables • real-time calibration</p>
+                      <p className="text-[10px] text-muted-foreground">Deterministic engine • modeled industry benchmarks</p>
                     </div>
                   </div>
                   <a 
@@ -1168,7 +1168,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     {(result as any)?.report_integrity === 'BLOCK' ? (
                       <span className="text-[var(--q-status-red)] font-medium">⚠ Contradiction detected</span>
                     ) : (
-                      <span className="text-[var(--q-status-green)] font-medium">✓ Passed</span>
+                      <ReconciliationPassLabel flagged={(result as any)?.validation?.corrections?.length ?? 0} />
                     )}
                   </div>
                 </div>
@@ -1176,7 +1176,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
                   <div>
                     <p className="text-[11px] font-semibold text-foreground">Benchmark-matched analysis</p>
-                    <p className="text-[10px] text-muted-foreground">V2 engine • 5 tables • real-time calibration</p>
+                    <p className="text-[10px] text-muted-foreground">Deterministic engine • modeled industry benchmarks</p>
                   </div>
                 </div>
                 <a
@@ -1278,4 +1278,17 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
       />
     </div>
   );
+}
+
+// Snapshot validation_status is WARN when inputs were flagged for review, while
+// "Reconciliation" only covers contradictions. Show both so the two never disagree.
+function ReconciliationPassLabel({ flagged }: { flagged: number }) {
+  if (flagged > 0) {
+    return (
+      <span className="text-[var(--q-status-yellow)] font-medium">
+        ✓ No contradictions · {flagged} {flagged === 1 ? 'input' : 'inputs'} to check
+      </span>
+    );
+  }
+  return <span className="text-[var(--q-status-green)] font-medium">✓ Passed</span>;
 }
