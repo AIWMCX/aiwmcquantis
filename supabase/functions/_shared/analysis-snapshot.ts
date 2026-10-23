@@ -15,6 +15,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import type { MonthsMetricResult } from '../analyze-business/payback-contract.ts';
 import type { LockedNumericPayload } from './locked-numeric-payload.ts';
+import { CANONICAL_JSON_VERSION, canonicalSha256 } from './canonical-json.ts';
 
 export const ENGINE_VERSION = '2.0.0-precision';
 export const FORMULA_REGISTRY_VERSION = '1.0.0';
@@ -38,14 +39,16 @@ export interface AnalysisSnapshotInput {
   validationIssues?: unknown[];
 }
 
+/**
+ * Content hash of a snapshot input. Uses canonical-json-v2 (every nested
+ * value counts, NaN rejected). Rows written before this change carry
+ * input_hash_version NULL = legacy v1, whose hash ignored nested keys
+ * (R&D F01) and must not be treated as proof of identical inputs.
+ */
 export async function sha256Hex(value: unknown): Promise<string> {
-  const json = JSON.stringify(value, Object.keys(value as object).sort());
-  const bytes = new TextEncoder().encode(json);
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  return await canonicalSha256(value);
 }
+export const INPUT_HASH_VERSION = CANONICAL_JSON_VERSION;
 
 let cachedClient: ReturnType<typeof createClient> | null = null;
 function getServiceClient() {
@@ -81,6 +84,7 @@ export async function emitAnalysisSnapshot(input: AnalysisSnapshotInput): Promis
       formula_registry_version: FORMULA_REGISTRY_VERSION,
       dataset_version: input.datasetVersion ?? null,
       input_hash: inputHash,
+      input_hash_version: INPUT_HASH_VERSION,
       numeric_output_hash: numericOutputHash,
       investment_payback: input.investmentPayback,
       cac_payback: input.cacPayback ?? null,
