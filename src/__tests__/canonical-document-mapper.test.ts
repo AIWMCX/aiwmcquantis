@@ -140,3 +140,20 @@ describe('mapCanonicalModelToDocumentVariables', () => {
     expect(vars.mrr.quoteVersionId).toBe('qv-1');
   });
 });
+
+describe('document currency comes from the analysis, USD only as engine basis (F06)', () => {
+  it('uses a currency recorded on the analysis', async () => {
+    const { mapCanonicalModelToDocumentVariables } = await import('../lib/canonical-document-mapper');
+    const vars = mapCanonicalModelToDocumentVariables({
+      analysisId: 'a1', snapshotId: 's1', engineVersion: 'e', formulaVersion: 'f', numericOutputHash: 'h',
+      result: { currency: 'EUR', financial_analysis: { mrr: 1000 } } as never,
+    } as never);
+    expect(vars.mrr.currency).toBe('EUR');
+  });
+  it('falls back to USD (the engine basis) when nothing is recorded, and rejects junk codes', async () => {
+    const { mapCanonicalModelToDocumentVariables } = await import('../lib/canonical-document-mapper');
+    const mk = (result: unknown) => mapCanonicalModelToDocumentVariables({ analysisId: 'a1', snapshotId: 's1', engineVersion: 'e', formulaVersion: 'f', numericOutputHash: 'h', result } as never);
+    expect(mk({ financial_analysis: { mrr: 1000 } }).mrr.currency).toBe('USD');
+    expect(mk({ currency: 'dollars', financial_analysis: { mrr: 1000 } }).mrr.currency).toBe('USD');
+  });
+});

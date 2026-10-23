@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -229,8 +229,12 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
     });
   };
 
-  // Handle auto-fill from analysis
+  // Handle auto-fill from analysis. The analysis has monthly projections,
+  // not this quarter's actuals: revenue/income below are monthly x 3
+  // run-rates and are labelled as such until the user replaces them (F06).
+  const [runRatePrefilled, setRunRatePrefilled] = useState(false);
   const handleAutoFill = useCallback((data: AutoFillData) => {
+    if (data.quarterly_revenue || data.monthly_profit) setRunRatePrefilled(true);
     if (data.company_name) form.setValue('company_name', data.company_name);
     if (data.quarterly_revenue) form.setValue('total_revenue', data.quarterly_revenue);
     if (data.monthly_profit) form.setValue('net_income', data.monthly_profit * 3);
@@ -246,6 +250,11 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
       <div className="flex items-center justify-between mb-2">
         <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />
       </div>
+      {runRatePrefilled && (
+        <p role="note" className="text-sm text-amber-600 -mt-2 mb-2">
+          Revenue, net income and expenses were pre-filled as monthly × 3 run-rates from your analysis, not this quarter's actual results. Replace them with your actual quarter totals before sending this report.
+        </p>
+      )}
 
       {/* Report Header */}
       <Card>

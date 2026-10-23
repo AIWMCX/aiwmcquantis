@@ -39,7 +39,9 @@ export interface AutoFillData {
   // the same single source of truth Docs Studio's canonical mapper uses, so
   // this hook can never drift from it into its own "what does mrr mean".
   monthly_revenue?: number;
+  /** Run-rate: monthly revenue x 3. A projection, NOT an actual quarter's revenue. */
   quarterly_revenue?: number;
+  /** Run-rate: monthly revenue x 12. A projection, NOT an actual year's revenue. */
   annual_revenue?: number;
   startup_investment?: number;
   monthly_profit?: number;
@@ -116,8 +118,9 @@ export function toAutoFillData(
     company_city: analysis.location || '',
     industry: variables.industryDetected ? str('industryDetected') || '' : '',
 
-    // Quarterly/annual are legitimate arithmetic conversions of one real
-    // monthly figure, not growth guesses.
+    // Quarterly/annual are RUN-RATES of one monthly figure (x3, x12), not
+    // actual period totals (R&D F06). Forms that prefill period totals from
+    // them must label the value as a run-rate the user replaces with actuals.
     monthly_revenue: monthlyRevenue,
     quarterly_revenue: monthlyRevenue !== undefined ? monthlyRevenue * 3 : undefined,
     annual_revenue: monthlyRevenue !== undefined ? monthlyRevenue * 12 : undefined,

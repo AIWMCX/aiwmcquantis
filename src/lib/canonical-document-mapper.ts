@@ -31,24 +31,33 @@ interface KeyDef {
   resolve: Resolver;
 }
 
-const USD = 'USD';
+// The engine computes in USD (benchmarks are USD). Prefer a currency the
+// analysis itself records; fall back to USD only as the engine's basis,
+// never as a guess about the client's books (R&D F06).
+const ENGINE_BASE_CURRENCY = 'USD';
+function currencyOf(r: Partial<BusinessAnalysisResult>): string {
+  const rec = r as Record<string, unknown>;
+  const fa = (rec.financial_analysis ?? {}) as Record<string, unknown>;
+  const c = rec.currency ?? fa.currency;
+  return typeof c === 'string' && /^[A-Z]{3}$/.test(c) ? c : ENGINE_BASE_CURRENCY;
+}
 
 const KEY_DEFS: Record<string, KeyDef> = {
   mrr: {
     sourcePath: 'financial_analysis.mrr',
-    resolve: (r) => ({ value: r.financial_analysis?.mrr ?? null, unit: 'currency', currency: USD, period: 'monthly' }),
+    resolve: (r) => ({ value: r.financial_analysis?.mrr ?? null, unit: 'currency', currency: currencyOf(r), period: 'monthly' }),
   },
   arr: {
     sourcePath: 'financial_analysis.arr',
-    resolve: (r) => ({ value: r.financial_analysis?.arr ?? null, unit: 'currency', currency: USD, period: 'annual' }),
+    resolve: (r) => ({ value: r.financial_analysis?.arr ?? null, unit: 'currency', currency: currencyOf(r), period: 'annual' }),
   },
   baseRevenue: {
     sourcePath: 'financial_analysis.scenarios.base.revenue',
-    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.base?.revenue ?? null, unit: 'currency', currency: USD, period: 'monthly' }),
+    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.base?.revenue ?? null, unit: 'currency', currency: currencyOf(r), period: 'monthly' }),
   },
   baseNetProfit: {
     sourcePath: 'financial_analysis.scenarios.base.net_profit',
-    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.base?.net_profit ?? null, unit: 'currency', currency: USD, period: 'monthly' }),
+    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.base?.net_profit ?? null, unit: 'currency', currency: currencyOf(r), period: 'monthly' }),
   },
   baseGrossMargin: {
     sourcePath: 'financial_analysis.scenarios.base.gross_margin',
@@ -60,19 +69,19 @@ const KEY_DEFS: Record<string, KeyDef> = {
   },
   optimisticRevenue: {
     sourcePath: 'financial_analysis.scenarios.optimistic.revenue',
-    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.optimistic?.revenue ?? null, unit: 'currency', currency: USD, period: 'monthly' }),
+    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.optimistic?.revenue ?? null, unit: 'currency', currency: currencyOf(r), period: 'monthly' }),
   },
   pessimisticRevenue: {
     sourcePath: 'financial_analysis.scenarios.pessimistic.revenue',
-    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.pessimistic?.revenue ?? null, unit: 'currency', currency: USD, period: 'monthly' }),
+    resolve: (r) => ({ value: r.financial_analysis?.scenarios?.pessimistic?.revenue ?? null, unit: 'currency', currency: currencyOf(r), period: 'monthly' }),
   },
   cac: {
     sourcePath: 'financial_analysis.unit_economics.cac',
-    resolve: (r) => ({ value: r.financial_analysis?.unit_economics?.cac ?? null, unit: 'currency', currency: USD }),
+    resolve: (r) => ({ value: r.financial_analysis?.unit_economics?.cac ?? null, unit: 'currency', currency: currencyOf(r) }),
   },
   ltv: {
     sourcePath: 'financial_analysis.unit_economics.ltv',
-    resolve: (r) => ({ value: r.financial_analysis?.unit_economics?.ltv ?? null, unit: 'currency', currency: USD }),
+    resolve: (r) => ({ value: r.financial_analysis?.unit_economics?.ltv ?? null, unit: 'currency', currency: currencyOf(r) }),
   },
   ltvCacRatio: {
     sourcePath: 'financial_analysis.unit_economics.ltv_cac_ratio',
@@ -88,7 +97,7 @@ const KEY_DEFS: Record<string, KeyDef> = {
   },
   breakEvenRevenue: {
     sourcePath: 'financial_analysis.cvp.breakEven.breakEvenRevenue',
-    resolve: (r) => ({ value: canonicalBreakEven(r.financial_analysis).revenue, unit: 'currency', currency: USD }),
+    resolve: (r) => ({ value: canonicalBreakEven(r.financial_analysis).revenue, unit: 'currency', currency: currencyOf(r) }),
   },
   // Operating break-even (breakeven_months, above) is kept distinct from
   // investment payback (below) per the framework's identity rules — never
@@ -107,15 +116,15 @@ const KEY_DEFS: Record<string, KeyDef> = {
   },
   npv3Years: {
     sourcePath: 'financial_analysis.returns.npv_3_years',
-    resolve: (r) => ({ value: r.financial_analysis?.returns?.npv_3_years ?? null, unit: 'currency', currency: USD, period: '3-year' }),
+    resolve: (r) => ({ value: r.financial_analysis?.returns?.npv_3_years ?? null, unit: 'currency', currency: currencyOf(r), period: '3-year' }),
   },
   startupInvestmentTotal: {
     sourcePath: 'financial_analysis.startup_investment.total',
-    resolve: (r) => ({ value: r.financial_analysis?.startup_investment?.total ?? null, unit: 'currency', currency: USD }),
+    resolve: (r) => ({ value: r.financial_analysis?.startup_investment?.total ?? null, unit: 'currency', currency: currencyOf(r) }),
   },
   monthlyExpensesTotal: {
     sourcePath: 'financial_analysis.monthly_expenses.total',
-    resolve: (r) => ({ value: r.financial_analysis?.monthly_expenses?.total ?? null, unit: 'currency', currency: USD, period: 'monthly' }),
+    resolve: (r) => ({ value: r.financial_analysis?.monthly_expenses?.total ?? null, unit: 'currency', currency: currencyOf(r), period: 'monthly' }),
   },
   confidenceScore: {
     sourcePath: 'confidence_score',
