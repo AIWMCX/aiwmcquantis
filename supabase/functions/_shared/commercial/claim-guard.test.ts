@@ -147,3 +147,9 @@ Deno.test("guard: implied track record is invented proof (2026-10-23)", () => {
   }
   assert(scanOutbound("In valuation work, customer concentration usually decides whether a deal holds up.", V2).ok);
 });
+
+Deno.test("composer: brand line under a name-only identity is stripped too (2026-10-23)", () => {
+  const out = composeOutboundEmail("Worth a 20-minute walkthrough?\n\nBogdan Jeltov\nAIWMC Quantis", "Greg Monroe", "Bogdan Jeltov");
+  assertEquals(out.match(/Bogdan/g)?.length, 1, out);
+  assert(!out.includes("AIWMC Quantis\n\nBogdan"), out);
+});
