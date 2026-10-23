@@ -34,3 +34,13 @@ describe('ShareRail for anonymous reports', () => {
     expect(info).not.toHaveBeenCalled();
   });
 });
+
+describe('save from an anonymous report returns to that report', () => {
+  it('uses the returnUrl param the auth page actually reads (was ?next=, ignored)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const page = readFileSync('src/pages/PublicAnalysisResult.tsx', 'utf8');
+    expect(page).not.toContain('/auth?next=');
+    expect(page).toContain('/auth?returnUrl=${encodeURIComponent(`/r/${id}`)}');
+    expect(readFileSync('src/pages/Auth.tsx', 'utf8')).toContain("searchParams.get('returnUrl')");
+  });
+});
