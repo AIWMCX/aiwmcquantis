@@ -144,6 +144,10 @@ export function stripModelSignOff(text: string, senderIdentity: string): string 
     const l = line.trim();
     if (!l) return true;
     if (closing.test(l)) return true;
+    // The model sometimes copies the whole footer (opt-out line, postal
+    // line), which code appends anyway, so it printed twice.
+    if (/if this isn.t relevant|reply ["“]?no["”]?|unsubscribe|won.t (follow up|contact you)/i.test(l)) return true;
+    if (/^aiwmc llc\b/i.test(l)) return true;
     const toks = l.toLowerCase().split(/[^a-z]+/).filter(Boolean);
     return toks.length > 0 && toks.length <= 6 && toks.every((t) => words.has(t));
   };
