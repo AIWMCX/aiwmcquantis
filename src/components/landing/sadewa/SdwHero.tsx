@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
+import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
 import { directories } from '@/data/directorySubmissions';
 import { FEATURED_IDS } from '@/components/landing/FeaturedDirectories';
 import { CharReveal, Img3D, InView, Marquee, RollingNumber, SegmentRule, SplitButton, WordStagger, usePrefersReducedMotion } from '@/components/sadewa/primitives';
@@ -111,6 +112,17 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
             </InView>
             <p className="mt-4 sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
               No credit card · First analysis free
+            </p>
+            <p className="mt-3 text-[14px]" style={{ color: 'var(--sdw-muted)' }}>
+              Facing one big decision and want a person to check it?{' '}
+              <a
+                href="/decision-review"
+                onClick={() => trackCtaClick('hero_decision_review', 'hero')}
+                className="font-semibold underline underline-offset-4"
+                style={{ color: 'var(--sdw-ink)' }}
+              >
+                {ENGAGEMENT_OFFER.founderReview.name}, ${ENGAGEMENT_OFFER.founderReview.price} →
+              </a>
             </p>
 
             <div className="mt-12">
