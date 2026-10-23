@@ -194,14 +194,14 @@ export function calculateStrictFinancials(
         field: 'average_check',
         original: avgCheck,
         corrected,
-        reason: `Average check $${avgCheck} is below market minimum $${benchmarks.average_check_min} for ${benchmarks.name}`
+        reason: `Check this input: average price $${avgCheck} is below the usual range for ${benchmarks.name} ($${benchmarks.average_check_min}–$${benchmarks.average_check_max}). If it is right, keep it; the analysis uses your figure.`
       });
     } else {
       corrections.push({
         field: 'average_check',
         original: avgCheck,
         corrected,
-        reason: `Average check $${avgCheck} exceeds market maximum $${benchmarks.average_check_max} for ${benchmarks.name}`
+        reason: `Check this input: average price $${avgCheck} is above the usual range for ${benchmarks.name} ($${benchmarks.average_check_min}–$${benchmarks.average_check_max}). If it is right, keep it; the analysis uses your figure.`
       });
     }
   }
@@ -231,16 +231,18 @@ export function calculateStrictFinancials(
       field: 'cac',
       original: cac,
       corrected: isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_typical, 2000) : effectiveBenchmarks.cac_typical,
-      reason: isB2BEnterprise
-        ? `CAC $${cac} is unrealistically low for B2B/enterprise sales. Enterprise customer acquisition typically costs $2,000-$50,000+ due to sales cycles, demos, and relationship-building. Flagged for review (benchmark implies ~$${Math.max(effectiveBenchmarks.cac_typical, 2000)}).`
-        : `CAC $${cac} is unrealistically low. Minimum is $${effectiveBenchmarks.cac_min} for ${subIndustry?.subIndustryName || benchmarks.name}.`
+      reason: cac <= 0
+        ? `Check this input: a customer acquisition cost of $${cac} means customers arrive for free. If you do spend to win clients (ads, events, your own time), enter that amount; the analysis uses your figure.`
+        : isB2BEnterprise
+        ? `Check this input: CAC $${cac} is below what B2B sales with demos and longer cycles usually cost (often $2,000+). If referrals or an existing network bring clients in cheaply, keep it; the analysis uses your figure.`
+        : `Check this input: CAC $${cac} is below the usual range for ${subIndustry?.subIndustryName || benchmarks.name} (from $${effectiveBenchmarks.cac_min}). If it is right, keep it; the analysis uses your figure.`
     });
   } else if (cac > effectiveBenchmarks.cac_max) {
     corrections.push({
       field: 'cac',
       original: cac,
       corrected: effectiveBenchmarks.cac_max,
-      reason: `CAC $${cac} is above the typical maximum of $${effectiveBenchmarks.cac_max} for ${subIndustry?.subIndustryName || benchmarks.name}. Flagged for review.`
+      reason: `Check this input: CAC $${cac} is above the usual range for ${subIndustry?.subIndustryName || benchmarks.name} (up to $${effectiveBenchmarks.cac_max}). If it is right, keep it; the analysis uses your figure.`
     });
   }
 
@@ -260,7 +262,24 @@ export function calculateStrictFinancials(
   // 1.3 LTV - calculate from formula with GROSS MARGIN adjustment and sub-industry adjusted lifetime
   // BUG FIX: LTV must be margin-adjusted. Formula: LTV = Avg_Check × (1-COGS%) × Orders × Lifetime
   // Previously was raw revenue; now correctly represents what the business KEEPS from each customer.
-  const effectiveLifetime = effectiveBenchmarks.client_lifetime_months;
+  // D2 (iron audit 2026-10-23): LTV ignored the churn the user typed and
+  // always used the industry lifetime, so 2% and 100% monthly churn gave the
+  // same LTV. With a user churn rate, expected lifetime = 1 / churn (months),
+  // capped at 120 so 0% churn does not mean infinite value. Without one, the
+  // industry lifetime stays.
+  const LIFETIME_CAP_MONTHS = 120;
+  const userChurnFraction = typeof userProvidedChurnRate === 'number' && Number.isFinite(userProvidedChurnRate)
+    ? Math.min(Math.max(userProvidedChurnRate, 0), 100) / 100
+    : null;
+  const lifetimeFromChurn = userChurnFraction === null
+    ? null
+    : userChurnFraction <= 0 ? LIFETIME_CAP_MONTHS : Math.min(LIFETIME_CAP_MONTHS, 1 / userChurnFraction);
+  const effectiveLifetime = lifetimeFromChurn !== null
+    ? Math.round(lifetimeFromChurn * 10) / 10
+    : effectiveBenchmarks.client_lifetime_months;
+  const lifetimeSource = lifetimeFromChurn !== null
+    ? `1 ÷ your ${(userChurnFraction! * 100).toFixed(1)}% monthly churn${userChurnFraction! <= 0 || 1 / userChurnFraction! > LIFETIME_CAP_MONTHS ? `, capped at ${LIFETIME_CAP_MONTHS} months` : ''}`
+    : 'industry benchmark lifetime';
   const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
   const calculatedLtv = QMath.round(
     QMath.sanitize(avgCheck)
@@ -279,17 +298,19 @@ export function calculateStrictFinancials(
     },
     result: calculatedLtv,
     isValid: true,
-    notes: `$${avgCheck} × ${Math.round(grossMarginFraction * 100)}% × ${benchmarks.orders_per_client} × ${effectiveLifetime} = $${calculatedLtv} (margin-adjusted)`
+    notes: `$${avgCheck} × ${Math.round(grossMarginFraction * 100)}% × ${benchmarks.orders_per_client} × ${effectiveLifetime} = $${calculatedLtv} (margin-adjusted; lifetime = ${lifetimeSource})`
   });
 
   let ltv = calculatedLtv;
 
-  if (Math.abs(rawLtv - calculatedLtv) > calculatedLtv * 0.5) {
+  // Only when an LTV was actually supplied; rawLtv is 0 when none was, which
+  // used to add a meaningless "recalculated" note to every analysis.
+  if (rawLtv > 0 && Math.abs(rawLtv - calculatedLtv) > calculatedLtv * 0.5) {
     corrections.push({
       field: 'ltv',
       original: rawLtv,
       corrected: calculatedLtv,
-      reason: `LTV recalculated: $${avgCheck} × ${benchmarks.orders_per_client} orders × ${effectiveLifetime} months = $${calculatedLtv}`
+      reason: `Check this input: the LTV you gave ($${rawLtv}) differs from $${avgCheck} × ${benchmarks.orders_per_client} orders × ${Math.round(grossMarginFraction * 100)}% margin × ${effectiveLifetime} months = $${calculatedLtv}. The analysis uses the calculated value so it matches your price, margin and churn.`
     });
   }
 
@@ -300,19 +321,22 @@ export function calculateStrictFinancials(
     formula: 'LTV:CAC = LTV / CAC',
     inputs: { LTV: ltv, CAC: cac },
     result: ltvCacRatio,
-    isValid: ltvCacRatio >= benchmarks.ltv_cac_min && ltvCacRatio <= benchmarks.ltv_cac_max,
-    notes: `$${ltv} / $${cac} = ${ltvCacRatio}x (healthy: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`
+    isValid: cac > 0 && ltvCacRatio >= benchmarks.ltv_cac_min && ltvCacRatio <= benchmarks.ltv_cac_max,
+    // D3: dividing by a $0 CAC is not a ratio; never print "0x (healthy ...)".
+    notes: cac > 0
+      ? `$${ltv} / $${cac} = ${ltvCacRatio}x (typical range: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`
+      : `Not meaningful: CAC is $${cac}, so LTV:CAC cannot be computed.`
   });
 
   // P0-01: previously this rewrote LTV itself to force the ratio down to a
   // benchmark ceiling -- fabricating a lower LTV the calculation never
   // produced. Flag only now; the calculated LTV and ratio stand.
-  if (ltvCacRatio > benchmarks.ltv_cac_max) {
+  if (cac > 0 && ltvCacRatio > benchmarks.ltv_cac_max) {
     corrections.push({
       field: 'ltv_cac_ratio',
       original: ltvCacRatio,
       corrected: benchmarks.ltv_cac_max,
-      reason: `LTV:CAC ${ltvCacRatio}x is unusually high (typical max ${benchmarks.ltv_cac_max}x for this industry). Flagged for review -- verify average check, lifetime, and CAC inputs.`
+      reason: `Check this result: LTV:CAC ${ltvCacRatio}x is above the usual range for this industry (up to ${benchmarks.ltv_cac_max}x). Worth confirming average price, churn and CAC; the analysis keeps your figures.`
     });
   }
 
@@ -347,6 +371,27 @@ export function calculateStrictFinancials(
     : Math.ceil(mrr / revenuePerClient);
 
   // ENHANCED: Use sub-industry specific churn rate instead of hardcoded 25%
+  // D5 (iron audit 2026-10-23): contradictory inputs used to pass silently.
+  // Flag them; never change the user's figures.
+  if (userProvidedCustomers !== undefined && userProvidedCustomers <= 0 && mrr > 0) {
+    corrections.push({
+      field: 'expected_customers',
+      original: userProvidedCustomers,
+      corrected: Math.ceil(mrr / Math.max(revenuePerClient, 1)),
+      reason: `Check these inputs: monthly revenue is $${mrr} but customers is ${userProvidedCustomers}. Revenue needs paying customers; at $${avgCheck} each that is about ${Math.ceil(mrr / Math.max(revenuePerClient, 1))}.`,
+    });
+  } else if (userProvidedCustomers !== undefined && userProvidedCustomers > 0 && mrr > 0 && revenuePerClient > 0) {
+    const implied = userProvidedCustomers * revenuePerClient;
+    if (implied < mrr * 0.5 || implied > mrr * 2) {
+      corrections.push({
+        field: 'average_price',
+        original: avgCheck,
+        corrected: Math.round(mrr / userProvidedCustomers),
+        reason: `Check these inputs: ${userProvidedCustomers} customers × $${avgCheck} = $${Math.round(implied)} a month, but monthly revenue is $${mrr}. One of the three is probably off (revenue ÷ customers = $${Math.round(mrr / userProvidedCustomers)} each).`,
+      });
+    }
+  }
+
   const monthlyChurnPercent = effectiveChurnRate * 100;
   const newClientsNeeded = Math.ceil(clientsActive * effectiveChurnRate);
   const marketing = newClientsNeeded * cac;

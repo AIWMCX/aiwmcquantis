@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { breakEvenMonthsLabel, canonicalBreakEven } from '@/lib/break-even';
+import { formatLtvCac } from '@/lib/ltv-cac-display';
 import { logger } from '@/lib/logger';
 import {
   Tooltip,
@@ -251,7 +252,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
     },
     {
       label: 'LTV:CAC',
-      value: `${formatNumber(financial.unit_economics?.ltv_cac_ratio || 0)}x`,
+      value: formatLtvCac(financial.unit_economics, formatNumber),
       icon: Users,
       color: (financial.unit_economics?.ltv_cac_ratio || 0) >= 3 ? 'text-emerald-600' : 'text-amber-600',
       bgColor: (financial.unit_economics?.ltv_cac_ratio || 0) >= 3 ? 'bg-emerald-500/10' : 'bg-amber-500/10',
@@ -315,7 +316,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
           />
           <CopyableMetricCard
             label="LTV:CAC"
-            value={`${formatNumber(financial.unit_economics?.ltv_cac_ratio || 0)}x`}
+            value={formatLtvCac(financial.unit_economics, formatNumber)}
             rawValue={`${(financial.unit_economics?.ltv_cac_ratio || 0).toFixed(2)}`}
             icon={Users}
             color={(financial.unit_economics?.ltv_cac_ratio || 0) >= 3 ? 'text-emerald-600' : 'text-amber-600'}
@@ -385,7 +386,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">LTV:CAC</span>
                       <span className={cn("font-bold", (financial.unit_economics?.ltv_cac_ratio ?? 0) >= 3 ? "text-emerald-600" : "text-amber-600")}>
-                        {formatNumber(financial.unit_economics?.ltv_cac_ratio ?? 0)}x
+                        {formatLtvCac(financial.unit_economics, formatNumber)}
                       </span>
                     </div>
                     <div className="pt-2 border-t border-border/50">

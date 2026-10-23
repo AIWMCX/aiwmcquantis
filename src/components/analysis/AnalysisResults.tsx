@@ -1,5 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, Loader2, Share2, Twitter, Linkedin, Copy, Trophy, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, Shield, Lightbulb, Download, Upload, TriangleAlert } from 'lucide-react';
+import { formatLtvCac } from '@/lib/ltv-cac-display';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -415,7 +416,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <MetricMini label="LTV" value={`$${(result.financial_analysis.unit_economics.ltv ?? 0).toLocaleString()}`} positive={true} />
                   <MetricMini label="CAC" value={`$${(result.financial_analysis.unit_economics.cac ?? 0).toLocaleString()}`} positive={true} />
-                  <MetricMini label="LTV:CAC" value={`${(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0).toFixed(1)}×`} positive={(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0) >= 3} />
+                  <MetricMini label="LTV:CAC" value={formatLtvCac(result.financial_analysis.unit_economics).replace(/x$/, '×')} positive={(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0) >= 3} />
                   <MetricMini label="CAC Payback" value={(result.financial_analysis.unit_economics.cac_payback_months ?? 0) >= 999 ? 'N/A' : `${(result.financial_analysis.unit_economics.cac_payback_months ?? 0).toFixed(1)}mo`} positive={(result.financial_analysis.unit_economics.cac_payback_months ?? 99) <= 6} />
                 </div>
               </div>
