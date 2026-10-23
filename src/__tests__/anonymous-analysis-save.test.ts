@@ -43,3 +43,13 @@ describe('saveAnonymousAnalysis', () => {
     expect(sql.replace(/--.*$/gm, '')).not.toMatch(/user_settings/i);
   });
 });
+
+describe('anon insert restrictive policy', () => {
+  it('narrows the deny policy to unowned rows with a session id (was WITH CHECK (false))', () => {
+    const sql = readFileSync('supabase/migrations/20261023230000_anonymous_insert_restrictive_policy.sql', 'utf8');
+    expect(sql).toContain('AS RESTRICTIVE');
+    expect(sql).toContain('TO anon');
+    expect(sql).toMatch(/WITH CHECK \(\s*user_id IS NULL\s*AND anonymous_session_id IS NOT NULL/);
+    expect(sql.replace(/--.*$/gm, '')).not.toContain('WITH CHECK (false)');
+  });
+});
