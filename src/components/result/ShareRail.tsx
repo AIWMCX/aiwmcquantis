@@ -81,7 +81,22 @@ export function ShareRail({
     auth_state: isAuthenticated ? 'authenticated' : 'anonymous',
   } as const;
 
+  // An anonymous report lives only in this browser (local cache, no saved
+  // row), so its URL shows "Analysis not found" to anyone it is sent to.
+  // Instead of handing out a dead link, ask them to save it first; saving
+  // unlocks "Create share link", which does open for others.
+  const gateAnonymous = (channel: string): boolean => {
+    if (isAuthenticated) return false;
+    trackEvent('share_gated', { ...baseEventProps, channel });
+    toast.info('Save this report free to share it', {
+      description: 'Right now it only exists in this browser. After saving you can create a link anyone can open.',
+      action: onSave ? { label: 'Save free', onClick: () => onSave() } : undefined,
+    });
+    return true;
+  };
+
   const handleNativeShare = async () => {
+    if (gateAnonymous('native')) return;
     trackEvent('share_click', { ...baseEventProps, channel: 'native' });
     try {
       await navigator.share({ title: 'Quantis verdict', text: title, url: shareUrl });
@@ -96,6 +111,7 @@ export function ShareRail({
   };
 
   const handleCopy = async () => {
+    if (gateAnonymous('copy')) return;
     trackEvent('copy_link', { ...baseEventProps });
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
@@ -120,6 +136,7 @@ export function ShareRail({
   };
 
   const openIntent = (channel: 'twitter' | 'linkedin' | 'whatsapp') => {
+    if (gateAnonymous(channel)) return;
     trackEvent('share_click', { ...baseEventProps, channel });
     const enc = encodeURIComponent;
     let intent = '';

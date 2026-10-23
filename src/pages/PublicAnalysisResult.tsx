@@ -78,7 +78,7 @@ export default function PublicAnalysisResult() {
     if (!id) return;
     if (!isAuthenticated) {
       toast.info('Sign in to create a permanent share link', {
-        action: { label: 'Sign in', onClick: () => navigate(`/auth?next=/r/${id}`) },
+        action: { label: 'Sign in', onClick: () => navigate(`/auth?returnUrl=${encodeURIComponent(`/r/${id}`)}`) },
       });
       return;
     }
@@ -89,7 +89,7 @@ export default function PublicAnalysisResult() {
     if (!id) return;
     // Stash the id so post-signup we auto-claim
     try { localStorage.setItem('quantis_claim_analysis_id', id); } catch {}
-    navigate(`/auth?next=/r/${id}`);
+    navigate(`/auth?returnUrl=${encodeURIComponent(`/r/${id}`)}`);
   };
 
   if (loading) {
