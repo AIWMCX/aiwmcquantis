@@ -153,3 +153,14 @@ Deno.test("composer: brand line under a name-only identity is stripped too (2026
   assertEquals(out.match(/Bogdan/g)?.length, 1, out);
   assert(!out.includes("AIWMC Quantis\n\nBogdan"), out);
 });
+
+Deno.test("composer: a footer copied by the model is not printed twice (2026-10-23)", () => {
+  const body = "Worth running one anonymized client case through it?\n\nBogdan Jeltov\n\nIf this isn't relevant, just reply \"no\" and I won't follow up.";
+  const out = composeOutboundEmail(body, "Tim Purselley", "Bogdan Jeltov");
+  assertEquals(out.match(/Bogdan/g)?.length, 1, out);
+  assertEquals(out.match(/If this isn't relevant/g)?.length, 1, out);
+  assert(out.endsWith("Worth running one anonymized client case through it?\n\nBogdan Jeltov\n\nIf this isn't relevant, just reply \"no\" and I won't follow up."), out);
+  // A sentence about replying mid-body is not a footer line on its own.
+  const kept = composeOutboundEmail("If it helps, reply with one current decision and I'll run it.", "Tim", "Bogdan Jeltov");
+  assert(kept.includes("If it helps, reply with one current decision"), kept);
+});
