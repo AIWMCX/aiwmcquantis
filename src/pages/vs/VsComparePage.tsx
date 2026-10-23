@@ -35,7 +35,7 @@ export default function VsComparePage() {
   }
 
   const canonical = `/vs/${page.slug}`;
-  const title = `Quantis vs ${page.competitor} — Deterministic Validation, Cited Sources`;
+  const title = `Quantis vs ${page.competitor} — Deterministic Validation, Labeled Assumptions`;
   const description = `${page.wedge} See how Quantis differs from ${page.competitor} on engine type, sources, and price.`;
 
   return (
@@ -199,7 +199,7 @@ export default function VsComparePage() {
               Run {TIERS.free.limits.analysesPerMonth} free analyses this month
             </h2>
             <p className="text-base text-muted-foreground mb-6 max-w-xl mx-auto">
-              No credit card. Viability score, top 3 risks, and cited sources.
+              No credit card. Viability score, top 3 risks, and labeled assumptions.
             </p>
             <Link to="/app">
               <Button size="lg" className="gap-2 min-h-[52px] px-7 text-base font-semibold">

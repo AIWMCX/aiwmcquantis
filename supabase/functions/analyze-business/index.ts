@@ -15,7 +15,7 @@ import { scoreIndustriesByKeywords } from './industry-classifier-core.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
-import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT } from '../_shared/canonical-facts.ts';
+import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT, BENCHMARK_SOURCES_DISPLAY } from '../_shared/canonical-facts.ts';
 import { buildQualityDimensions } from '../_shared/quality-dimensions.ts';
 
 const FUNCTION_NAME = 'analyze-business';
@@ -4195,17 +4195,20 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       score_compliance: scoreCompliance || undefined,
       
       engine_version: quantisOutput?.version ?? '2.0-degraded',
+      // Truth audit 2026-10-23: this list used to name sources the engine never
+      // ingests (BLS, SBA, "GAAP" formulas, and "IBISWorld Industry Reports
+      // (2024)" whenever built-in defaults were used) and called modeled
+      // data points "Verified sample: N companies". Only name what is real;
+      // canonical-facts.ts is the single source of truth.
       data_sources: [
-        benchmarkSource === 'database' 
-          ? `Proprietary Industry Benchmark Database (${benchmarkDataSource?.replace(/kerry/gi, 'verified') || 'verified benchmarks'})` 
-          : 'IBISWorld Industry Reports (2024)',
-        'U.S. Bureau of Labor Statistics',
-        'Small Business Administration Cost Data',
-        'Industry Standard Financial Formulas (GAAP)',
-        `${calc.industryDetected} Sector Benchmarks`,
-        locationMultiplier !== 1.0 ? `${location_clean} Cost of Living Index` : 'National Average Cost Data',
+        benchmarkSource === 'database'
+          ? `Quantis modeled benchmark grid (informed by ${BENCHMARK_SOURCES_DISPLAY})`
+          : 'Quantis built-in industry defaults (modeled; no third-party report)',
+        'Quantis deterministic financial formulas (see methodology)',
+        `${calc.industryDetected} sector benchmark values (modeled)`,
+        locationMultiplier !== 1.0 ? `Quantis location cost multiplier for ${location_clean} (modeled)` : 'No location adjustment applied',
         benchmarkMatchedRegion ? `Regional benchmark data: ${benchmarkMatchedRegion}` : null,
-        benchmarkSampleSize ? `Verified sample: ${benchmarkSampleSize} companies` : null,
+        benchmarkSampleSize ? `Benchmark cell size: ${benchmarkSampleSize} modeled data points` : null,
         ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `Uploaded Document: ${ef.source_document}`) : [])
       ].filter(Boolean),
       limitations: [

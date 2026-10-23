@@ -156,7 +156,7 @@ export const PricingCard = React.memo(function PricingCard({
       {highlighted && (
         <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
           <p className="text-xs text-center text-muted-foreground">
-            <span className="font-medium text-foreground">Worth $2,000+</span> in consultant fees
+            <span className="font-medium text-foreground">Consultant-style output</span> you can check line by line
           </p>
         </div>
       )}

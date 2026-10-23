@@ -4,7 +4,7 @@
  * Audit 2026-06-20 D10.3: buyer-intent SEO ("LivePlan vs", "Bizplan alternative",
  * "AI business plan validator") is owned by competitors and review sites. These
  * pages occupy that surface honestly: the 3 differentiators that exist in our
- * engine and don't exist in theirs — deterministic engine, RVCE, cited sources.
+ * engine and don't exist in theirs — deterministic engine, RVCE, labeled assumptions.
  *
  * Every competitor fact below carries a source URL. Comparison rows quote what
  * the competitor publicly claims; we never assert a negative about a competitor
@@ -52,8 +52,8 @@ const QUANTIS_DIFFERENTIATORS: VsRow[] = [
     competitor: 'No equivalent live-web validator described.',
   },
   {
-    feature: 'Cited sources on every metric',
-    quantis: 'Yes — every cost, margin, and rate carries a source string (SBA / IBISWorld / Census / BLS / OECD).',
+    feature: 'Basis labeled on every metric',
+    quantis: 'Yes — every benchmark-driven cost, margin and rate is labeled with its basis: your input, or a modeled benchmark informed by SEC XBRL filings, World Bank enterprise surveys and JPMorgan Chase Institute data.',
     competitor: 'Aggregated narrative, no per-metric provenance.',
   },
 ];
@@ -91,7 +91,7 @@ export const VS_PAGES: VsPage[] = [
       },
       {
         feature: 'Output style',
-        quantis: 'Deterministic verdict: viability score, P10/P50/P90 across 12 financial variables, prioritized risk map, cited sources.',
+        quantis: 'Deterministic verdict: viability score, P10/P50/P90 across 12 financial variables, prioritized risk map, labeled assumptions.',
         competitor: 'Investor-ready written business plan, financial forecasts, one-click PDFs.',
       },
     ],
@@ -106,7 +106,7 @@ export const VS_PAGES: VsPage[] = [
       },
       {
         q: 'How much is Quantis Pro vs LivePlan?',
-        a: `Pro is $${TIERS.pro.priceMonthly}/mo. LivePlan publishes $20/mo on annual billing. The Pro tier adds white-label exports, API access, TAM/SAM/SOM with cited sources, the 60-month model, and pitch-deck data — features LivePlan does not advertise on its pricing page.`,
+        a: `Pro is $${TIERS.pro.priceMonthly}/mo. LivePlan publishes $20/mo on annual billing. The Pro tier adds white-label exports, API access, TAM/SAM/SOM market sizing, the 60-month model, and pitch-deck data — features LivePlan does not advertise on its pricing page.`,
       },
     ],
   },
@@ -143,14 +143,14 @@ export const VS_PAGES: VsPage[] = [
       },
       {
         feature: 'Benchmark substrate',
-        quantis: `${BENCHMARK_COUNT_DISPLAY} rows across ${BENCHMARK_SECTORS} sectors, sourced from SBA / IBISWorld / Census / BLS / OECD.`,
+        quantis: `${BENCHMARK_COUNT_DISPLAY} rows across ${BENCHMARK_SECTORS} sectors, modeled from SEC XBRL, World Bank and JPMorgan Chase Institute data.`,
         competitor: 'Not disclosed publicly.',
       },
     ],
     faqs: [
       {
         q: 'Is Upmetrics cheaper than Quantis?',
-        a: `Upmetrics advertises $14/mo on annual billing. Quantis Plus is $${TIERS.plus.priceMonthly}/mo monthly. The relevant question is what each dollar buys: Upmetrics buys writing assistance; Quantis buys an auditable verdict with cited sources.`,
+        a: `Upmetrics advertises $14/mo on annual billing. Quantis Plus is $${TIERS.plus.priceMonthly}/mo monthly. The relevant question is what each dollar buys: Upmetrics buys writing assistance; Quantis buys an auditable verdict with every assumption labeled.`,
       },
       {
         q: 'Why does Quantis not have an AI business-plan writer?',
@@ -169,7 +169,7 @@ export const VS_PAGES: VsPage[] = [
       quote: 'Generate a complete business plan for free in minutes with AI.',
       source: 'https://www.bizplanr.ai',
     },
-    wedge: `Bizplanr is free, and that matters. The honest question is what "free" buys you. Bizplanr buys a generated document. Quantis Free buys ${TIERS.free.limits.analysesPerMonth} actual validation runs per month — viability score, top risks, cited sources — without a credit card. If the document is the deliverable, use Bizplanr. If the decision is the deliverable, use Quantis.`,
+    wedge: `Bizplanr is free, and that matters. The honest question is what "free" buys you. Bizplanr buys a generated document. Quantis Free buys ${TIERS.free.limits.analysesPerMonth} actual validation runs per month — viability score, top risks, labeled assumptions — without a credit card. If the document is the deliverable, use Bizplanr. If the decision is the deliverable, use Quantis.`,
     rows: [
       ...QUANTIS_DIFFERENTIATORS,
       {
@@ -216,7 +216,7 @@ export const VS_PAGES: VsPage[] = [
       quote: 'Validate your startup idea before you build.',
       source: 'https://www.foundra.ai/best',
     },
-    wedge: `Foundra runs a 3-phase conversation and hands you 15 strategy cards — target customer, objection map, MVP scope. That's real, useful work. It is not a financial model. Quantis starts where that conversation ends: a deterministic engine computes 12 financial variables, runs a ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo around them, and cites a source for every number. If you need the strategic narrative, Foundra's cards are a reasonable place to start. If you need the number an investor will actually ask about, that's a different kind of tool.`,
+    wedge: `Foundra runs a 3-phase conversation and hands you 15 strategy cards — target customer, objection map, MVP scope. That's real, useful work. It is not a financial model. Quantis starts where that conversation ends: a deterministic engine computes 12 financial variables, runs a ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo around them, and labels whether each number is your input or a modeled benchmark. If you need the strategic narrative, Foundra's cards are a reasonable place to start. If you need the number an investor will actually ask about, that's a different kind of tool.`,
     rows: [
       ...QUANTIS_DIFFERENTIATORS,
       {
@@ -247,7 +247,7 @@ export const VS_PAGES: VsPage[] = [
     faqs: [
       {
         q: 'Is Foundra a Quantis competitor or a complement?',
-        a: 'Both, depending on what you need. Foundra is strong at the qualitative strategy layer — customer profile, positioning, launch checklist. Quantis is the quantitative layer — the actual financial model with cited sources. Some founders reasonably use both: Foundra to think through the strategy, Quantis to pressure-test the numbers.',
+        a: 'Both, depending on what you need. Foundra is strong at the qualitative strategy layer — customer profile, positioning, launch checklist. Quantis is the quantitative layer — the actual financial model with labeled assumptions. Some founders reasonably use both: Foundra to think through the strategy, Quantis to pressure-test the numbers.',
       },
       {
         q: 'Which is cheaper?',
@@ -271,13 +271,13 @@ export const VS_PAGES: VsPage[] = [
       ...QUANTIS_DIFFERENTIATORS,
       {
         feature: 'Core output',
-        quantis: 'Deterministic financial verdict with cited sources — a validation decision.',
+        quantis: 'Deterministic financial verdict with labeled assumptions — a validation decision.',
         competitor: 'Guided planning, market research via AI agents, task lists, and a visual canvas — a building companion.',
         competitorSource: 'https://aicofounder.com',
       },
       {
         feature: 'Financial modeling',
-        quantis: `Deterministic engine, ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo, 12 variables, cited sources.`,
+        quantis: `Deterministic engine, ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo, 12 variables, labeled assumptions.`,
         competitor: 'Not described as a feature — purely conversational and qualitative guidance, no quantitative financial output.',
         competitorSource: 'https://aicofounder.com',
       },
@@ -331,7 +331,7 @@ export const VS_PAGES: VsPage[] = [
       },
       {
         feature: 'Benchmark data behind the answer',
-        quantis: `${BENCHMARK_COUNT_DISPLAY} rows across ${BENCHMARK_SECTORS} sectors — SBA / IBISWorld / Census / BLS / OECD.`,
+        quantis: `${BENCHMARK_COUNT_DISPLAY} rows across ${BENCHMARK_SECTORS} sectors — modeled from SEC XBRL, World Bank and JPMorgan Chase Institute data.`,
         competitor: 'None specific to business benchmarks — general training-data knowledge only, with a documented knowledge cutoff.',
       },
     ],

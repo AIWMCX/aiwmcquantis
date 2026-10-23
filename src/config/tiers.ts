@@ -277,7 +277,7 @@ export const UPGRADE_COPY: Record<
     title: 'Professional-Depth Analysis',
     bullets: [
       '60-month (5-year) financial model',
-      'TAM / SAM / SOM with cited sources',
+      'TAM / SAM / SOM with stated assumptions',
       'Pitch deck data package',
     ],
     recommendedTier: 'pro',
@@ -351,7 +351,7 @@ export const UPGRADE_COPY: Record<
     title: 'TAM / SAM / SOM Calculator',
     bullets: [
       'Total / Serviceable / Obtainable market',
-      'Cited sources from research corpus',
+      'Every assumption stated and editable',
       'Investor-ready market sizing',
     ],
     recommendedTier: 'plus',
