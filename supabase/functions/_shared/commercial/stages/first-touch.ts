@@ -136,7 +136,9 @@ export async function draftFirstTouch(
  * that only repeat a word of the sender identity or a closing ("Best,").
  */
 export function stripModelSignOff(text: string, senderIdentity: string): string {
-  const words = new Set(senderIdentity.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 1));
+  // Brand/title words count too: with a name-only identity ("Bogdan Jeltov")
+  // the model's "AIWMC Quantis" line stopped the strip and the name doubled.
+  const words = new Set([...senderIdentity.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 1), 'aiwmc', 'quantis', 'founder', 'llc']);
   const closing = /^(best|thanks|thank you|regards|best regards|kind regards|cheers|sincerely)[,.!]?$/i;
   const isSignOff = (line: string) => {
     const l = line.trim();
