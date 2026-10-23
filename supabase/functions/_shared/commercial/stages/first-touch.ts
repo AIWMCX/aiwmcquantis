@@ -130,6 +130,26 @@ export async function draftFirstTouch(
   });
 }
 
+/**
+ * The model sometimes signs off anyway ("Bogdan Jeltov\nAIWMC Quantis"), and
+ * the appended signature then printed the name twice. Drop trailing lines
+ * that only repeat a word of the sender identity or a closing ("Best,").
+ */
+export function stripModelSignOff(text: string, senderIdentity: string): string {
+  const words = new Set(senderIdentity.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 1));
+  const closing = /^(best|thanks|thank you|regards|best regards|kind regards|cheers|sincerely)[,.!]?$/i;
+  const isSignOff = (line: string) => {
+    const l = line.trim();
+    if (!l) return true;
+    if (closing.test(l)) return true;
+    const toks = l.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+    return toks.length > 0 && toks.length <= 6 && toks.every((t) => words.has(t));
+  };
+  const lines = text.split('\n');
+  while (lines.length > 1 && isSignOff(lines[lines.length - 1])) lines.pop();
+  return lines.join('\n').trimEnd();
+}
+
 /** Deterministic footer: sender identity + a plain opt-out line. */
 export function composeOutboundEmail(body: string, contactName: string | null, senderIdentity: string | null): string {
   const first = (contactName ?? '').trim().split(/\s+/)[0];
@@ -143,5 +163,6 @@ export function composeOutboundEmail(body: string, contactName: string | null, s
     const stripped = text.replace(new RegExp(`^(?:(?:hi|hello|hey|dear)\\s+)?${esc}\\s*[—–,:!-]\\s*`, 'i'), '');
     if (stripped !== text && stripped.length > 0) text = stripped.charAt(0).toUpperCase() + stripped.slice(1);
   }
+  if (signature) text = stripModelSignOff(text, senderIdentity!);
   return `${greeting}${text}${signature}\n\nIf this isn't relevant, just reply "no" and I won't follow up.`;
 }

@@ -119,3 +119,31 @@ Deno.test("compose: a body that repeats the first name is not doubled after the 
   const kept = composeOutboundEmail("Carlossa Group caught my eye.", "Carlos Ruiz", "Bogdan");
   assert(kept.startsWith("Hi Carlos,\n\nCarlossa Group caught my eye."));
 });
+
+Deno.test("composer: a sign-off written by the model is not printed twice (2026-10-23)", () => {
+  const sender = "Bogdan Jeltov\nFounder, AIWMC Quantis";
+  for (const body of [
+    "Worth a 20-minute walkthrough? Yes or no is fine.\n\nBogdan Jeltov",
+    "Worth a 20-minute walkthrough? Yes or no is fine.\n\nBogdan Jeltov\nAIWMC Quantis",
+    "Worth a 20-minute walkthrough? Yes or no is fine.\n\nBest,\nBogdan",
+  ]) {
+    const out = composeOutboundEmail(body, "Dave Richards", sender);
+    assertEquals(out.match(/Bogdan/g)?.length, 1, out);
+    assert(out.includes("Yes or no is fine.\n\nBogdan Jeltov\nFounder, AIWMC Quantis"), out);
+  }
+  // A body line that merely mentions Quantis in a sentence is kept.
+  const kept = composeOutboundEmail("Quantis makes that assumption explicit.", "Dave", sender);
+  assert(kept.includes("Quantis makes that assumption explicit."));
+});
+
+Deno.test("guard: implied track record is invented proof (2026-10-23)", () => {
+  for (const s of [
+    "In most acquisition and expansion cases I see, volume decides.",
+    "In most acquisition and expansion models I see, volume decides.",
+    "In my experience, utilization decides payback.",
+    "Across the engagements we work on, rent decides.",
+  ]) {
+    assertFalse(scanOutbound(s, V2).ok, s);
+  }
+  assert(scanOutbound("In valuation work, customer concentration usually decides whether a deal holds up.", V2).ok);
+});
