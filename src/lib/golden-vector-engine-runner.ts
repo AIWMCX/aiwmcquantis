@@ -141,7 +141,9 @@ export function runVectorThroughEngine(vector: GoldenVector): GoldenVectorEngine
     const activeCustomers = newPerMonth / churn;
     rawMrr = activeCustomers * arpu;
     userProvidedCustomers = Math.round(activeCustomers);
-    userProvidedChurnRate = churn;
+    // Vectors store churn as a fraction (0.05); calculateStrictFinancials takes
+    // a PERCENT like every production caller (#289), so convert here.
+    userProvidedChurnRate = churn * 100;
     rawAvgCheck = arpu;
     userProvidedCosts = opex;
   } else if (arpu !== undefined && newPerMonth !== undefined) {
