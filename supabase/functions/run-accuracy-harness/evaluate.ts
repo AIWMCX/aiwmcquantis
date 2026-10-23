@@ -8,7 +8,9 @@
 //   - every per-vector result was persisted.
 // Anything else is FAIL, NOT_EXECUTED or ERROR, never ok:true.
 
-export interface ExpectedRange { min?: number; max?: number; target?: number }
+// abs_tolerance: metric-specific absolute floor (harness v2 contract). A target passes when
+// |actual - target| <= max(abs_tolerance, tolerance_pct% x |target|), so target 0 is checkable.
+export interface ExpectedRange { min?: number; max?: number; target?: number; abs_tolerance?: number }
 
 export type RunStatus = 'PASS' | 'FAIL' | 'NOT_EXECUTED' | 'ERROR';
 
@@ -54,6 +56,8 @@ export function expectationProblem(v: VectorRow): string | null {
     if (bounds.length === 0) return `RANGE_WITHOUT_BOUNDS:${path}`;
     if (bounds.some((k) => !isFiniteNum(r[k]))) return `NON_FINITE_BOUND:${path}`;
     if (isFiniteNum(r.min) && isFiniteNum(r.max) && r.min > r.max) return `MIN_GT_MAX:${path}`;
+    if (r.abs_tolerance !== undefined && (!isFiniteNum(r.abs_tolerance) || r.abs_tolerance < 0)) return `BAD_ABS_TOLERANCE:${path}`;
+    if (r.target === 0 && !(isFiniteNum(r.abs_tolerance) && r.abs_tolerance > 0)) return `ZERO_TARGET_NEEDS_ABS_TOLERANCE:${path}`;
   }
   for (const [path, s] of statuses) if (typeof s !== 'string' || !s) return `BAD_STATUS:${path}`;
   if (v.tolerance_pct != null && (!isFiniteNum(v.tolerance_pct) || v.tolerance_pct < 0)) return 'BAD_TOLERANCE';
@@ -75,8 +79,10 @@ export function compareMetric(actual: unknown, expected: ExpectedRange, toleranc
     return { passed: false, deviation_pct: ((actual - expected.max) / Math.max(1e-9, Math.abs(expected.max))) * 100 };
   }
   if (expected.target != null) {
-    const dev = (Math.abs(actual - expected.target) / Math.max(1e-9, Math.abs(expected.target))) * 100;
-    return { passed: dev <= tolerancePct, deviation_pct: dev };
+    const diff = Math.abs(actual - expected.target);
+    const allowed = Math.max(expected.abs_tolerance ?? 0, (tolerancePct / 100) * Math.abs(expected.target));
+    const dev = expected.target === 0 ? null : (diff / Math.abs(expected.target)) * 100;
+    return { passed: diff <= allowed, deviation_pct: dev };
   }
   // Reached only with min and/or max present (validated): inside the range.
   return { passed: true, deviation_pct: 0 };

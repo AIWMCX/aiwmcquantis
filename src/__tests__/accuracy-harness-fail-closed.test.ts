@@ -57,6 +57,12 @@ describe('judging a vector', () => {
     expect(j.passed).toBe(false);
     expect(j.invariant_results[0]).toMatchObject({ name: 'cash_roll_forward', evaluated: false, passed: false });
   });
+  it('target 0 needs an absolute tolerance and is judged by it', () => {
+    expect(expectationProblem(vec({ expected_ranges: { m: { target: 0 } } }))).toBe('ZERO_TARGET_NEEDS_ABS_TOLERANCE:m');
+    expect(compareMetric(0.004, { target: 0, abs_tolerance: 0.005 }, 1).passed).toBe(true);
+    expect(compareMetric(0.009, { target: 0, abs_tolerance: 0.005 }, 1).passed).toBe(false);
+    expect(compareMetric(100.4, { target: 100, abs_tolerance: 0.5 }, 0).passed).toBe(true);
+  });
   it('compareMetric never passes a range-less expectation by default', () => {
     expect(compareMetric(5, { min: 1, max: 10 }, 1).passed).toBe(true);
     expect(compareMetric(5, { target: 5 }, 0).passed).toBe(true);
