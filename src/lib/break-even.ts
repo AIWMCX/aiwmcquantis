@@ -40,6 +40,7 @@ export type CanonicalBreakEven =
   | { status: 'value'; units: number | null; revenue: number; source: 'cvp' | 'legacy' }
   | { status: 'inconsistent'; units: null; revenue: null; source: null }
   | { status: 'not_achievable'; units: null; revenue: null; source: 'cvp' }
+  | { status: 'insufficient_inputs'; units: null; revenue: null; source: 'cvp' }
   | { status: 'unknown'; units: null; revenue: null; source: null };
 
 /**
@@ -72,6 +73,10 @@ export function canonicalBreakEven(analysis: unknown): CanonicalBreakEven {
       const units = num(cvpBe.breakEvenUnits);
       return { status: 'value', units: units === null ? null : Math.ceil(units), revenue, source: 'cvp' };
     }
+    // A CVP block exists but has no usable value (INSUFFICIENT_INPUTS, a VALUE
+    // without a number, or an unknown status). The typed contract has spoken:
+    // never fall back to the floor-guarded legacy figure here (R&D finding F03).
+    return { status: 'insufficient_inputs', units: null, revenue: null, source: 'cvp' };
   }
   const legacy = obj(fa?.breakeven);
   const legacyRevenue = num(legacy?.breakeven_revenue);

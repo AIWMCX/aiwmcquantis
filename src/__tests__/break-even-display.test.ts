@@ -40,6 +40,17 @@ describe('canonicalBreakEven', () => {
     expect(canonicalBreakEven(underwater).status).toBe('not_achievable');
   });
 
+  it('keeps INSUFFICIENT_INPUTS from the CVP block instead of a legacy number (F03)', () => {
+    const a = { cvp: { breakEven: { status: 'INSUFFICIENT_INPUTS', breakEvenRevenue: null } }, breakeven: { breakeven_revenue: 100000, breakeven_units: 50 } };
+    expect(canonicalBreakEven(a)).toEqual({ status: 'insufficient_inputs', units: null, revenue: null, source: 'cvp' });
+  });
+
+  it('a CVP VALUE without a number, or an unknown CVP status, is not filled from legacy', () => {
+    const legacy = { breakeven: { breakeven_revenue: 100000 } };
+    expect(canonicalBreakEven({ ...legacy, cvp: { breakEven: { status: 'VALUE', breakEvenRevenue: null } } }).status).toBe('insufficient_inputs');
+    expect(canonicalBreakEven({ ...legacy, cvp: { breakEven: { status: 'SOMETHING_NEW' } } }).status).toBe('insufficient_inputs');
+  });
+
   it('falls back to legacy only for analyses saved before CVP existed', () => {
     const preCvp = { breakeven: { breakeven_units: 120, breakeven_revenue: 18000 } };
     expect(canonicalBreakEven(preCvp)).toEqual({ status: 'value', units: 120, revenue: 18000, source: 'legacy' });
