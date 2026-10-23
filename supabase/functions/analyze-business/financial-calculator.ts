@@ -114,7 +114,16 @@ export function calculateStrictFinancials(
   // Bug found via Handbook §19 five-analysis audit (2026-07-12): `|| 0.08`
   // treats an explicit churn rate of exactly 0 as falsy and silently
   // overrides it with the 8% default. `??` only falls back on null/undefined.
-  let effectiveChurnRate = userProvidedChurnRate ?? 0.08; // Default 8% monthly
+  // UNITS (iron stress test 2026-10-23): every caller passes the user's churn
+  // as a PERCENT (the form field is "% of customers lost per month"; index.ts
+  // and run-scenario forward it unchanged; index.ts's other paths divide by
+  // 100). This function previously used it as a FRACTION, so "5" meant 500%:
+  // 5% churn on 10 clients needed 50 new clients/month, and with no total
+  // costs supplied, a +$7,000/mo business became -$17,500/mo. Convert once,
+  // here. Internal value stays a fraction (default 8% = 0.08).
+  let effectiveChurnRate = typeof userProvidedChurnRate === 'number' && Number.isFinite(userProvidedChurnRate)
+    ? Math.min(Math.max(userProvidedChurnRate, 0), 100) / 100
+    : 0.08; // Default 8% monthly
 
   if (subIndustry && subIndustry.confidence > 50) {
     const modified = applySubIndustryModifiers(
