@@ -139,9 +139,16 @@ export async function saveAnonymousAnalysis(
   // analysis missing financial_analysis — falls back to a local-only id
   // instead of throwing and silently breaking the post-analysis redirect.
   try {
-    const { data, error } = await supabase
+    // The id is generated here and the insert returns nothing: an anonymous
+    // visitor has no SELECT policy on analyses, so .select('id') after the
+    // insert (INSERT ... RETURNING) was rejected by RLS even when the insert
+    // itself was allowed. Repaired 2026-10-23 together with the missing
+    // anonymous_session_id column (migration 20261023220000).
+    const newId = crypto.randomUUID();
+    const { error } = await supabase
       .from('analyses')
       .insert({
+        id: newId,
         user_id: null,
         anonymous_session_id: sessionId,
         idea,
@@ -157,9 +164,8 @@ export async function saveAnonymousAnalysis(
         // an account can immediately use the included Scenario Lab against
         // this exact Decision Run after it is claimed.
         scenario_base_input: (result as unknown as { _scenarioBaseInput?: unknown })._scenarioBaseInput ?? null,
-      } as any)
-      .select('id')
-      .single();
+      } as any);
+    const data = error ? null : { id: newId };
 
     // Duplicate anonymous save — recover the row that won the race.
     if (error?.code === PG_UNIQUE_VIOLATION) {
