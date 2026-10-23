@@ -645,6 +645,7 @@ export function calculateStrictFinancials(
 
   // ROI also uses ramp-adjusted Year 1 profit (not 12 × steady-state)
   let roiYear1Percent = 0;
+  let year1ModeledProfit = 0;
   if (startupInvestment > 0) {
     // Calculate actual Year 1 profit with ramp
     const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
@@ -660,19 +661,24 @@ export function calculateStrictFinancials(
       }
     }
     roiYear1Percent = Math.round((year1Profit / startupInvestment) * 100);
+    year1ModeledProfit = Math.round(year1Profit);
   }
 
   audit.push({
-    formula: 'ROI = (Profit × 12 / Investment) × 100%',
-    inputs: { 'Profit/mo': finalNetProfit, 'Investment': startupInvestment },
+    // R&D F04: the text previously said "Profit × 12", which is not what runs.
+    formula: 'ROI_year1 = (Σ month 1–12 modeled profit / Investment) × 100%; months 1–6 ramp revenue 30%→100% with 60% of costs fixed, months 7–12 revenue +5%/mo and costs +2.5%/mo',
+    inputs: { 'Year-1 modeled profit': year1ModeledProfit, 'Steady-state profit/mo': finalNetProfit, 'Investment': startupInvestment },
     result: roiYear1Percent,
     isValid: roiYear1Percent > 0,
-    notes: `($${finalNetProfit} × 12 / $${startupInvestment}) × 100 = ${roiYear1Percent}%`
+    notes: `Year-1 modeled profit $${year1ModeledProfit.toLocaleString()} ÷ investment $${startupInvestment.toLocaleString()} = ${roiYear1Percent}%. Accounting profit with the ramp and growth assumptions above, not steady-state profit × 12 ($${(finalNetProfit * 12).toLocaleString()}) and not a cash return.`
   });
 
   // BUG FIX (Phase 2): True DCF NPV — not cumulative profit.
   // NPV = –Investment + Σ(month 1→36) [ NetProfit / (1 + monthly_rate)^month ]
-  // Using 10% annual WACC (standard small business cost of capital).
+  // 10% annual discount rate is an assumption, not the business's cost of
+  // capital; the series is steady-state profit (no ramp/growth), used as a
+  // cash proxy. Labelled as such below (R&D F04); unifying the cash series
+  // with ROI/payback is a separate change.
   const ANNUAL_WACC = 0.10;
   const monthlyDiscountRate = Math.pow(1 + ANNUAL_WACC, 1 / 12) - 1;
   let npvAccum = -startupInvestment;
@@ -683,10 +689,10 @@ export function calculateStrictFinancials(
 
   audit.push({
     formula: 'NPV_3yr = -Investment + Σ(month 1→36) [NetProfit / (1 + Monthly_Rate)^month]',
-    inputs: { 'Monthly Profit': finalNetProfit, 'Investment': startupInvestment, 'Annual WACC %': ANNUAL_WACC * 100, 'Monthly Rate %': Math.round(monthlyDiscountRate * 10000) / 100 },
+    inputs: { 'Steady-state profit/mo (used as cash flow)': finalNetProfit, 'Investment': startupInvestment, 'Assumed annual discount rate %': ANNUAL_WACC * 100, 'Monthly Rate %': Math.round(monthlyDiscountRate * 10000) / 100 },
     result: npv3Years,
     isValid: npv3Years > 0,
-    notes: `DCF at 10% WACC: -$${startupInvestment} + 36mo discounted cash flows = $${npv3Years.toLocaleString()}`
+    notes: `-$${startupInvestment.toLocaleString()} + 36 months of steady-state profit $${finalNetProfit.toLocaleString()}/mo discounted at an assumed 10%/yr = $${npv3Years.toLocaleString()}. Uses steady-state profit as a cash proxy with no ramp-up, so it is not on the same basis as the Year-1 ROI or payback, and 10% is an assumption, not your cost of capital.`
   });
 
   // BUG FIX: Guard against division-by-zero when mrr=0 in break-even formula.
