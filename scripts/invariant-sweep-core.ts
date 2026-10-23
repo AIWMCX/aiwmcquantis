@@ -142,3 +142,17 @@ export function buildInterruptedRunRecord(args: {
     failureSummary: summarizeFailure(args.err),
   };
 }
+
+/**
+ * Violations nobody has acknowledged yet. A row already flagged
+ * report_integrity='BLOCK' is known and visible to its owner; only NEW
+ * violations should turn the scheduled sweep red, otherwise a permanently
+ * red job hides the next real regression among the old ones.
+ */
+export function unacknowledgedViolations(
+  violations: ViolationRecord[],
+  rows: Array<{ id: string; already_blocked?: boolean | null }>,
+): ViolationRecord[] {
+  const blocked = new Set(rows.filter((r) => r.already_blocked === true).map((r) => r.id));
+  return violations.filter((v) => !blocked.has(v.id));
+}
