@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Play } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowRight, Play } from 'lucide-react';
+import { submitHeroIdea } from '@/lib/hero-idea';
 import { trackCtaClick } from '@/lib/analytics';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
@@ -69,23 +70,58 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
     onWatchFilm();
   };
 
-  const scrollToForm = (e: React.MouseEvent) => {
+  const [idea, setIdea] = useState('');
+  const ideaOk = idea.trim().length >= 10;
+  const runIdea = (e: React.FormEvent) => {
     e.preventDefault();
     trackCtaClick('hero_run_free_decision', 'hero');
+    // The run and its progress live in the form section below (ReportFirstHero).
     document.querySelector('[data-hero-form]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (ideaOk) submitHeroIdea(idea.trim());
   };
 
   return (
     <section aria-labelledby="hero-heading" className="relative overflow-hidden">
       <div className="sdw-container pt-10 md:pt-14 pb-16 md:pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-10 lg:gap-16 items-start">
-          <WordStagger
-            as="h1"
-            id="hero-heading"
-            text="Before you invest $50K, understand what it would take to earn it back."
-            className="sdw-display"
-            style={{ fontSize: 'clamp(2.75rem, 6.4vw, 6.25rem)' }}
-          />
+          <div>
+            <WordStagger
+              as="h1"
+              id="hero-heading"
+              text="Before you invest $50K, understand what it would take to earn it back."
+              className="sdw-display"
+              style={{ fontSize: 'clamp(2.75rem, 6.4vw, 6.25rem)' }}
+            />
+            {/* The real input, on the first screen. 1 of 191 home visitors in
+                30 days submitted the form four sections down. */}
+            <form onSubmit={runIdea} className="mt-8 max-w-[640px]" aria-label="Test a business decision">
+              <label htmlFor="sdw-hero-idea" className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
+                What are you deciding?
+              </label>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                <input
+                  id="sdw-hero-idea"
+                  value={idea}
+                  onChange={(e) => setIdea(e.target.value)}
+                  maxLength={300}
+                  placeholder="e.g. Hire a second technician at $5,500/month for my HVAC business"
+                  className="h-12 flex-1 rounded-md border bg-white px-4 text-[15px] outline-none focus-visible:ring-2"
+                  style={{ borderColor: 'var(--sdw-line)', color: 'var(--sdw-ink)', ['--tw-ring-color' as string]: 'var(--sdw-blue)' }}
+                />
+                <button
+                  type="submit"
+                  disabled={!ideaOk}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-5 text-[15px] font-semibold text-white transition-opacity disabled:opacity-50"
+                  style={{ background: 'var(--sdw-blue)' }}
+                >
+                  Test it free <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mt-2 text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
+                No account or card needed for the first run · about a minute
+              </p>
+            </form>
+          </div>
           <InView delay={180} className="w-full max-w-[420px] lg:max-w-none lg:pt-3">
             <ShowreelCard onOpen={() => openFilm('hero_showreel')} />
           </InView>
@@ -107,11 +143,10 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
             />
 
             <InView delay={120} className="mt-8 flex flex-col sm:flex-row gap-3">
-              <SplitButton href="#single-input-hero" onClick={scrollToForm}>Run a free decision</SplitButton>
               <SplitButton variant="secondary" onClick={() => openFilm('hero_secondary')}>Watch the 25s film</SplitButton>
             </InView>
             <p className="mt-4 sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
-              No credit card · First analysis free
+              See a fictional example report first? It's just below.
             </p>
             <p className="mt-3 text-[14px]" style={{ color: 'var(--sdw-muted)' }}>
               Facing one big decision and want a person to check it?{' '}

@@ -11,6 +11,7 @@ import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '
 import { SampleReportPages, type Density } from './SampleReportPages';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { SectionLabel } from '@/components/sadewa/primitives';
+import { HERO_IDEA_EVENT } from '@/lib/hero-idea';
 
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
 
@@ -110,6 +111,28 @@ export function ReportFirstHero() {
     recordFunnelEvent('idea_submitted', { source: 'report_first_hero', idea_length: idea.length });
     handleSubmit(e, 'quick');
   }, [idea, handleSubmit]);
+
+  // The homepage hero has its own one-line input (HERO_IDEA_EVENT). In the 30
+  // days to 2026-10-23 only 1 of 191 external home visitors submitted an idea
+  // to this form, four sections down. The hero hands the text over here
+  // so the run keeps this section's progress narration and report redirect.
+  const [pendingHeroIdea, setPendingHeroIdea] = useState<string | null>(null);
+  useEffect(() => {
+    const onHeroIdea = (ev: Event) => {
+      const text = String((ev as CustomEvent<string>).detail ?? '').trim();
+      if (text.length < 10 || isLoading) return;
+      setIdea(text);
+      setPendingHeroIdea(text);
+    };
+    window.addEventListener(HERO_IDEA_EVENT, onHeroIdea);
+    return () => window.removeEventListener(HERO_IDEA_EVENT, onHeroIdea);
+  }, [isLoading, setIdea]);
+  useEffect(() => {
+    if (pendingHeroIdea === null || idea !== pendingHeroIdea) return;
+    setPendingHeroIdea(null);
+    recordFunnelEvent('idea_submitted', { source: 'sdw_hero', idea_length: idea.length });
+    handleSubmit(undefined, 'quick');
+  }, [pendingHeroIdea, idea, handleSubmit]);
 
   const valid = idea.trim().length >= 10;
   const current = NARRATION[progressStep] ?? NARRATION[0];
