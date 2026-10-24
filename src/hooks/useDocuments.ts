@@ -103,8 +103,9 @@ export function useCreateDocument() {
         throw new Error(`Failed to create document: ${error.message}`);
       }
 
-      // Increment template usage
-      await supabase.rpc('increment_template_usage', { p_template_id: template.id });
+      // Template usage is not counted client-side: increment_template_usage is
+      // revoked from signed-in users (20260827092000, anyone could inflate any
+      // template's counter), so the call only ever returned 42501.
 
       return {
         ...data,
