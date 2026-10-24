@@ -56,18 +56,18 @@ export default function Pricing() {
                 Boutique Consultant
               </p>
               <p className="text-3xl md:text-4xl font-bold line-through decoration-red-400/70 decoration-[3px]" style={{ color: 'hsl(var(--foreground))' }}>
-                $1,500
+                $2,000+
               </p>
-              <p className="text-xs text-muted-foreground mt-2">3-day engagement, 1 report, no live updates</p>
+              <p className="text-xs text-muted-foreground mt-2">Typical project, 2–4 weeks, one report (illustrative)</p>
             </div>
             <div className="p-6 md:p-7 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 CFO Hourly
               </p>
               <p className="text-3xl md:text-4xl font-bold line-through decoration-red-400/70 decoration-[3px]" style={{ color: 'hsl(var(--foreground))' }}>
-                $350 / hr
+                $150+ / hr
               </p>
-              <p className="text-xs text-muted-foreground mt-2">10-15 hours per scenario, you brief them</p>
+              <p className="text-xs text-muted-foreground mt-2">Billed per hour of modeling and briefing (illustrative)</p>
             </div>
             <div className="p-6 md:p-7 text-center" style={{ background: 'rgba(79,70,229,0.08)' }}>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
@@ -83,7 +83,7 @@ export default function Pricing() {
             className="px-6 py-3 text-center text-xs md:text-sm text-muted-foreground"
             style={{ background: 'rgba(148,163,255,0.05)', borderTop: '1px solid rgba(148,163,255,0.14)' }}
           >
-            <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Same depth.</span> A fraction of a consultant engagement.
+            <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>A first pass in minutes,</span> before you pay for advice.
             <span className="hidden md:inline"> · </span>
             <span className="block md:inline mt-1 md:mt-0">
               <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>14-day money-back guarantee</span> on Plus and Pro — from your first charge.

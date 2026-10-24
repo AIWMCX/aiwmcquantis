@@ -129,6 +129,9 @@ export function ValueAnchor() {
           </table>
         </div>
       </div>
+      <p className="mt-3 text-center text-[11px] text-muted-foreground">
+        Consultant and DIY figures are illustrative ranges, not quotes.
+      </p>
     </div>
   );
 }
