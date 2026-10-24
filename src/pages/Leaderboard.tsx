@@ -125,14 +125,17 @@ export default function Leaderboard() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             <Trophy className="w-4 h-4" />
-            Live Leaderboard
+            {usingSamples ? 'Leaderboard' : 'Live Leaderboard'}
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
             This Month's Top Business Ideas
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Real analyses from founders — anonymized and ranked by score. 
-            Only ideas with a public share link appear here.
+            {/* The subtitle used to say "Real analyses from founders" while every
+                row below was a hard-coded sample. */}
+            {usingSamples
+              ? 'No shared analyses yet, so the rows below are illustrative samples. Shared analyses appear here, anonymized and ranked by score.'
+              : 'Real analyses from founders, anonymized and ranked by score. Only ideas with a public share link appear here.'}
           </p>
           <p className="text-xs text-muted-foreground mt-2">
             Last updated: {lastRefresh.toLocaleTimeString()}
