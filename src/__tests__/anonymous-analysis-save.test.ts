@@ -53,3 +53,13 @@ describe('anon insert restrictive policy', () => {
     expect(sql.replace(/--.*$/gm, '')).not.toContain('WITH CHECK (false)');
   });
 });
+
+describe('analyses.user_id nullable for anonymous rows', () => {
+  it('drops NOT NULL and guards the engagement trigger against unowned rows', () => {
+    const sql = readFileSync('supabase/migrations/20261023233000_analyses_user_id_nullable_for_anonymous.sql', 'utf8');
+    expect(sql).toContain('ALTER TABLE public.analyses ALTER COLUMN user_id DROP NOT NULL');
+    const guard = sql.indexOf('IF NEW.user_id IS NULL THEN');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(sql.indexOf('INSERT INTO public.user_engagement'));
+  });
+});
