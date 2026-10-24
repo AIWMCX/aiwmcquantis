@@ -347,10 +347,8 @@ export default function DocsStudio() {
       });
     }
 
-    // Increment template usage count for analytics (all tiers)
-    supabase.rpc('increment_template_usage', { p_template_id: templateId }).then(({ error }) => {
-      if (error) logger.warn('Failed to increment template usage:', error.message);
-    });
+    // Template usage analytics come from recordSignal below; the
+    // increment_template_usage RPC is revoked for signed-in users (42501).
 
     // Record performance signal
     recordSignal(null, 'downloaded', undefined, { templateId, format });
