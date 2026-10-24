@@ -156,3 +156,19 @@ describe('overallStatus', () => {
     expect(status).toBe('degraded');
   });
 });
+
+describe('computeEngineSignal: acknowledged violations (2026-10-23)', () => {
+  it('all violations already flagged BLOCK -> operational, honest detail', () => {
+    const s = computeEngineSignal({ status: 'completed', ageHours: 11.3, violationCount: 8, acknowledgedCount: 8 });
+    expect(s.status).toBe('operational');
+    expect(s.detail).toBe('Invariant sweep: 0 new violations (8 known, flagged for review), 11.3h ago');
+  });
+  it('any unflagged violation still degrades and says how many are new', () => {
+    const s = computeEngineSignal({ status: 'completed', ageHours: 2, violationCount: 9, acknowledgedCount: 8 });
+    expect(s.status).toBe('degraded');
+    expect(s.detail).toBe('Invariant sweep found 1 new violation(s) (+8 known), 2.0h ago');
+  });
+  it('without acknowledgement data every violation counts as new', () => {
+    expect(computeEngineSignal({ status: 'completed', ageHours: 2, violationCount: 3 }).status).toBe('degraded');
+  });
+});

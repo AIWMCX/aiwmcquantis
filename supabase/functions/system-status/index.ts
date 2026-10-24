@@ -65,10 +65,11 @@ serve(async (req) => {
   let sweepStatus: 'completed' | 'failed' | 'interrupted' | null = null;
   let sweepAgeHours: number | null = null;
   let sweepViolationCount: number | null = null;
+  let sweepAcknowledged: number | null = null;
   try {
     const { data } = await supabase
       .from('financial_invariant_sweep_runs')
-      .select('status, run_at, violation_count')
+      .select('status, run_at, violation_count, violation_ids')
       .order('run_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -76,6 +77,17 @@ serve(async (req) => {
       sweepStatus = data.status ?? 'completed';
       sweepAgeHours = (Date.now() - new Date(data.run_at).getTime()) / 3_600_000;
       sweepViolationCount = data.violation_count ?? null;
+      const ids = (Array.isArray(data.violation_ids) ? data.violation_ids : [])
+        .map((v: unknown) => (typeof v === 'string' ? v : (v as { id?: string } | null)?.id))
+        .filter((v: unknown): v is string => typeof v === 'string');
+      if (ids.length > 0) {
+        const { count } = await supabase
+          .from('analyses')
+          .select('id', { count: 'exact', head: true })
+          .in('id', ids)
+          .eq('result->>report_integrity', 'BLOCK');
+        sweepAcknowledged = count ?? null;
+      }
     }
   } catch {
     // leave null -> reported as unmonitored, not a false outage
@@ -130,7 +142,7 @@ serve(async (req) => {
   const signals = [
     computeDatabaseSignal({ ok: dbOk, latencyMs: dbLatency }),
     computeAuthSignal({ ok: authOk, latencyMs: authLatency }),
-    computeEngineSignal({ status: sweepStatus, ageHours: sweepAgeHours, violationCount: sweepViolationCount }),
+    computeEngineSignal({ status: sweepStatus, ageHours: sweepAgeHours, violationCount: sweepViolationCount, acknowledgedCount: sweepAcknowledged }),
     computeAiNarrativeSignal({ total: aiTotal, failed: aiFailed }),
     computeBillingSignal({ total: webhookTotal, failedOrPending: webhookFailedOrPending }),
     computeBenchmarksSignal({ rowCount: benchmarkRowCount }),
