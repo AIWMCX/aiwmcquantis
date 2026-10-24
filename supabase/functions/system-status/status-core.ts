@@ -30,6 +30,12 @@ export interface RawSweepSignal {
   ageHours: number | null;
   /** Violations found by the most recent run. Null when older rows predate this column or the query didn't select it -- treated as unknown, not zero. */
   violationCount: number | null;
+  /**
+   * How many of those violations are already flagged report_integrity='BLOCK'
+   * (acknowledged: shown to their owner as unverified). Optional; when absent
+   * every violation counts as new.
+   */
+  acknowledgedCount?: number | null;
 }
 
 export interface RawWebhookSignal {
@@ -126,13 +132,31 @@ export function computeEngineSignal(sweep: RawSweepSignal): ComponentSignal {
   // previously made this page report "clean" for runs that had persisted
   // real violation_count > 0 (caught 2026-09-03: 5 OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT
   // violations, unresolved across 3+ consecutive runs, page still said clean).
+  // Acknowledged violations (already flagged BLOCK and shown to their owner
+  // as unverified) are known, contained history, not a live engine problem.
+  // The sweep job itself already passes on known-only runs; the public page
+  // read the raw count and showed "Degraded" for 8 internal Aug analyses
+  // (2026-10-23). New, unflagged violations still degrade.
+  const known = Math.min(sweep.acknowledgedCount ?? 0, sweep.violationCount ?? 0);
+  const fresh = sweep.violationCount === null ? null : sweep.violationCount - known;
+  if (fresh === 0 && known > 0) {
+    return {
+      key: 'engine',
+      name: 'Analysis Engine (deterministic)',
+      description: 'Financial calculations, RVCE, invariant safety checks',
+      status: 'operational',
+      detail: `Invariant sweep: 0 new violations (${known} known, flagged for review), ${sweep.ageHours !== null ? sweep.ageHours.toFixed(1) : '?'}h ago`,
+    };
+  }
   if (sweep.violationCount !== null && sweep.violationCount > 0) {
     return {
       key: 'engine',
       name: 'Analysis Engine (deterministic)',
       description: 'Financial calculations, RVCE, invariant safety checks',
       status: 'degraded',
-      detail: `Invariant sweep found ${sweep.violationCount} violation(s), ${sweep.ageHours !== null ? sweep.ageHours.toFixed(1) : '?'}h ago`,
+      detail: known
+        ? `Invariant sweep found ${fresh} new violation(s) (+${known} known), ${sweep.ageHours !== null ? sweep.ageHours.toFixed(1) : '?'}h ago`
+        : `Invariant sweep found ${sweep.violationCount} violation(s), ${sweep.ageHours !== null ? sweep.ageHours.toFixed(1) : '?'}h ago`,
     };
   }
   return {
