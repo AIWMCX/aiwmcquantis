@@ -11,7 +11,9 @@ import { InView, SectionLabel } from '@/components/sadewa/primitives';
 const METRICS = [
   { value: BENCHMARK_COUNT_DISPLAY, label: 'Modeled benchmark cells' },
   { value: 'Multi-model', label: 'Consensus cross-check' },
-  { value: 'SOC 2', label: 'Security posture in prep' },
+  // Replaced a SOC 2 preparation claim (2026-10-23): that work is deferred and
+  // not scheduled (docs/execution canonical register), so it was not true.
+  { value: 'Stripe', label: 'Card payments processed by Stripe' },
   { value: 'GDPR', label: '& CCPA rights supported' },
 ];
 

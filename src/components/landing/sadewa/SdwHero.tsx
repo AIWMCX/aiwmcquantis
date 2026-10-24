@@ -105,7 +105,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
                   value={idea}
                   onChange={(e) => setIdea(e.target.value)}
                   maxLength={300}
-                  placeholder="e.g. Hire a second technician at $5,500/month for my HVAC business"
+                  placeholder="e.g. Hire a 2nd technician at $5,500/mo"
                   className="h-12 flex-1 rounded-md border bg-white px-4 text-[15px] outline-none focus-visible:ring-2"
                   style={{ borderColor: 'var(--sdw-line)', color: 'var(--sdw-ink)', ['--tw-ring-color' as string]: 'var(--sdw-blue)' }}
                 />

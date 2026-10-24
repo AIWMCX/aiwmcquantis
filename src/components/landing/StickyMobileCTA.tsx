@@ -42,6 +42,7 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
     if (typeof window === 'undefined') return;
 
     let heroVisible = true;
+    let heroInputVisible = false;
     let pricingVisible = false;
 
     const updateState = () => {
@@ -50,7 +51,7 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
       } else if (pricingVisible) {
         setCtaState('hidden');
         setIsVisible(false);
-      } else if (heroVisible) {
+      } else if (heroVisible || heroInputVisible) {
         setCtaState('compact');
         setIsVisible(true);
       } else {
@@ -64,6 +65,15 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
       heroVisible = entries[0]?.isIntersecting ?? false;
       updateState();
     }, { threshold: 0.1 });
+
+    // The homepage hero has its own decision input (#sdw-hero-idea). While it
+    // is on screen, the full "See My Numbers" bar duplicated its CTA.
+    const heroInputObserver = new IntersectionObserver((entries) => {
+      heroInputVisible = entries[0]?.isIntersecting ?? false;
+      updateState();
+    }, { threshold: 0.1 });
+    const heroInput = document.getElementById('sdw-hero-idea')?.closest('form');
+    if (heroInput) heroInputObserver.observe(heroInput);
 
     const pricingObserver = new IntersectionObserver((entries) => {
       pricingVisible = entries[0]?.isIntersecting ?? false;
@@ -86,6 +96,7 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
 
     return () => {
       heroObserver.disconnect();
+      heroInputObserver.disconnect();
       pricingObserver.disconnect();
     };
   }, [heroFormRef, pricingRef, isLoading, trackVisibility]);
@@ -149,9 +160,9 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Lock className="w-3 h-3" />
-              <span>Bank-level security</span>
+              <span>No card needed</span>
               <span className="text-muted-foreground/50">•</span>
-              <span>2 min analysis</span>
+              <span>about a minute</span>
             </div>
             <button
               onClick={scrollToTop}
@@ -182,7 +193,7 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
           </Link>
           <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground">
             <Lock className="w-3 h-3" />
-            <span>Bank-level security</span>
+            <span>No card needed</span>
             <span className="text-muted-foreground/50">•</span>
             <span>No credit card</span>
           </div>
