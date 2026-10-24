@@ -29,7 +29,7 @@ import { ModelApplicabilityBanner } from './ModelApplicabilityBanner';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { costsReconcile } from '@/lib/break-even';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
-import type { BusinessAnalysisResult } from '@/types/analysis';
+import { getMonthlyRevenue, type BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useIntegrityGatedExport } from '@/hooks/useIntegrityGatedExport';
 import { ExportIntegrityConfirmDialog } from './ExportIntegrityConfirmDialog';
@@ -37,6 +37,7 @@ import { useShareReport } from '@/hooks/useShareReport';
 import { trackVerdictViewed, recordFunnelEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ProfitRangeCard } from './ProfitRangeCard';
 
 interface AccuracyTransparentResultsProps {
   result: BusinessAnalysisResult;
@@ -715,6 +716,16 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             </div>
             );
           })()}
+
+          {/* Monte Carlo profit range, visible to every tier (pricing promises it
+              on Free). Runs the seeded browser engine on this report's numbers. */}
+          {currentStep === 1 && result.financial_analysis && (
+            <ProfitRangeCard
+              monthlyRevenue={getMonthlyRevenue(result.financial_analysis)}
+              monthlyCosts={result.financial_analysis.monthly_expenses?.total ?? 0}
+              seedKey={analysisId ?? `${result.metadata?.idea ?? ''}|${result.metadata?.location ?? ''}`}
+            />
+          )}
 
           {/* Inline upgrade wall — appears only for Free users at end of Step 1.
               This is the high-intent moment: they've seen score + 3 risks + revenue,
