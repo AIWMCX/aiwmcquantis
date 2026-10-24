@@ -36,7 +36,7 @@ const pricingFaqs: FAQItem[] = [
     id: 'payment',
     question: 'What payment methods do you accept?',
     answer:
-      'All major credit cards (Visa, Mastercard, American Express) via Stripe. Your payment is encrypted with bank-grade security.',
+      'All major credit cards (Visa, Mastercard, American Express) via Stripe, a PCI DSS Level 1 certified processor. Quantis never sees or stores your card number.',
   },
   {
     id: 'contract',
