@@ -10,7 +10,8 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "redirects": [
-    { "source": "/sample-report/quantis-sample-report.pdf", "destination": "/#single-input-hero", "permanent": true }
+    { "source": "/sample-report/quantis-sample-report.pdf", "destination": "/#single-input-hero", "permanent": true },
+    { "source": "/cases", "destination": "/examples", "permanent": true }
   ],
 
   "rewrites": [
