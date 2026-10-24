@@ -85,7 +85,6 @@ const Changelog = lazy(() => import("./pages/Changelog"));
 const AdminDenials = lazy(() => import("./pages/admin/Denials"));
 const MyStats = lazy(() => import("./pages/MyStats"));
 const MyDocuments = lazy(() => import("./pages/MyDocuments"));
-const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
 const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
@@ -202,7 +201,9 @@ const App = () => {
                 <Route path="/engagement-intake" element={<EngagementIntake />} />
                 <Route path="/engagement-workspace" element={<PaidWorkspace />} />
                 <Route path="/changelog" element={<Changelog />} />
-                <Route path="/cases" element={<CaseBrowser />} />
+                {/* /cases needs 11 analysis_* tables that do not exist in production (it
+                    showed "No cases match" under a "440+ Reference Analyses" title). */}
+                <Route path="/cases" element={<Navigate to="/examples" replace />} />
                 <Route path="/dev/rvce-test" element={
                   <ProtectedRoute requireAdmin>
                     <RvceTestPanel />

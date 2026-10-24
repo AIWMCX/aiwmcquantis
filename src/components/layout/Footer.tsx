@@ -126,7 +126,6 @@ const COLUMNS: { label: string; links: { to: string; label: string }[] }[] = [
     links: [
       { to: '/blog', label: 'Blog' },
       { to: '/methodology', label: 'Methodology' },
-      { to: '/cases', label: 'Reference Cases' },
       { to: '/state-of-quantis', label: 'State of Quantis' },
       { to: '/changelog', label: 'Changelog' },
       { to: '/status', label: 'Status' },
