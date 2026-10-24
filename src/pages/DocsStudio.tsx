@@ -20,7 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { logger } from '@/lib/logger';
 import { trackActivationEvent } from '@/lib/activationTracking';
 import {
   Drawer,
