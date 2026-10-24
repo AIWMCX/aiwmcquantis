@@ -72,10 +72,6 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Leaderboard — Top Validated Ideas This Week',
     description: 'Explore ranked business ideas and compare their validation activity, financial signals, and community engagement.',
   },
-  '/cases': {
-    title: 'Case Browser — 440+ Reference Analyses',
-    description: 'Browse 440+ reference cases spanning P&L, DCF, DSCR, Monte Carlo, unit economics, runway, and scenario analysis.',
-  },
   '/status': {
     title: 'Status — Quantis System Health',
     description: 'Real-time status of Quantis services: API, analysis engine, and integrations.',
