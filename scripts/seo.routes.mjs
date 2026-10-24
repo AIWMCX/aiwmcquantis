@@ -31,7 +31,6 @@ export const PUBLIC_ROUTES = [
   { path: "/risk-gallery",    title: "Risk" },
   { path: "/leaderboard",     title: "Leaderboard" },
   { path: "/research",        title: "Research" },
-  { path: "/cases",           title: "Case" },
   { path: "/status",          title: "Status" },
   { path: "/state-of-quantis", title: "State of Quantis",
     must: ["What Quantis does", "deterministic"] },

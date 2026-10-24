@@ -302,7 +302,6 @@ function renderCoreBody(routePath) {
     "/risk-gallery": "Risk gallery — the failure modes Quantis models for",
     "/leaderboard": "Public leaderboard of stress-tested ideas",
     "/research": "Research — how the deterministic engine and benchmarks work",
-    "/cases": "Case studies of Quantis analyses",
     "/status": "System status",
     "/state-of-quantis": "State of Quantis",
     "/security": "Security posture and disclosures",
