@@ -28,7 +28,7 @@ const comparisons: ComparisonRow[] = [
   },
   {
     approach: 'AIWMC Quantis',
-    cost: `$0 – $${TIERS.plus.priceMonthly}/mo`,
+    cost: `$0 – $${TIERS.pro.priceMonthly}/mo`,
     time: '< 2 minutes',
     output: 'Complete analysis + PDF',
     icon: Zap,

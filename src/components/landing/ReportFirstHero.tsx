@@ -43,8 +43,8 @@ const NARRATION = [
   { t: 0,  label: 'Reading your idea…' },
   { t: 8,  label: `Matching against a ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid…` },
   { t: 22, label: 'Stress-testing unit economics (CAC, LTV, churn)…' },
-  { t: 38, label: 'Running 12-variable Monte Carlo on cash flow…' },
-  { t: 55, label: 'Cross-validating with second AI model…' },
+  { t: 38, label: 'Simulating 1,000 months of revenue and costs…' },
+  { t: 55, label: 'Checking the numbers for red flags…' },
   { t: 72, label: 'Compiling verdict…' },
 ];
 
@@ -861,7 +861,7 @@ export function ReportFirstHero() {
                   <span>·</span>
                   <span>97,500 benchmarks</span>
                   <span>·</span>
-                  <span>Multi-model cross-checked</span>
+                  <span>Red-flag checked</span>
                 </div>
               </div>
             </form>
