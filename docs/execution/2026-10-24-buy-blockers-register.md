@@ -42,7 +42,7 @@ Statuses:
 | 14 | Leaderboard claimed real analyses while showing samples | — | Copy follows the data source | DONE #308 |
 | 15 | Security copy overstated | — | Honest copy | DONE #311 |
 | 16 | No named person behind the $349 review | `/decision-review` has no name, photo or profile link | Add the founder's name, role and LinkedIn link | FOUNDER |
-| 17 | $349 buyers can't see the deliverable | No sample Decision Memo exists | Fictional, labelled sample memo linked from the offer cards | CODE |
+| 17 | $349 buyers can't see the deliverable | No sample Decision Memo exists | Fictional, labelled sample memo linked from the offer cards | DONE #318 |
 | 18 | Example breadcrumbs used the apex host | JSON-LD on `/examples` | Canonical www | DONE #316 |
 | 19 | Pro features advertised without end-to-end proof | 5-year model, pitch-deck package, API keys, 3 seats | Run each once on a test Pro account; remove any that fail | VERIFY |
 | 20 | Unused `ClientTestimonials.tsx` holds testimonial copy | Not rendered anywhere | Delete it so it can't ship by accident | DONE #317 |
@@ -68,7 +68,7 @@ Statuses:
 | 30 | Trial terms unclear (card required?) | Checkout collects a card; 14-day trial; cancels if no card at trial end (`create-checkout-session`) | FAQ matches: "We don't charge your card until day 15" | DONE |
 | 31 | Free gives 5 complete runs a month, including Monte Carlo and pre-mortem | Pricing cards | Plus needs one clear reason to upgrade | FOUNDER |
 | 32 | No way to ask before paying $349 | `/decision-review` has only "Reserve" | Add "Ask a question first" (mailto) next to Reserve | DONE #317 |
-| 33 | Free run limit doesn't lead into $349 | Result page | After a high-stakes result, offer the review once | PR (result offer) |
+| 33 | Free run limit doesn't lead into $349 | Result page | After a high-stakes result, offer the review once | PR #320 |
 | 34 | "48-hour target" without a stated capacity | `/decision-review` | State how many reviews a week the founder can take | FOUNDER |
 
 ## E. Checkout and payments
