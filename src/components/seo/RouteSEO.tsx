@@ -148,6 +148,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Hiring Decision Demo — Can the business carry another employee?',
     description: 'Before the next hire, understand the cash commitment: payroll, revenue ramp-up and collection timing on an illustrative example.',
   },
+  '/demo/sample-decision-memo': {
+    title: 'Sample Decision Memo — what a Founder Decision Review delivers',
+    description: 'A fictional, fully worked Decision Memo: facts, assumptions and unknowns, three scenarios, cash and payback reconciled, and what would change the decision.',
+  },
   '/demo/consultant-founding-pilot': {
     title: 'Interactive Demo — Consultant Capacity vs Client Demand',
     description: 'The gap every engagement hides: what a client says they can bring in per month versus what your team can actually deliver. Move a slider and see it.',

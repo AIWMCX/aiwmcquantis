@@ -42,7 +42,7 @@ Statuses:
 | 14 | Leaderboard claimed real analyses while showing samples | — | Copy follows the data source | DONE #308 |
 | 15 | Security copy overstated | — | Honest copy | DONE #311 |
 | 16 | No named person behind the $349 review | `/decision-review` has no name, photo or profile link | Add the founder's name, role and LinkedIn link | FOUNDER |
-| 17 | $349 buyers can't see the deliverable | No sample Decision Memo exists | Fictional, labelled sample memo linked from the offer cards | CODE |
+| 17 | $349 buyers can't see the deliverable | No sample Decision Memo exists | Fictional, labelled sample memo linked from the offer cards | PR #318 |
 | 18 | Example breadcrumbs used the apex host | JSON-LD on `/examples` | Canonical www | PR #316 |
 | 19 | Pro features advertised without end-to-end proof | 5-year model, pitch-deck package, API keys, 3 seats | Run each once on a test Pro account; remove any that fail | VERIFY |
 | 20 | Unused `ClientTestimonials.tsx` holds testimonial copy | Not rendered anywhere | Delete it so it can't ship by accident | PR #317 |
