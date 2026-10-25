@@ -32,20 +32,20 @@ Statuses:
 
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
-| 7 | Loading screen said "12-variable Monte Carlo" | The simulation varies revenue and costs (`src/lib/profit-range.ts`) | "Simulating 1,000 months of revenue and costs" | PR #316 |
-| 8 | "Multi-model cross-checked" on every run | A second model runs only on rule-based red flags: 2 of 124 AI calls in 14 days | "Red-flag checked" | PR #316 |
-| 9 | Examples called "real analyses" | `exampleData.ts` is hand-written | "Illustrative example reports" | PR #316 |
-| 10 | Sample report page 9 said "12 variables" | Same as #7 | Removed | PR #316 |
-| 11 | Comparison said "$0 – $17/mo" while Pro is $49 | `TIERS.pro` | Range read from `TIERS` | PR #316 |
+| 7 | Loading screen said "12-variable Monte Carlo" | The simulation varies revenue and costs (`src/lib/profit-range.ts`) | "Simulating 1,000 months of revenue and costs" | DONE #316 |
+| 8 | "Multi-model cross-checked" on every run | A second model runs only on rule-based red flags: 2 of 124 AI calls in 14 days | "Red-flag checked" | DONE #316 |
+| 9 | Examples called "real analyses" | `exampleData.ts` is hand-written | "Illustrative example reports" | DONE #316 |
+| 10 | Sample report page 9 said "12 variables" | Same as #7 | Removed | DONE #316 |
+| 11 | Comparison said "$0 – $17/mo" while Pro is $49 | `TIERS.pro` | Range read from `TIERS` | DONE #316 |
 | 12 | Advertised Monte Carlo never ran | No live caller before #313 | Seeded P10/P50/P90 profit range on every report | DONE #313 |
 | 13 | Consultant price anchor read as a quote | Pricing page | Labelled illustrative | DONE #314 |
 | 14 | Leaderboard claimed real analyses while showing samples | — | Copy follows the data source | DONE #308 |
 | 15 | Security copy overstated | — | Honest copy | DONE #311 |
 | 16 | No named person behind the $349 review | `/decision-review` has no name, photo or profile link | Add the founder's name, role and LinkedIn link | FOUNDER |
 | 17 | $349 buyers can't see the deliverable | No sample Decision Memo exists | Fictional, labelled sample memo linked from the offer cards | CODE |
-| 18 | Example breadcrumbs used the apex host | JSON-LD on `/examples` | Canonical www | PR #316 |
+| 18 | Example breadcrumbs used the apex host | JSON-LD on `/examples` | Canonical www | DONE #316 |
 | 19 | Pro features advertised without end-to-end proof | 5-year model, pitch-deck package, API keys, 3 seats | Run each once on a test Pro account; remove any that fail | VERIFY |
-| 20 | Unused `ClientTestimonials.tsx` holds testimonial copy | Not rendered anywhere | Delete it so it can't ship by accident | PR #317 |
+| 20 | Unused `ClientTestimonials.tsx` holds testimonial copy | Not rendered anywhere | Delete it so it can't ship by accident | DONE #317 |
 
 ## C. Activation (visitor to first result)
 
@@ -55,8 +55,8 @@ Statuses:
 | 22 | Hero unreadable until the animation ran | — | Static first paint | DONE #301 |
 | 23 | Mobile sticky CTA doubled the hero input | — | Fixed | DONE #311 |
 | 24 | 191 sessions produced 1 idea submitted (0.5%) | `funnel_events_clean`, 30 days | Find where visitors stop (field, length rule, location) and remove that step | Partly done: input moved to the first screen on Oct 23; measure for 7 days |
-| 25 | Visitors face a blank box | Only a placeholder; location is already optional | Three one-tap example decisions under the hero input | PR #319 |
-| 26 | 0 sign-ups after a result | No `free_signup_*` after `result_viewed` in 30 days | One "save this report" prompt with the reason (keep it, rerun it) | CODE |
+| 25 | Visitors face a blank box | Only a placeholder; location is already optional | Three one-tap example decisions under the hero input | DONE #319 |
+| 26 | 0 sign-ups after a result | `PostAnalysisAuthPrompt` already asks anonymous visitors to save the result; only 1 outside result in 30 days to judge it | Keep; judge once 20+ outside results exist | VERIFY |
 | 27 | Business-email sign-up returned 500 (QA, Oct 9) | Session memory 2026-10-09 | Re-test; fix if still failing | VERIFY |
 | 28 | Magic-link step never proven | Same QA | Re-test on a fresh address | VERIFY |
 
@@ -64,11 +64,11 @@ Statuses:
 
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
-| 29 | Annual prices show by default ($14, $41) next to monthly trial CTAs | Live pricing section | Confirm the default toggle and that the CTA matches the shown price | VERIFY |
-| 30 | Trial terms unclear (card required?) | FAQ "Is the 14-day trial really free?" | Answer matches Stripe settings | VERIFY |
+| 29 | Annual prices show by default ($14, $41) next to monthly trial CTAs | `PricingSection` defaults to annual ($14 / $41 a month, billed $168 / $492) | Recommend monthly as default for a first purchase (lower commitment); founder decides | FOUNDER |
+| 30 | Trial terms unclear (card required?) | Checkout collects a card; 14-day trial; cancels if no card at trial end (`create-checkout-session`) | FAQ matches: "We don't charge your card until day 15" | DONE |
 | 31 | Free gives 5 complete runs a month, including Monte Carlo and pre-mortem | Pricing cards | Plus needs one clear reason to upgrade | FOUNDER |
-| 32 | No way to ask before paying $349 | `/decision-review` has only "Reserve" | Add "Ask a question first" (mailto) next to Reserve | PR #317 |
-| 33 | Free run limit doesn't lead into $349 | Result page | After a high-stakes result, offer the review once | CODE |
+| 32 | No way to ask before paying $349 | `/decision-review` has only "Reserve" | Add "Ask a question first" (mailto) next to Reserve | DONE #317 |
+| 33 | Free run limit doesn't lead into $349 | Result page | After a high-stakes result, offer the review once | PR (result offer) |
 | 34 | "48-hour target" without a stated capacity | `/decision-review` | State how many reviews a week the founder can take | FOUNDER |
 
 ## E. Checkout and payments
@@ -92,16 +92,16 @@ Statuses:
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
 | 41 | Founder alias counted as an outside user | 67 analyses from `beltovbogdan@` | Pattern extended | DONE #315 |
-| 42 | QA runs leak into outside counts | Oct 21 "Fictional QA case"; Oct 24 00:57 UTC trigger-emitted anonymous run | Mark trigger-emitted events internal when the analysis owner is internal | CODE |
-| 43 | `quantis_events` table is empty | 0 rows ever | Wire it or drop it; don't report from it | CODE |
-| 44 | `/decision-review` views only in GA4 | Memory 2026-10-15 | Emit a funnel event on view | PR #317 |
+| 42 | QA runs leak into outside counts | Oct 21 and Oct 24 QA runs were untagged anonymous sessions | Every QA visit uses `?utm_medium=internal` (the session-level flag covers the rest of the session) | FOUNDER |
+| 43 | `quantis_events` table is empty | No code reads or writes `quantis_events` (0 rows) | Unused; never report from it | DONE |
+| 44 | `/decision-review` views only in GA4 | Memory 2026-10-15 | Emit a funnel event on view | DONE #317 |
 | 45 | `subscription_started` never fires | Muse audit 2026-09-20 | Check; wire in the webhook | VERIFY |
 
 ## H. Reliability and operations
 
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
-| 46 | Main analysis depends on one provider (DeepSeek) | 124 of 128 AI calls in 14 days | Confirm the fallback path works | VERIFY |
+| 46 | Main analysis depends on one provider (DeepSeek) | DeepSeek primary; Lovable gateway if no DeepSeek key; deterministic fallback generator (`analyze-business/index.ts:1397`) | Force one fallback run in a test environment | VERIFY |
 | 47 | Known invariant violations | Flagged, not degrading status (#307) | List them; fix the top one | CODE |
 | 48 | Scheduled monitors | 6 ran green on 2026-10-24 | Keep watching nightly | DONE |
 | 49 | No record of what changed each day | — | Nightly audit, 23:30 Denver | DONE |
