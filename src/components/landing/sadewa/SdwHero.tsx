@@ -64,6 +64,14 @@ function ShowreelCard({ onOpen }: { onOpen: () => void }) {
   );
 }
 
+// One tap fills the input with a concrete decision, so a visitor who doesn't
+// know what to type still gets to a first run. They still press "Test it free".
+export const EXAMPLE_DECISIONS = [
+  'Hire a 2nd technician at $5,500/mo',
+  'Open a second location for $80K',
+  'Launch a mobile dog-grooming van for $60K',
+];
+
 export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
   const openFilm = (source: string) => {
     trackCtaClick('hero_watch_film', source);
@@ -71,6 +79,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
   };
 
   const [idea, setIdea] = useState('');
+  const ideaInput = useRef<HTMLInputElement>(null);
   const ideaOk = idea.trim().length >= 10;
   const runIdea = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +110,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
               </label>
               <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                 <input
+                  ref={ideaInput}
                   id="sdw-hero-idea"
                   value={idea}
                   onChange={(e) => setIdea(e.target.value)}
@@ -117,6 +127,24 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
                 >
                   Test it free <ArrowRight className="h-4 w-4" />
                 </button>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Example decisions">
+                <span className="text-[12px]" style={{ color: 'var(--sdw-muted)' }}>Try:</span>
+                {EXAMPLE_DECISIONS.map((ex) => (
+                  <button
+                    key={ex}
+                    type="button"
+                    onClick={() => {
+                      setIdea(ex);
+                      trackCtaClick('hero_example_decision', 'hero');
+                      ideaInput.current?.focus();
+                    }}
+                    className="rounded-full border px-3 py-1 text-[12px] transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2"
+                    style={{ borderColor: 'var(--sdw-line)', color: 'var(--sdw-ink)', ['--tw-ring-color' as string]: 'var(--sdw-blue)' }}
+                  >
+                    {ex}
+                  </button>
+                ))}
               </div>
               <p className="mt-2 text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
                 No account or card needed for the first run · about a minute
