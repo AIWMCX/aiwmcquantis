@@ -38,6 +38,7 @@ import { trackVerdictViewed, recordFunnelEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ProfitRangeCard } from './ProfitRangeCard';
+import { ReviewOfferCard } from './ReviewOfferCard';
 
 interface AccuracyTransparentResultsProps {
   result: BusinessAnalysisResult;
@@ -726,6 +727,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               seedKey={analysisId ?? `${result.metadata?.idea ?? ''}|${result.metadata?.location ?? ''}`}
             />
           )}
+
+          {/* The paid, founder-assisted next step: until now no result linked it. */}
+          {currentStep === 1 && result.financial_analysis && <ReviewOfferCard />}
 
           {/* Inline upgrade wall — appears only for Free users at end of Step 1.
               This is the high-intent moment: they've seen score + 3 risks + revenue,
