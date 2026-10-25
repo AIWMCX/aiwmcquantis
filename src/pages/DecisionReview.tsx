@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, Clock3, FileCheck2, PlayCircle, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, Check, Clock3, FileCheck2, Mail, PlayCircle, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { StructuredData } from '@/components/seo/StructuredData';
@@ -24,7 +24,8 @@ export default function DecisionReview() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    trackEvent('paid_review_view', { surface: 'decision_review_page' });
+    // Funnel sink as well as GA4, so /admin/funnel sees paid-offer views.
+    recordFunnelEvent('paid_review_view', { surface: 'decision_review_page' });
   }, []);
 
   async function startCheckout(offerCode: OfferCode) {
@@ -131,6 +132,14 @@ export default function DecisionReview() {
                 {loading === offer.code ? 'Opening secure checkout…' : `Reserve for $${offer.price}`}
                 {loading !== offer.code && <ArrowRight className="h-4 w-4" />}
               </Button>
+              <a
+                href={`mailto:support@aiwmcquantis.com?subject=${encodeURIComponent(`Question before booking: ${offer.name}`)}`}
+                onClick={() => trackEvent('paid_review_question_click', { offer_code: offer.code })}
+                className="mt-3 inline-flex items-center justify-center gap-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                Ask a question before you pay
+              </a>
             </GlassCard>
           );
         })}
