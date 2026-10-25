@@ -45,7 +45,7 @@ Statuses:
 | 17 | $349 buyers can't see the deliverable | No sample Decision Memo exists | Fictional, labelled sample memo linked from the offer cards | CODE |
 | 18 | Example breadcrumbs used the apex host | JSON-LD on `/examples` | Canonical www | PR #316 |
 | 19 | Pro features advertised without end-to-end proof | 5-year model, pitch-deck package, API keys, 3 seats | Run each once on a test Pro account; remove any that fail | VERIFY |
-| 20 | Unused `ClientTestimonials.tsx` holds testimonial copy | Not rendered anywhere | Delete it so it can't ship by accident | CODE |
+| 20 | Unused `ClientTestimonials.tsx` holds testimonial copy | Not rendered anywhere | Delete it so it can't ship by accident | PR #317 |
 
 ## C. Activation (visitor to first result)
 
@@ -67,7 +67,7 @@ Statuses:
 | 29 | Annual prices show by default ($14, $41) next to monthly trial CTAs | Live pricing section | Confirm the default toggle and that the CTA matches the shown price | VERIFY |
 | 30 | Trial terms unclear (card required?) | FAQ "Is the 14-day trial really free?" | Answer matches Stripe settings | VERIFY |
 | 31 | Free gives 5 complete runs a month, including Monte Carlo and pre-mortem | Pricing cards | Plus needs one clear reason to upgrade | FOUNDER |
-| 32 | No way to ask before paying $349 | `/decision-review` has only "Reserve" | Add "Ask a question first" (mailto) next to Reserve | CODE |
+| 32 | No way to ask before paying $349 | `/decision-review` has only "Reserve" | Add "Ask a question first" (mailto) next to Reserve | PR #317 |
 | 33 | Free run limit doesn't lead into $349 | Result page | After a high-stakes result, offer the review once | CODE |
 | 34 | "48-hour target" without a stated capacity | `/decision-review` | State how many reviews a week the founder can take | FOUNDER |
 
@@ -94,7 +94,7 @@ Statuses:
 | 41 | Founder alias counted as an outside user | 67 analyses from `beltovbogdan@` | Pattern extended | DONE #315 |
 | 42 | QA runs leak into outside counts | Oct 21 "Fictional QA case"; Oct 24 00:57 UTC trigger-emitted anonymous run | Mark trigger-emitted events internal when the analysis owner is internal | CODE |
 | 43 | `quantis_events` table is empty | 0 rows ever | Wire it or drop it; don't report from it | CODE |
-| 44 | `/decision-review` views only in GA4 | Memory 2026-10-15 | Emit a funnel event on view | VERIFY |
+| 44 | `/decision-review` views only in GA4 | Memory 2026-10-15 | Emit a funnel event on view | PR #317 |
 | 45 | `subscription_started` never fires | Muse audit 2026-09-20 | Check; wire in the webhook | VERIFY |
 
 ## H. Reliability and operations
