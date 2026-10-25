@@ -108,6 +108,14 @@ export default function DecisionReview() {
                 </Link>
               )}
               {offer.code === 'founder_decision_review' && (
+                <Link to="/demo/sample-decision-memo" className="mt-3">
+                  <Button variant="outline" size="lg" className="w-full gap-2">
+                    <FileCheck2 className="h-4 w-4" />
+                    Read a sample Decision Memo
+                  </Button>
+                </Link>
+              )}
+              {offer.code === 'founder_decision_review' && (
                 <Link to="/demo/hiring-decision" className="mt-3">
                   <Button variant="outline" size="lg" className="w-full gap-2">
                     <PlayCircle className="h-4 w-4" />
