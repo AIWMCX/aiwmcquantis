@@ -66,7 +66,7 @@ export default function SampleDecisionMemo() {
     <PublicPageShell active="pricing" backTo={{ href: '/decision-review', label: 'Back to Decision Review' }} maxWidth="lg">
       <PageSEO
         title="Sample Decision Memo — what a Founder Decision Review delivers | AIWMC Quantis"
-        description="A fictional, fully worked Decision Memo: the facts, assumptions and unknowns, three scenarios, the cash and payback reconciliation, and the assumptions that would change the decision."
+        description="A fictional, fully worked Decision Memo: facts, assumptions and unknowns, three scenarios, cash and payback reconciled, and what would change the decision."
         canonical="/demo/sample-decision-memo"
       />
 

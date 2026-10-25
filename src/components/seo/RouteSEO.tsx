@@ -150,7 +150,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/demo/sample-decision-memo': {
     title: 'Sample Decision Memo — what a Founder Decision Review delivers',
-    description: 'A fictional, fully worked Decision Memo: facts, assumptions and unknowns, three scenarios, the cash and payback reconciliation, and what would change the decision.',
+    description: 'A fictional, fully worked Decision Memo: facts, assumptions and unknowns, three scenarios, cash and payback reconciled, and what would change the decision.',
   },
   '/demo/consultant-founding-pilot': {
     title: 'Interactive Demo — Consultant Capacity vs Client Demand',
