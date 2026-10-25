@@ -54,8 +54,8 @@ Statuses:
 | 21 | Anonymous runs were never saved | Migration never applied | Saved and claimable | DONE #302–#304 |
 | 22 | Hero unreadable until the animation ran | — | Static first paint | DONE #301 |
 | 23 | Mobile sticky CTA doubled the hero input | — | Fixed | DONE #311 |
-| 24 | 191 sessions produced 1 idea submitted (0.5%) | `funnel_events_clean`, 30 days | Find where visitors stop (field, length rule, location) and remove that step | CODE |
-| 25 | Hero form demands 10+ characters and a location | Form hint "10 more chars" | Show example ideas to click; make location optional if the engine allows | CODE |
+| 24 | 191 sessions produced 1 idea submitted (0.5%) | `funnel_events_clean`, 30 days | Find where visitors stop (field, length rule, location) and remove that step | Partly done: input moved to the first screen on Oct 23; measure for 7 days |
+| 25 | Visitors face a blank box | Only a placeholder; location is already optional | Three one-tap example decisions under the hero input | PR #319 |
 | 26 | 0 sign-ups after a result | No `free_signup_*` after `result_viewed` in 30 days | One "save this report" prompt with the reason (keep it, rerun it) | CODE |
 | 27 | Business-email sign-up returned 500 (QA, Oct 9) | Session memory 2026-10-09 | Re-test; fix if still failing | VERIFY |
 | 28 | Magic-link step never proven | Same QA | Re-test on a fresh address | VERIFY |
