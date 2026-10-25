@@ -102,7 +102,7 @@ Statuses:
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
 | 46 | Main analysis depends on one provider (DeepSeek) | 124 of 128 AI calls in 14 days | Confirm the fallback path works | VERIFY |
-| 47 | Known invariant violations | Flagged, not degrading status (#307) | List them; fix the top one | CODE |
+| 47 | Known invariant violations | All 8 are internal-account analyses from Aug 3 and Aug 24 (old engine), each flagged `report_integrity = BLOCK`; `/status` no longer shows degraded for them | No customer impact; new violations still mark the engine degraded | DONE #307 |
 | 48 | Scheduled monitors | 6 ran green on 2026-10-24 | Keep watching nightly | DONE |
 | 49 | No record of what changed each day | — | Nightly audit, 23:30 Denver | DONE |
 | 50 | This register | — | Updated per PR; read by the nightly audit | DONE |
