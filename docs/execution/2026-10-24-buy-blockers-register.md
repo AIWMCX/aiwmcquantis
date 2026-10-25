@@ -95,14 +95,14 @@ Statuses:
 | 42 | QA runs leak into outside counts | Oct 21 and Oct 24 QA runs were untagged anonymous sessions | Every QA visit uses `?utm_medium=internal` (the session-level flag covers the rest of the session) | FOUNDER |
 | 43 | `quantis_events` table is empty | No code reads or writes `quantis_events` (0 rows) | Unused; never report from it | DONE |
 | 44 | `/decision-review` views only in GA4 | Memory 2026-10-15 | Emit a funnel event on view | DONE #317 |
-| 45 | `subscription_started` never fires | Muse audit 2026-09-20 | Check; wire in the webhook | VERIFY |
+| 45 | `subscription_started` never fires | `trackSubscriptionStarted` has no caller; 0 rows ever | Not needed: `paid_checkout_start` fires at the one shared checkout point (`useSubscription.ts`); paid conversions are read from Stripe webhooks and `subscriptions` | DONE |
 
 ## H. Reliability and operations
 
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
 | 46 | Main analysis depends on one provider (DeepSeek) | DeepSeek primary; Lovable gateway if no DeepSeek key; deterministic fallback generator (`analyze-business/index.ts:1397`) | Force one fallback run in a test environment | VERIFY |
-| 47 | Known invariant violations | Flagged, not degrading status (#307) | List them; fix the top one | CODE |
+| 47 | Known invariant violations | All 8 are internal-account analyses from Aug 3 and Aug 24 (old engine), each flagged `report_integrity = BLOCK`; `/status` no longer shows degraded for them | No customer impact; new violations still mark the engine degraded | DONE #307 |
 | 48 | Scheduled monitors | 6 ran green on 2026-10-24 | Keep watching nightly | DONE |
 | 49 | No record of what changed each day | — | Nightly audit, 23:30 Denver | DONE |
 | 50 | This register | — | Updated per PR; read by the nightly audit | DONE |
