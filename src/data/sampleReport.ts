@@ -145,7 +145,7 @@ export const SAMPLE_REPORT = {
     },
     {
       id: 9,
-      kicker: `Monte Carlo (12 variables, ${MONTE_CARLO_ITERATIONS_DISPLAY} runs)`,
+      kicker: `Monte Carlo (${MONTE_CARLO_ITERATIONS_DISPLAY} runs)`,
       title: 'Payback distribution',
       kpis: [
         { label: 'P10 (best case)', value: '11 months' },
@@ -243,7 +243,7 @@ export const HEADLINE_METRICS: SampleMetric[] = [
     raw: SAMPLE_REPORT.metrics.paybackMonths.value,
     sub: 'Base case (P50)',
     detail:
-      'Cumulative free cash flow turns positive in month 18 under the base scenario. P25 = 14mo, P75 = 26mo across 12-variable Monte Carlo. Page 9.',
+      'Cumulative free cash flow turns positive in month 18 under the base scenario. P25 = 14mo, P75 = 26mo across the Monte Carlo runs. Page 9.',
   },
   {
     id: 'profit',

@@ -62,8 +62,8 @@ export default function ExampleAnalysis() {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://aiwmcquantis.com" },
-        { "@type": "ListItem", "position": 2, "name": "Examples", "item": "https://aiwmcquantis.com/examples" },
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.aiwmcquantis.com" },
+        { "@type": "ListItem", "position": 2, "name": "Examples", "item": "https://www.aiwmcquantis.com/examples" },
         { "@type": "ListItem", "position": 3, "name": data.title, "item": `https://aiwmcquantis.com/examples/${slug}` },
       ],
     },

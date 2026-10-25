@@ -221,7 +221,7 @@ export const VS_PAGES: VsPage[] = [
       ...QUANTIS_DIFFERENTIATORS,
       {
         feature: 'Core output',
-        quantis: `Deterministic financial verdict: viability score, P10/P50/P90 across 12 variables, prioritized risk map.`,
+        quantis: `Deterministic financial verdict: viability score, P10/P50/P90 monthly-profit range, prioritized risk map.`,
         competitor: '15 strategy cards (Idea Snapshot, Target Customer Profile, Objection Map, MVP Scope, Launch Checklist, etc.) from a guided conversation.',
         competitorSource: 'https://www.foundra.ai/best',
       },

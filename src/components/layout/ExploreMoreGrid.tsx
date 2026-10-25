@@ -10,7 +10,7 @@ import { ArrowRight, BookOpen, DollarSign, BarChart3, PenLine } from 'lucide-rea
 const DESTINATIONS = [
   { to: '/methodology', icon: BookOpen, title: 'Methodology', desc: 'How the deterministic engine and RVCE actually work.' },
   { to: '/pricing', icon: DollarSign, title: 'Pricing', desc: 'Free, Plus, and Pro — no hidden tiers.' },
-  { to: '/examples', icon: BarChart3, title: 'Examples', desc: '51+ real analyses across cities and industries.' },
+  { to: '/examples', icon: BarChart3, title: 'Examples', desc: '51 illustrative example reports across cities and industries.' },
   { to: '/blog', icon: PenLine, title: 'Blog', desc: 'Validation frameworks and financial-mistake teardowns.' },
 ];
 

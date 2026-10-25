@@ -68,8 +68,8 @@ export default function ExamplesIndex() {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://aiwmcquantis.com" },
-            { "@type": "ListItem", "position": 2, "name": "Examples", "item": "https://aiwmcquantis.com/examples" },
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.aiwmcquantis.com" },
+            { "@type": "ListItem", "position": 2, "name": "Examples", "item": "https://www.aiwmcquantis.com/examples" },
           ],
         }}
       />
@@ -78,7 +78,7 @@ export default function ExamplesIndex() {
         <SectionHeader
           eyebrow={`${EXAMPLE_LIST.length}+ Sample Reports`}
           title="Business Analysis Examples"
-          subtitle={`Real financial reports across ${industries.length}+ industries and 50+ cities. Each page is a full analysis — see what you'll get before analyzing your own idea.`}
+          subtitle={`Illustrative example reports across ${industries.length}+ industries and 50+ cities. Each page is a full analysis — see what you'll get before analyzing your own idea.`}
         />
       </section>
 
