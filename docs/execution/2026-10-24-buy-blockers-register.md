@@ -95,7 +95,7 @@ Statuses:
 | 42 | QA runs leak into outside counts | Oct 21 "Fictional QA case"; Oct 24 00:57 UTC trigger-emitted anonymous run | Mark trigger-emitted events internal when the analysis owner is internal | CODE |
 | 43 | `quantis_events` table is empty | 0 rows ever | Wire it or drop it; don't report from it | CODE |
 | 44 | `/decision-review` views only in GA4 | Memory 2026-10-15 | Emit a funnel event on view | PR #317 |
-| 45 | `subscription_started` never fires | Muse audit 2026-09-20 | Check; wire in the webhook | VERIFY |
+| 45 | `subscription_started` never fires | `trackSubscriptionStarted` has no caller; 0 rows ever | Not needed: `paid_checkout_start` fires at the one shared checkout point (`useSubscription.ts`); paid conversions are read from Stripe webhooks and `subscriptions` | DONE |
 
 ## H. Reliability and operations
 

@@ -61,6 +61,9 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 ## Windows / shell gotchas
 - Python file edits: open with `newline=''` or line endings get rewritten, which shows as whole-file diffs. Prefer the Edit tool.
 - Two updates to the same row in one SQL statement (multiple CTEs) silently keep only one.
+- PowerShell 5.1 `Get-Content`/`Set-Content` re-encode UTF-8 files (mojibake, or a BOM with `-Encoding utf8`). Edit files with the Edit tool or Python (`newline=''`), never PowerShell.
+- The build's prerender step fails on any route description over 160 characters (`RouteSEO.tsx` and the page's `PageSEO`). Count before pushing a new route.
+- `funnel_events` has a CHECK allowlist on `event_name`; `recordFunnelEvent` is fire-and-forget, so a new name must be added by migration (guarded by `funnel-event-allowlist-sync.test.ts`).
 - Do not `git stash -u` here: some untracked dirs are permission-locked and the stash half-applies.
 - `.claude/launch.json` dev server: the preview tool may resolve a different project. Check the page title before testing.
 
