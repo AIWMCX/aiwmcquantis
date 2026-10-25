@@ -14,6 +14,13 @@ describe('funnel_events_clean: canonical metrics source', () => {
     expect(SQL).toContain('(jeltov|aiwmc|jjbalaganvasya)');
     expect(SQL).toMatch(/localhost\|127/);
   });
+  it('counts the founder alias beltovbogdan@ as internal in both views of a user', () => {
+    const next = readFileSync('supabase/migrations/20261025010000_internal_founder_alias.sql', 'utf8');
+    expect(next.match(/~\* '\(jeltov\|beltov\|aiwmc\|jjbalaganvasya\)'/g)).toHaveLength(2);
+    expect(next).toContain('bool_or(row_internal) OVER (PARTITION BY COALESCE(session_id, id::text)) AS is_internal');
+    expect(next).toContain("public.has_role(auth.uid(), 'admin'::app_role)");
+    expect(next).toContain('REVOKE ALL ON public.funnel_events_clean FROM anon, authenticated');
+  });
   it('supports unique-session counting and Denver reporting days', () => {
     expect(SQL).toContain('is_first_in_session');
     expect(SQL).toContain("AT TIME ZONE 'America/Denver'");
