@@ -1,4 +1,4 @@
-﻿# Buy-blockers register вЂ” why people don't buy Quantis, and the fix for each
+# Buy-blockers register вЂ” why people don't buy Quantis, and the fix for each
 
 Started 2026-10-24 (Denver). This register is updated in place. The nightly audit reads it and reports what changed.
 
