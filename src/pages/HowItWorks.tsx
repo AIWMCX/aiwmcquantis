@@ -16,6 +16,8 @@ import {
   BENCHMARK_COUNT_DISPLAY,
   BENCHMARK_SECTORS,
   BENCHMARK_SOURCES_DISPLAY,
+  GEO_COVERAGE_DISPLAY,
+  GEO_METRO_COUNT,
   MONTE_CARLO_ITERATIONS_DISPLAY,
   PIPELINE_LAYERS,
   FINANCIAL_VARIABLES,
@@ -35,7 +37,7 @@ const STEPS = [
     details: [
       'Natural language input — no forms, no templates',
       'Auto-detects industry vertical, NAICS code, and sub-sector',
-      'Location intelligence for 16 major metros + US national baseline',
+      `Location intelligence for ${GEO_COVERAGE_DISPLAY}`,
       'Works for any business model: SaaS, retail, services, e-commerce, food & beverage',
     ],
     example: '"Coffee shop with remote work focus in Denver, Colorado"',
@@ -47,12 +49,12 @@ const STEPS = [
     title: `${PIPELINE_LAYERS}-Layer Engine Runs Financial Stress Tests`,
     description: `A deterministic financial engine calculates ${FINANCIAL_VARIABLES} financial variables against ${BENCHMARK_COUNT_DISPLAY} industry benchmarks, calibrated to your city's cost structure.`,
     details: [
-      `${BENCHMARK_COUNT_DISPLAY} benchmarks across ${BENCHMARK_SECTORS} sectors (BLS, Census, SBA, CoStar)`,
+      `${BENCHMARK_COUNT_DISPLAY} benchmarks across ${BENCHMARK_SECTORS} sectors (modeled grid; see Methodology)`,
       'City-level cost indices: rent, salary, and demand multipliers',
       'Decimal-precision arithmetic (Decimal.js) — no floating-point drift',
       `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo simulation`,
     ],
-    example: 'Revenue, margins, OpEx, unit economics, cash flow — all computed from verified data',
+    example: 'Revenue, margins, OpEx, unit economics, cash flow — computed from your inputs and modeled benchmarks',
     glow: 'violet' as const,
   },
   {
@@ -72,8 +74,8 @@ const STEPS = [
 ];
 
 const ENGINE_LAYERS = [
-  { layer: 1, icon: Database, title: 'Benchmark Calibration', desc: `Matches your idea against ${BENCHMARK_COUNT_DISPLAY} industry benchmarks. Queries sector, sub-sector, and business model to pull real CAC, LTV, churn, margins, and growth rates — with percentile confidence bands.` },
-  { layer: 2, icon: MapPin, title: 'Location Intelligence', desc: 'Applies city-level cost multipliers for rent, salaries, and demand. Covers 16 metros (NYC, SF, Denver, Austin, Chicago, Miami, Seattle, Boston, and more) plus US national baseline. Sources: BLS 2024, Census ACS 2023, CoStar.' },
+  { layer: 1, icon: Database, title: 'Benchmark Calibration', desc: `Matches your idea against ${BENCHMARK_COUNT_DISPLAY} industry benchmarks. Queries sector, sub-sector, and business model to pull modeled CAC, LTV, churn, margins, and growth rates — with percentile confidence bands.` },
+  { layer: 2, icon: MapPin, title: 'Location Intelligence', desc: `Applies city-level cost multipliers for rent, salaries, and demand. Covers ${GEO_METRO_COUNT} metros (NYC, SF, Denver, Austin, Chicago, Miami, Seattle, Boston, and more) plus US national baseline. Multipliers are Quantis estimates, not local rent or wage records.` },
   { layer: 3, icon: Search, title: 'Sub-Industry Detection', desc: 'Refines your NAICS classification to the sub-vertical level. Adjusts churn rates, pricing models, and margin profiles — a fintech SaaS is not the same as an HR SaaS.' },
   { layer: 4, icon: Calculator, title: 'Financial Engine', desc: 'Builds a bottom-up P&L, cash flow statement, and unit economics model. Free and Plus runs project 36 months; Pro extends to 60 months. All arithmetic uses Decimal.js.' },
   { layer: 5, icon: Activity, title: 'Market Prior & Anomaly Detection', desc: 'Maps your business to market distributions and flags outliers. If your margin claim is in the 99th percentile for your industry, the engine tells you why that\'s suspicious.' },
@@ -117,7 +119,7 @@ const TWELVE_VARIABLES = [
 
 const FAQ_ITEMS = [
   { q: 'How is this different from ChatGPT?', a: 'ChatGPT generates text. Quantis runs a deterministic financial engine first — every number is calculated from verified benchmarks, not generated. The AI writes the narrative around the math, but the math is the source of truth. Every metric is tagged as "computed", "benchmark", or "estimated" so you know exactly what\'s proven and what\'s inferred.' },
-  { q: 'What data do you use for projections?', a: `${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, informed by ${BENCHMARK_SOURCES_DISPLAY}. City-level cost data covers 16 metros plus a US national baseline.` },
+  { q: 'What data do you use for projections?', a: `${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, informed by ${BENCHMARK_SOURCES_DISPLAY}. City-level cost multipliers cover ${GEO_COVERAGE_DISPLAY}.` },
   { q: 'Can I trust the projections?', a: 'Projections are estimates, not guarantees — that\'s why we provide 3 scenarios and confidence scores. Every metric shows its source, and RVCE cross-checks your numbers against live web data. If something looks off, the engine flags it as an OUTLIER and suggests a correction. You always see the margin of uncertainty.' },
   { q: 'Do I need a business plan first?', a: 'No. Enter your idea and location in one sentence. The engine builds the complete financial model from benchmarks — revenue, costs, unit economics, P&L, cash flow, and risk flags. You get the equivalent of weeks of financial analysis in a fraction of the time.' },
   { q: 'What if my industry is niche?', a: `We cover ${BENCHMARK_SECTORS} industry sectors. For niche businesses, the AI maps your idea to the closest benchmark cluster and the engine flags the confidence level so you know the margin of uncertainty. The more specific your description, the better the match.` },
@@ -167,8 +169,8 @@ export default function HowItWorks() {
           subtitle={
             <>
               Enter your business idea and location. An {PIPELINE_LAYERS}-layer financial engine computes {FINANCIAL_VARIABLES} variables
-              against {BENCHMARK_COUNT_DISPLAY} industry benchmarks, runs {MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo simulations,
-              and cross-references results against live web data.
+              against {BENCHMARK_COUNT_DISPLAY} industry benchmarks, simulates {MONTE_CARLO_ITERATIONS_DISPLAY} months of revenue and costs (Monte Carlo),
+              and on Plus and Pro cross-checks key metrics against web sources (RVCE).
             </>
           }
         />
@@ -306,7 +308,7 @@ export default function HowItWorks() {
             <Database className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
             <p className="text-2xl font-bold mb-1" style={MONO}>{BENCHMARK_COUNT_DISPLAY}</p>
             <p className="text-sm font-medium mb-2" style={{ color: 'hsl(var(--foreground))' }}>Industry Benchmarks</p>
-            <p className="text-xs text-muted-foreground">{BENCHMARK_SECTORS} sectors. Sources: BLS, Census Bureau, SBA Office of Advocacy, CoStar, public filings. Updated annually.</p>
+            <p className="text-xs text-muted-foreground">{BENCHMARK_SECTORS} sectors. A modeled grid informed by {BENCHMARK_SOURCES_DISPLAY}. No automatic refresh cadence is claimed.</p>
           </GlassCard>
           <GlassCard glow="violet" revealDelay={80} className="p-6 text-center">
             <MapPin className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--aiwmc-grad-violet)' }} />

@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
-import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
+import { FREE_ANALYSES_PER_MONTH, GEO_METRO_COUNT } from '@/config/canonical-facts';
 
 interface PersonalizedEmptyStateProps {
   analysisCount: number;
@@ -115,7 +115,7 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-            50+ cities
+            {GEO_METRO_COUNT} US metros
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-primary" />

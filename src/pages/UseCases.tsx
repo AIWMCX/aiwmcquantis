@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
 import {
   ArrowRight,
   Lightbulb,
@@ -36,7 +36,7 @@ const TIERS = [
     title: 'Consultants & Fractional CFOs',
     uses: 'client intake · projections · white-label PDF',
     detail:
-      'Trade 20+ hours per feasibility study for a first-pass model in minutes, then layer your judgment on top. Plus/Pro branding removes the Quantis logo for client-facing deliverables.',
+      'Trade 20+ hours per feasibility study for a first-pass model in minutes, then layer your judgment on top. Plus adds your logo and colors; Pro removes the Quantis branding entirely for client-facing deliverables.',
     exampleSlug: 'consulting-firm-new-york',
     exampleLabel: 'Consulting firm · New York',
     glow: 'cyan' as const,
@@ -72,7 +72,7 @@ const TIERS = [
     title: 'SMB Owners & Operators',
     uses: 'expansion sanity check · location comparison · pricing scenarios',
     detail:
-      "You already run a business and are considering another location, product line, or price change. Model the downside before you commit capital — location-adjusted for 50+ cities.",
+      `You already run a business and are considering another location, product line, or price change. Model the downside before you commit capital — location-adjusted for ${GEO_COVERAGE_DISPLAY}.`,
     exampleSlug: 'restaurant-miami',
     exampleLabel: 'Restaurant · Miami',
     glow: 'cyan' as const,

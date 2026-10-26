@@ -3,7 +3,8 @@
  * 
  * Applies geographic cost-of-living and market adjustments to base (national)
  * benchmarks, producing location-calibrated financial projections.
- * Data sourced from BLS, Census Bureau, CoStar, and SBA.
+ * Multipliers are Quantis estimates (rent, salary, demand vs the US average), not
+ * licensed local data.
  */
 
 import { QuantisMath } from './quantis-math';
@@ -56,7 +57,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 72000,
     businessSurvivalRate1yr: 0.79,
     businessSurvivalRate5yr: 0.49,
-    sources: ['BLS 2024', 'CoStar Denver Metro 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'new_york_ny',
@@ -68,7 +69,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 70663,
     businessSurvivalRate1yr: 0.77,
     businessSurvivalRate5yr: 0.45,
-    sources: ['BLS 2024', 'CoStar NYC 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'los_angeles_ca',
@@ -80,7 +81,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 69778,
     businessSurvivalRate1yr: 0.76,
     businessSurvivalRate5yr: 0.44,
-    sources: ['BLS 2024', 'CoStar LA Metro 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'chicago_il',
@@ -92,7 +93,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 65781,
     businessSurvivalRate1yr: 0.78,
     businessSurvivalRate5yr: 0.47,
-    sources: ['BLS 2024', 'CoStar Chicago 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'austin_tx',
@@ -104,7 +105,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 80954,
     businessSurvivalRate1yr: 0.82,
     businessSurvivalRate5yr: 0.52,
-    sources: ['BLS 2024', 'CoStar Austin 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'seattle_wa',
@@ -116,7 +117,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 105391,
     businessSurvivalRate1yr: 0.81,
     businessSurvivalRate5yr: 0.51,
-    sources: ['BLS 2024', 'CoStar Seattle 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'miami_fl',
@@ -128,7 +129,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 51347,
     businessSurvivalRate1yr: 0.75,
     businessSurvivalRate5yr: 0.42,
-    sources: ['BLS 2024', 'CoStar Miami 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'phoenix_az',
@@ -140,7 +141,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 65051,
     businessSurvivalRate1yr: 0.79,
     businessSurvivalRate5yr: 0.48,
-    sources: ['BLS 2024', 'CoStar Phoenix 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'boston_ma',
@@ -152,7 +153,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 81744,
     businessSurvivalRate1yr: 0.82,
     businessSurvivalRate5yr: 0.52,
-    sources: ['BLS 2024', 'CoStar Boston 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'atlanta_ga',
@@ -164,7 +165,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 65345,
     businessSurvivalRate1yr: 0.78,
     businessSurvivalRate5yr: 0.47,
-    sources: ['BLS 2024', 'CoStar Atlanta 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'dallas_tx',
@@ -176,7 +177,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 60958,
     businessSurvivalRate1yr: 0.80,
     businessSurvivalRate5yr: 0.49,
-    sources: ['BLS 2024', 'CoStar Dallas 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'san_francisco_ca',
@@ -188,7 +189,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 119136,
     businessSurvivalRate1yr: 0.78,
     businessSurvivalRate5yr: 0.46,
-    sources: ['BLS 2024', 'CoStar SF 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'portland_or',
@@ -200,7 +201,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 73097,
     businessSurvivalRate1yr: 0.79,
     businessSurvivalRate5yr: 0.48,
-    sources: ['BLS 2024', 'CoStar Portland 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'nashville_tn',
@@ -212,7 +213,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 63826,
     businessSurvivalRate1yr: 0.81,
     businessSurvivalRate5yr: 0.50,
-    sources: ['BLS 2024', 'CoStar Nashville 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
   {
     geoSlug: 'charlotte_nc',
@@ -224,7 +225,7 @@ export const GEO_COEFFICIENTS: GeoCoefficients[] = [
     medianHouseholdIncome: 66399,
     businessSurvivalRate1yr: 0.80,
     businessSurvivalRate5yr: 0.49,
-    sources: ['BLS 2024', 'CoStar Charlotte 2024', 'Census ACS 2023'],
+    sources: ['BLS 2024', 'Quantis rent estimate', 'Census ACS 2023'],
   },
 ];
 

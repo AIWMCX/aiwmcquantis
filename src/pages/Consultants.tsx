@@ -6,7 +6,10 @@ import { Footer } from '@/components/layout/Footer';
 import { InView, SectionLabel, SplitButton } from '@/components/sadewa/primitives';
 import { trackCtaClick } from '@/lib/analytics';
 import { TIERS } from '@/config/tiers';
+import { ENGAGEMENT_OFFERS } from '@/config/engagement-offers';
 import { FREE_ANALYSES_PER_MONTH, LEGAL_ENTITY_NAME } from '@/config/canonical-facts';
+
+const PILOT = ENGAGEMENT_OFFERS.find((o) => o.code === 'consultant_founding_pilot')!;
 
 /**
  * /consultants — one advisor workflow, in the Sadewa layer.
@@ -215,6 +218,20 @@ export default function Consultants() {
                 <p className="mt-2 text-[15px]" style={{ color: 'var(--sdw-muted)' }}>
                   or ${TIERS.pro.priceAnnualMonthlyEquivalent}/mo billed annually · 14-day trial · branded PDF exports
                 </p>
+              </div>
+            </div>
+            {/* The paid pilot built for this audience: until 2026-10-25 this page never mentioned it. */}
+            <div className="sdw-card p-6 mt-4">
+              <p className="sdw-label text-[12px]">/{PILOT.name} · {PILOT.cases}</p>
+              <p className="sdw-num mt-3 text-[32px] font-bold" style={{ color: 'var(--sdw-ink)' }}>
+                ${PILOT.price}<span className="text-[16px] font-normal" style={{ color: 'var(--sdw-muted)' }}> one-time</span>
+              </p>
+              <p className="mt-2 text-[15px]" style={{ color: 'var(--sdw-muted)' }}>
+                Bring two client cases. Each gets three scenarios, reconciled economics, a source and uncertainty register, and a memo you can hand to the client after one review and one revision.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <SplitButton variant="primary" size="sm" to="/decision-review" onClick={() => trackCtaClick('consultants_pilot', 'consultants_plans')}>See the pilot</SplitButton>
+                <SplitButton variant="secondary" size="sm" to="/demo/consultant-founding-pilot">Try the capacity demo</SplitButton>
               </div>
             </div>
             <div className="mt-8">

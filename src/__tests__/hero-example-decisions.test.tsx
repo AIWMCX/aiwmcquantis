@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { EXAMPLE_DECISIONS, SdwHero } from '@/components/landing/sadewa/SdwHero';
+import { extractLocationFromText, isHiringDecision } from '@/lib/location-input';
 
 describe('hero example decisions', () => {
   it('each example is long enough to run', () => {
@@ -21,5 +22,26 @@ describe('hero example decisions', () => {
     fireEvent.click(screen.getByRole('button', { name: EXAMPLE_DECISIONS[1] }));
     expect(input.value).toBe(EXAMPLE_DECISIONS[1]);
     expect(submit.disabled).toBe(false);
+  });
+
+  it('every example names a business and a City, ST, and none is a hire', () => {
+    for (const ex of EXAMPLE_DECISIONS) {
+      expect(extractLocationFromText(ex)).not.toBeNull();
+      expect(isHiringDecision(ex)).toBe(false);
+    }
+  });
+
+  it('a hiring decision goes to the hiring model instead of a business analysis', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<SdwHero onWatchFilm={() => {}} />} />
+          <Route path="/demo/hiring-decision" element={<p>hiring model</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByLabelText('What are you deciding?'), { target: { value: 'Hire a 2nd technician at $5,500/mo' } });
+    fireEvent.click(screen.getByRole('button', { name: /Test it free/ }));
+    expect(screen.getByText('hiring model')).toBeTruthy();
   });
 });

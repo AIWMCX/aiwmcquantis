@@ -6,7 +6,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BLOG_ARTICLES } from './Blog';
-import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
@@ -127,7 +127,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>Equipment, legal fees, branding, initial inventory, and deposits. These are your "Day 1" costs before the business even opens.</p>
       
       <h2>Location Matters More Than You Think</h2>
-      <p>The same business in New York City costs 2-3x more to run than in Austin, Texas. Rent, salaries, and even utilities vary dramatically. AIWMC Quantis adjusts all projections for 50+ cities worldwide, so your numbers reflect reality — not averages.</p>
+      <p>The same business in New York City costs 2-3x more to run than in Austin, Texas. Rent, salaries, and even utilities vary dramatically. AIWMC Quantis adjusts rent, salary and demand estimates for {GEO_COVERAGE_DISPLAY}, so the numbers start closer to your market. Replace them with real quotes when you have them.</p>
       
       <h2>The Break-Even Formula</h2>
       <p>Break-even point = Fixed Costs ÷ (Price per Unit - Variable Cost per Unit). This tells you exactly how many customers you need to cover your costs. If that number seems unrealistically high for your market, reconsider your pricing or cost structure before launching.</p>
@@ -352,7 +352,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       </ul>
 
       <h2>Run Your Own Coffee Shop Analysis</h2>
-      <p>AIWMC Quantis calculates location-adjusted projections for coffee shops in 50+ cities. Enter your concept and city, and get startup costs, monthly P&L, break-even timeline, and risk flags — all benchmarked against a {BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid.</p>
+      <p>AIWMC Quantis calculates location-adjusted projections for coffee shops ({GEO_COVERAGE_DISPLAY}). Enter your concept and city, and get startup costs, monthly P&L, break-even timeline, and risk flags — all benchmarked against a {BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid.</p>
     </>
   ),
   'food-truck-profit-calculator': (

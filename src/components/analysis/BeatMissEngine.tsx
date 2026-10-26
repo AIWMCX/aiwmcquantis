@@ -172,7 +172,8 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
           unit: item.unit,
           verdict,
           deltaPct,
-          source: `${serverBand.source} · n=${serverBand.sampleSize.toLocaleString('en-US')}`,
+          // No n=: grid cells are modeled, not observed samples (see /methodology).
+          source: serverBand.source,
           isEstimatedBand: false,
         };
       }

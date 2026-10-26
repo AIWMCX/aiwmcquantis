@@ -39,6 +39,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ProfitRangeCard } from './ProfitRangeCard';
 import { ReviewOfferCard } from './ReviewOfferCard';
+import { whyTheseNumbers } from '@/lib/why-these-numbers';
 
 interface AccuracyTransparentResultsProps {
   result: BusinessAnalysisResult;
@@ -399,9 +400,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         onExportFullReport={handleExportFullReport}
         onNewAnalysis={onReset}
         isGeneratingPdf={isGenerating}
-        analysisTime={2.4}
         engineVersion="2.0.0"
-        consensusScore={(result as any)?.cross_validation?.consensus_score || 94}
+        consensusScore={(result as any)?.cross_validation?.consensus_score}
       />
 
       {/* Step Content Area */}
@@ -767,12 +767,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 <div className="q-card p-5">
                   <h4 className="text-sm font-semibold mb-3">Why These Numbers?</h4>
                   <div className="space-y-2">
-                    {[
-                      { icon: '📍', driver: `${location || 'Local'} rent`, value: '×1.15', source: 'CoStar 2025' },
-                      { icon: '👥', driver: 'Industry CAC', value: `$${result.financial_analysis?.unit_economics?.cac || 50}`, source: 'Quantis Benchmarks' },
-                      { icon: '📊', driver: 'Gross margin', value: `${((result.financial_analysis?.scenarios?.base?.gross_margin || 0.4) * 100).toFixed(0)}%`, source: 'Industry median' },
-                      { icon: '🔄', driver: 'Churn rate', value: `${((result.financial_analysis?.inputs?.churn_rate || 0.05) * 100).toFixed(1)}%`, source: 'SaaS benchmarks' },
-                    ].map((item, i) => (
+                    {whyTheseNumbers(result, location).map((item, i) => (
                       <div key={i} className="flex items-center justify-between text-sm py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-2">
                           <span>{item.icon}</span>

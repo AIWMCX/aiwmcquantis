@@ -1,7 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { TIERS } from '@/config/tiers';
-import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
 
 interface ArticleAuthor {
   name: string;
@@ -145,7 +145,7 @@ export const QuantisFAQ = React.memo(function QuantisFAQ() {
     },
     {
       question: 'How accurate are the financial projections?',
-      answer: `AIWMC Quantis uses a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid (modeled cells, not observed companies) for benchmark defaults and adjusts calculations based on your specific location. While projections are estimates for planning purposes, they are based on real market data and validated financial models with location-specific cost adjustments for 50+ cities worldwide.`,
+      answer: `AIWMC Quantis uses a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid (modeled cells, not observed companies) for benchmark defaults and adjusts calculations based on your specific location. While projections are estimates for planning purposes, they use a deterministic financial model and modeled benchmarks, with cost multipliers for ${GEO_COVERAGE_DISPLAY}. Replace any default with your own figures.`,
     },
     {
       question: 'Can I export my business analysis?',
@@ -153,7 +153,7 @@ export const QuantisFAQ = React.memo(function QuantisFAQ() {
     },
     {
       question: 'What locations does AIWMC Quantis support?',
-      answer: 'AIWMC Quantis supports business analysis for 50+ cities worldwide, with location-specific cost adjustments for salaries, rent, utilities, and other operating expenses. This ensures your financial projections accurately reflect your target market.',
+      answer: `AIWMC Quantis adjusts rent, salary and demand estimates for ${GEO_COVERAGE_DISPLAY}. Other locations use the US average. The multipliers are Quantis estimates, not local records, so replace them with your own figures where you have them.`,
     },
   ];
 

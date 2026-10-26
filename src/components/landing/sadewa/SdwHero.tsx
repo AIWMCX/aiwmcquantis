@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { submitHeroIdea } from '@/lib/hero-idea';
+import { isHiringDecision } from '@/lib/location-input';
 import { trackCtaClick } from '@/lib/analytics';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
@@ -64,12 +66,15 @@ function ShowreelCard({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-// One tap fills the input with a concrete decision, so a visitor who doesn't
-// know what to type still gets to a first run. They still press "Test it free".
+// One tap fills the input with a concrete plan, so a visitor who doesn't know
+// what to type still gets to a first run. They still press "Test it free".
+// Each names a business and a "City, ST": the engine models a business, and
+// the city drives local calibration (a bare "hire a technician" was read as a
+// new SaaS company, 2026-10-25).
 export const EXAMPLE_DECISIONS = [
-  'Hire a 2nd technician at $5,500/mo',
-  'Open a second location for $80K',
-  'Launch a mobile dog-grooming van for $60K',
+  'Mobile dog-grooming van in Columbus, OH, $85 per groom',
+  'Second coffee shop in Denver, CO, $80K build-out',
+  'HVAC repair company in Phoenix, AZ, 3 technicians',
 ];
 
 export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
@@ -78,12 +83,19 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
     onWatchFilm();
   };
 
+  const navigate = useNavigate();
   const [idea, setIdea] = useState('');
   const ideaInput = useRef<HTMLInputElement>(null);
   const ideaOk = idea.trim().length >= 10;
   const runIdea = (e: React.FormEvent) => {
     e.preventDefault();
     trackCtaClick('hero_run_free_decision', 'hero');
+    // Hiring decisions run in the hiring model, which compares with and without the hire.
+    if (ideaOk && isHiringDecision(idea)) {
+      trackCtaClick('hero_hiring_routed', 'hero');
+      navigate('/demo/hiring-decision?from=hero');
+      return;
+    }
     // The run and its progress live in the form section below (ReportFirstHero).
     document.querySelector('[data-hero-form]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (ideaOk) submitHeroIdea(idea.trim());
@@ -115,7 +127,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
                   value={idea}
                   onChange={(e) => setIdea(e.target.value)}
                   maxLength={300}
-                  placeholder="e.g. Hire a 2nd technician at $5,500/mo"
+                  placeholder="e.g. Second coffee shop in Denver, CO, $80K build-out"
                   className="h-12 flex-1 rounded-md border bg-white px-4 text-[15px] outline-none focus-visible:ring-2"
                   style={{ borderColor: 'var(--sdw-line)', color: 'var(--sdw-ink)', ['--tw-ring-color' as string]: 'var(--sdw-blue)' }}
                 />

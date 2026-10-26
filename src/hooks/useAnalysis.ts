@@ -17,6 +17,7 @@ import type {
 import { isQueuedAnalysisJob, isFreeTierAnalysisSummary } from '@/types/analysis';
 import { trackActivationEvent } from '@/lib/activationTracking';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
+import { normalizeLocation } from '@/lib/location-input';
 
 import { logger } from '@/lib/logger';
 interface FormErrors {
@@ -105,7 +106,7 @@ export function useAnalysis() {
       void trackActivationEvent('calculation_completed', { idea_length: idea.length });
 
       const trimmedIdea = idea.trim();
-      const trimmedLocation = location.trim();
+      const trimmedLocation = normalizeLocation(location);
 
       const requestedDepth = lastRequestRef.current?.analysis_depth;
       const depthFromResult = (data as any)?.depth_used;
@@ -423,7 +424,7 @@ export function useAnalysis() {
 
       const request: AnalysisRequest = {
         idea: idea.trim(),
-        location: location.trim(),
+        location: normalizeLocation(location),
         ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
         ...(documents.length > 0 && { documents }),
         ...(depth && { analysis_depth: depth as 'quick' | 'full' | 'deep' }),

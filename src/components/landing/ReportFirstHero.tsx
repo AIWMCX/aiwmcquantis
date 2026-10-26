@@ -12,6 +12,7 @@ import { SampleReportPages, type Density } from './SampleReportPages';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { SectionLabel } from '@/components/sadewa/primitives';
 import { HERO_IDEA_EVENT } from '@/lib/hero-idea';
+import { DEFAULT_LOCATION, extractLocationFromText, locationInputValue } from '@/lib/location-input';
 
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
 
@@ -73,7 +74,7 @@ export function ReportFirstHero() {
   // does nothing with zero feedback. Mirrors HeroSingleInput.tsx's identical
   // fix: default it once so the edge function's ≥2-char requirement passes.
   useEffect(() => {
-    if (!location) setLocation('Global');
+    if (!location) setLocation(DEFAULT_LOCATION);
   }, [location, setLocation]);
 
   useEffect(() => {
@@ -121,12 +122,15 @@ export function ReportFirstHero() {
     const onHeroIdea = (ev: Event) => {
       const text = String((ev as CustomEvent<string>).detail ?? '').trim();
       if (text.length < 10 || isLoading) return;
+      // The hero has no location box: use a "City, ST" written in the idea.
+      const fromText = extractLocationFromText(text);
+      if (fromText && location === DEFAULT_LOCATION) setLocation(fromText);
       setIdea(text);
       setPendingHeroIdea(text);
     };
     window.addEventListener(HERO_IDEA_EVENT, onHeroIdea);
     return () => window.removeEventListener(HERO_IDEA_EVENT, onHeroIdea);
-  }, [isLoading, setIdea]);
+  }, [isLoading, setIdea, location, setLocation]);
   useEffect(() => {
     if (pendingHeroIdea === null || idea !== pendingHeroIdea) return;
     setPendingHeroIdea(null);
@@ -798,8 +802,8 @@ export function ReportFirstHero() {
                   <input
                     id="hero-location"
                     type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={locationInputValue(location)}
+                    onChange={(e) => setLocation(e.target.value || DEFAULT_LOCATION)}
                     placeholder="Austin, TX"
                     maxLength={80}
                     disabled={isLoading}
