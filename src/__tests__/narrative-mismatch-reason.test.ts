@@ -38,3 +38,10 @@ describe('narrative mismatch reason', () => {
     expect(src).toContain('narrative_integrity: { replaced: narrativeWasModified, reason: narrativeIntegrityReason },');
   });
 });
+
+describe('gross profit and total costs are anchors', () => {
+  it('accepts the $11,220 gross profit that triggered a replacement on 2026-10-26', () => {
+    const live: NarrativeIntegrityCalc = { ...calc, mrr: 20400, netProfit: 6930, expenses: { ...calc.expenses, cogs: 9180 } };
+    expect(narrativeMismatch('Gross profit is about $11,220 a month.', live)).toBeNull();
+  });
+});

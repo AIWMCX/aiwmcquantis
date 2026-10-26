@@ -125,7 +125,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 54 | Industry keyword match can misread decisions | "technician" lands in the software/SaaS bucket (substring match) | Whole-word keyword matching in both industry scorers (`containsWord`) | DONE #328 |
 | 55 | Same benchmark row for unrelated industries | Pet services and the "SaaS" run both got gross margin 0.56, "exact match, sample_size 230" | No-keyword ideas marked `sector_fallback` (never "exact"); no overlay on the detected industry; city matching whole-word (Orlando/Las Vegas no longer LA) | DONE #328 |
 | 56 | "Investor Grade · 90%" next to "Estimated · No direct benchmark" | Both 2026-10-25 runs | Score capped at 84 without a matched benchmark; live rerun shows 84%, no "Investor Grade" | DONE #328 |
-| 57 | Integrity-check note shown on the result | "Note: this summary was regenerated … AI-authored narrative did not reconcile" in both runs | Visitor's own figures (#328) and yearly figures (#329) count as anchors; replacement reason stored in `metadata.narrative_integrity` | PR #329 |
+| 57 | Integrity-check note shown on the result | Both 2026-10-25 runs; after #328/#329 the stored reason was `unanchored_dollar:$11,220` = revenue − COGS | Visitor's figures (#328), yearly figures (#329), gross profit and total costs (#330) count as anchors; reason stored in `metadata.narrative_integrity` | PR #330 |
 | 58 | Weak top risk | "What kills this plan: LTV:CAC 18.4x is unusually high" for a grooming van; staffing and van downtime not mentioned | Panel lists real risks only, dangers first (#328). Still open: an industry-specific risk library | PARTLY #328 |
 | 59 | Absurd ratios pass the sanity checks | "1% payroll ratio" on $1.15M/month revenue | Payroll under 3% of revenue above $20k/month flagged for review (not changed) | DONE #328 |
 | 60 | Fixed "2.4s" run time in the result header | Real runs took ~30s | Show only real values | DONE #323 |
@@ -259,3 +259,4 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 148 | No "what changed since last run" for returning users | — | Diff between runs | CODE |
 | 149 | No public roadmap | — | A short roadmap from this register | FOUNDER |
 | 150 | This register, round 2 | — | Read by the nightly audit | DONE |
+| 151 | Implausible LTV:CAC shown as "healthy" | Live 2026-10-26 grooming run: "LTV:CAC 79.3x indicates healthy unit economics" | Flag LTV:CAC above ~20x as a likely CAC input problem, like the payroll flag | CODE |
