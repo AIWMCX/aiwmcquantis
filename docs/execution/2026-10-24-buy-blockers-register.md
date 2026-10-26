@@ -68,7 +68,7 @@ Statuses:
 | 30 | Trial terms unclear (card required?) | Checkout collects a card; 14-day trial; cancels if no card at trial end (`create-checkout-session`) | FAQ matches: "We don't charge your card until day 15" | DONE |
 | 31 | Free gives 5 complete runs a month, including Monte Carlo and pre-mortem | Pricing cards | Plus needs one clear reason to upgrade | FOUNDER |
 | 32 | No way to ask before paying $349 | `/decision-review` has only "Reserve" | Add "Ask a question first" (mailto) next to Reserve | DONE #317 |
-| 33 | Free run limit doesn't lead into $349 | Result page | After a high-stakes result, offer the review once | PR #320 |
+| 33 | Free run limit doesn't lead into $349 | Result page | After a high-stakes result, offer the review once | DONE #320 |
 | 34 | "48-hour target" without a stated capacity | `/decision-review` | State how many reviews a week the founder can take | FOUNDER |
 
 ## E. Checkout and payments
@@ -106,3 +106,156 @@ Statuses:
 | 48 | Scheduled monitors | 6 ran green on 2026-10-24 | Keep watching nightly | DONE |
 | 49 | No record of what changed each day | — | Nightly audit, 23:30 Denver | DONE |
 | 50 | This register | — | Updated per PR; read by the nightly audit | DONE |
+
+---
+
+# Round 2: live audit 2026-10-25 (items 51–150)
+
+Method: two internal-tagged runs on production, then a read of every public page, then a code check of each claim. The two runs were the hero example "Hire a 2nd technician at $5,500/mo" and "Mobile dog-grooming van service, 2 vans, $85 per groom" in Columbus, OH. Outside activity on Oct 25 (partial day): 10 sessions (Facebook 3, Google 1), 1 view of the $349 page, 0 ideas typed, 0 sign-ups, 0 payments.
+
+## I. Core result quality (what a visitor gets back)
+
+**Main finding:** the engine is sound on business-idea input. The grooming run reconciles: 2 vans × 6 grooms × $85 × 26 days = $26,520/month. It breaks on decision input and on missing location. That is the most likely reason a visitor who tries it does not come back.
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 51 | Our own hero example returned nonsense | "Hire a 2nd technician" → "B2B SaaS in Global", $1.15M/month revenue, $427k/month profit, "Investor Grade · Proceed with execution" | Hiring decisions go to the hiring model; examples are business plans with a city | DONE #322 |
+| 52 | City typed into the report form became "GlobalColumbus, OH" | Box pre-filled with "Global"; saved to `analyses.location`; city calibration lost | Empty box, default applied at submit, prefix repaired | DONE #322 |
+| 53 | The one-line hero sends no location | Every hero run is "Global" (US average) | Use a "City, ST" written in the idea | DONE #322 |
+| 54 | Industry keyword match can misread decisions | "technician" lands in the software/SaaS bucket (substring match) | Word-boundary keywords in `industry-classifier-core.ts`; ask "what kind of business?" when the score is low | CODE |
+| 55 | Same benchmark row for unrelated industries | Pet services and the "SaaS" run both got gross margin 0.56, "exact match, sample_size 230" | Trace benchmark matching; never label a fallback "exact" | VERIFY |
+| 56 | "Investor Grade · 90%" next to "Estimated · No direct benchmark" | Both 2026-10-25 runs | Cap the safety level when most metrics are estimated | CODE |
+| 57 | Integrity-check note shown on the result | "Note: this summary was regenerated … AI-authored narrative did not reconcile" in both runs | Find why the narrative fails reconciliation; show the note only in the audit tab | VERIFY |
+| 58 | Weak top risk | "What kills this plan: LTV:CAC 18.4x is unusually high" for a grooming van; staffing and van downtime not mentioned | Industry-specific risk library first, ratio warnings after | CODE |
+| 59 | Absurd ratios pass the sanity checks | "1% payroll ratio" on $1.15M/month revenue | Invariant: payroll share bounds per business type | CODE |
+| 60 | Fixed "2.4s" run time in the result header | Real runs took ~30s | Show only real values | DONE #323 |
+| 61 | "94% AI" shown when no cross-check ran | Default prop `consensusScore = 94` | Show "% model agreement" only when it exists | DONE #323 |
+| 62 | "Why These Numbers?" showed Denver's rent ×1.15 "CoStar 2025" for every city | Hard-coded list | Matched metro multiplier or "US average"; only real values | DONE #323 |
+| 63 | Invented fallbacks: $50 CAC, 40% margin, "SaaS benchmarks" 5% churn | Same list | Omitted when the report lacks them | DONE #323 |
+| 64 | Break-even shown as "$37 455/mo" | Browser-locale formatting; a German browser shows "$37.455" | All 183 number formats en-US | PR #324 |
+| 65 | No "wrong industry? change it" control on the result | Summary says "evaluates B2B SaaS" with no way to correct it | Industry chip with a re-run | CODE |
+| 66 | "Global" results give no prompt to add a city | — | "Add your city for local rent and wages" line on Global results | CODE |
+| 67 | Accuracy notice reads as "not ready" | "under active accuracy improvements … partially implemented" at the top of every result | Short, specific limits under the numbers instead | FOUNDER |
+| 68 | Six result tabs before the decision is clear | Overview, Model, Scenarios, Risks, Evidence, Report | One-screen decision summary first, tabs after | CODE |
+
+## J. Truth and credibility across the site
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 69 | Benchmark citations named vendors with invented sample sizes | "IBISWorld OD6113 · n=1,247" and "CoStar Group · n=3,200" were constants | "Quantis modeled benchmark · quarter" | DONE #323 |
+| 70 | CoStar cited as a source | How It Works, geo table, result page; no licence | Removed | DONE #323 |
+| 71 | "50+ cities" as a capability | The geo table has 15 metros plus a US average; 10 pages said 50+ | `GEO_COVERAGE_DISPLAY` | DONE #323 |
+| 72 | How It Works said 16 metros | 15 in the table | From the constant | DONE #323 |
+| 73 | "Computed from verified data", "real CAC", "live web data" on every run | How It Works vs Methodology ("rule-generated, not observed") | Modeled benchmarks; RVCE on Plus/Pro | DONE #323 |
+| 74 | "Licensed … observations" | State of Quantis | Modeled cells | DONE #323 |
+| 75 | "Used by … across 50+ cities" | Unused `Testimonials.tsx` | Deleted | DONE #323 |
+| 76 | "Most Popular" on Plus with 0 customers | Pricing section, How It Works | Removed | PR #324 |
+| 77 | Content-generation prompt fed false facts | `marketingPosts.ts`: "100+ industries and 50+ cities" | Accurate facts plus "never claim customers or accuracy" | DONE #323 |
+| 78 | Plus/Pro branding claim contradicted pricing | Use Cases said Plus removes the logo | Pro removes branding | DONE #323 |
+| 79 | How It Works example output not labelled | "$4,200/mo profit, 7.1 months payback, 168% ROI" vs /examples Denver coffee "$4,200/mo, 109% ROI, 12 months" | Label it illustrative and use one consistent example | CODE |
+| 80 | Example reports show implausible returns | "679% ROI" consulting firm, "585% ROI" dropshipping on /examples | Recompute examples with the engine, or cap and explain | CODE |
+| 81 | Example "8/10" scores have no stated scale | /examples cards | Say what the score measures, or remove it | CODE |
+| 82 | Homepage sample page 9 shows a payback distribution the product does not produce | Hand-authored sample shows P10–P90 payback months; the engine produces a monthly profit range | Match the sample to the real output | CODE |
+| 83 | State of Quantis "Last verified August 30" | Two months stale | Re-verify every line, then date it | CODE |
+| 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | CODE |
+| 85 | Blog's last post July 2 | 19 posts; none since July | One post a week from real work (e.g. this audit) | FOUNDER |
+| 86 | No person named anywhere | No About page, no founder name on $349 | About section with name, role, LinkedIn | FOUNDER |
+| 87 | Social links spread across 10 networks | Footer: X, Telegram, Threads, Whop and more | Keep the 3 that are active | FOUNDER |
+| 88 | "Listed on 21 directories" strip | 0 referrals from any directory in 30 days | Replace with something a buyer cares about (sample memo, demos) | FOUNDER |
+
+## K. Offer, pricing and the paid path
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 89 | Consultants page never mentioned the $499 pilot | /consultants listed only Free/Plus/Pro | Pilot card from `ENGAGEMENT_OFFERS` | DONE #323 |
+| 90 | Footer had no link to the paid review | Footer product links | Founder Decision Review and Sample Decision Memo links | DONE #323 |
+| 91 | $499 pilot shares a page with the $349 review | /decision-review | A dedicated /consultant-pilot page | CODE |
+| 92 | No intake preview for $349 | Buyer can't see what will be asked | "What we'll ask you" list on /decision-review | CODE |
+| 93 | No way to book a call | Only mailto | Calendar link (Google Calendar is connected) | FOUNDER |
+| 94 | Pricing page title says "$17/mo", page shows $14 | Annual default | Follows #29 | FOUNDER |
+| 95 | Plus value reads as niche | Invoice & Capacity Check, Document Studio, TAM | Lead with "unlimited runs + saved scenarios + branded PDF" | FOUNDER |
+| 96 | Pro lists five features with no end-to-end proof | 5-year model, pitch-deck package, roadmap, API, 3 seats | Test each (#19); remove any that fail | VERIFY |
+| 97 | No first-customer offer | 0 customers, 0 case studies | Founding price, or a free review in exchange for a published case (honest, time-boxed) | FOUNDER |
+| 98 | No promise on the $349 review beyond refund-before-intake | Scope text | State clearly what happens if the memo isn't useful | FOUNDER |
+| 99 | Post-result upsell order | Plus wall and $349 card both appear on step 1 | Measure which gets clicks; keep one primary | VERIFY |
+| 100 | Share links don't carry an offer | /r/ public reports | Check the shared view has a "test your own" CTA | VERIFY |
+
+## L. Activation and page experience
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 101 | Homepage is long | Hero, film, hiring demo, 15-page sample, features, kit, pricing, FAQ | Cut to hero, sample memo, demos, pricing | CODE |
+| 102 | Two idea forms on one page | Hero box plus the report form four sections down | One form | CODE |
+| 103 | Product film loads on the homepage | `quantis-decision-film.mp4` requested 3× on load | `preload="none"` until play | CODE |
+| 104 | Large first bundle | index JS 559 KB decoded; 57 requests on the homepage | Split the landing bundle | CODE |
+| 105 | No hiring decision as a real run | The hiring model exists only as a fixed demo | Let a visitor run it on their numbers and save it | CODE |
+| 106 | No second-location or price-change model | The engine models a new business | Add these decision types (they match the hero question) | CODE |
+| 107 | Anonymous result → sign-up prompt untested at volume | 1 outside result in 30 days | Re-check after traffic returns | VERIFY |
+| 108 | Starter kit and popups compete with the main action | Exit-intent and scroll popups | Keep one capture point | CODE |
+| 109 | Hero label "What are you deciding?" vs an engine that models a business | #51 | Keep the label; routing plus examples now handle it | DONE #322 |
+| 110 | No visible progress on mobile for the 30-second run | Narration only | Show the steps as a checklist | CODE |
+
+## M. Traffic and distribution (round 2)
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 111 | Facebook is the best outside source | 23 of 226 outside sessions in 30 days; 3 of 10 today | Post there 3× a week with UTM links | FOUNDER |
+| 112 | LinkedIn sends 15 sessions in 30 days | Referrers | Founder posts plus the sample memo link | FOUNDER |
+| 113 | Google sends 8 sessions in 30 days | Referrers | 5 deep example pages (#5) and the blog (#85) | CODE |
+| 114 | Competitor "vs" pages get 1 view in 30 days | `vs_page_view` | Link them from the blog and the pricing FAQ | CODE |
+| 115 | No Search Console review | — | Check queries and impressions weekly | FOUNDER |
+| 116 | Outreach stopped Oct 23 | Zoho pool used up | Refill (#1) | FOUNDER |
+| 117 | Outreach replies not recorded | 0 recorded replies of 42 contacted | Log replies in Zoho | FOUNDER |
+| 118 | 5 real sign-ups never contacted | #38 | Personal email | FOUNDER |
+| 119 | No video content | Marketing department set up; blocked on the voice passport and Chrome | #6 | FOUNDER |
+| 120 | No referral or share incentive | — | "Share your report" copy on results | CODE |
+
+## N. Lifecycle
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 121 | Lifecycle emails run hourly but their content is unchecked | `check-lifecycle-emails-hourly` succeeded 2026-10-26 04:00 UTC | Read each template for false claims | VERIFY |
+| 122 | Welcome email content unchecked | `send-welcome-email` | Same review | VERIFY |
+| 123 | Trial-ending reminder unknown | No function named for it | Check Stripe settings, or add one | VERIFY |
+| 124 | No win-back for 41 sign-ups | auth.users | One honest "here's what changed" email (needs approval) | FOUNDER |
+| 125 | Newsletter promises "2 emails a month" | #40 | Send, or change the promise | FOUNDER |
+
+## O. Instrumentation and operations
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 126 | Nightly audit stalled on a permission prompt | Run of 2026-10-25 23:36 stopped 14s in; no report written | Open the task, set its mode, Run now once | FOUNDER |
+| 127 | `analysis_start` fires on fewer paths than `analysis_complete` | 30 days: 9 vs 49 sessions | Fire start on every run path | CODE |
+| 128 | Trigger-emitted `analysis_complete` has its own session | Session id = analysis id | Join to the browser session | CODE |
+| 129 | RVCE runs are not logged in `ai_calls` | No RVCE task rows in 60 days | Log them so "validated" claims can be checked | CODE |
+| 130 | Hiring routing from the hero not yet measured | New in #322 | Watch `hero_hiring_routed` | VERIFY |
+| 131 | Supabase CLI outdated | v2.118.0 vs v2.122.0 | Update | FOUNDER |
+| 132 | Error tracking unreviewed | Sentry DSN is env-driven | Check the last 7 days of errors | VERIFY |
+| 133 | No load test | — | One 20-concurrent-run test before any campaign | CODE |
+| 134 | Dead third-party pixel | `createcdn.com/la.js` returns 404 on every page | Removed | PR #324 |
+| 135 | Content Security Policy still allows unused hosts | `vercel.json` | Prune after #324 | CODE |
+
+## P. Legal and compliance
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 136 | No cookie banner | EU visitors; GA4 loads | Consent for analytics where required | FOUNDER |
+| 137 | Privacy policy may list removed trackers | la.js, Clarity | Re-read the policy | VERIFY |
+| 138 | "No questions asked" refund plus 14-day trial | Pricing | Confirm the cost is acceptable | FOUNDER |
+| 139 | Trademark ™ used throughout | "AIWMC™" | Confirm filing status | FOUNDER |
+| 140 | Outreach compliance | CAN-SPAM footer, unsubscribe | Check the sender template | VERIFY |
+
+## Q. Product depth buyers expect
+
+| # | Blocker | Evidence | Fix | Status |
+|---|---|---|---|---|
+| 141 | Consultants want an assumptions table they can hand over | The sample memo has one; the export doesn't | Assumptions table in the PDF | CODE |
+| 142 | Saved scenarios not shown to anonymous users | Sign-up wall | Show one saved scenario after sign-up | CODE |
+| 143 | No import of actual numbers | Typed inputs only | CSV upload of the last 12 months | CODE |
+| 144 | No comparison of two options | One plan per run | "A vs B" view (hire vs not, location A vs B) | CODE |
+| 145 | No downside-first summary | Verdict leads with "Viable" | Lead with "what has to be true" | CODE |
+| 146 | No industry pack for the first market | Generic | Pick one (HVAC, salons, clinics) and tune risks and defaults | FOUNDER |
+| 147 | No accountant/CFO partner channel | — | Offer the $499 pilot to 10 named fractional CFOs | FOUNDER |
+| 148 | No "what changed since last run" for returning users | — | Diff between runs | CODE |
+| 149 | No public roadmap | — | A short roadmap from this register | FOUNDER |
+| 150 | This register, round 2 | — | Read by the nightly audit | DONE |
