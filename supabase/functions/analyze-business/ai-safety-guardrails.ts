@@ -465,6 +465,8 @@ export interface NarrativeIntegrityCalc {
   paybackMonths: number;
   breakEvenRevenue: number;
   npv3Years?: number;
+  /** The engine's own gross profit (mrr - effective COGS); expenses.cogs can differ. */
+  grossProfit?: number;
   isProfitable: boolean;
   expenses: {
     cogs: number;
@@ -530,6 +532,10 @@ function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
     // Gross profit and total costs are routinely quoted; live 2026-10-26 a
     // summary was replaced for "$11,220", which is exactly revenue - COGS.
     calc.mrr - calc.expenses.cogs,
+    // Live 2026-10-26 the reason was "$5,940" = $10,800 x 55% while
+    // mrr - expenses.cogs differed: the engine's margin uses effective COGS.
+    calc.grossProfit ?? 0,
+    (calc.grossProfit ?? 0) * 12,
     calc.expenses.cogs + calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.marketing + calc.expenses.other,
     calc.expenses.cogs,
     calc.expenses.salaries,
