@@ -729,6 +729,13 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           )}
 
           {/* The paid, founder-assisted next step: until now no result linked it. */}
+          {/* Without a city every cost is the US average; say so instead of looking local. */}
+          {currentStep === 1 && (!location || location === 'Global') && (
+            <p className="q-card p-4 text-sm text-muted-foreground" data-testid="no-city-note">
+              This run used US-average rent and wages because no city was given. For local costs, run it again with your city, for example &ldquo;… in Denver, CO&rdquo;.
+            </p>
+          )}
+
           {currentStep === 1 && result.financial_analysis && <ReviewOfferCard />}
 
           {/* Inline upgrade wall — appears only for Free users at end of Step 1.

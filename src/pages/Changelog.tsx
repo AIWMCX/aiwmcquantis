@@ -16,6 +16,33 @@ interface ChangeEntry {
 
 const CHANGELOG: ChangeEntry[] = [
   {
+    date: 'October 25, 2026',
+    version: '2.8.0',
+    title: 'Sources, numbers and inputs you can check',
+    type: 'fix',
+    changes: [
+      'Benchmark citations now say "Quantis modeled benchmark". They previously named third-party research firms with sample sizes we could not back; the benchmark grid is modeled, as the Methodology page explains.',
+      '"Why These Numbers?" now shows the rent multiplier for your own metro (or "US average" when there is no match) and only values your report actually has. It previously showed a single fixed multiplier, credited to a data vendor we do not license, for every location.',
+      'The result header no longer shows a fixed run time or a fixed AI-agreement score; both appear only when measured.',
+      'Location coverage is stated as it is: 15 US metros plus a US-average baseline.',
+      'A city typed into the location box is no longer saved as "GlobalColumbus, OH", and a "City, ST" written in the one-line idea is used for calibration.',
+      'Hiring decisions typed on the homepage now open the hiring model, which compares cash with and without the hire, instead of being analysed as a new business.',
+    ],
+  },
+  {
+    date: 'October 24, 2026',
+    version: '2.7.0',
+    title: 'Monte Carlo on every report, saved free runs, sample Decision Memo',
+    type: 'feature',
+    changes: [
+      'Every report now shows a monthly profit range (low, typical, high) from 1,000 simulated months, with its assumptions printed next to it.',
+      'Free runs made before signing in are now saved and become yours when you create an account.',
+      'A sample Decision Memo shows exactly what the Founder Decision Review delivers, worked through on a fictional business.',
+      'You can ask a question before paying for a review, and results link to the review once.',
+      'The consultant and do-it-yourself price comparisons are labelled as illustrative ranges.',
+    ],
+  },
+  {
     date: 'August 27, 2026',
     version: '2.6.0',
     title: 'Benchmark reconciliation + export safeguards',
