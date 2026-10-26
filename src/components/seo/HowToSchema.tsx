@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
 
 interface HowToStep {
   name: string;
@@ -98,7 +99,7 @@ export const QuantisAnalysisHowTo = React.memo(function QuantisAnalysisHowTo() {
     },
     {
       name: 'Select Your Target Location',
-      text: 'Choose the city or region where you plan to operate your business. Our AI adjusts all cost estimates, salary benchmarks, and market conditions based on your selected location from 50+ cities worldwide.',
+      text: `Choose the city where you plan to operate. Rent, salary and demand estimates are adjusted for ${GEO_COVERAGE_DISPLAY}.`,
     },
     {
       name: 'Review Financial Projections',

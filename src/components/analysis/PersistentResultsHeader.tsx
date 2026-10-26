@@ -105,9 +105,11 @@ export function PersistentResultsHeader({
   onExportFullReport,
   onNewAnalysis,
   isGeneratingPdf,
-  analysisTime = 2.4,
+  // No defaults for time or AI agreement: they used to show a fixed "2.4s" and
+  // "94% AI" on every report, whatever actually happened.
+  analysisTime,
   engineVersion = '2.0.0',
-  consensusScore = 94,
+  consensusScore,
 }: PersistentResultsHeaderProps) {
   const { label: auditLabel, loading: auditLoading } = useAuditFreshness();
   const financials = result.financial_analysis;
@@ -228,12 +230,20 @@ export function PersistentResultsHeader({
         <div className="flex items-center gap-2 shrink-0">
           {/* Metadata pill - hidden on small screens */}
           <div className="hidden lg:flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-full">
-            <Clock className="w-3 h-3" />
-            <span>{analysisTime.toFixed(1)}s</span>
-            <span className="opacity-50">·</span>
+            {typeof analysisTime === 'number' && (
+              <>
+                <Clock className="w-3 h-3" />
+                <span>{analysisTime.toFixed(1)}s</span>
+                <span className="opacity-50">·</span>
+              </>
+            )}
             <span>v{engineVersion}</span>
-            <span className="opacity-50">·</span>
-            <span>{consensusScore}% AI</span>
+            {typeof consensusScore === 'number' && (
+              <>
+                <span className="opacity-50">·</span>
+                <span>{consensusScore}% model agreement</span>
+              </>
+            )}
             {!auditLoading && auditLabel && (
               <>
                 <span className="opacity-50">·</span>

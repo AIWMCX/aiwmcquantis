@@ -44,8 +44,8 @@ export default function StateOfQuantis() {
         <Section title="What Quantis does">
           <p className="text-sm text-muted-foreground">
             Quantis runs a deterministic financial engine — {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo
-            simulation across a {PIPELINE_LAYERS_LABEL} pipeline — against a corpus of {BENCHMARK_COUNT_DISPLAY} benchmark
-            observations covering {BENCHMARK_SECTORS} sectors ({BENCHMARK_DEFINITION}), informed by {BENCHMARK_SOURCES_DISPLAY}.
+            simulation across a {PIPELINE_LAYERS_LABEL} pipeline — against a grid of {BENCHMARK_COUNT_DISPLAY} benchmark
+            cells covering {BENCHMARK_SECTORS} sectors ({BENCHMARK_DEFINITION}), informed by {BENCHMARK_SOURCES_DISPLAY}.
             It produces a financial verdict plus an AI-authored narrative layered on top of
             those numbers.
           </p>

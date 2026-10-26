@@ -49,7 +49,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   {
     slug: 'how-to-calculate-startup-costs',
     title: 'How to Calculate Startup Costs for Any Business Idea (2026 Guide)',
-    description: 'A practical breakdown of startup cost estimation — fixed costs, variable costs, and location-adjusted projections for 50+ cities.',
+    description: 'A practical breakdown of startup cost estimation — fixed costs, variable costs, and location-adjusted projections.',
     date: '2026-02-13',
     readTime: '7 min read',
     category: 'Finance',

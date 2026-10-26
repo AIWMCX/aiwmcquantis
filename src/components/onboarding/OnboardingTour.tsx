@@ -27,7 +27,7 @@ const TOUR_STEPS: TourStep[] = [
     id: 'location_select',
     target: '[data-tour="location-select"]',
     title: 'Choose Your Location',
-    content: 'Select your target market. We adjust costs and benchmarks based on 50+ cities worldwide.',
+    content: 'Select your target market. We adjust rent, salary and demand estimates for 15 US metros; elsewhere we use the US average.',
     icon: Target,
     position: 'bottom',
   },

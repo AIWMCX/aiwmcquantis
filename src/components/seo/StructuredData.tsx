@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BENCHMARK_COUNT_DISPLAY, FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, FREE_ANALYSES_PER_MONTH, GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
 
 const SITE_URL = 'https://www.aiwmcquantis.com';
 
@@ -114,7 +114,7 @@ export function StructuredData({
         'Unit Economics Calculator (CAC, LTV, Payback)',
         'Monte Carlo Risk Simulation',
         'Benchmark defaults from a 97,500-cell modeled coverage grid',
-        'Location-Adjusted Cost Intelligence (50+ cities)',
+        `Location-adjusted cost estimates (${GEO_COVERAGE_DISPLAY})`,
         'Sensitivity & Tornado Analysis',
         'Document Studio (Business Plans, Pitch Decks, NDAs)',
         'PDF Export with Custom Branding',
