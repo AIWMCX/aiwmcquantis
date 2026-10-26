@@ -65,10 +65,10 @@ const STEPS = [
     details: [
       'Viability score (0–100) with confidence indicator',
       'Top risks ranked by severity with dollar-impact estimates',
-      'P10 / P50 / P90 outcome bands from Monte Carlo',
+      'Monthly profit range (P10 / median / P90) from 1,000 simulated months',
       'External validation via RVCE (web-sourced cross-referencing)',
     ],
-    example: '$4,200/mo profit, 7.1 months payback, 168% ROI, 3 risk flags identified',
+    example: 'Illustrative (Denver coffee shop example): $4,200/mo profit, 12 months payback, 109% ROI',
     glow: 'brand' as const,
   },
 ];
