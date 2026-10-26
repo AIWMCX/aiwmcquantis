@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, TrendingDown, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer,
@@ -63,6 +63,7 @@ export default function HiringDecisionDemo() {
     recordFunnelEvent('open_the_hood_view', { surface: 'demo_hiring_decision' });
   }
 
+  const fromHero = useSearchParams()[0].get('from') === 'hero';
   const r = useMemo(() => runHiringDemo(a, f), [a, f]);
   const required = useMemo(() => solveHiringRequiredToWork(a, f), [a, f]);
 
@@ -100,6 +101,13 @@ export default function HiringDecisionDemo() {
           subtitle="Can the business carry another employee before demand catches up? Payroll starts on day one; revenue only follows as new clients fill the new hours. Move a slider and every number below recomputes with the same deterministic engine behind every Quantis Decision Run."
         />
       </section>
+
+      {fromHero && (
+        <GlassCard className="p-5 mb-4 text-sm" role="status">
+          <strong>Hiring decisions run in this model.</strong>{' '}
+          <span className="text-muted-foreground">It compares cash with and without the hire. Set the sliders below to your own numbers (cost of the hire, new clients a month, when clients pay, margin).</span>
+        </GlassCard>
+      )}
 
       <GlassCard className="p-5 mb-6 text-sm text-muted-foreground">
         <strong className="text-foreground">Illustrative example.</strong> A services business with {f.startingClients} clients at ${f.avgMonthlyFee.toLocaleString('en-US')}/month,
