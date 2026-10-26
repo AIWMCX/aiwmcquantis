@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
 
 interface AnalysisStage {
   id: string;
@@ -380,7 +381,7 @@ const EDUCATIONAL_TIPS = [
   '💡 82% of startups fail due to cash flow problems, not bad ideas.',
   '💡 SaaS companies typically need 18-24 months to reach profitability.',
   '💡 Customer acquisition cost drops 60% with referral programs.',
-  '💡 We analyze costs across 50+ cities with real cost indices.',
+  `💡 Costs are adjusted for ${GEO_COVERAGE_DISPLAY}.`,
   '💡 Average payback period for small businesses is 6-18 months.',
   '💡 Our engine cross-checks your numbers against 97,500 benchmarks.',
   '💡 Businesses with a clear financial plan are 2.5x more likely to get funded.',

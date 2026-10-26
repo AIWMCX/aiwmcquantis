@@ -192,4 +192,8 @@ export const PROCESSING_TIME_CLAIM = 'under 90 seconds';
  * treat this string as closing the open reconciliation note above; it only
  * standardizes the *wording* until the number itself is reconciled.
  */
-export const BENCHMARK_DEFINITION = 'industry and location benchmark observations from public, licensed, and proprietary datasets';
+export const BENCHMARK_DEFINITION = 'modeled cells in a rule-generated grid informed by public datasets and proprietary modeling, not observed companies';
+
+/** Location calibration covers these metros (src/lib/geo-calibrator.ts GEO_COEFFICIENTS) plus a US-average baseline. */
+export const GEO_METRO_COUNT = 15;
+export const GEO_COVERAGE_DISPLAY = `${GEO_METRO_COUNT} US metros plus a US-average baseline`;

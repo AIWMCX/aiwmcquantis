@@ -7,7 +7,7 @@ import {
 import { StructuredData } from '@/components/seo/StructuredData';
 import { TIERS } from '@/config/tiers';
 import { SectionHeader } from '@/components/ui/glass-card';
-import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY, GEO_COVERAGE_DISPLAY, BENCHMARK_SECTORS } from '@/config/canonical-facts';
 
 const faqItems = [
   {
@@ -20,7 +20,7 @@ const faqItems = [
   },
   {
     question: 'What data do you use?',
-    answer: `A ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid covering 50+ sectors, informed by ${BENCHMARK_SOURCES_DISPLAY}, plus cost indices for 50+ cities. The cells are modeled combinations, not observed companies, and they are used only as labeled defaults you can replace with your own numbers.`
+    answer: `A ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid covering ${BENCHMARK_SECTORS} sectors, informed by ${BENCHMARK_SOURCES_DISPLAY}, plus cost multipliers for ${GEO_COVERAGE_DISPLAY}. The cells are modeled combinations, not observed companies, and they are used only as labeled defaults you can replace with your own numbers.`
   },
   {
     question: 'How accurate are the financial projections?',
