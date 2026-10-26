@@ -134,7 +134,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 63 | Invented fallbacks: $50 CAC, 40% margin, "SaaS benchmarks" 5% churn | Same list | Omitted when the report lacks them | DONE #323 |
 | 64 | Break-even shown as "$37 455/mo" | Browser-locale formatting; a German browser shows "$37.455" | All 183 number formats en-US | DONE #324 |
 | 65 | No "wrong industry? change it" control on the result | Summary says "evaluates B2B SaaS" with no way to correct it | Industry chip with a re-run | CODE |
-| 66 | "Global" results give no prompt to add a city | — | "Add your city for local rent and wages" line on Global results | PR #326 |
+| 66 | "Global" results give no prompt to add a city | — | "Add your city for local rent and wages" line on Global results | DONE #326 |
 | 67 | Accuracy notice reads as "not ready" | "under active accuracy improvements … partially implemented" at the top of every result | Short, specific limits under the numbers instead | FOUNDER |
 | 68 | Six result tabs before the decision is clear | Overview, Model, Scenarios, Risks, Evidence, Report | One-screen decision summary first, tabs after | CODE |
 
@@ -152,12 +152,12 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 76 | "Most Popular" on Plus with 0 customers | Pricing section, How It Works | Removed | DONE #324 |
 | 77 | Content-generation prompt fed false facts | `marketingPosts.ts`: "100+ industries and 50+ cities" | Accurate facts plus "never claim customers or accuracy" | DONE #323 |
 | 78 | Plus/Pro branding claim contradicted pricing | Use Cases said Plus removes the logo | Pro removes branding | DONE #323 |
-| 79 | How It Works example output not labelled | "$4,200/mo profit, 7.1 months payback, 168% ROI" vs /examples Denver coffee "$4,200/mo, 109% ROI, 12 months" | Label it illustrative and use one consistent example | PR #326 |
+| 79 | How It Works example output not labelled | "$4,200/mo profit, 7.1 months payback, 168% ROI" vs /examples Denver coffee "$4,200/mo, 109% ROI, 12 months" | Label it illustrative and use one consistent example | DONE #326 |
 | 80 | Example reports show implausible returns | "679% ROI" consulting firm, "585% ROI" dropshipping on /examples | Recompute examples with the engine, or cap and explain | CODE |
 | 81 | Example "8/10" scores have no stated scale | /examples cards | Say what the score measures, or remove it | CODE |
 | 82 | Homepage sample page 9 shows a payback distribution the product does not produce | Hand-authored sample shows P10–P90 payback months; the engine produces a monthly profit range | Match the sample to the real output | CODE |
 | 83 | State of Quantis "Last verified August 30" | Two months stale | Re-verify every line, then date it | CODE |
-| 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | PR #326 |
+| 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | DONE #326 |
 | 85 | Blog's last post July 2 | 19 posts; none since July | One post a week from real work (e.g. this audit) | FOUNDER |
 | 86 | No person named anywhere | No About page, no founder name on $349 | About section with name, role, LinkedIn | FOUNDER |
 | 87 | Social links spread across 10 networks | Footer: X, Telegram, Threads, Whop and more | Keep the 3 that are active | FOUNDER |
