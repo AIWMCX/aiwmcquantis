@@ -28,8 +28,8 @@ export function OpExWarning({ industry, inputs, location, userOpEx }: OpExWarnin
             {isUnder ? 'OpEx may be understated' : 'OpEx above bottom-up estimate'}
           </p>
           <p className="text-xs text-[var(--q-text-secondary)] leading-relaxed">
-            Bottom-up estimate: <span className="font-mono font-semibold">${estimate.total.toLocaleString()}/mo</span>
-            {' '}(your input: ${userOpEx.toLocaleString()}/mo · {estimate.deltaPercent}% {isUnder ? 'below' : 'above'} estimate)
+            Bottom-up estimate: <span className="font-mono font-semibold">${estimate.total.toLocaleString('en-US')}/mo</span>
+            {' '}(your input: ${userOpEx.toLocaleString('en-US')}/mo · {estimate.deltaPercent}% {isUnder ? 'below' : 'above'} estimate)
           </p>
 
           {/* Labor breakdown */}
@@ -39,7 +39,7 @@ export function OpExWarning({ industry, inputs, location, userOpEx }: OpExWarnin
             </p>
             {estimate.laborBreakdown.map((role, i) => (
               <p key={i} className="text-[11px] text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>
-                {role.count}× {role.role}: ${role.monthlyCost.toLocaleString()}/mo
+                {role.count}× {role.role}: ${role.monthlyCost.toLocaleString('en-US')}/mo
               </p>
             ))}
           </div>

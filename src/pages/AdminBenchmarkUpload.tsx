@@ -100,7 +100,7 @@ export default function AdminBenchmarkUpload() {
             setTransformedData(draft.transformedData);
             setPreviewRecords(draft.records);
             setDataSource('draft');
-            toast.info(`Restored ${draft.records.length} benchmarks from draft (saved ${new Date(draft.savedAt).toLocaleString()})`);
+            toast.info(`Restored ${draft.records.length} benchmarks from draft (saved ${new Date(draft.savedAt).toLocaleString('en-US')})`);
           }
         }
       } catch (err) {

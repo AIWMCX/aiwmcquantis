@@ -61,11 +61,11 @@ export function CompetitiveMatrix({ result }: CompetitiveMatrixProps) {
     const p75Row = [priceBm?.p75 ?? 0, churnBm?.p25 ?? 0, cacBm?.p25 ?? 0, gmBm?.p75 ?? 0, beBm?.p25 ?? 0, p75LtvCac, 0];
 
     const formatCell = (val: number, idx: number) => {
-      if (idx === 0 || idx === 2) return `$${val.toLocaleString()}`;
+      if (idx === 0 || idx === 2) return `$${val.toLocaleString('en-US')}`;
       if (idx === 1 || idx === 3) return `${val.toFixed(1)}%`;
       if (idx === 4) return val >= 999 ? 'N/A' : `Mo.${val}`;
       if (idx === 5) return `${val.toFixed(1)}×`;
-      if (idx === 6) return val >= 0 ? `+$${val.toLocaleString()}` : `−$${Math.abs(val).toLocaleString()}`;
+      if (idx === 6) return val >= 0 ? `+$${val.toLocaleString('en-US')}` : `−$${Math.abs(val).toLocaleString('en-US')}`;
       return String(val);
     };
 

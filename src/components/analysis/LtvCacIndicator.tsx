@@ -105,8 +105,8 @@ export function LtvCacIndicator({ ratio, ltv, cac }: LtvCacIndicatorProps) {
           <p className="text-xs text-[var(--q-text-secondary)] leading-relaxed">{zone.label}</p>
           {ltv !== undefined && cac !== undefined && (
             <div className="flex gap-3 text-xs text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>
-              <span>LTV ${ltv.toLocaleString()}</span>
-              <span>CAC ${cac.toLocaleString()}</span>
+              <span>LTV ${ltv.toLocaleString('en-US')}</span>
+              <span>CAC ${cac.toLocaleString('en-US')}</span>
             </div>
           )}
           {ratio < 3 && (

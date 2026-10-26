@@ -103,14 +103,14 @@ export function buildCitation(benchmark: IndustryBenchmark): BenchmarkCitation {
  * Full citation: "IBISWorld OD6113 · Q1 2025 · n=1,247 · US National"
  */
 export function formatCitation(citation: BenchmarkCitation): string {
-  return `${citation.source} ${citation.reportName} · ${citation.reportDate} · n=${citation.sampleSize.toLocaleString()} · ${citation.geographicScope}`;
+  return `${citation.source} ${citation.reportName} · ${citation.reportDate} · n=${citation.sampleSize.toLocaleString('en-US')} · ${citation.geographicScope}`;
 }
 
 /**
  * Compact citation for table footers: "IBISWorld · Q1 2025 · n=1,247"
  */
 export function formatCitationCompact(citation: BenchmarkCitation): string {
-  return `${citation.source} · ${citation.reportDate} · n=${citation.sampleSize.toLocaleString()}`;
+  return `${citation.source} · ${citation.reportDate} · n=${citation.sampleSize.toLocaleString('en-US')}`;
 }
 
 function extractReportDate(lastUpdated: string): string {

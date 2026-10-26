@@ -1764,7 +1764,7 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
           const range = matched ? `${fmt(r.bench.p25)} – ${fmt(r.bench.p75)}` : 'Estimated';
           const median = matched ? fmt(r.bench.p50) : '—';
           const src = matched
-            ? `${r.bench.source ?? 'AIWMC'} · n=${(r.bench.sampleSize ?? 0).toLocaleString()} · ${(r.bench.dataDate ?? '').slice(0, 7)}`
+            ? `${r.bench.source ?? 'AIWMC'} · n=${(r.bench.sampleSize ?? 0).toLocaleString('en-US')} · ${(r.bench.dataDate ?? '').slice(0, 7)}`
             : 'Engine fallback (no direct row)';
           return React.createElement(
             View,

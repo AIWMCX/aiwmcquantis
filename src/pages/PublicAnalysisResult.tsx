@@ -230,7 +230,7 @@ export default function PublicAnalysisResult() {
             ideaTitle={data.idea}
             monthlyProfit={
               typeof data.result?.financial_analysis?.monthly_profit === 'number'
-                ? `$${Math.round(data.result.financial_analysis.monthly_profit).toLocaleString()}`
+                ? `$${Math.round(data.result.financial_analysis.monthly_profit).toLocaleString('en-US')}`
                 : undefined
             }
             onDismiss={() => {

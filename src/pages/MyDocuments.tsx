@@ -154,7 +154,7 @@ export default function MyDocuments() {
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                     <span>{KIND_LABEL[row.kind ?? 'other'] ?? row.kind ?? 'Document'}</span>
-                    <span>{new Date(row.created_at).toLocaleString()}</span>
+                    <span>{new Date(row.created_at).toLocaleString('en-US')}</span>
                   </div>
                   {row.status === 'failed' && row.error_message && (
                     <p className="text-xs text-red-500 mt-1 break-words">

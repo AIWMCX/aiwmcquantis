@@ -38,7 +38,7 @@ import { Copy, Eye, EyeOff, KeyRound, Lock, Plus, ShieldAlert, Trash2, X } from 
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'Never';
-  return new Date(iso).toLocaleString();
+  return new Date(iso).toLocaleString('en-US');
 }
 
 function maskedPrefix(prefix: string): string {

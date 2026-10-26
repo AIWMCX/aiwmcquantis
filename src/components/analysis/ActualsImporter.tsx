@@ -245,8 +245,8 @@ export function ActualsImporter({ open, onOpenChange, projections, currentParams
                       return (
                         <tr key={i} className="border-b border-border/50">
                           <td className="p-1.5 text-foreground">{d.metric}</td>
-                          <td className="p-1.5 text-right text-muted-foreground">${d.projected.toLocaleString()}</td>
-                          <td className="p-1.5 text-right text-foreground font-medium">${d.actual.toLocaleString()}</td>
+                          <td className="p-1.5 text-right text-muted-foreground">${d.projected.toLocaleString('en-US')}</td>
+                          <td className="p-1.5 text-right text-foreground font-medium">${d.actual.toLocaleString('en-US')}</td>
                           <td className={cn('p-1.5 text-right font-medium', d.pctDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
                             {d.pctDiff >= 0 ? '+' : ''}{d.pctDiff}%
                           </td>

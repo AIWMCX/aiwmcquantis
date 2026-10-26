@@ -105,7 +105,7 @@ function formatValue(metric: string, value: number | null): string {
   if (metric.includes('margin') || metric.includes('probability') || metric === 'roi_year_1')
     return `${value.toFixed(1)}%`;
   if (metric.includes('revenue') || metric === 'monthly_profit')
-    return `$${value.toLocaleString()}`;
+    return `$${value.toLocaleString('en-US')}`;
   if (metric === 'ltv_cac_ratio') return `${value.toFixed(1)}x`;
   if (metric.includes('month')) return value >= 999 ? 'N/A (unprofitable)' : `${QuantisMath.round(value)} mo`;
   return String(value);
@@ -218,7 +218,7 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
                 contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
                 formatter={(value: number, name: string) => {
                   const idx = parseInt(name.replace('s', ''));
-                  return [`$${value.toLocaleString()}`, scenarios[idx]?.name || name];
+                  return [`$${value.toLocaleString('en-US')}`, scenarios[idx]?.name || name];
                 }}
               />
               <Legend formatter={(value: string) => {

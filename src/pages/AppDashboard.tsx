@@ -1216,7 +1216,7 @@ export default function Index() {
                           ideaTitle={idea}
                           monthlyProfit={
                             result?.financial_analysis?.scenarios?.base?.net_profit
-                              ? `$${Math.round(result.financial_analysis.scenarios.base.net_profit).toLocaleString()}`
+                              ? `$${Math.round(result.financial_analysis.scenarios.base.net_profit).toLocaleString('en-US')}`
                               : undefined
                           }
                           onDismiss={() => {}}

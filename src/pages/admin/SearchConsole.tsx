@@ -112,7 +112,7 @@ export default function SearchConsole() {
               </Badge>
               {row?.verified_at && (
                 <span className="text-xs text-muted-foreground">
-                  on {new Date(row.verified_at).toLocaleString()}
+                  on {new Date(row.verified_at).toLocaleString('en-US')}
                 </span>
               )}
             </div>

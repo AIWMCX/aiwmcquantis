@@ -75,7 +75,7 @@ async function mail(action: string, body: Record<string, unknown> = {}) {
   return data as any;
 }
 
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '—');
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-US') : '—');
 const PRIORITY_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = { urgent: 'destructive', high: 'default', normal: 'secondary', low: 'outline' };
 const CLASS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = { human: 'default', unsubscribe: 'destructive', bounce: 'destructive', auto_reply: 'outline', system: 'outline', outbound: 'secondary' };
 

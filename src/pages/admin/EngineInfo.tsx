@@ -123,11 +123,11 @@ export default function EngineInfo() {
             <Field label="Legal entity">{PRODUCT_IDENTITY.legalEntity}</Field>
             <Field label="Domain">{PRODUCT_IDENTITY.domain}</Field>
             <Field label="Monte Carlo iterations">
-              {MONTE_CARLO_ITERATIONS.toLocaleString()}
+              {MONTE_CARLO_ITERATIONS.toLocaleString('en-US')}
             </Field>
             <Field label="Engine time budget">{ENGINE_TIME_BUDGET_SEC}s</Field>
             <Field label="Benchmark count">
-              {BENCHMARK_COUNT.toLocaleString()}
+              {BENCHMARK_COUNT.toLocaleString('en-US')}
             </Field>
             <Field label="12 financial variables">
               {TWELVE_FINANCIAL_VARIABLES.length} present

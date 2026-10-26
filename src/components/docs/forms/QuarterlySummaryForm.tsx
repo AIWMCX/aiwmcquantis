@@ -164,7 +164,7 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
         <section style="margin-bottom: 24px;">
           <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Operational Metrics</h2>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Customers</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.total_customers?.toLocaleString() || 0}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Customers</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.total_customers?.toLocaleString('en-US') || 0}</p></div>
             <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">New</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">+${formValues.new_customers || 0}</p></div>
             <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Retention</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.retention_rate || 0}%</p></div>
             <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Team</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.total_employees || 0}</p></div>
@@ -385,7 +385,7 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">Gross Profit:</span>
-                <span className="ml-2 font-semibold">${calculations.grossProfit.toLocaleString()}</span>
+                <span className="ml-2 font-semibold">${calculations.grossProfit.toLocaleString('en-US')}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Gross Margin:</span>

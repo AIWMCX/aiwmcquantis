@@ -42,7 +42,7 @@ function classifyQoE(result: BusinessAnalysisResult): QoEResult {
   // "beP50 will never reach 999" alone is fragile against a misconfigured
   // benchmark row — see payback-sentinel-guard-live-scan.test.ts.
   if (be > 0 && be < 999 && be <= beP50) { structural++; flags.push({ type: 'structural', text: `Break-even Mo.${be} beats industry median Mo.${beP50}` }); }
-  if (arpu > arpuP50) { structural++; flags.push({ type: 'structural', text: `ARPU $${arpu.toLocaleString()} beats industry median $${arpuP50}` }); }
+  if (arpu > arpuP50) { structural++; flags.push({ type: 'structural', text: `ARPU $${arpu.toLocaleString('en-US')} beats industry median $${arpuP50}` }); }
 
   // Concerns
   if (churn > churnP75) flags.push({ type: 'concern', text: `Churn ${churn.toFixed(1)}% exceeds p75 (${churnP75}%) — verify retention system` });

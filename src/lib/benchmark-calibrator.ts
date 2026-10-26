@@ -346,7 +346,7 @@ export function validateParamAgainstBenchmarks(
 }
 
 function formatVal(v: number, unit: string): string {
-  if (unit === '$') return `$${v.toLocaleString()}`;
+  if (unit === '$') return `$${v.toLocaleString('en-US')}`;
   if (unit === '%') return `${v}%`;
   return `${v} ${unit}`;
 }
