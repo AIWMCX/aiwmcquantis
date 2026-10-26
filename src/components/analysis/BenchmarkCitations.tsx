@@ -182,7 +182,7 @@ export function BenchmarkCitations({ metrics, context, className, serverRecords 
                     <td className="py-1.5 pr-3 text-right font-mono">{fmt(r.b.p50)}</td>
                     <td className="py-1.5 pr-3">{r.b.source ?? 'AIWMC'}</td>
                     <td className="py-1.5 text-right font-mono text-muted-foreground">
-                      n={r.b.sampleSize?.toLocaleString() ?? '—'} · {(r.b.dataDate ?? '').slice(0, 7)}
+                      n={r.b.sampleSize?.toLocaleString('en-US') ?? '—'} · {(r.b.dataDate ?? '').slice(0, 7)}
                     </td>
                   </tr>
                 );

@@ -65,7 +65,7 @@ function ComparisonBar({ label, value, benchmark, unit = '', suffix = '' }: {
         <span className="font-medium text-foreground">{label}</span>
         <div className="flex items-center gap-1.5">
           <span className="font-bold text-foreground tabular-nums">
-            {unit}{value.toLocaleString()}{suffix}
+            {unit}{value.toLocaleString('en-US')}{suffix}
           </span>
           {!isEqual && (
             <span className={cn('text-xs font-medium flex items-center gap-0.5', diffColorClass)}>
@@ -86,7 +86,7 @@ function ComparisonBar({ label, value, benchmark, unit = '', suffix = '' }: {
         <div
           className="absolute top-0 bottom-0 w-0.5 bg-foreground/40 z-10"
           style={{ left: `${benchmarkPos}%` }}
-          title={`Industry avg: ${unit}${benchmark.toLocaleString()}${suffix}`}
+          title={`Industry avg: ${unit}${benchmark.toLocaleString('en-US')}${suffix}`}
         />
         {/* Your value bar */}
         {isNegativeValue && !isNegativeBenchmark ? (
@@ -103,7 +103,7 @@ function ComparisonBar({ label, value, benchmark, unit = '', suffix = '' }: {
       </div>
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>0</span>
-        <span className="tabular-nums">Industry avg: {unit}{benchmark.toLocaleString()}{suffix}</span>
+        <span className="tabular-nums">Industry avg: {unit}{benchmark.toLocaleString('en-US')}{suffix}</span>
       </div>
     </div>
   );

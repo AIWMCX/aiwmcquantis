@@ -453,7 +453,7 @@ export default function ContentStudio() {
                           <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>
                         ))}
                         <span className="text-xs text-[var(--q-text-secondary)] ml-2">
-                          {new Date(h.created_at).toLocaleString()}
+                          {new Date(h.created_at).toLocaleString('en-US')}
                         </span>
                       </div>
                     </div>

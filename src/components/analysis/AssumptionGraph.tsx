@@ -111,7 +111,7 @@ export function AssumptionGraph({ graph }: AssumptionGraphProps) {
                 </span>
                 <span className="font-mono">
                   Current: {typeof item.currentValue === 'number' && item.currentValue > 1 
-                    ? `$${item.currentValue.toLocaleString()}`
+                    ? `$${item.currentValue.toLocaleString('en-US')}`
                     : `${(item.currentValue * 100).toFixed(1)}%`}
                 </span>
               </div>

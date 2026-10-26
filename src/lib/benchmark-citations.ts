@@ -51,7 +51,7 @@ export function buildCitation(benchmark: IndustryBenchmark): BenchmarkCitation {
  * Full citation: "Quantis modeled benchmark · coffee_shop · Q1 2025"
  */
 export function formatCitation(citation: BenchmarkCitation): string {
-  const n = citation.sampleSize ? ` · n=${citation.sampleSize.toLocaleString()}` : '';
+  const n = citation.sampleSize ? ` · n=${citation.sampleSize.toLocaleString('en-US')}` : '';
   return `${citation.source} · ${citation.reportName} · ${citation.reportDate}${n}`;
 }
 
@@ -59,7 +59,7 @@ export function formatCitation(citation: BenchmarkCitation): string {
  * Compact citation for table footers: "Quantis modeled benchmark · Q1 2025"
  */
 export function formatCitationCompact(citation: BenchmarkCitation): string {
-  const n = citation.sampleSize ? ` · n=${citation.sampleSize.toLocaleString()}` : '';
+  const n = citation.sampleSize ? ` · n=${citation.sampleSize.toLocaleString('en-US')}` : '';
   return `${citation.source} · ${citation.reportDate}${n}`;
 }
 

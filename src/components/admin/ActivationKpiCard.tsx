@@ -142,7 +142,7 @@ export function ActivationKpiCard() {
 
       <p className="text-[10px] text-muted-foreground">
         <Users className="w-3 h-3 inline mr-1" />
-        Generated {new Date(kpis.generated_at).toLocaleString()} · Source: activation_events
+        Generated {new Date(kpis.generated_at).toLocaleString('en-US')} · Source: activation_events
       </p>
     </div>
   );

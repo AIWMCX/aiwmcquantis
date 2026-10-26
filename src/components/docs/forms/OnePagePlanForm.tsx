@@ -181,7 +181,7 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
     if (data.company_name) form.setValue('company_name', data.company_name);
     if (data.monthly_revenue) {
       form.setValue('metric_1_name', 'Monthly Revenue');
-      form.setValue('metric_1_value', `$${data.monthly_revenue.toLocaleString()}`);
+      form.setValue('metric_1_value', `$${data.monthly_revenue.toLocaleString('en-US')}`);
     }
     if (data.roi) {
       form.setValue('metric_2_name', 'ROI');

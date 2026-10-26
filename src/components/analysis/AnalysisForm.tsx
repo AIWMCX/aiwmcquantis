@@ -102,7 +102,7 @@ export function AnalysisForm({
             <p id="idea-error" className="text-sm text-destructive" role="alert">{errors.idea}</p>
           ) : idea.length > 20000 ? (
             <p className="text-sm text-destructive" role="alert">
-              Over the limit by {(idea.length - 20000).toLocaleString()} characters — please shorten your idea.
+              Over the limit by {(idea.length - 20000).toLocaleString('en-US')} characters — please shorten your idea.
             </p>
           ) : (
             <span id="idea-hint" className="text-xs text-muted-foreground">
@@ -117,9 +117,9 @@ export function AnalysisForm({
             aria-live="polite"
             aria-atomic="true"
           >
-            {idea.length.toLocaleString()}/{(20000).toLocaleString()}
+            {idea.length.toLocaleString('en-US')}/{(20000).toLocaleString('en-US')}
             {idea.length > 18000 && idea.length <= 20000 && (
-              <span className="ml-1">({(20000 - idea.length).toLocaleString()} left)</span>
+              <span className="ml-1">({(20000 - idea.length).toLocaleString('en-US')} left)</span>
             )}
           </span>
         </div>
@@ -149,7 +149,7 @@ export function AnalysisForm({
             <p id="location-error" className="text-sm text-destructive" role="alert">{errors.location}</p>
           ) : location.length > 200 ? (
             <p className="text-sm text-destructive" role="alert">
-              Over the limit by {(location.length - 200).toLocaleString()} characters.
+              Over the limit by {(location.length - 200).toLocaleString('en-US')} characters.
             </p>
           ) : null}
           {location.length > 150 && (

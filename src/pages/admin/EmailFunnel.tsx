@@ -88,7 +88,7 @@ export default function EmailFunnel() {
                 <Skeleton className="h-8 w-20" />
               ) : (
                 <div className="text-3xl font-bold">
-                  {(data[key as keyof FunnelData] as number ?? 0).toLocaleString()}
+                  {(data[key as keyof FunnelData] as number ?? 0).toLocaleString('en-US')}
                 </div>
               )}
             </CardContent>

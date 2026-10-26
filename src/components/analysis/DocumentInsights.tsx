@@ -93,7 +93,7 @@ export function DocumentInsights({ documents, summary }: DocumentInsightsProps) 
               {summary.extracted_values.customer_count && (
                 <ExtractedValueCard
                   label="Customer Count"
-                  value={summary.extracted_values.customer_count.value.toLocaleString()}
+                  value={summary.extracted_values.customer_count.value.toLocaleString('en-US')}
                   source={summary.extracted_values.customer_count.source}
                 />
               )}

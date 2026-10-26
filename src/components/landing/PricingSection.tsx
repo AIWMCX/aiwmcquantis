@@ -274,7 +274,6 @@ export function PricingSection() {
             isLoading={loadingPlan === 'plus'}
             disabled={loadingPlan !== null}
             highlighted
-            badge="Most Popular"
             annualSavings={billingPeriod === 'annual' ? PRICING.plus.annual.savings : undefined}
             totalYear={plusPricing.totalYear}
             isAnnualBilling={billingPeriod === 'annual'}

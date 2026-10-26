@@ -128,8 +128,8 @@ export default function InvoiceManager() {
         {/* KPI Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'Outstanding', value: `$${kpis.outstanding.toLocaleString()}`, icon: DollarSign, color: 'hsl(var(--chart-4))' },
-            { label: 'Paid This Month', value: `$${kpis.paidThisMonth.toLocaleString()}`, icon: CheckCircle, color: 'hsl(var(--chart-2))' },
+            { label: 'Outstanding', value: `$${kpis.outstanding.toLocaleString('en-US')}`, icon: DollarSign, color: 'hsl(var(--chart-4))' },
+            { label: 'Paid This Month', value: `$${kpis.paidThisMonth.toLocaleString('en-US')}`, icon: CheckCircle, color: 'hsl(var(--chart-2))' },
             { label: 'Overdue', value: kpis.overdueCount.toString(), icon: AlertTriangle, color: kpis.overdueCount > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--chart-2))' },
             { label: 'Avg. Days to Pay', value: `${kpis.avgDays}d`, icon: TrendingUp, color: 'hsl(var(--primary))' },
           ].map(kpi => {
@@ -360,8 +360,8 @@ function AnalysisBanner({ invoices, userId }: { invoices: Invoice[] | undefined;
     <div className="rounded-xl p-4 flex items-center gap-3 bg-primary/5 border border-primary/10">
       <TrendingUp className="w-5 h-5 shrink-0 text-primary" />
       <p className="text-sm text-muted-foreground">
-        Projected <span className="font-bold text-foreground">${latestAnalysis.toLocaleString()}/mo</span> revenue.
-        Invoiced <span className="font-bold text-foreground">${invoicedThisMonth.toLocaleString()}</span> this month —{' '}
+        Projected <span className="font-bold text-foreground">${latestAnalysis.toLocaleString('en-US')}/mo</span> revenue.
+        Invoiced <span className="font-bold text-foreground">${invoicedThisMonth.toLocaleString('en-US')}</span> this month —{' '}
         <span className={`font-bold ${pct >= 80 ? 'text-chart-2' : pct >= 40 ? 'text-chart-4' : 'text-destructive'}`}>{pct}%</span> of projection.
       </p>
     </div>

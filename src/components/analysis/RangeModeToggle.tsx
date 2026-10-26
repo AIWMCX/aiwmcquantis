@@ -169,7 +169,7 @@ export default function RangeModeToggle({
               </Select>
             </div>
             <span className="text-[10px] text-[var(--q-text-tertiary)] font-mono tabular-nums">
-              {prefix}{currentParam.minValue.toLocaleString()}{suffix} – {prefix}{currentParam.maxValue.toLocaleString()}{suffix}
+              {prefix}{currentParam.minValue.toLocaleString('en-US')}{suffix} – {prefix}{currentParam.maxValue.toLocaleString('en-US')}{suffix}
             </span>
           </div>
         </div>

@@ -421,7 +421,7 @@ export function getGeoInsight(geoSlug: string, industry: string): string {
   // Check for industry-specific insight
   const specific = INDUSTRY_GEO_INSIGHTS[industry]?.[geoSlug];
   if (specific) {
-    return `${geo.displayName} has ${specific}. Median household income is $${geo.medianHouseholdIncome.toLocaleString()}.`;
+    return `${geo.displayName} has ${specific}. Median household income is $${geo.medianHouseholdIncome.toLocaleString('en-US')}.`;
   }
 
   // Generate dynamic insight from coefficients

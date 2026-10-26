@@ -16,7 +16,7 @@ function getMonthYear(): string {
 }
 
 function formatLimit(n: number): string {
-  return Number.isFinite(n) ? n.toLocaleString() : '∞';
+  return Number.isFinite(n) ? n.toLocaleString('en-US') : '∞';
 }
 
 interface MeterRowProps {
@@ -49,7 +49,7 @@ function MeterRow({ icon, label, used, limit, unitLabel }: MeterRowProps) {
                 : 'font-medium text-foreground'
           }
         >
-          {used.toLocaleString()} / {formatLimit(limit)} {unitLabel}
+          {used.toLocaleString('en-US')} / {formatLimit(limit)} {unitLabel}
         </span>
       </div>
       {!isUnlimited && (

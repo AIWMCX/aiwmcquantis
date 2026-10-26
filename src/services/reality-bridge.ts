@@ -134,7 +134,7 @@ export function compareActualsToModel(
         paramName: 'monthly_growth_rate',
         oldValue: 0,
         newValue: Math.round(impliedMonthlyGrowth * 10) / 10,
-        rationale: `Revenue grew from $${firstRev.toLocaleString()} to $${lastRev.toLocaleString()} over ${sorted.length - 1} months`,
+        rationale: `Revenue grew from $${firstRev.toLocaleString('en-US')} to $${lastRev.toLocaleString('en-US')} over ${sorted.length - 1} months`,
       });
     }
   }

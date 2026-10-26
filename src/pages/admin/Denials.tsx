@@ -145,7 +145,7 @@ export default function AdminDenials() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{loading ? '…' : totalDenials.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{loading ? '…' : totalDenials.toLocaleString('en-US')}</div>
                 </CardContent>
               </Card>
               <Card>
@@ -156,9 +156,9 @@ export default function AdminDenials() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{loading ? '…' : uniqueUsers.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{loading ? '…' : uniqueUsers.toLocaleString('en-US')}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {anonymousDenials.toLocaleString()} anonymous hits
+                    {anonymousDenials.toLocaleString('en-US')} anonymous hits
                   </p>
                 </CardContent>
               </Card>
@@ -252,7 +252,7 @@ export default function AdminDenials() {
                       {rows.slice(0, 50).map((r) => (
                         <TableRow key={r.id}>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(r.created_at).toLocaleString()}
+                            {new Date(r.created_at).toLocaleString('en-US')}
                           </TableCell>
                           <TableCell className="font-mono text-xs">{r.feature}</TableCell>
                           <TableCell>

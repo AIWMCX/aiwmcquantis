@@ -136,7 +136,7 @@ export function CapacityCheckCard({ parentAnalysisId }: Props) {
             <div>
               <dt className="text-muted-foreground">Cash gap</dt>
               <dd className="font-mono text-foreground">
-                ${Math.round(result.cash_flow_bridge.gap_during_payment_terms_usd).toLocaleString()}
+                ${Math.round(result.cash_flow_bridge.gap_during_payment_terms_usd).toLocaleString('en-US')}
               </dd>
             </div>
             <div>

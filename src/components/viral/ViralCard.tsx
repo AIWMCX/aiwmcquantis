@@ -12,7 +12,7 @@ interface ViralCardProps {
 const fmt = (v: number) => {
   if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
   if (Math.abs(v) >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
-  return `$${Math.round(v).toLocaleString()}`;
+  return `$${Math.round(v).toLocaleString('en-US')}`;
 };
 
 const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;

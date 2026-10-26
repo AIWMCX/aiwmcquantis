@@ -81,7 +81,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
  */
 export function canonicalDataSourcesAsStrings(): string[] {
   return CANONICAL_DATA_SOURCES.map(
-    (s) => `${s.name} — ${s.records.toLocaleString()} records · ${s.period} · ${s.license}`,
+    (s) => `${s.name} — ${s.records.toLocaleString('en-US')} records · ${s.period} · ${s.license}`,
   );
 }
 

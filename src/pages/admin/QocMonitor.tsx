@@ -475,7 +475,7 @@ export default function QocMonitor() {
                 <Meta label="user_id" value={selected.user_id} mono />
                 <Meta label="duration" value={fmtMs(selected.total_duration_ms)} />
                 <Meta label="cost" value={fmtUsd(Number(selected.total_cost_usd))} />
-                <Meta label="created_at" value={new Date(selected.created_at).toLocaleString()} />
+                <Meta label="created_at" value={new Date(selected.created_at).toLocaleString('en-US')} />
               </div>
 
               <div>

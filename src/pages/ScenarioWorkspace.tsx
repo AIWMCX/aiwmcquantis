@@ -584,8 +584,8 @@ export default function ScenarioWorkspace() {
                         return (
                           <tr key={s.id} className="border-b last:border-0">
                             <td className="py-2 pr-4 font-medium">{s.name}</td>
-                            <td className="py-2 pr-4 tabular-nums">{base ? `$${base.revenue.toLocaleString()}` : '—'}</td>
-                            <td className="py-2 pr-4 tabular-nums">{base ? `$${base.net_profit.toLocaleString()}` : '—'}</td>
+                            <td className="py-2 pr-4 tabular-nums">{base ? `$${base.revenue.toLocaleString('en-US')}` : '—'}</td>
+                            <td className="py-2 pr-4 tabular-nums">{base ? `$${base.net_profit.toLocaleString('en-US')}` : '—'}</td>
                             <td className="py-2 pr-4">
                               <Badge variant={s.run?.reconciliation_status === 'passed' ? 'default' : 'secondary'}>
                                 {s.run?.reconciliation_status ?? 'unknown'}
@@ -688,7 +688,7 @@ export default function ScenarioWorkspace() {
                         className="text-[10px] px-1.5 py-0 font-normal"
                         title={[
                           ORIGIN_LABELS[originInfo.origin],
-                          originInfo.evidence_range ? `Evidence range: ${originInfo.evidence_range[0].toLocaleString()}–${originInfo.evidence_range[1].toLocaleString()}` : null,
+                          originInfo.evidence_range ? `Evidence range: ${originInfo.evidence_range[0].toLocaleString('en-US')}–${originInfo.evidence_range[1].toLocaleString('en-US')}` : null,
                           `Confidence: ${originInfo.confidence}%`,
                         ].filter(Boolean).join(' · ')}
                       >
@@ -764,8 +764,8 @@ export default function ScenarioWorkspace() {
               <div className="rounded-lg border p-4 space-y-2 text-sm">
                 <div className="font-medium">Preview result</div>
                 <div className="grid grid-cols-2 gap-2 tabular-nums">
-                  <div>Revenue: ${preview.output.financial_analysis.scenarios.base.revenue.toLocaleString()}</div>
-                  <div>Operating Profit: ${preview.output.financial_analysis.scenarios.base.net_profit.toLocaleString()}</div>
+                  <div>Revenue: ${preview.output.financial_analysis.scenarios.base.revenue.toLocaleString('en-US')}</div>
+                  <div>Operating Profit: ${preview.output.financial_analysis.scenarios.base.net_profit.toLocaleString('en-US')}</div>
                 </div>
                 <Badge variant={preview.output.reconciliation.all_passed ? 'default' : 'secondary'}>
                   {preview.output.reconciliation.all_passed ? 'Reconciliation passed' : 'Reconciliation issues found'}
@@ -794,7 +794,7 @@ export default function ScenarioWorkspace() {
                               <td className="py-1.5 pr-4 text-right tabular-nums">
                                 {s.dollar_impact_per_10pct < 1
                                   ? <span className="text-muted-foreground">no effect</span>
-                                  : `$${Math.round(s.dollar_impact_per_10pct).toLocaleString()}`}
+                                  : `$${Math.round(s.dollar_impact_per_10pct).toLocaleString('en-US')}`}
                               </td>
                               <td className="py-1.5 text-right tabular-nums text-muted-foreground">
                                 {s.elasticity === null ? '—' : s.elasticity.toFixed(2)}
