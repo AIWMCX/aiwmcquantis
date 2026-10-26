@@ -1956,6 +1956,7 @@ function transformResponse(
     // Internal only -- consumed and deleted alongside _calc in serve(),
     // then folded into validation.quality_dimensions.narrative_reconciliation.
     _narrativeWasModified: narrativeIntegrityResult.wasModified,
+    _narrativeIntegrityReason: narrativeIntegrityResult.reason ?? null,
     // Phase D (2026-08-01): the exact raw bundle fed into
     // calculateStrictFinancials, frozen so a later scenario re-run never has
     // to re-derive industry/location/sub-industry detection (which drifts as
@@ -3152,6 +3153,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     delete (result as Record<string, unknown>)._calc;
     const narrativeWasModified = Boolean((result as Record<string, unknown>)._narrativeWasModified);
     delete (result as Record<string, unknown>)._narrativeWasModified;
+    const narrativeIntegrityReason = ((result as Record<string, unknown>)._narrativeIntegrityReason as string | null) ?? null;
+    delete (result as Record<string, unknown>)._narrativeIntegrityReason;
 
     // ── WS1: SET GOLDEN — a valid deterministic result now exists ──
     GOLDEN = { ...result } as Record<string, unknown>;
@@ -4281,6 +4284,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         model: usedFallback ? "deterministic-engine" : "deepseek-v4-flash",
         version: "9.2-benchmark-first",
         analysis_depth: depthLevel,
+        // Why the AI summary was replaced (null when it was kept). Diagnostic only.
+        narrative_integrity: { replaced: narrativeWasModified, reason: narrativeIntegrityReason },
         // ── NEW: canonical benchmarks block ──
         benchmarks: benchmarkRecords,
         benchmark_mode: benchmarkMode,

@@ -522,6 +522,11 @@ function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
     calc.startupInvestment,
     calc.breakEvenRevenue,
     calc.npv3Years ?? 0,
+    // Narrators often quote yearly figures; a year of the same monthly number
+    // is not a contradiction.
+    calc.mrr * 12,
+    calc.netProfit * 12,
+    calc.breakEvenRevenue * 12,
     calc.expenses.cogs,
     calc.expenses.salaries,
     calc.expenses.rent,
@@ -551,26 +556,28 @@ export function dollarAmountsIn(text: string | undefined): number[] {
   return out;
 }
 
-function narrativeReconciles(text: string, calc: NarrativeIntegrityCalc, userAnchors: number[] = []): boolean {
+/** Why a narrative fails to reconcile, or null when it reconciles. Recorded in
+ *  report metadata so a replaced summary can be diagnosed (2026-10-26). */
+export function narrativeMismatch(text: string, calc: NarrativeIntegrityCalc, userAnchors: number[] = []): string | null {
   const anchors = [...buildAnchorSet(calc), ...userAnchors.filter((v) => v !== 0 && Number.isFinite(v))];
   const matches = text.match(DOLLAR_PATTERN) || [];
   for (const match of matches) {
     const value = parseFloat(match.replace(/[$,]/g, ''));
     if (!Number.isFinite(value) || value <= 100) continue;
     const isAnchored = anchors.some((anchor) => Math.abs(value - anchor) / Math.abs(anchor) < 0.1);
-    if (!isAnchored) return false;
+    if (!isAnchored) return `unanchored_dollar:${match}`;
   }
 
   // Extension #1 (2026-08-29): non-USD currency symbol anywhere in the
   // narrative -- see NON_USD_CURRENCY_PATTERN's comment above.
-  if (NON_USD_CURRENCY_PATTERN.test(text)) return false;
+  if (NON_USD_CURRENCY_PATTERN.test(text)) return 'non_usd_currency';
 
   // Extension #2 (2026-08-29): a strong, unhedged verdict claim directly
   // contradicting calc.isProfitable -- see the claim-list comments above.
-  if (calc.isProfitable === false && STRONG_PROFITABLE_CLAIMS.some((p) => p.test(text))) return false;
-  if (calc.isProfitable === true && STRONG_UNPROFITABLE_CLAIMS.some((p) => p.test(text))) return false;
+  if (calc.isProfitable === false && STRONG_PROFITABLE_CLAIMS.some((p) => p.test(text))) return 'claims_profitable';
+  if (calc.isProfitable === true && STRONG_UNPROFITABLE_CLAIMS.some((p) => p.test(text))) return 'claims_unprofitable';
 
-  return true;
+  return null;
 }
 
 /** Deterministic, always-consistent replacement for executive_summary — built
@@ -586,6 +593,8 @@ export function buildSafeExecutiveSummary(calc: NarrativeIntegrityCalc, industry
 export interface NarrativeIntegrityResult {
   executiveSummary: string;
   wasModified: boolean;
+  /** Set when wasModified: what failed (e.g. "unanchored_dollar:$45,000"). */
+  reason?: string;
 }
 
 /** Safe, non-throwing entry point: call with the AI-authored executive_summary
@@ -603,13 +612,15 @@ export function enforceNarrativeIntegrity(
     if (typeof executiveSummary !== 'string' || executiveSummary.length === 0) {
       return { executiveSummary, wasModified: false };
     }
-    if (narrativeReconciles(executiveSummary, calc, dollarAmountsIn(userText))) {
+    const reason = narrativeMismatch(executiveSummary, calc, dollarAmountsIn(userText));
+    if (reason === null) {
       return { executiveSummary, wasModified: false };
     }
-    log.warn('Narrative integrity check: executive_summary did not reconcile with computed metrics (unanchored dollar figure, non-USD currency, or a verdict claim contradicting calc.isProfitable) — regenerating from calc');
+    log.warn(`Narrative integrity check: executive_summary did not reconcile with computed metrics (${reason}) — regenerating from calc`);
     return {
       executiveSummary: buildSafeExecutiveSummary(calc, industryLabel, location),
       wasModified: true,
+      reason,
     };
   } catch (err) {
     log.warn(`Narrative integrity check failed; shipping original AI narrative unchanged: ${err instanceof Error ? err.message : String(err)}`);
