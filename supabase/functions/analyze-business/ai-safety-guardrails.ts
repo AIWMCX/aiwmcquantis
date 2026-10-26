@@ -534,8 +534,25 @@ function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
 /** Returns true if every dollar figure in text is within 10% of some computed
  *  anchor (small figures under $100 are ignored — those are never the subject
  *  of a payback/profit/CAC-style contradiction). */
-function narrativeReconciles(text: string, calc: NarrativeIntegrityCalc): boolean {
-  const anchors = buildAnchorSet(calc);
+/**
+ * Dollar amounts the visitor wrote in their own idea ("$5,500/mo", "$80K").
+ * The narrator repeating them is not a contradiction; live 2026-10-25 both test
+ * runs had their summary replaced because the AI quoted the visitor's figures.
+ */
+export function dollarAmountsIn(text: string | undefined): number[] {
+  if (!text) return [];
+  const out: number[] = [];
+  for (const m of text.matchAll(/\$\s?([\d,]+(?:\.\d+)?)\s?([kKmM])?(?![A-Za-z])/g)) {
+    const base = parseFloat(m[1].replace(/,/g, ''));
+    if (!Number.isFinite(base)) continue;
+    const mult = m[2] ? (m[2].toLowerCase() === 'k' ? 1_000 : 1_000_000) : 1;
+    out.push(base * mult);
+  }
+  return out;
+}
+
+function narrativeReconciles(text: string, calc: NarrativeIntegrityCalc, userAnchors: number[] = []): boolean {
+  const anchors = [...buildAnchorSet(calc), ...userAnchors.filter((v) => v !== 0 && Number.isFinite(v))];
   const matches = text.match(DOLLAR_PATTERN) || [];
   for (const match of matches) {
     const value = parseFloat(match.replace(/[$,]/g, ''));
@@ -579,12 +596,14 @@ export function enforceNarrativeIntegrity(
   industryLabel: string,
   location: string,
   log: { warn: (msg: string) => void },
+  /** The visitor's own idea text: dollar figures in it count as anchors. */
+  userText?: string,
 ): NarrativeIntegrityResult {
   try {
     if (typeof executiveSummary !== 'string' || executiveSummary.length === 0) {
       return { executiveSummary, wasModified: false };
     }
-    if (narrativeReconciles(executiveSummary, calc)) {
+    if (narrativeReconciles(executiveSummary, calc, dollarAmountsIn(userText))) {
       return { executiveSummary, wasModified: false };
     }
     log.warn('Narrative integrity check: executive_summary did not reconcile with computed metrics (unanchored dollar figure, non-USD currency, or a verdict claim contradicting calc.isProfitable) — regenerating from calc');
