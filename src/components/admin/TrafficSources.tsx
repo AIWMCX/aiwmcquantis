@@ -61,7 +61,7 @@ function Table({ rows, first }: { rows: TrafficRow[]; first: 'channel' | 'source
               {first === 'source' && <td className="py-2 pr-4 text-muted-foreground whitespace-nowrap">{r.channel}</td>}
               <td className="py-2 pr-4 font-medium whitespace-nowrap">{first === 'channel' ? r.channel : r.source}</td>
               {COLS.map((c) => (
-                <td key={c.key} className="py-2 pr-4 text-right tabular-nums">{Number(r[c.key] ?? 0).toLocaleString()}</td>
+                <td key={c.key} className="py-2 pr-4 text-right tabular-nums">{Number(r[c.key] ?? 0).toLocaleString('en-US')}</td>
               ))}
             </tr>
           ))}
@@ -76,10 +76,10 @@ export function TrafficSources({ report }: { report: TrafficReport | null }) {
   const t = report?.totals;
   const stats = t
     ? [
-        { label: 'External sessions', value: t.external.toLocaleString(), note: `${t.internal_excluded.toLocaleString()} internal sessions excluded` },
+        { label: 'External sessions', value: t.external.toLocaleString('en-US'), note: `${t.internal_excluded.toLocaleString('en-US')} internal sessions excluded` },
         { label: 'Attributed', value: pct(t.external - t.direct_unknown, t.external), note: `referrer, UTM or click id${t.recovered_by_first_touch ? ` · ${t.recovered_by_first_touch} via first visit` : ''}` },
-        { label: 'Direct / unknown', value: t.direct_unknown.toLocaleString(), note: 'typed URL, app, or stripped referrer' },
-        { label: 'UTM-tagged', value: t.utm_tagged.toLocaleString(), note: 'sessions with tagged links' },
+        { label: 'Direct / unknown', value: t.direct_unknown.toLocaleString('en-US'), note: 'typed URL, app, or stripped referrer' },
+        { label: 'UTM-tagged', value: t.utm_tagged.toLocaleString('en-US'), note: 'sessions with tagged links' },
       ]
     : [];
 

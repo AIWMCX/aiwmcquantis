@@ -135,7 +135,7 @@ function AnimatedMetric({ metric, trigger }: {
   let formatted: string;
   if (metric.suffix === '%' || metric.suffix === '') {
     if (metric.numericValue >= 1000) {
-      formatted = Math.round(raw).toLocaleString();
+      formatted = Math.round(raw).toLocaleString('en-US');
     } else if (metric.numericValue % 1 !== 0) {
       formatted = raw.toFixed(1);
     } else {

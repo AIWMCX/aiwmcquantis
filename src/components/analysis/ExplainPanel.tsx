@@ -161,7 +161,7 @@ export function ExplainPanel({
                 {metricName}
               </h2>
               <p className="text-xl font-bold text-[var(--q-text-primary)] tabular-nums" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
-                {unit === '$' ? '$' : ''}{metricValue.toLocaleString()}{unit !== '$' ? ` ${unit}` : ''}
+                {unit === '$' ? '$' : ''}{metricValue.toLocaleString('en-US')}{unit !== '$' ? ` ${unit}` : ''}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -192,7 +192,7 @@ export function ExplainPanel({
                     </span>
                     <span className="text-xs text-[var(--q-text-primary)] flex-1">{step.label}</span>
                     <span className="text-xs font-bold tabular-nums text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
-                      {step.sign === '-' ? '−' : step.sign === '=' ? '=' : ''} ${Math.abs(step.value).toLocaleString()}
+                      {step.sign === '-' ? '−' : step.sign === '=' ? '=' : ''} ${Math.abs(step.value).toLocaleString('en-US')}
                     </span>
                   </div>
                   {step.detail && (
@@ -283,7 +283,7 @@ export function ExplainPanel({
                   <div key={i} className="flex items-center gap-2.5">
                     <span className="text-xs text-[var(--q-text-primary)] w-24 truncate font-medium">{m.model}</span>
                     <span className="text-xs tabular-nums text-[var(--q-text-secondary)] w-16 text-right" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
-                      ${m.value.toLocaleString()}
+                      ${m.value.toLocaleString('en-US')}
                     </span>
                     <div className="flex-1 h-2 rounded-full bg-[var(--q-bg-elevated)] overflow-hidden">
                       <div
@@ -300,7 +300,7 @@ export function ExplainPanel({
               {agreement !== null && delta !== null && (
                 <p className="text-xs text-[var(--q-text-secondary)] mt-2 tabular-nums">
                   Agreement: <span className="font-bold text-[var(--q-text-primary)]">{agreement}%</span>
-                  {' '}∆ ${delta.toLocaleString()} ({deltaPercent}%)
+                  {' '}∆ ${delta.toLocaleString('en-US')} ({deltaPercent}%)
                 </p>
               )}
             </section>

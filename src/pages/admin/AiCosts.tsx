@@ -150,8 +150,8 @@ export default function AiCosts() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Total calls" value={summary ? String(summary.total_calls) : null} />
         <Stat label="Total cost" value={summary ? fmtUsd(summary.total_cost_usd) : null} />
-        <Stat label="Input tokens" value={summary ? summary.total_input_tokens.toLocaleString() : null} />
-        <Stat label="Output tokens" value={summary ? summary.total_output_tokens.toLocaleString() : null} />
+        <Stat label="Input tokens" value={summary ? summary.total_input_tokens.toLocaleString('en-US') : null} />
+        <Stat label="Output tokens" value={summary ? summary.total_output_tokens.toLocaleString('en-US') : null} />
       </div>
 
       <Card>
@@ -188,7 +188,7 @@ export default function AiCosts() {
                   return (
                     <TableRow key={s.task}>
                       <TableCell className="font-mono text-xs">{s.task}</TableCell>
-                      <TableCell className="text-right">{s.calls.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{s.calls.toLocaleString('en-US')}</TableCell>
                       <TableCell className="text-right">
                         {s.error_calls === 0 ? (
                           <span className="text-muted-foreground">0</span>
@@ -199,8 +199,8 @@ export default function AiCosts() {
                         )}
                       </TableCell>
                       <TableCell className="text-right font-mono">{fmtUsd(s.cost_usd)}</TableCell>
-                      <TableCell className="text-right font-mono">{s.input_tokens.toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-mono">{s.output_tokens.toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-mono">{s.input_tokens.toLocaleString('en-US')}</TableCell>
+                      <TableCell className="text-right font-mono">{s.output_tokens.toLocaleString('en-US')}</TableCell>
                       <TableCell className="text-right font-mono">{s.avg_latency_ms}</TableCell>
                       <TableCell className="text-right font-mono">{s.p95_latency_ms}</TableCell>
                     </TableRow>

@@ -80,7 +80,7 @@ function getBenchmarkHint(industryType: string | undefined, parameter: string): 
   if (!industryType || industryType === 'auto') return null;
   const b = getBenchmark(industryType, parameter);
   if (!b) return null;
-  const fmt = (v: number) => b.unit === '$' ? `$${v.toLocaleString()}` : `${v}${b.unit}`;
+  const fmt = (v: number) => b.unit === '$' ? `$${v.toLocaleString('en-US')}` : `${v}${b.unit}`;
   return `Typical: ${fmt(b.p25)}–${fmt(b.p75)}`;
 }
 
@@ -437,7 +437,7 @@ export function WizardForm({
                 <span className="text-xs text-[var(--q-text-tertiary)]">Min 10 chars — more detail = better analysis</span>
               )}
               <span className={cn("text-xs tabular-nums", idea.length > 5000 ? "text-[var(--q-status-red)]" : "text-[var(--q-text-tertiary)]")}>
-                {idea.length.toLocaleString()}/5,000
+                {idea.length.toLocaleString('en-US')}/5,000
               </span>
             </div>
           </div>

@@ -255,7 +255,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
               <p className="text-[10px] text-[var(--q-text-tertiary)]">Yours</p>
               <p className="text-xs font-bold tabular-nums text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
                 {row.unit === '$'
-                  ? `$${row.userValue.toLocaleString()}`
+                  ? `$${row.userValue.toLocaleString('en-US')}`
                   : row.unit === 'mo' && row.userValue >= 999
                     ? 'N/A'
                     : `${row.userValue}${row.unit}`}
@@ -266,7 +266,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
             <div className="text-right">
               <p className="text-[10px] text-[var(--q-text-tertiary)]">p25{row.isEstimatedBand ? ' (est.)' : ''}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p25.toLocaleString()}` : `${row.p25}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p25.toLocaleString('en-US')}` : `${row.p25}${row.unit}`}
               </p>
             </div>
 
@@ -274,7 +274,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
             <div className="text-right">
               <p className="text-[10px] text-[var(--q-text-tertiary)]">{row.isEstimatedBand ? 'Median (est.)' : 'Median'}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p50.toLocaleString()}` : `${row.p50}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p50.toLocaleString('en-US')}` : `${row.p50}${row.unit}`}
               </p>
             </div>
 
@@ -282,7 +282,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
             <div className="text-right">
               <p className="text-[10px] text-[var(--q-text-tertiary)]">p75{row.isEstimatedBand ? ' (est.)' : ''}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p75.toLocaleString()}` : `${row.p75}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p75.toLocaleString('en-US')}` : `${row.p75}${row.unit}`}
               </p>
             </div>
 

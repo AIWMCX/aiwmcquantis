@@ -88,7 +88,7 @@ export function CashFlowVisualization({ result }: CashFlowVisualizationProps) {
             Initial Capital
           </div>
           <div className="text-lg font-bold mt-1" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--q-text-primary)' }}>
-            ${investment.toLocaleString()}
+            ${investment.toLocaleString('en-US')}
           </div>
         </div>
         <div className="p-3 rounded-lg" style={{ background: 'var(--q-bg-input)', border: '1px solid var(--q-border-subtle)' }}>

@@ -253,7 +253,7 @@ export default function Methodology() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">{source.usage}</p>
                 <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground/70">
-                  <span>{source.records.toLocaleString()} {source.name.includes('Benchmark Library') ? 'modeled cells' : 'reference records'}</span>
+                  <span>{source.records.toLocaleString('en-US')} {source.name.includes('Benchmark Library') ? 'modeled cells' : 'reference records'}</span>
                   <span>{source.period}</span>
                 </div>
               </div>

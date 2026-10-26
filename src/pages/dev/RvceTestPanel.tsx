@@ -228,7 +228,7 @@ export default function RvceTestPanel() {
         ? `${v}x`
         : k.includes('months')
           ? `${v} mo`
-          : `$${v.toLocaleString()}`;
+          : `$${v.toLocaleString('en-US')}`;
 
   return (
     <div className="container mx-auto max-w-5xl py-10 space-y-6">

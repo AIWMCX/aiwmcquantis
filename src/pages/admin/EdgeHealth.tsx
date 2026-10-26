@@ -154,7 +154,7 @@ export default function EdgeHealth() {
                             </Badge>
                           </td>
                           <td className="py-2 pr-3 font-mono text-xs">{r.version ?? '—'}</td>
-                          <td className="py-2 pr-3 text-xs text-muted-foreground">{r.deployed_at ? new Date(r.deployed_at).toLocaleString() : '—'}</td>
+                          <td className="py-2 pr-3 text-xs text-muted-foreground">{r.deployed_at ? new Date(r.deployed_at).toLocaleString('en-US') : '—'}</td>
                           <td className="py-2 pr-3 font-mono text-xs">{r.commit_sha ? r.commit_sha.slice(0, 7) : '—'}</td>
                           <td className="py-2 pr-3 text-xs">{r.latency_ms != null ? `${r.latency_ms}ms` : '—'}</td>
                           <td className="py-2 pr-3 text-xs text-destructive truncate max-w-xs" title={r.error ?? ''}>{r.error ?? ''}</td>
@@ -170,7 +170,7 @@ export default function EdgeHealth() {
             )}
             {data && (
               <p className="text-xs text-muted-foreground mt-4">
-                Scanned at {new Date(data.scanned_at).toLocaleString()} · {filtered.length} of {data.total} shown
+                Scanned at {new Date(data.scanned_at).toLocaleString('en-US')} · {filtered.length} of {data.total} shown
               </p>
             )}
           </CardContent>

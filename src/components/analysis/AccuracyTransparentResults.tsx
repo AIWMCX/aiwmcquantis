@@ -635,7 +635,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   {cvp && !costsInconsistent && cvp.breakEven.status === 'VALUE' && cvp.breakEven.breakEvenRevenue !== null && (
                     <SimpleMetricCard
                       title="Break-Even Revenue"
-                      value={`$${Math.round(Number(cvp.breakEven.breakEvenRevenue)).toLocaleString()}/mo`}
+                      value={`$${Math.round(Number(cvp.breakEven.breakEvenRevenue)).toLocaleString('en-US')}/mo`}
                       variant={metrics.monthlyRevenue >= Number(cvp.breakEven.breakEvenRevenue) ? 'success' : 'warning'}
                       chip={
                         metrics.monthlyRevenue >= Number(cvp.breakEven.breakEvenRevenue)

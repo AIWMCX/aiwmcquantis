@@ -186,7 +186,7 @@ export function formatBenchmarkValue(metric: BenchmarkMetric, v: number | undefi
   const months = ['cac_payback', 'invoice_terms_days'];
   const ratio = ['ltv_cac_ratio'];
   if (pct.includes(metric)) return `${(v * 100).toFixed(1)}%`;
-  if (dollars.includes(metric)) return `$${Math.round(v).toLocaleString()}`;
+  if (dollars.includes(metric)) return `$${Math.round(v).toLocaleString('en-US')}`;
   if (months.includes(metric)) return `${v.toFixed(0)} ${metric === 'invoice_terms_days' ? 'd' : 'mo'}`;
   if (ratio.includes(metric)) return `${v.toFixed(2)}x`;
   if (metric === 'survival_years') return `${v.toFixed(1)}y`;
@@ -197,5 +197,5 @@ export function formatBenchmarkValue(metric: BenchmarkMetric, v: number | undefi
 export function compactCitation(b: BenchmarkResult): string {
   if (!b.matched) return 'Estimated · No direct benchmark';
   const date = (b.dataDate ?? '').slice(0, 7);
-  return `${b.source ?? 'AIWMC'} · n=${(b.sampleSize ?? 0).toLocaleString()} · ${date}`;
+  return `${b.source ?? 'AIWMC'} · n=${(b.sampleSize ?? 0).toLocaleString('en-US')} · ${date}`;
 }

@@ -14,7 +14,7 @@ const METRICS: Array<{ key: keyof MetricFields; label: string; format?: (n: numb
   { key: 'website_visitors', label: 'Website Visitors' },
   { key: 'signups', label: 'Signups' },
   { key: 'paid_conversions', label: 'Paid Conversions' },
-  { key: 'mrr_usd', label: 'MRR (USD)', format: (n) => `$${n.toLocaleString()}` },
+  { key: 'mrr_usd', label: 'MRR (USD)', format: (n) => `$${n.toLocaleString('en-US')}` },
 ];
 
 type MetricFields = {
@@ -99,7 +99,7 @@ export function KPITracker() {
                 {m.label}
               </div>
               <div className="text-xl font-bold mt-1 font-sora">
-                {curr == null ? '—' : m.format ? m.format(curr) : curr.toLocaleString()}
+                {curr == null ? '—' : m.format ? m.format(curr) : curr.toLocaleString('en-US')}
               </div>
               {d && (
                 <div className={`text-[11px] font-mono mt-0.5 ${d.v >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>

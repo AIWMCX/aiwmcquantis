@@ -162,7 +162,7 @@ function AnalysisCard({ analysis, isFirst, onClick }: AnalysisCardProps) {
               <div className="flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5 text-success" />
                 <span className="font-medium text-foreground">
-                  ${monthlyRevenue.toLocaleString()}/mo
+                  ${monthlyRevenue.toLocaleString('en-US')}/mo
                 </span>
               </div>
             )}

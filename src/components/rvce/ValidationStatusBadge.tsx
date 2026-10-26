@@ -17,7 +17,7 @@ function fmtMetric(metric: string, value: number | null): string {
   if (metric.includes('pct')) return `${value.toFixed(1)}%`;
   if (metric.includes('ratio')) return `${value.toFixed(2)}x`;
   if (metric.includes('months')) return `${value.toFixed(1)} mo`;
-  return `$${Math.round(value).toLocaleString()}`;
+  return `$${Math.round(value).toLocaleString('en-US')}`;
 }
 
 export function ValidationStatusBadge({

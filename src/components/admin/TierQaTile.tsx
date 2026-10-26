@@ -177,7 +177,7 @@ export function TierQaTile() {
 
             <div className="text-xs text-muted-foreground flex items-center gap-4 border-t pt-2">
               <span>Triggered by: <strong>{run.triggered_by}</strong></span>
-              <span>Started: {new Date(run.started_at).toLocaleString()}</span>
+              <span>Started: {new Date(run.started_at).toLocaleString('en-US')}</span>
             </div>
           </>
         )}
