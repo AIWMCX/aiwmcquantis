@@ -28,6 +28,7 @@ const FUNCTION_VERSION = '1.1.0';
 import {
   getBenchmarkSummary,
   buildQueryFromInput, 
+  detectSectorFromIdea,
   computePercentile,
   type BenchmarkSummaryForCase,
   type BenchmarkQuery 
@@ -37,6 +38,7 @@ import {
   summarizeMatches,
   type BenchmarkRecord,
 } from "./benchmark-records.ts";
+import { containsWord, markSectorFallback, NO_PEER_BENCHMARK_CONFIDENCE_CAP } from "./benchmark-keywords.ts";
 
 // ========== NEW INTELLIGENCE MODULES ==========
 import { 
@@ -687,7 +689,9 @@ function calculateKeywordScore(businessIdea: string, keywords: string[]): number
   
   for (const keyword of keywords) {
     const kw = keyword.toLowerCase();
-    if (ideaLower.includes(kw)) {
+    // Whole words only (plural allowed): includes() let "technician" match a
+    // "tech" keyword and pushed a hiring decision into SaaS (2026-10-25).
+    if (containsWord(ideaLower, kw)) {
       // Longer keywords are more specific and worth more points
       score += kw.length;
     }
@@ -1646,7 +1650,8 @@ function transformResponse(
   benchmarks: IndustryBenchmarks, 
   locationMultipliers: LocationMultiplierResult,
   subIndustry: SubIndustryResult | null,
-  userInputs?: OptionalFinancialInputs
+  userInputs?: OptionalFinancialInputs,
+  ideaText?: string,
 ) {
   const fa = safeParseJSON(raw.financial_json, {});
   const bp = safeParseJSON(raw.business_json, {});
@@ -1764,6 +1769,7 @@ function transformResponse(
     benchmarks.name,
     location,
     log,
+    ideaText,
   );
 
   // FREE-NULL-VERDICT, root-cause corrected 2026-08-16 (supersedes the
@@ -2743,6 +2749,11 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     try {
       const v2Query = buildQueryFromInput(idea_clean, location_clean);
       v2BenchmarkSummary = await getBenchmarkSummary(supabaseService, v2Query);
+      // No sector keyword matched: the query used a consulting placeholder. Never
+      // report that row as a match, and never overlay it on the detected industry.
+      if (!detectSectorFromIdea(idea_clean).matched) {
+        v2BenchmarkSummary = markSectorFallback(v2BenchmarkSummary);
+      }
       log.info(`V2 Benchmarks: ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality}`);
     } catch (err) {
       log.error('V2 benchmark fetch failed, continuing with legacy:', err);
@@ -2752,7 +2763,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // When the V2 97,500-row benchmark dataset returns data, overlay its percentile-based values onto
     // the legacy detectedIndustry object so the DFE and Quantis engine use the most
     // accurate peer-group data for all deterministic calculations.
-    if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none') {
+    if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none' && v2BenchmarkSummary.overall_match_quality !== 'sector_fallback') {
       log.info(`V2 overlay active: overriding legacy benchmarks with V2 data (match: ${v2BenchmarkSummary.overall_match_quality})`);
       
       if (v2BenchmarkSummary.core) {
@@ -3136,7 +3147,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     }
 
     // Transform using either AI result or fallback
-    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs);
+    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs, idea_clean);
     const calc = result._calc as StrictFinancialResult;
     delete (result as Record<string, unknown>)._calc;
     const narrativeWasModified = Boolean((result as Record<string, unknown>)._narrativeWasModified);
@@ -3682,6 +3693,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     const reportIntegrityIssues = (result as Record<string, unknown>).report_integrity_issues as Array<{ code: string; message: string }> | undefined;
     if (reportIntegrityIssues && reportIntegrityIssues.length > 0) {
       result.confidence_score = Math.min(result.confidence_score, 50);
+    }
+
+    // "Investor Grade" (QSL-3, 85+) needs a benchmark matched to this business.
+    // Live 2026-10-25: two runs on the consulting placeholder showed
+    // "Investor Grade · 90%" beside "Estimated · No direct benchmark".
+    const v2Quality = v2BenchmarkSummary?.overall_match_quality;
+    if (!v2Quality || v2Quality === 'none' || v2Quality === 'sector_fallback') {
+      result.confidence_score = Math.min(result.confidence_score, NO_PEER_BENCHMARK_CONFIDENCE_CAP);
     }
 
     log.info('Analysis calculation completed', {

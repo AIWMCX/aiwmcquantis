@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils';
 import { ProfitRangeCard } from './ProfitRangeCard';
 import { ReviewOfferCard } from './ReviewOfferCard';
 import { whyTheseNumbers } from '@/lib/why-these-numbers';
+import { planKillers } from '@/lib/plan-killers';
 
 interface AccuracyTransparentResultsProps {
   result: BusinessAnalysisResult;
@@ -415,12 +416,12 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             const confidence = result.confidence_score || 70;
             const criticalInsights = insights.filter(i => i.status === 'danger' || i.status === 'warning');
             const criticalRisks = criticalInsights.length;
-            const fatalAssumptions = criticalInsights.slice(0, 3);
+            const fatalAssumptions = planKillers(insights);
             
             const verdict = confidence >= 80 && criticalRisks === 0
               ? { level: 'fast-track', label: 'FAST-TRACK', description: 'Capital efficient, low downside. Proceed with execution.', color: 'var(--q-status-green)', bg: 'var(--q-status-green)', Icon: Rocket }
               : confidence >= 60 && criticalRisks <= 2
-              ? { level: 'caution', label: 'PROCEED WITH CAUTION', description: `Address ${fatalAssumptions.map(i => i.headline).slice(0, 2).join(' and ')} before committing capital.`, color: 'var(--q-status-yellow)', bg: 'var(--q-status-yellow)', Icon: ShieldCheck }
+              ? { level: 'caution', label: 'PROCEED WITH CAUTION', description: fatalAssumptions.length > 0 ? `Address ${fatalAssumptions.map(i => i.headline).slice(0, 2).join(' and ')} before committing capital.` : 'Check the assumptions on the Model tab before committing capital.', color: 'var(--q-status-yellow)', bg: 'var(--q-status-yellow)', Icon: ShieldCheck }
               : { level: 'stop', label: 'DO NOT PROCEED', description: 'Resolve these fatal assumptions before investing.', color: 'var(--q-status-red)', bg: 'var(--q-status-red)', Icon: ShieldAlert };
 
             return (

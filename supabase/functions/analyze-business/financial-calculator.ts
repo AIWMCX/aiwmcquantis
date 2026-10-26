@@ -831,6 +831,12 @@ export function calculateStrictFinancials(
   // See docs/WAVE3_LEVERAGE_RATIOS_FORMULA_CONTRACT_2026-07-12.md.
   const leverageRatiosResult: LeverageRatiosResult = calculateLeverageRatios();
 
+  // Sanity flag (not a change): a business at this revenue with almost no
+  // payroll is almost always a mis-read input. Live 2026-10-25 a misclassified
+  // run showed "1% payroll ratio" on $1.15M/month with no warning.
+  const payrollShare = payrollShareFlag(mrr, salaries);
+  if (payrollShare) corrections.push(payrollShare);
+
   return {
     mrr,
     totalExpenses: finalTotalExpenses,
@@ -869,5 +875,26 @@ export function calculateStrictFinancials(
     audit,
     industryDetected: benchmarks.name,
     expenseSource
+  };
+}
+
+/** Revenue above which near-zero payroll is implausible for any business type. */
+export const PAYROLL_SANITY_MIN_REVENUE = 20_000;
+/** Payroll below this share of revenue at that size is flagged for review. */
+export const PAYROLL_SANITY_MIN_SHARE = 0.03;
+
+/** A flag (original = corrected: nothing is changed) when payroll is implausibly small for the revenue. */
+export function payrollShareFlag(
+  mrr: number,
+  salaries: number,
+): { field: string; original: number; corrected: number; reason: string } | null {
+  if (!(mrr > PAYROLL_SANITY_MIN_REVENUE) || !Number.isFinite(salaries)) return null;
+  const share = salaries / mrr;
+  if (share >= PAYROLL_SANITY_MIN_SHARE) return null;
+  return {
+    field: 'salaries',
+    original: salaries,
+    corrected: salaries,
+    reason: `Check this: payroll is ${(share * 100).toFixed(1)}% of revenue ($${Math.round(salaries).toLocaleString('en-US')} of $${Math.round(mrr).toLocaleString('en-US')} a month). A business at this revenue almost always needs more staff; enter your real payroll. The analysis has not changed it.`,
   };
 }
