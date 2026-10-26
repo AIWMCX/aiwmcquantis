@@ -527,6 +527,10 @@ function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
     calc.mrr * 12,
     calc.netProfit * 12,
     calc.breakEvenRevenue * 12,
+    // Gross profit and total costs are routinely quoted; live 2026-10-26 a
+    // summary was replaced for "$11,220", which is exactly revenue - COGS.
+    calc.mrr - calc.expenses.cogs,
+    calc.expenses.cogs + calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.marketing + calc.expenses.other,
     calc.expenses.cogs,
     calc.expenses.salaries,
     calc.expenses.rent,

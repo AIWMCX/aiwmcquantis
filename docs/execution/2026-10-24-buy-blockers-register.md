@@ -122,12 +122,12 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 51 | Our own hero example returned nonsense | "Hire a 2nd technician" → "B2B SaaS in Global", $1.15M/month revenue, $427k/month profit, "Investor Grade · Proceed with execution" | Hiring decisions go to the hiring model; examples are business plans with a city | DONE #322 |
 | 52 | City typed into the report form became "GlobalColumbus, OH" | Box pre-filled with "Global"; saved to `analyses.location`; city calibration lost | Empty box, default applied at submit, prefix repaired | DONE #322 |
 | 53 | The one-line hero sends no location | Every hero run is "Global" (US average) | Use a "City, ST" written in the idea | DONE #322 |
-| 54 | Industry keyword match can misread decisions | "technician" lands in the software/SaaS bucket (substring match) | Word-boundary keywords in `industry-classifier-core.ts`; ask "what kind of business?" when the score is low | CODE |
-| 55 | Same benchmark row for unrelated industries | Pet services and the "SaaS" run both got gross margin 0.56, "exact match, sample_size 230" | Trace benchmark matching; never label a fallback "exact" | VERIFY |
-| 56 | "Investor Grade · 90%" next to "Estimated · No direct benchmark" | Both 2026-10-25 runs | Cap the safety level when most metrics are estimated | CODE |
-| 57 | Integrity-check note shown on the result | "Note: this summary was regenerated … AI-authored narrative did not reconcile" in both runs | Find why the narrative fails reconciliation; show the note only in the audit tab | VERIFY |
-| 58 | Weak top risk | "What kills this plan: LTV:CAC 18.4x is unusually high" for a grooming van; staffing and van downtime not mentioned | Industry-specific risk library first, ratio warnings after | CODE |
-| 59 | Absurd ratios pass the sanity checks | "1% payroll ratio" on $1.15M/month revenue | Invariant: payroll share bounds per business type | CODE |
+| 54 | Industry keyword match can misread decisions | "technician" lands in the software/SaaS bucket (substring match) | Whole-word keyword matching in both industry scorers (`containsWord`) | DONE #328 |
+| 55 | Same benchmark row for unrelated industries | Pet services and the "SaaS" run both got gross margin 0.56, "exact match, sample_size 230" | No-keyword ideas marked `sector_fallback` (never "exact"); no overlay on the detected industry; city matching whole-word (Orlando/Las Vegas no longer LA) | DONE #328 |
+| 56 | "Investor Grade · 90%" next to "Estimated · No direct benchmark" | Both 2026-10-25 runs | Score capped at 84 without a matched benchmark; live rerun shows 84%, no "Investor Grade" | DONE #328 |
+| 57 | Integrity-check note shown on the result | Both 2026-10-25 runs; after #328/#329 the stored reason was `unanchored_dollar:$11,220` = revenue − COGS | Visitor's figures (#328), yearly figures (#329), gross profit and total costs (#330) count as anchors; reason stored in `metadata.narrative_integrity` | PR #330 |
+| 58 | Weak top risk | "What kills this plan: LTV:CAC 18.4x is unusually high" for a grooming van; staffing and van downtime not mentioned | Panel lists real risks only, dangers first (#328). Still open: an industry-specific risk library | PARTLY #328 |
+| 59 | Absurd ratios pass the sanity checks | "1% payroll ratio" on $1.15M/month revenue | Payroll under 3% of revenue above $20k/month flagged for review (not changed) | DONE #328 |
 | 60 | Fixed "2.4s" run time in the result header | Real runs took ~30s | Show only real values | DONE #323 |
 | 61 | "94% AI" shown when no cross-check ran | Default prop `consensusScore = 94` | Show "% model agreement" only when it exists | DONE #323 |
 | 62 | "Why These Numbers?" showed Denver's rent ×1.15 "CoStar 2025" for every city | Hard-coded list | Matched metro multiplier or "US average"; only real values | DONE #323 |
@@ -259,3 +259,4 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 148 | No "what changed since last run" for returning users | — | Diff between runs | CODE |
 | 149 | No public roadmap | — | A short roadmap from this register | FOUNDER |
 | 150 | This register, round 2 | — | Read by the nightly audit | DONE |
+| 151 | Implausible LTV:CAC shown as "healthy" | Live 2026-10-26 grooming run: "LTV:CAC 79.3x indicates healthy unit economics" | Flag LTV:CAC above ~20x as a likely CAC input problem, like the payroll flag | CODE |
