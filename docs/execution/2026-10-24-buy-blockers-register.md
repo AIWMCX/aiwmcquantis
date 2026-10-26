@@ -132,9 +132,9 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 61 | "94% AI" shown when no cross-check ran | Default prop `consensusScore = 94` | Show "% model agreement" only when it exists | DONE #323 |
 | 62 | "Why These Numbers?" showed Denver's rent ×1.15 "CoStar 2025" for every city | Hard-coded list | Matched metro multiplier or "US average"; only real values | DONE #323 |
 | 63 | Invented fallbacks: $50 CAC, 40% margin, "SaaS benchmarks" 5% churn | Same list | Omitted when the report lacks them | DONE #323 |
-| 64 | Break-even shown as "$37 455/mo" | Browser-locale formatting; a German browser shows "$37.455" | All 183 number formats en-US | PR #324 |
+| 64 | Break-even shown as "$37 455/mo" | Browser-locale formatting; a German browser shows "$37.455" | All 183 number formats en-US | DONE #324 |
 | 65 | No "wrong industry? change it" control on the result | Summary says "evaluates B2B SaaS" with no way to correct it | Industry chip with a re-run | CODE |
-| 66 | "Global" results give no prompt to add a city | — | "Add your city for local rent and wages" line on Global results | CODE |
+| 66 | "Global" results give no prompt to add a city | — | "Add your city for local rent and wages" line on Global results | PR #326 |
 | 67 | Accuracy notice reads as "not ready" | "under active accuracy improvements … partially implemented" at the top of every result | Short, specific limits under the numbers instead | FOUNDER |
 | 68 | Six result tabs before the decision is clear | Overview, Model, Scenarios, Risks, Evidence, Report | One-screen decision summary first, tabs after | CODE |
 
@@ -149,15 +149,15 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 73 | "Computed from verified data", "real CAC", "live web data" on every run | How It Works vs Methodology ("rule-generated, not observed") | Modeled benchmarks; RVCE on Plus/Pro | DONE #323 |
 | 74 | "Licensed … observations" | State of Quantis | Modeled cells | DONE #323 |
 | 75 | "Used by … across 50+ cities" | Unused `Testimonials.tsx` | Deleted | DONE #323 |
-| 76 | "Most Popular" on Plus with 0 customers | Pricing section, How It Works | Removed | PR #324 |
+| 76 | "Most Popular" on Plus with 0 customers | Pricing section, How It Works | Removed | DONE #324 |
 | 77 | Content-generation prompt fed false facts | `marketingPosts.ts`: "100+ industries and 50+ cities" | Accurate facts plus "never claim customers or accuracy" | DONE #323 |
 | 78 | Plus/Pro branding claim contradicted pricing | Use Cases said Plus removes the logo | Pro removes branding | DONE #323 |
-| 79 | How It Works example output not labelled | "$4,200/mo profit, 7.1 months payback, 168% ROI" vs /examples Denver coffee "$4,200/mo, 109% ROI, 12 months" | Label it illustrative and use one consistent example | CODE |
+| 79 | How It Works example output not labelled | "$4,200/mo profit, 7.1 months payback, 168% ROI" vs /examples Denver coffee "$4,200/mo, 109% ROI, 12 months" | Label it illustrative and use one consistent example | PR #326 |
 | 80 | Example reports show implausible returns | "679% ROI" consulting firm, "585% ROI" dropshipping on /examples | Recompute examples with the engine, or cap and explain | CODE |
 | 81 | Example "8/10" scores have no stated scale | /examples cards | Say what the score measures, or remove it | CODE |
 | 82 | Homepage sample page 9 shows a payback distribution the product does not produce | Hand-authored sample shows P10–P90 payback months; the engine produces a monthly profit range | Match the sample to the real output | CODE |
 | 83 | State of Quantis "Last verified August 30" | Two months stale | Re-verify every line, then date it | CODE |
-| 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | CODE |
+| 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | PR #326 |
 | 85 | Blog's last post July 2 | 19 posts; none since July | One post a week from real work (e.g. this audit) | FOUNDER |
 | 86 | No person named anywhere | No About page, no founder name on $349 | About section with name, role, LinkedIn | FOUNDER |
 | 87 | Social links spread across 10 networks | Footer: X, Telegram, Threads, Whop and more | Keep the 3 that are active | FOUNDER |
@@ -186,7 +186,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 |---|---|---|---|---|
 | 101 | Homepage is long | Hero, film, hiring demo, 15-page sample, features, kit, pricing, FAQ | Cut to hero, sample memo, demos, pricing | CODE |
 | 102 | Two idea forms on one page | Hero box plus the report form four sections down | One form | CODE |
-| 103 | Product film loads on the homepage | `quantis-decision-film.mp4` requested 3× on load | `preload="none"` until play | CODE |
+| 103 | Product film loads on the homepage | `quantis-decision-film.mp4` metadata requests on load | Checked: the film loads metadata only; the intro opens only from a share link | DONE |
 | 104 | Large first bundle | index JS 559 KB decoded; 57 requests on the homepage | Split the landing bundle | CODE |
 | 105 | No hiring decision as a real run | The hiring model exists only as a fixed demo | Let a visitor run it on their numbers and save it | CODE |
 | 106 | No second-location or price-change model | The engine models a new business | Add these decision types (they match the hero question) | CODE |
@@ -232,7 +232,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 131 | Supabase CLI outdated | v2.118.0 vs v2.122.0 | Update | FOUNDER |
 | 132 | Error tracking unreviewed | Sentry DSN is env-driven | Check the last 7 days of errors | VERIFY |
 | 133 | No load test | — | One 20-concurrent-run test before any campaign | CODE |
-| 134 | Dead third-party pixel | `createcdn.com/la.js` returns 404 on every page | Removed | PR #324 |
+| 134 | Dead third-party pixel | `createcdn.com/la.js` returns 404 on every page | Removed | DONE #324 |
 | 135 | Content Security Policy still allows unused hosts | `vercel.json` | Prune after #324 | CODE |
 
 ## P. Legal and compliance
