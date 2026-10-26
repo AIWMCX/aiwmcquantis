@@ -45,3 +45,10 @@ describe('gross profit and total costs are anchors', () => {
     expect(narrativeMismatch('Gross profit is about $11,220 a month.', live)).toBeNull();
   });
 });
+
+describe('the engine\'s own gross profit is an anchor', () => {
+  it('accepts $5,940 = $10,800 x 55% even when expenses.cogs differs (live 2026-10-26)', () => {
+    const live: NarrativeIntegrityCalc = { ...calc, mrr: 10800, netProfit: 435, grossProfit: 5940, expenses: { ...calc.expenses, cogs: 3000 } };
+    expect(narrativeMismatch('Gross profit is about $5,940 a month.', live)).toBeNull();
+  });
+});
