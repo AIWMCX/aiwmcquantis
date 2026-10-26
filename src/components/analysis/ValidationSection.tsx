@@ -59,13 +59,13 @@ export function ValidationSection({ validation }: ValidationSectionProps) {
         <div className="p-3 rounded-lg bg-card border border-border">
           <div className="text-xs text-muted-foreground mb-1">Break-even Revenue</div>
           <div className="text-sm font-semibold text-foreground">
-            ${validation.break_even_revenue.toLocaleString()}/mo
+            ${validation.break_even_revenue.toLocaleString('en-US')}/mo
           </div>
         </div>
         <div className="p-3 rounded-lg bg-card border border-border">
           <div className="text-xs text-muted-foreground mb-1">For $45k Profit</div>
           <div className="text-sm font-semibold text-foreground">
-            ${validation.revenue_for_45k_profit.toLocaleString()}/mo
+            ${validation.revenue_for_45k_profit.toLocaleString('en-US')}/mo
           </div>
         </div>
         <div className="p-3 rounded-lg bg-card border border-border">
@@ -145,10 +145,10 @@ export function ValidationSection({ validation }: ValidationSectionProps) {
                     <div className="text-muted-foreground">{correction.reason}</div>
                     <div className="text-xs mt-1 flex gap-2">
                       <span className="text-foreground font-medium">
-                        Used in this report: ${correction.original.toLocaleString()}
+                        Used in this report: ${correction.original.toLocaleString('en-US')}
                       </span>
                       <span className="text-muted-foreground">
-                        (industry typical: ~${correction.corrected.toLocaleString()})
+                        (industry typical: ~${correction.corrected.toLocaleString('en-US')})
                       </span>
                     </div>
                   </div>

@@ -254,13 +254,13 @@ export default function AdminToday() {
           <Card className="col-span-full"><CardContent className="p-4 text-sm text-destructive">Growth numbers unavailable: {growth.errorMessage}</CardContent></Card>
         ) : (
           <>
-            <Kpi label="External sessions" value={g ? g.totals.external.toLocaleString() : '…'} sub={g ? `${g.totals.internal_excluded} internal excluded` : undefined} />
+            <Kpi label="External sessions" value={g ? g.totals.external.toLocaleString('en-US') : '…'} sub={g ? `${g.totals.internal_excluded} internal excluded` : undefined} />
             <Kpi label="Analysis-completion sessions" value={g ? at('analysis_complete') : '…'} sub={g ? `${pct(at('analysis_complete'), top)} of homepage sessions` : undefined} />
             <Kpi label="Signup sessions" value={g ? at('free_signup_complete') : '…'} />
             <Kpi label="Checkout-start sessions" value={g ? at('paid_checkout_start') : '…'} />
             <Kpi
               label="Non-refunded review receipts"
-              value={commercial.data ? `$${commercial.data.revenueUsd.toLocaleString()}` : commercial.status === 'error' ? '—' : '…'}
+              value={commercial.data ? `$${commercial.data.revenueUsd.toLocaleString('en-US')}` : commercial.status === 'error' ? '—' : '…'}
               sub={commercial.data ? `${commercial.data.paid} paid review engagement${commercial.data.paid === 1 ? '' : 's'} · SaaS and partial refunds excluded` : undefined}
               good={!!commercial.data && commercial.data.revenueUsd > 0}
             />
@@ -283,7 +283,7 @@ export default function AdminToday() {
                         <div className="flex items-baseline justify-between gap-3 text-sm">
                           <span>{step.label}</span>
                           <span className="tabular-nums">
-                            <span className="font-semibold">{n.toLocaleString()}</span>
+                            <span className="font-semibold">{n.toLocaleString('en-US')}</span>
                             {i > 0 && <span className="ml-2 text-xs text-muted-foreground">{pct(n, prev)} of previous</span>}
                           </span>
                         </div>
@@ -309,7 +309,7 @@ export default function AdminToday() {
                     <li key={c.channel} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                       <span>{c.channel}</span>
                       <span className="tabular-nums">
-                        <span className="font-semibold">{Number(c.sessions).toLocaleString()}</span>
+                        <span className="font-semibold">{Number(c.sessions).toLocaleString('en-US')}</span>
                         <span className="ml-2 text-xs text-muted-foreground">{pct(Number(c.sessions), d.totals.external)}</span>
                       </span>
                     </li>
@@ -332,7 +332,7 @@ export default function AdminToday() {
               <dl>
                 <Stat label="Engaged" value={d.engaged} />
                 <Stat label="Paid" value={d.paid} />
-                <Stat label="Revenue" value={`$${d.revenueUsd.toLocaleString()}`} />
+                <Stat label="Revenue" value={`$${d.revenueUsd.toLocaleString('en-US')}`} />
                 <Stat label="Refunds" value={d.refunds} />
               </dl>
             )}

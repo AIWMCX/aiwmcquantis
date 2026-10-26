@@ -160,13 +160,13 @@ export default function AdminFunnel() {
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <div className="text-3xl font-bold">{sessions.toLocaleString()}</div>
+                    <div className="text-3xl font-bold">{sessions.toLocaleString('en-US')}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       sessions · {conv}% of home
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {(row?.total_events ?? 0).toLocaleString()} total ·{' '}
-                      {(row?.unique_users ?? 0).toLocaleString()} users
+                      {(row?.total_events ?? 0).toLocaleString('en-US')} total ·{' '}
+                      {(row?.unique_users ?? 0).toLocaleString('en-US')} users
                     </div>
                   </>
                 )}
@@ -209,14 +209,14 @@ export default function AdminFunnel() {
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <div className="text-3xl font-bold">{sessions.toLocaleString()}</div>
+                    <div className="text-3xl font-bold">{sessions.toLocaleString('en-US')}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       sessions · {conv}% of verdict-viewed
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {(row?.total_events ?? 0).toLocaleString()} total ·{' '}
-                      {(row?.unique_users ?? 0).toLocaleString()} users ·{' '}
-                      {(row?.unique_analyses ?? 0).toLocaleString()} analyses
+                      {(row?.total_events ?? 0).toLocaleString('en-US')} total ·{' '}
+                      {(row?.unique_users ?? 0).toLocaleString('en-US')} users ·{' '}
+                      {(row?.unique_analyses ?? 0).toLocaleString('en-US')} analyses
                     </div>
                   </>
                 )}
@@ -251,10 +251,10 @@ export default function AdminFunnel() {
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <div className="text-3xl font-bold">{(row?.unique_sessions ?? 0).toLocaleString()}</div>
+                    <div className="text-3xl font-bold">{(row?.unique_sessions ?? 0).toLocaleString('en-US')}</div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      sessions · {(row?.unique_users ?? 0).toLocaleString()} users ·{' '}
-                      {(row?.unique_analyses ?? 0).toLocaleString()} analyses
+                      sessions · {(row?.unique_users ?? 0).toLocaleString('en-US')} users ·{' '}
+                      {(row?.unique_analyses ?? 0).toLocaleString('en-US')} analyses
                     </div>
                   </>
                 )}

@@ -26,20 +26,20 @@ export function CurrencyInput({
   min = 0,
   max = 100000000,
 }: CurrencyInputProps) {
-  const [displayValue, setDisplayValue] = useState(value > 0 ? value.toLocaleString() : '');
+  const [displayValue, setDisplayValue] = useState(value > 0 ? value.toLocaleString('en-US') : '');
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
     const numValue = parseInt(raw, 10) || 0;
     const clampedValue = Math.min(Math.max(numValue, min), max);
     
-    setDisplayValue(raw ? clampedValue.toLocaleString() : '');
+    setDisplayValue(raw ? clampedValue.toLocaleString('en-US') : '');
     onChange(clampedValue);
   }, [onChange, min, max]);
 
   const handleBlur = useCallback(() => {
     if (value > 0) {
-      setDisplayValue(value.toLocaleString());
+      setDisplayValue(value.toLocaleString('en-US'));
     }
   }, [value]);
 

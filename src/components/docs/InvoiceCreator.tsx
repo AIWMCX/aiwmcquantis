@@ -281,7 +281,7 @@ export function InvoiceCreator({
                             parseFloat(item.rate) || 0
                           ),
                           2
-                        ).toLocaleString()}
+                        ).toLocaleString('en-US')}
                       </div>
                     </div>
                   </div>
@@ -371,23 +371,23 @@ export function InvoiceCreator({
                           ×{item.quantity}
                         </span>
                       </span>
-                      <span>${item.total.toLocaleString()}</span>
+                      <span>${item.total.toLocaleString('en-US')}</span>
                     </div>
                   ))}
                 <Separator />
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${totals.subtotal.toLocaleString()}</span>
+                  <span>${totals.subtotal.toLocaleString('en-US')}</span>
                 </div>
                 {totals.taxAmount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${totals.taxAmount.toLocaleString()}</span>
+                    <span>${totals.taxAmount.toLocaleString('en-US')}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span>${totals.total.toLocaleString()}</span>
+                  <span>${totals.total.toLocaleString('en-US')}</span>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground space-y-1">
@@ -402,7 +402,7 @@ export function InvoiceCreator({
         <div className="flex items-center justify-between py-3 border-t">
           <div className="text-sm">
             <span className="text-muted-foreground">Total: </span>
-            <span className="font-semibold text-lg">${totals.total.toLocaleString()}</span>
+            <span className="font-semibold text-lg">${totals.total.toLocaleString('en-US')}</span>
           </div>
           <div className="flex gap-2">
             {step > 0 && (

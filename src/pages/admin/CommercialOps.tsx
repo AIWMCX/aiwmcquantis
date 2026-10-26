@@ -400,7 +400,7 @@ export default function CommercialOps() {
                 <MessageCard key={f.id} followup={f} prospect={p}>
                   {f.send_requested_at ? (
                     <>
-                      <Badge variant="secondary" className="self-center">Queued {new Date(f.send_requested_at).toLocaleString()}</Badge>
+                      <Badge variant="secondary" className="self-center">Queued {new Date(f.send_requested_at).toLocaleString('en-US')}</Badge>
                       <Button
                         size="sm"
                         variant="outline"

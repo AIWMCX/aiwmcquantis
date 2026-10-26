@@ -384,7 +384,7 @@ function formatMetric(value: number, type: GoalDefinition['type']): string {
   switch (type) {
     case 'monthly_profit':
     case 'revenue_target':
-      return `$${value.toLocaleString()}/month`;
+      return `$${value.toLocaleString('en-US')}/month`;
     case 'break_even':
       return `month ${value}`;
     case 'cash_runway':
@@ -426,7 +426,7 @@ export function generateGoalNarrative(result: SolverResult, goalDef: GoalDefinit
         }
       }
 
-      return `${adj.param.toLowerCase()} of ${adj.suggestedValue.toLocaleString()} (${adj.impact})${difficultyNote ? ` — ${difficultyNote}` : ''}`;
+      return `${adj.param.toLowerCase()} of ${adj.suggestedValue.toLocaleString('en-US')} (${adj.impact})${difficultyNote ? ` — ${difficultyNote}` : ''}`;
     });
 
     parts.push(`, you need a ${paramDescriptions.join(', and a ')}.`);

@@ -72,7 +72,7 @@ export function FreeTierResultCard({ summary, onReset }: FreeTierResultCardProps
             </div>
             <div className="text-[20px] font-bold" style={{ color: 'var(--q-text-primary)' }}>
               {currency === 'USD' ? '$' : `${currency} `}
-              {Math.round(base_revenue).toLocaleString()}
+              {Math.round(base_revenue).toLocaleString('en-US')}
             </div>
           </div>
         )}

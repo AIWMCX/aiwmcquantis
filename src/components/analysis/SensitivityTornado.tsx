@@ -224,7 +224,7 @@ export function SensitivityTornado(props: SensitivityTornadoProps) {
               strokeDasharray="3 3"
               className="text-muted-foreground"
               label={{
-                value: `Base: ${unit === '$' ? '$' : ''}${baseValue.toLocaleString()}${unit !== '$' ? unit : ''}`,
+                value: `Base: ${unit === '$' ? '$' : ''}${baseValue.toLocaleString('en-US')}${unit !== '$' ? unit : ''}`,
                 position: 'top',
                 fill: 'currentColor',
                 fontSize: 11,

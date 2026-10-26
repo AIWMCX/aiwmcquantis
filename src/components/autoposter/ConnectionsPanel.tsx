@@ -36,7 +36,7 @@ function decodeEntities(text: string) {
 }
 
 function fmt(ts: string | null) {
-  return ts ? new Date(ts).toLocaleString() : '—';
+  return ts ? new Date(ts).toLocaleString('en-US') : '—';
 }
 
 /** Autoposter → Connections: connect LinkedIn via OAuth and show its state. */

@@ -63,7 +63,7 @@ export function TemplateCard({ template, isSelected, onSelect }: TemplateCardPro
       <CardContent>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="capitalize">{template.category}</span>
-          <span>{template.usage_count.toLocaleString()} uses</span>
+          <span>{template.usage_count.toLocaleString('en-US')} uses</span>
         </div>
       </CardContent>
     </Card>

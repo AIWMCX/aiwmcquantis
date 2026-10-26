@@ -103,7 +103,7 @@ function validateFinancial(issues: AnalysisContractIssue[], financial: Financial
     const breakdown = financial.startup_investment?.breakdown as unknown as Record<string, unknown> | undefined;
     const sum = objectSum(breakdown);
     if (!approx(startupTotal, sum)) {
-      push(issues, 'error', 'financial_analysis.startup_investment.breakdown', 'Startup investment breakdown must sum to total', startupTotal.toLocaleString(), sum);
+      push(issues, 'error', 'financial_analysis.startup_investment.breakdown', 'Startup investment breakdown must sum to total', startupTotal.toLocaleString('en-US'), sum);
     }
   }
 
@@ -113,7 +113,7 @@ function validateFinancial(issues: AnalysisContractIssue[], financial: Financial
     checked += 1;
     const sum = objectSum(expenseBreakdown);
     if (!approx(expenseTotal, sum)) {
-      push(issues, 'error', 'financial_analysis.monthly_expenses.breakdown', 'Monthly expense breakdown must sum to total', expenseTotal.toLocaleString(), sum);
+      push(issues, 'error', 'financial_analysis.monthly_expenses.breakdown', 'Monthly expense breakdown must sum to total', expenseTotal.toLocaleString('en-US'), sum);
     }
     const fixed = financial.monthly_expenses.fixed_costs ?? 0;
     const variable = financial.monthly_expenses.variable_costs ?? 0;
@@ -131,7 +131,7 @@ function validateFinancial(issues: AnalysisContractIssue[], financial: Financial
     checked += 1;
     const expectedNet = QuantisMath.round(QuantisMath.subtract(scenario.revenue, QuantisMath.add(scenario.variable_costs, scenario.fixed_costs)));
     if (!approx(scenario.net_profit, expectedNet)) {
-      push(issues, 'error', `financial_analysis.scenarios.${scenarioName}.net_profit`, 'Scenario net profit must equal revenue - variable costs - fixed costs', expectedNet.toLocaleString(), scenario.net_profit);
+      push(issues, 'error', `financial_analysis.scenarios.${scenarioName}.net_profit`, 'Scenario net profit must equal revenue - variable costs - fixed costs', expectedNet.toLocaleString('en-US'), scenario.net_profit);
     }
     const grossMargin = expectedPercent(scenario.gross_profit, scenario.revenue);
     if (!approx(scenario.gross_margin, grossMargin, PERCENT_TOLERANCE)) {

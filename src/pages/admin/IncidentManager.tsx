@@ -203,7 +203,7 @@ export default function IncidentManager() {
                   <div className="space-y-1.5 border-l-2 border-border pl-3">
                     {incident.updates.map((u, i) => (
                       <div key={i} className="text-xs text-muted-foreground">
-                        <span className="font-mono">{new Date(u.at).toLocaleString()}</span> — <span className="font-medium">{u.status}</span>: {u.message}
+                        <span className="font-mono">{new Date(u.at).toLocaleString('en-US')}</span> — <span className="font-medium">{u.status}</span>: {u.message}
                       </div>
                     ))}
                   </div>
@@ -240,7 +240,7 @@ export default function IncidentManager() {
 
                 {incident.status === 'resolved' && (
                   <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-                    Resolved {incident.resolved_at && new Date(incident.resolved_at).toLocaleString()}
+                    Resolved {incident.resolved_at && new Date(incident.resolved_at).toLocaleString('en-US')}
                     {incident.postmortem_url && (
                       <>
                         {' · '}

@@ -303,9 +303,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                 <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={setSelectedScenario} />
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <MetricMini label="Revenue" value={`$${scenarioMetrics.revenue.toLocaleString()}`} positive={true} />
+                <MetricMini label="Revenue" value={`$${scenarioMetrics.revenue.toLocaleString('en-US')}`} positive={true} />
                 <MetricMini label="Op. Margin" value={`${scenarioMetrics.margin.toFixed(1)}%`} positive={scenarioMetrics.margin >= 0} />
-                <MetricMini label="Op. Profit" value={`$${scenarioMetrics.profit.toLocaleString()}`} positive={scenarioMetrics.profit >= 0} />
+                <MetricMini label="Op. Profit" value={`$${scenarioMetrics.profit.toLocaleString('en-US')}`} positive={scenarioMetrics.profit >= 0} />
               </div>
             </div>
           </div>
@@ -414,8 +414,8 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                   cac={result.financial_analysis.unit_economics.cac ?? 0}
                 />
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <MetricMini label="LTV" value={`$${(result.financial_analysis.unit_economics.ltv ?? 0).toLocaleString()}`} positive={true} />
-                  <MetricMini label="CAC" value={`$${(result.financial_analysis.unit_economics.cac ?? 0).toLocaleString()}`} positive={true} />
+                  <MetricMini label="LTV" value={`$${(result.financial_analysis.unit_economics.ltv ?? 0).toLocaleString('en-US')}`} positive={true} />
+                  <MetricMini label="CAC" value={`$${(result.financial_analysis.unit_economics.cac ?? 0).toLocaleString('en-US')}`} positive={true} />
                   <MetricMini label="LTV:CAC" value={formatLtvCac(result.financial_analysis.unit_economics).replace(/x$/, '×')} positive={(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0) >= 3} />
                   <MetricMini label="CAC Payback" value={(result.financial_analysis.unit_economics.cac_payback_months ?? 0) >= 999 ? 'N/A' : `${(result.financial_analysis.unit_economics.cac_payback_months ?? 0).toFixed(1)}mo`} positive={(result.financial_analysis.unit_economics.cac_payback_months ?? 99) <= 6} />
                 </div>

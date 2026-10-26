@@ -213,7 +213,7 @@ export default function DataSources() {
                     {source.record_count && (
                       <span className="flex items-center gap-1">
                         <FileCheck className="w-3 h-3" />
-                        {source.record_count.toLocaleString()} records
+                        {source.record_count.toLocaleString('en-US')} records
                       </span>
                     )}
                     {source.date_range_start && source.date_range_end && (

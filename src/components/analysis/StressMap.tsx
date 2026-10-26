@@ -189,7 +189,7 @@ export function calculateStressScores(result: BusinessAnalysisResult): StressMap
       label: 'Cash Runway',
       value: `${Math.round(runwayMonths)} months`,
       benchmark: monthlyProfit >= 0 ? 'Cash-flow positive' : 'Target: ≥ 12 months',
-      gap: monthlyProfit >= 0 ? `Generating $${Math.round(monthlyProfit).toLocaleString()}/mo` : `Burning $${Math.round(Math.abs(monthlyProfit)).toLocaleString()}/mo`,
+      gap: monthlyProfit >= 0 ? `Generating $${Math.round(monthlyProfit).toLocaleString('en-US')}/mo` : `Burning $${Math.round(Math.abs(monthlyProfit)).toLocaleString('en-US')}/mo`,
     },
     operations: {
       label: 'Payroll Ratio',

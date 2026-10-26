@@ -44,7 +44,7 @@ export function MetricDisambiguationBanner({
           <strong className="text-foreground">Project Payback</strong> ({projectPaybackDisplay})
           measures how long to recover the{" "}
           <em>total initial investment</em> of {currencySymbol}
-          {initialInvestment.toLocaleString()}. These are different metrics
+          {initialInvestment.toLocaleString('en-US')}. These are different metrics
           measuring different things — never compare them directly.
         </p>
       </div>

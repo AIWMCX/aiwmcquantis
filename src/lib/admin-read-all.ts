@@ -29,7 +29,7 @@ export async function readAdminRows<T>(
   const { data, error } = await fetchPage(maxRows, maxRows + ADMIN_READ_PAGE_SIZE - 1);
   if (error) throw new Error(error.message || 'Admin metric query failed');
   if ((data ?? []).length > 0) {
-    throw new Error(`Admin metric query exceeded the ${maxRows.toLocaleString()}-row safety limit; use a database aggregate before expanding this window.`);
+    throw new Error(`Admin metric query exceeded the ${maxRows.toLocaleString('en-US')}-row safety limit; use a database aggregate before expanding this window.`);
   }
   return rows;
 }

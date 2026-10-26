@@ -29,7 +29,7 @@ export function KeyMetricSpotlight({ result }: KeyMetricSpotlightProps) {
     const scenarios: Scenario[] = [
       {
         label: `−1pp (${(churn - 1).toFixed(1)}% churn)`,
-        profitDelta: `+$${profitPerPp.toLocaleString()}`,
+        profitDelta: `+$${profitPerPp.toLocaleString('en-US')}`,
         beDelta: '−1.5 mo',
         color: 'text-[var(--q-status-green)]',
       },
@@ -42,13 +42,13 @@ export function KeyMetricSpotlight({ result }: KeyMetricSpotlightProps) {
       },
       {
         label: `+1pp (${(churn + 1).toFixed(1)}% churn)`,
-        profitDelta: `−$${(profitPerPp * 2).toLocaleString()}`,
+        profitDelta: `−$${(profitPerPp * 2).toLocaleString('en-US')}`,
         beDelta: '+2 mo',
         color: 'text-[var(--q-status-red)]',
       },
       {
         label: `+3pp (${(churn + 3).toFixed(1)}% churn)`,
-        profitDelta: `−$${(profitPerPp * 5).toLocaleString()}`,
+        profitDelta: `−$${(profitPerPp * 5).toLocaleString('en-US')}`,
         beDelta: '+6 mo',
         color: 'text-[var(--q-status-red)]',
       },

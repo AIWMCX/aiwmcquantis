@@ -207,7 +207,7 @@ export function ScenarioLibrary({ analysisId, currentParams, currentOutput, curr
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                       {be != null && <span>Break-even: {be >= 999 ? 'N/A (unprofitable)' : `${Math.round(be)} mo`}</span>}
-                      <span>M12 Rev: ${rev12.toLocaleString()}</span>
+                      <span>M12 Rev: ${rev12.toLocaleString('en-US')}</span>
                       {confTier && <span className={confColor}>{confTier} confidence</span>}
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-0.5">

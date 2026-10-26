@@ -195,7 +195,7 @@ export default function Leaderboard() {
                       </span>
                       <span className="flex items-center gap-1">
                         <DollarSign className="w-3.5 h-3.5 text-success" />
-                        ${entry.monthly_profit.toLocaleString()}/mo profit
+                        ${entry.monthly_profit.toLocaleString('en-US')}/mo profit
                       </span>
                       <span className="flex items-center gap-1">
                         <TrendingUp className="w-3.5 h-3.5" />
@@ -255,7 +255,7 @@ export default function Leaderboard() {
             className="gap-2"
             onClick={() => {
               const text = entries.length > 0
-                ? `This week's top business idea on AIWMC Quantis: ${entries[0]?.industry} in ${entries[0]?.location} scored ${entries[0]?.idea_score}/10 with $${entries[0]?.monthly_profit.toLocaleString()}/mo profit. What does YOUR idea score?`
+                ? `This week's top business idea on AIWMC Quantis: ${entries[0]?.industry} in ${entries[0]?.location} scored ${entries[0]?.idea_score}/10 with $${entries[0]?.monthly_profit.toLocaleString('en-US')}/mo profit. What does YOUR idea score?`
                 : 'Check out the top business ideas validated by AIWMC Quantis this month!';
               window.open(
                 `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent('https://aiwmcquantis.com/leaderboard')}`,

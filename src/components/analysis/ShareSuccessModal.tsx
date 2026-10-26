@@ -43,13 +43,13 @@ export function ShareSuccessModal({
   // Curiosity-driven share text
   const shareablePaybackMonths = paybackMonths !== undefined && paybackMonths < 999 ? paybackMonths : undefined;
 
-  const shareText = `Quantis gave my "${ideaLabel}" idea a ${ideaScore}/10. Here's why: $${profit.toLocaleString()}/mo profit, ${margin.toFixed(1)}% operating margin${shareablePaybackMonths ? `, ${shareablePaybackMonths}mo payback` : ''}. See the full breakdown:`;
+  const shareText = `Quantis gave my "${ideaLabel}" idea a ${ideaScore}/10. Here's why: $${profit.toLocaleString('en-US')}/mo profit, ${margin.toFixed(1)}% operating margin${shareablePaybackMonths ? `, ${shareablePaybackMonths}mo payback` : ''}. See the full breakdown:`;
 
   // Pre-formatted image caption for Instagram/LinkedIn posts
   const imageCaption = `📊 Just validated my business idea with AIWMC Quantis
 
 Score: ${ideaScore}/10 ${ideaScore >= 8 ? '🏆' : ideaScore >= 5 ? '⚡' : '⚠️'}
-Monthly Profit: $${profit.toLocaleString()}
+Monthly Profit: $${profit.toLocaleString('en-US')}
 Operating Margin: ${margin.toFixed(1)}%${shareablePaybackMonths ? `\nPayback Period: ${shareablePaybackMonths} months` : ''}
 
 Most validators just say "good idea" or "bad idea."
@@ -133,7 +133,7 @@ ${shareUrl ? `\nMy full report: ${shareUrl}` : ''}`;
               <div>
                 <p className="text-xs text-muted-foreground">Monthly Profit</p>
                 <p className={cn('text-sm font-bold', profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
-                  ${profit.toLocaleString()}
+                  ${profit.toLocaleString('en-US')}
                 </p>
               </div>
               <div>

@@ -327,14 +327,14 @@ export default function PaidEngagements() {
                       {e.payment_status && <Badge variant={e.payment_status === 'paid' ? 'default' : e.payment_status.includes('refund') ? 'destructive' : 'secondary'}>{e.payment_status.replace('_', ' ')}</Badge>}
                       {e.intake_status && <Badge variant="outline">intake: {e.intake_status.replace('_', ' ')}</Badge>}
                       <Badge variant={e.status === 'completed' ? 'default' : e.status === 'cancelled' ? 'destructive' : 'secondary'}>{e.status}</Badge>
-                      {e.price_usd != null && <Badge variant="outline">${e.price_usd.toLocaleString()}</Badge>}
+                      {e.price_usd != null && <Badge variant="outline">${e.price_usd.toLocaleString('en-US')}</Badge>}
                     </div>
                   </div>
                   {e.decision_question && <p className="text-sm text-muted-foreground">Deciding: {e.decision_question}</p>}
                   {e.case_capacity != null && (
                     <p className="text-xs text-muted-foreground">
                       Cases {e.cases_completed ?? 0}/{e.case_capacity}
-                      {e.delivery_due_at ? ` · target ${new Date(e.delivery_due_at).toLocaleString()}` : ''}
+                      {e.delivery_due_at ? ` · target ${new Date(e.delivery_due_at).toLocaleString('en-US')}` : ''}
                       {e.pilot_ends_at ? ` · pilot closes ${new Date(e.pilot_ends_at).toLocaleDateString()}` : ''}
                     </p>
                   )}

@@ -341,12 +341,6 @@ export default function HowItWorks() {
             </ul>
           </GlassCard>
           <GlassCard glow="brand" revealDelay={80} className="p-6 relative">
-            <span
-              className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 text-xs font-semibold rounded-full"
-              style={{ background: 'var(--aiwmc-grad-brand)', color: '#0b0e1a' }}
-            >
-              Most Popular
-            </span>
             <p className="text-sm font-semibold mb-1" style={{ color: 'var(--aiwmc-grad-cyan)' }}>Plus</p>
             <p className="text-3xl font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>
               ${TIERS.plus.priceMonthly}<span className="text-base font-normal text-muted-foreground">/mo</span>
