@@ -3,8 +3,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { MARKETING_DOCTRINE } from '../_shared/marketing-doctrine.ts';
 const FUNCTION_NAME = 'autoposter-generate-content';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 
 // Provider order matches content-studio-generate: DeepSeek first (the
 // production default since the Anthropic account ran out of credits),
@@ -215,7 +216,7 @@ Hashtags to consider (pick 5–8 most relevant): ${(post.hashtags ?? []).join(',
 
 Generate a complete, publish-ready post for ${platform}. Return ONLY the post text, no preamble, no explanation.`;
 
-        const { content, model } = await generateText(PLATFORM_PROMPTS[platform], userPrompt);
+        const { content, model } = await generateText(`${MARKETING_DOCTRINE}\n\n${PLATFORM_PROMPTS[platform]}`, userPrompt);
 
         const { data: upserted, error: upErr } = await admin
           .from('autoposter_post_platforms')

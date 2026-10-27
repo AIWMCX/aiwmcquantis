@@ -22,6 +22,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { generateImageWithRetry, ImageGenError, resolveImageProvider } from '../_shared/image-gen.ts';
 import { renderHeadlineCard, renderFinancialChartCard } from '../_shared/template-card.ts';
 import { selectVisualMode, validateVisualSpec, VisualSpecError, type VisualSpec } from '../_shared/visual-spec.ts';
+import { MARKETING_DOCTRINE, DOCTRINE_NOTES_INSTRUCTION } from '../_shared/marketing-doctrine.ts';
 
 /** Fixed, brief-specified footer for financial_chart cards -- never model-
  *  supplied, matching how the legacy card's brandTagline is already a
@@ -82,6 +83,8 @@ function buildSystemPrompt(opts: {
   tone: string; audience: string; emoji: boolean; hashtags: boolean; language: string;
 }) {
   return [
+    MARKETING_DOCTRINE,
+    '',
     'You are the Head of Content for AIWMC Quantis — a deterministic business-analysis SaaS (aiwmcquantis.com).',
     'Brand voice: brutally honest, evidence-first, no AI filler, no buzzwords like "leverage", "synergy", "unlock", "game-changer".',
     'Write for founders, fractional CFOs, and consultants. Use specific examples only when supported by the supplied evidence; label hypothetical examples as illustrative.',
@@ -94,6 +97,7 @@ function buildSystemPrompt(opts: {
     opts.emoji ? 'Emojis: allowed, sparingly (0–2 per post, never decorative).' : 'Emojis: forbidden.',
     opts.hashtags ? 'Hashtags: per platform rules below.' : 'Hashtags: none.',
     'Forbidden: "In today\'s fast-paced world", "Are you tired of", "Look no further", "🚀", "💡", "✨", em-dash spam, ChatGPT cadence.',
+    DOCTRINE_NOTES_INSTRUCTION,
     'Output MUST be valid JSON only — no preface, no markdown fences, no commentary.',
   ].join('\n');
 }
@@ -123,7 +127,7 @@ function buildUserPrompt(opts: {
     '      "card_headline": "a punchy 4-9 word headline for a text-first title card, in the post\'s own words -- the single sharpest claim or lesson from THIS post, not a generic label. Example: \'SMALL MISSES DON\'T STAY SMALL\'.",',
     '      "card_subtitle": "one supporting sentence under the headline, under 90 characters, that adds the specific mechanism or consequence -- not a restatement of the headline.",',
     '      "char_count": <integer>,',
-    '      "notes": "1 short reason this will perform"',
+    '      "notes": "hook type, funnel stage and the three principles used (format below)"',
     '    }',
     '  },',
     '  "card_chart": null OR { "x_axis_label": "e.g. NUMBER OF CUSTOMERS", "series_label": "e.g. COSTS", "steps": [{"threshold": <number>, "annotation": "short label"}, ...] } -- ONLY populate this if the post ITSELF explicitly states a sequence of specific numeric thresholds with what happens at each one (e.g. the post literally says "at 30 customers we hired a supervisor, at 75 we bought a new system"). Never invent, estimate, round, or infer thresholds that are not explicitly stated in the post text. Minimum 2 steps, maximum 5. If the post has no such explicit numeric sequence, this MUST be null -- do not force a chart onto a post that does not contain one.',

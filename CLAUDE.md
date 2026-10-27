@@ -71,4 +71,5 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 - No guaranteed outcomes, predictive-accuracy claims, invented audits, subscriber counts, testimonials, ratings or scarcity.
 - Numerical examples must declare their assumptions and be labelled *Illustrative*.
 - Reference: `docs/marketing/2026-10-15-growth-principles.md` (the 16 principles; scarcity, social proof, FOMO and bandwagon need real evidence).
+- **Marketing doctrine:** `supabase/functions/_shared/marketing-doctrine.ts` (16 principles + the 8 komanda-legend modules + human-writing stop-list + company truth) is prepended to every Content Studio and autoposter generation. Change it there, never per function; `marketing-doctrine.test.ts` guards it.
 - The execution register lives in `docs/execution/`. Update it rather than starting a new audit.
