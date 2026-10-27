@@ -17,6 +17,11 @@ import '@fontsource/ibm-plex-mono/600.css';
 import './index.css';
 import './styles/sadewa.css';
 import { currentTouches } from './lib/attribution';
+import { installChunkReloadListener } from './lib/chunk-reload';
+
+// Before anything can lazy-load: a tab left open across a deploy reloads once
+// instead of crashing on the old build's missing chunk hashes.
+installChunkReloadListener();
 
 // Initialize monitoring and analytics before rendering
 initSentry();
