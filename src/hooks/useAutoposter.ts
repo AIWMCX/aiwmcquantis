@@ -262,10 +262,10 @@ export function useApproveAndSchedule() {
       // scheduled_at = post_date + best_time_mt in America/Denver, with the
       // correct DST offset for that date (was hard-coded -07:00, an hour late
       // all summer).
-      const plan = input.platforms.map((p) => ({
-        p,
-        scheduledAt: denverWallTimeToUtcIso(input.post.post_date, p.best_time_mt ?? '09:00:00'),
-      }));
+      const plan = input.platforms.map((p) => {
+        const time = p.best_time_mt ?? '09:00:00';
+        return { p, scheduledAt: denverWallTimeToUtcIso(input.post.post_date, time) };
+      });
       // A past time would publish the moment it is approved. Make the founder
       // pick a new date instead (2026-10-27: Oct 26/27 drafts were left behind).
       if (plan.some(({ scheduledAt }) => new Date(scheduledAt).getTime() <= Date.now())) {
