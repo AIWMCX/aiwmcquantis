@@ -262,23 +262,40 @@ export function useApproveAndSchedule() {
       // scheduled_at = post_date + best_time_mt in America/Denver, with the
       // correct DST offset for that date (was hard-coded -07:00, an hour late
       // all summer).
-      const updates = input.platforms.map((p) => {
+      const plan = input.platforms.map((p) => {
         const time = p.best_time_mt ?? '09:00:00';
-        const scheduledAt = denverWallTimeToUtcIso(input.post.post_date, time);
-        return supabase
-          .from('autoposter_post_platforms')
-          .update({ status: 'scheduled', scheduled_at: scheduledAt })
-          .eq('id', p.id);
+        return { p, scheduledAt: denverWallTimeToUtcIso(input.post.post_date, time) };
       });
-      await Promise.all(updates);
-      await supabase
+      // A past time would publish the moment it is approved. Make the founder
+      // pick a new date instead (2026-10-27: Oct 26/27 drafts were left behind).
+      if (plan.some(({ scheduledAt }) => new Date(scheduledAt).getTime() <= Date.now())) {
+        throw new Error(`${input.post.post_date} has already passed. Use Schedule on the platform row to pick a new date.`);
+      }
+      // Each update is checked: before, failures were ignored and the post was
+      // still marked scheduled while the publisher had nothing to claim.
+      const results = await Promise.all(plan.map(({ p, scheduledAt }) =>
+        supabase
+          .from('autoposter_post_platforms')
+          .update({ status: 'scheduled', scheduled_at: scheduledAt, error_message: null })
+          .eq('id', p.id)
+          .in('status', ['draft', 'scheduled', 'failed', 'needs_credentials'])
+          .select('id')));
+      const failed = results.filter((r) => r.error || !r.data?.length);
+      const scheduled = results.length - failed.length;
+      if (scheduled === 0) {
+        throw new Error(failed[0]?.error?.message ?? 'Nothing was scheduled. Refresh to see the current status.');
+      }
+      const { error } = await supabase
         .from('autoposter_posts')
         .update({ status: 'scheduled' })
         .eq('id', input.post.id);
+      if (error) throw error;
+      return { scheduled, failed: failed.length };
     },
-    onSuccess: () => {
+    onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ['autoposter'] });
-      toast.success('Approved & scheduled');
+      if (r.failed) toast.warning(`Scheduled ${r.scheduled} platform(s); ${r.failed} could not be scheduled. Refresh to see which.`);
+      else toast.success('Approved & scheduled');
     },
     onError: (e: Error) => toast.error('Schedule failed', { description: e.message }),
   });
