@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -59,9 +60,16 @@ export function PostEditorSheet({ post, platforms, onClose }: Props) {
     // Only rows that cannot already be live, and that have copy. Published or
     // 'unknown' rows are never re-queued (that is how duplicates happen).
     const schedulable = platforms.filter((p) => canReschedule(p.status) && (drafts[p.platform] ?? p.content)?.trim());
-    if (schedulable.length === 0) return;
-    await approve.mutateAsync({ post, platforms: schedulable });
-    onClose();
+    if (schedulable.length === 0) {
+      toast.error('Nothing to schedule', { description: 'No platform row here can be scheduled: add copy, or reconcile rows marked unknown first.' });
+      return;
+    }
+    try {
+      await approve.mutateAsync({ post, platforms: schedulable });
+      onClose();
+    } catch {
+      // onError already showed the reason; keep the sheet open so it can be fixed.
+    }
   };
 
   return (
