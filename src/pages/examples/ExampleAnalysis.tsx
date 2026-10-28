@@ -6,7 +6,7 @@ import { ArrowRight, TrendingUp, DollarSign, Clock, Target, AlertTriangle, Check
 import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard } from '@/components/ui/glass-card';
-import { EXAMPLE_ANALYSES, type ExampleData } from './exampleData';
+import { EXAMPLE_ANALYSES, type ExampleData, yearOneReturn, YEAR_ONE_RETURN_LABEL, YEAR_ONE_RETURN_NOTE } from './exampleData';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 function MetricCard({ label, value, icon: Icon, color, note }: { label: string; value: string; icon: React.ElementType; color: string; note?: string }) {
@@ -138,7 +138,7 @@ export default function ExampleAnalysis() {
             <MetricCard label="Monthly Revenue" value={data.metrics.monthlyRevenue} icon={DollarSign} color="text-success" />
             <MetricCard label="Monthly Profit" value={data.metrics.monthlyProfit} icon={TrendingUp} color="text-primary" />
             <MetricCard label="Payback Period" value={data.metrics.paybackMonths} icon={Clock} color="text-warning" note={data.metrics.paybackNote} />
-            <MetricCard label="ROI (Year 1)" value={data.metrics.roi} icon={Target} color="text-success" />
+            <MetricCard label={YEAR_ONE_RETURN_LABEL} value={yearOneReturn(data.metrics)} icon={Target} color="text-success" note={YEAR_ONE_RETURN_NOTE} />
           </div>
         </section>
 

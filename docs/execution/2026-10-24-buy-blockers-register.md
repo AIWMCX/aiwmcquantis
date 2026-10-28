@@ -153,8 +153,8 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 77 | Content-generation prompt fed false facts | `marketingPosts.ts`: "100+ industries and 50+ cities" | Accurate facts plus "never claim customers or accuracy" | DONE #323 |
 | 78 | Plus/Pro branding claim contradicted pricing | Use Cases said Plus removes the logo | Pro removes branding | DONE #323 |
 | 79 | How It Works example output not labelled | "$4,200/mo profit, 7.1 months payback, 168% ROI" vs /examples Denver coffee "$4,200/mo, 109% ROI, 12 months" | Label it illustrative and use one consistent example | DONE #326 |
-| 80 | Example reports show implausible returns | "679% ROI" consulting firm, "585% ROI" dropshipping on /examples | Recompute examples with the engine, or cap and explain | CODE |
-| 81 | Example "8/10" scores have no stated scale | /examples cards | Say what the score measures, or remove it | CODE |
+| 80 | Example reports show implausible returns | "679% ROI" consulting firm, "585% ROI" dropshipping on /examples | Hand-typed ROI removed; the page computes year-1 profit ÷ startup cost from each example's own numbers and labels it an upper bound (5 of 51 had disagreed, e.g. a mobile app showed 102% vs 31%) | DONE (PR) |
+| 81 | Example "8/10" scores have no stated scale | /examples cards | Removed: it was derived from ROI alone | DONE (PR) |
 | 82 | Homepage sample page 9 shows a payback distribution the product does not produce | Hand-authored sample shows P10–P90 payback months; the engine produces a monthly profit range | Match the sample to the real output | CODE |
 | 83 | State of Quantis "Last verified August 30" | Two months stale | Re-verify every line, then date it | CODE |
 | 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | DONE #326 |
@@ -170,7 +170,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 89 | Consultants page never mentioned the $499 pilot | /consultants listed only Free/Plus/Pro | Pilot card from `ENGAGEMENT_OFFERS` | DONE #323 |
 | 90 | Footer had no link to the paid review | Footer product links | Founder Decision Review and Sample Decision Memo links | DONE #323 |
 | 91 | $499 pilot shares a page with the $349 review | /decision-review | A dedicated /consultant-pilot page | CODE |
-| 92 | No intake preview for $349 | Buyer can't see what will be asked | "What we'll ask you" list on /decision-review | CODE |
+| 92 | No intake preview for $349 | Buyer can't see what will be asked | Added, mirroring the real intake fields; a test keeps them in sync | DONE (PR) |
 | 93 | No way to book a call | Only mailto | Calendar link (Google Calendar is connected) | FOUNDER |
 | 94 | Pricing page title says "$17/mo", page shows $14 | Annual default | Follows #29 | FOUNDER |
 | 95 | Plus value reads as niche | Invoice & Capacity Check, Document Studio, TAM | Lead with "unlimited runs + saved scenarios + branded PDF" | FOUNDER |

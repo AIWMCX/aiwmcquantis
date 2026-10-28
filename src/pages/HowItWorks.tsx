@@ -68,7 +68,7 @@ const STEPS = [
       'Monthly profit range (P10 / median / P90) from 1,000 simulated months',
       'External validation via RVCE (web-sourced cross-referencing)',
     ],
-    example: 'Illustrative (Denver coffee shop example): $4,200/mo profit, 12 months payback, 109% ROI',
+    example: 'Illustrative (Denver coffee shop example): $4,200/mo profit, 12 months payback',
     glow: 'brand' as const,
   },
 ];

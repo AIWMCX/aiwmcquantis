@@ -19,6 +19,24 @@ const OFFER_ICON: Record<OfferCode, typeof FileCheck2> = {
 
 const OFFERS = ENGAGEMENT_OFFERS.map((offer) => ({ ...offer, icon: OFFER_ICON[offer.code] }));
 
+/** Mirrors the fields of EngagementIntake.tsx (register #92); guarded by decision-review-intake-preview.test.ts. */
+const INTAKE_PREVIEW = {
+  required: [
+    'Your business or company name',
+    'The decision that must be made',
+    'A contact email (pre-filled from your Stripe receipt)',
+    'For the $499 pilot only: your primary client type',
+  ],
+  optional: [
+    'Industry and website',
+    'Decision deadline',
+    'Current situation and financial context (revenue, costs, cash)',
+    'Known constraints and assumptions you are already making',
+    'What has already been tried, and the outcome you want',
+    'Specific questions you want reviewed',
+  ],
+} as const;
+
 export default function DecisionReview() {
   const [loading, setLoading] = useState<OfferCode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +184,28 @@ export default function DecisionReview() {
             <p className="text-sm text-muted-foreground mt-2">{copy}</p>
           </GlassCard>
         ))}
+      </section>
+
+      <section aria-labelledby="intake-preview" className="pb-12">
+        <h2 id="intake-preview" className="text-xl font-semibold">What we'll ask you</h2>
+        <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
+          You answer after paying. Only the first column is required; the rest is optional and makes the memo sharper.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+          <GlassCard className="p-5">
+            <h3 className="font-semibold">Required</h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground list-disc pl-5">
+              {INTAKE_PREVIEW.required.map((q) => <li key={q}>{q}</li>)}
+            </ul>
+          </GlassCard>
+          <GlassCard className="p-5">
+            <h3 className="font-semibold">Optional</h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground list-disc pl-5">
+              {INTAKE_PREVIEW.optional.map((q) => <li key={q}>{q}</li>)}
+            </ul>
+          </GlassCard>
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">No bank logins or uploads: share documents as a Google Drive or Dropbox link if you want to.</p>
       </section>
 
       <section className="pb-16 text-sm text-muted-foreground space-y-3">

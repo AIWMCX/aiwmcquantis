@@ -19,7 +19,6 @@ export interface ExampleData {
      *  divides to ~8.3 months, but the page showed "12 months" with no
      *  explanation -- a real, reported trust problem, not an arithmetic error. */
     paybackNote?: string;
-    roi: string;
     startupCost: string;
   };
   costBreakdown: { label: string; value: string }[];
@@ -76,7 +75,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       monthlyRevenue: '$18,500', monthlyProfit: '$4,200',
       paybackMonths: '12 months',
       paybackNote: 'Reflects a 6-month ramp-up to full revenue, not $35,000 ÷ $4,200. Steady-state payback (if month-1 revenue were already $18,500) would be 9 months.',
-      roi: '109%', startupCost: '$35,000',
+      startupCost: '$35,000',
     },
     costBreakdown: [
       { label: 'Equipment & buildout', value: '$18,000' },
@@ -200,7 +199,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'SaaS Project Management Tool Analysis | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a B2B SaaS project management tool. $12,400/mo MRR projection, 78% gross margin, 14-month payback period.',
     },
-    metrics: { monthlyRevenue: '$12,400', monthlyProfit: '$3,800', paybackMonths: '14 months', roi: '86%', startupCost: '$52,000' },
+    metrics: { monthlyRevenue: '$12,400', monthlyProfit: '$3,800', paybackMonths: '14 months', startupCost: '$52,000' },
     costBreakdown: [
       { label: 'MVP development (3 months)', value: '$30,000' },
       { label: 'Infrastructure & hosting', value: '$3,000' },
@@ -232,7 +231,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Farm-to-Table Restaurant Analysis — Miami, FL | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled financial case for a farm-to-table restaurant in Miami Wynwood. $8,900/mo profit projection, $120K startup, 13.5-month…',
     },
-    metrics: { monthlyRevenue: '$62,000', monthlyProfit: '$8,900', paybackMonths: '13.5 months', roi: '89%', startupCost: '$120,000' },
+    metrics: { monthlyRevenue: '$62,000', monthlyProfit: '$8,900', paybackMonths: '13.5 months', startupCost: '$120,000' },
     costBreakdown: [
       { label: 'Kitchen equipment & buildout', value: '$55,000' },
       { label: 'Interior design & furniture', value: '$25,000' },
@@ -265,7 +264,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Sustainable Fashion E-commerce Analysis | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a DTC sustainable fashion brand. $6,200/mo profit, 55% gross margin, strong LTV from repeat buyers.',
     },
-    metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$6,200', paybackMonths: '9.7 months', roi: '124%', startupCost: '$60,000' },
+    metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$6,200', paybackMonths: '9.7 months', startupCost: '$60,000' },
     costBreakdown: [
       { label: 'Initial inventory production', value: '$25,000' },
       { label: 'Shopify + tech stack', value: '$3,000' },
@@ -302,7 +301,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       monthlyRevenue: '$45,000', monthlyProfit: '$18,500',
       paybackMonths: '6 months',
       paybackNote: 'Not $28,000 ÷ $18,500 — the long B2B sales cycle (2–6 months, see risks below) delays revenue start, so payback tracks time-to-first-client more than steady-state division.',
-      roi: '679%', startupCost: '$28,000',
+      startupCost: '$28,000',
     },
     costBreakdown: [
       { label: 'Office space (WeWork/coworking)', value: '$8,000' },
@@ -339,7 +338,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Fitness Studio Business Analysis — Los Angeles, CA | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for opening a boutique fitness studio in Los Angeles. $7,800/mo profit, $95K startup cost, 12.2-month payback…',
     },
-    metrics: { monthlyRevenue: '$38,000', monthlyProfit: '$7,800', paybackMonths: '12.2 months', roi: '98%', startupCost: '$95,000' },
+    metrics: { monthlyRevenue: '$38,000', monthlyProfit: '$7,800', paybackMonths: '12.2 months', startupCost: '$95,000' },
     costBreakdown: [
       { label: 'Buildout & equipment', value: '$45,000' },
       { label: 'Lease deposit & first 3 months', value: '$18,000' },
@@ -372,7 +371,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Food Truck Business Analysis — Austin, TX | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a gourmet food truck in Austin. $5,400/mo profit, $42K startup, 7.8-month payback. Revenue, costs, and risks.',
     },
-    metrics: { monthlyRevenue: '$24,000', monthlyProfit: '$5,400', paybackMonths: '7.8 months', roi: '154%', startupCost: '$42,000' },
+    metrics: { monthlyRevenue: '$24,000', monthlyProfit: '$5,400', paybackMonths: '7.8 months', startupCost: '$42,000' },
     costBreakdown: [
       { label: 'Used truck + kitchen buildout', value: '$22,000' },
       { label: 'Permits & health inspections', value: '$3,000' },
@@ -405,7 +404,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Dropshipping Store Business Analysis | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a dropshipping e-commerce store. $3,900/mo profit, $8K startup, 2.1-month payback. Low risk, high scalability.',
     },
-    metrics: { monthlyRevenue: '$16,000', monthlyProfit: '$3,900', paybackMonths: '2.1 months', roi: '585%', startupCost: '$8,000' },
+    metrics: { monthlyRevenue: '$16,000', monthlyProfit: '$3,900', paybackMonths: '2.1 months', startupCost: '$8,000' },
     costBreakdown: [
       { label: 'Shopify + apps', value: '$1,200' },
       { label: 'Initial ad spend (testing)', value: '$3,000' },
@@ -438,7 +437,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Mobile App Startup Analysis — San Francisco | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a fintech mobile app startup in San Francisco. $15,200/mo MRR projection, $180K startup cost…',
     },
-    metrics: { monthlyRevenue: '$15,200', monthlyProfit: '$4,600', paybackMonths: '39.1 months', roi: '102%', startupCost: '$180,000' },
+    metrics: { monthlyRevenue: '$15,200', monthlyProfit: '$4,600', paybackMonths: '39.1 months', startupCost: '$180,000' },
     costBreakdown: [
       { label: 'App development (6 months)', value: '$90,000' },
       { label: 'Compliance & legal (fintech)', value: '$25,000' },
@@ -471,7 +470,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Real Estate Agency Analysis — Chicago, IL | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a boutique real estate agency in Chicago. $11,200/mo profit, $32K startup, 2.9-month payback period.',
     },
-    metrics: { monthlyRevenue: '$28,000', monthlyProfit: '$11,200', paybackMonths: '2.9 months', roi: '420%', startupCost: '$32,000' },
+    metrics: { monthlyRevenue: '$28,000', monthlyProfit: '$11,200', paybackMonths: '2.9 months', startupCost: '$32,000' },
     costBreakdown: [
       { label: 'Office space (shared/coworking)', value: '$6,000' },
       { label: 'Real estate license & MLS fees', value: '$4,000' },
@@ -504,7 +503,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Cleaning Service Business Analysis — Atlanta, GA | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a residential cleaning service in Atlanta. $6,800/mo profit, $15K startup, 2.2-month payback…',
     },
-    metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$6,800', paybackMonths: '2.2 months', roi: '544%', startupCost: '$15,000' },
+    metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$6,800', paybackMonths: '2.2 months', startupCost: '$15,000' },
     costBreakdown: [
       { label: 'Cleaning supplies & equipment', value: '$3,000' },
       { label: 'Vehicle (used van)', value: '$5,000' },
@@ -537,7 +536,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Tutoring Service Business Analysis — Boston, MA | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for an online tutoring service in Boston. $9,500/mo profit, $12K startup, 1.3-month payback. Premium pricing…',
     },
-    metrics: { monthlyRevenue: '$18,000', monthlyProfit: '$9,500', paybackMonths: '1.3 months', roi: '950%', startupCost: '$12,000' },
+    metrics: { monthlyRevenue: '$18,000', monthlyProfit: '$9,500', paybackMonths: '1.3 months', startupCost: '$12,000' },
     costBreakdown: [
       { label: 'Website & booking platform', value: '$3,000' },
       { label: 'Marketing (Google Ads, Nextdoor)', value: '$4,000' },
@@ -570,7 +569,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Barbershop Business Analysis — Houston, TX | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a modern barbershop in Houston. $8,200/mo profit, $55K startup, 6.7-month payback. Membership +…',
     },
-    metrics: { monthlyRevenue: '$32,000', monthlyProfit: '$8,200', paybackMonths: '6.7 months', roi: '179%', startupCost: '$55,000' },
+    metrics: { monthlyRevenue: '$32,000', monthlyProfit: '$8,200', paybackMonths: '6.7 months', startupCost: '$55,000' },
     costBreakdown: [
       { label: 'Interior buildout & chairs', value: '$22,000' },
       { label: 'Lease deposit', value: '$8,000' },
@@ -604,7 +603,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Coworking Space Business Analysis — Portland, OR | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a coworking space in Portland. $9,400/mo profit, $140K startup, 14.9-month payback. Creative niche…',
     },
-    metrics: { monthlyRevenue: '$42,000', monthlyProfit: '$9,400', paybackMonths: '14.9 months', roi: '81%', startupCost: '$140,000' },
+    metrics: { monthlyRevenue: '$42,000', monthlyProfit: '$9,400', paybackMonths: '14.9 months', startupCost: '$140,000' },
     costBreakdown: [
       { label: 'Lease deposit & buildout', value: '$60,000' },
       { label: 'Furniture & desks (40 seats)', value: '$25,000' },
@@ -638,7 +637,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Pet Grooming Salon Analysis — Seattle, WA | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a pet grooming salon in Seattle. $7,100/mo profit, $38K startup, 5.4-month payback. Recurring…',
     },
-    metrics: { monthlyRevenue: '$26,000', monthlyProfit: '$7,100', paybackMonths: '5.4 months', roi: '224%', startupCost: '$38,000' },
+    metrics: { monthlyRevenue: '$26,000', monthlyProfit: '$7,100', paybackMonths: '5.4 months', startupCost: '$38,000' },
     costBreakdown: [
       { label: 'Grooming equipment & tubs', value: '$12,000' },
       { label: 'Lease deposit & buildout', value: '$10,000' },
@@ -665,14 +664,25 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
   },
 };
 
-/** Derive a score from ROI percentage */
-function deriveScore(roi: string): number {
-  const num = parseFloat(roi.replace('%', ''));
-  if (num > 200) return 9;
-  if (num > 100) return 8;
-  if (num > 80) return 7;
-  return 6;
+const amount = (s: string) => parseFloat(s.replace(/[^0-9.]/g, ''));
+
+/**
+ * Year-1 profit ÷ startup cost, computed from the example's own numbers.
+ * Replaces hand-typed "ROI" values (register #80, 2026-10-27): five disagreed
+ * with their own figures (a mobile app showed 102% where its numbers give 31%),
+ * and none said it assumes the steady monthly profit from day one. The "8/10"
+ * score derived from it is gone too (#81): it measured nothing else.
+ */
+export function yearOneReturn(metrics: { monthlyProfit: string; startupCost: string }): string {
+  const profit = amount(metrics.monthlyProfit);
+  const cost = amount(metrics.startupCost);
+  if (!(profit > 0) || !(cost > 0)) return '—';
+  return `${Math.round((12 * profit / cost) * 100)}%`;
 }
+
+export const YEAR_ONE_RETURN_LABEL = 'Year-1 profit ÷ startup cost';
+export const YEAR_ONE_RETURN_NOTE =
+  'Monthly profit × 12 ÷ startup cost. It assumes the steady monthly profit from the first month, so it is an upper bound: real businesses ramp up.';
 
 // Merge expanded examples into the main record
 Object.assign(EXAMPLE_ANALYSES, EXPANDED_EXAMPLES);
@@ -685,6 +695,5 @@ export const EXAMPLE_LIST = Object.entries(EXAMPLE_ANALYSES).map(([slug, data]) 
   location: data.location,
   description: data.description,
   profit: data.metrics.monthlyProfit,
-  roi: data.metrics.roi,
-  score: deriveScore(data.metrics.roi),
+  yearOneReturn: yearOneReturn(data.metrics),
 }));
