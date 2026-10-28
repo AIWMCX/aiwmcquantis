@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
-import { EXAMPLE_LIST, EXAMPLE_ANALYSES } from './exampleData';
+import { EXAMPLE_LIST, EXAMPLE_ANALYSES, YEAR_ONE_RETURN_NOTE } from './exampleData';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
@@ -150,11 +150,6 @@ export default function ExamplesIndex() {
                 >
                   {ex.location}
                 </span>
-                {ex.score && (
-                  <span className="ml-auto text-sm font-bold" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
-                    {ex.score}/10
-                  </span>
-                )}
               </div>
               <h2
                 className="text-lg font-bold mb-2 transition-colors"
@@ -167,8 +162,12 @@ export default function ExamplesIndex() {
                 <span className="flex items-center gap-1 text-sm font-semibold" style={{ ...MONO, color: '#4ade80' }}>
                   <TrendingUp className="w-4 h-4" /> {ex.profit}/mo
                 </span>
-                <span className="flex items-center gap-1 text-sm font-semibold" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
-                  <Target className="w-4 h-4" /> {ex.roi} ROI
+                <span
+                  className="flex items-center gap-1 text-sm font-semibold"
+                  style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}
+                  title={YEAR_ONE_RETURN_NOTE}
+                >
+                  <Target className="w-4 h-4" /> {ex.yearOneReturn} yr-1 profit ÷ cost
                 </span>
                 <Button
                   size="sm"

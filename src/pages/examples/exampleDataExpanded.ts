@@ -15,7 +15,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Bakery Business Analysis — Paris, France | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for opening an artisan bakery in Paris. €5,800/mo profit, €75K startup, 12.9-month payback. Modeled benchmark…',
     },
-    metrics: { monthlyRevenue: '€22,000', monthlyProfit: '€5,800', paybackMonths: '12.9 months', roi: '93%', startupCost: '€75,000' },
+    metrics: { monthlyRevenue: '€22,000', monthlyProfit: '€5,800', paybackMonths: '12.9 months', startupCost: '€75,000' },
     costBreakdown: [
       { label: 'Oven & bakery equipment', value: '€35,000' },
       { label: 'Shopfit & furniture', value: '€15,000' },
@@ -50,7 +50,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Boutique Gym Business Analysis — London, UK | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled financial case for a boutique gym in London Shoreditch. £7,200/mo profit, £90K startup, 12.5-month payback.',
     },
-    metrics: { monthlyRevenue: '£28,000', monthlyProfit: '£7,200', paybackMonths: '12.5 months', roi: '96%', startupCost: '£90,000' },
+    metrics: { monthlyRevenue: '£28,000', monthlyProfit: '£7,200', paybackMonths: '12.5 months', startupCost: '£90,000' },
     costBreakdown: [
       { label: 'Equipment & installation', value: '£40,000' },
       { label: 'Buildout & flooring', value: '£20,000' },
@@ -84,7 +84,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Dental Clinic Business Analysis — Dubai, UAE | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a dental clinic in Dubai. AED 85,000/mo revenue, AED 22,000/mo profit, 18-month payback.',
     },
-    metrics: { monthlyRevenue: '$23,100', monthlyProfit: '$6,000', paybackMonths: '18 months', roi: '67%', startupCost: '$108,000' },
+    metrics: { monthlyRevenue: '$23,100', monthlyProfit: '$6,000', paybackMonths: '18 months', startupCost: '$108,000' },
     costBreakdown: [
       { label: 'Dental chairs & equipment', value: '$50,000' },
       { label: 'Clinic buildout', value: '$25,000' },
@@ -119,7 +119,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Coin Laundromat Business Analysis — Tokyo, Japan | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a coin laundromat in Tokyo Shibuya. ¥1.2M/mo revenue, ¥380K/mo profit, 15-month payback.',
     },
-    metrics: { monthlyRevenue: '$8,200', monthlyProfit: '$2,600', paybackMonths: '15 months', roi: '80%', startupCost: '$39,000' },
+    metrics: { monthlyRevenue: '$8,200', monthlyProfit: '$2,600', paybackMonths: '15 months', startupCost: '$39,000' },
     costBreakdown: [
       { label: 'Commercial washers & dryers (8 units)', value: '$20,000' },
       { label: 'Store renovation', value: '$8,000' },
@@ -153,7 +153,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Digital Marketing Agency Analysis — Berlin | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a digital marketing agency in Berlin. €18,000/mo revenue, €7,200/mo profit, 4-month payback. Low…',
     },
-    metrics: { monthlyRevenue: '€18,000', monthlyProfit: '€7,200', paybackMonths: '4 months', roi: '288%', startupCost: '€25,000' },
+    metrics: { monthlyRevenue: '€18,000', monthlyProfit: '€7,200', paybackMonths: '4 months', startupCost: '€25,000' },
     costBreakdown: [
       { label: 'Laptops & software licenses', value: '€8,000' },
       { label: 'Office co-working (6 months)', value: '€6,000' },
@@ -187,7 +187,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Pharmacy Business Analysis — Toronto, Canada | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for an independent pharmacy in Toronto. CAD 45K/mo revenue, CAD 8,500/mo profit, 20-month payback.',
     },
-    metrics: { monthlyRevenue: '$33,000', monthlyProfit: '$6,200', paybackMonths: '20 months', roi: '60%', startupCost: '$124,000' },
+    metrics: { monthlyRevenue: '$33,000', monthlyProfit: '$6,200', paybackMonths: '20 months', startupCost: '$124,000' },
     costBreakdown: [
       { label: 'Inventory (initial stock)', value: '$50,000' },
       { label: 'Dispensing equipment & software', value: '$25,000' },
@@ -222,7 +222,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Auto Repair Shop Analysis — Dallas, TX | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for an auto repair shop in Dallas. $42K/mo revenue, $9,800/mo profit, 10-month payback. 140% ROI.',
     },
-    metrics: { monthlyRevenue: '$42,000', monthlyProfit: '$9,800', paybackMonths: '10 months', roi: '140%', startupCost: '$98,000' },
+    metrics: { monthlyRevenue: '$42,000', monthlyProfit: '$9,800', paybackMonths: '10 months', startupCost: '$98,000' },
     costBreakdown: [
       { label: 'Lifts, tools & diagnostic equipment', value: '$40,000' },
       { label: 'Bay buildout (4 bays)', value: '$25,000' },
@@ -257,7 +257,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Yoga Studio Business Analysis — Bali, Indonesia | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a yoga studio in Bali. $6,500/mo revenue, $2,800/mo profit, 7-month payback. Retreat-driven model.',
     },
-    metrics: { monthlyRevenue: '$6,500', monthlyProfit: '$2,800', paybackMonths: '7 months', roi: '171%', startupCost: '$19,500' },
+    metrics: { monthlyRevenue: '$6,500', monthlyProfit: '$2,800', paybackMonths: '7 months', startupCost: '$19,500' },
     costBreakdown: [
       { label: 'Studio construction (open-air shala)', value: '$8,000' },
       { label: 'Mats, props & sound system', value: '$ 3,000' },
@@ -291,7 +291,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Bookstore Business Analysis — Lisbon, Portugal | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for an independent bookstore in Lisbon. €3,800/mo profit, €42K startup, 11-month payback.',
     },
-    metrics: { monthlyRevenue: '€14,000', monthlyProfit: '€3,800', paybackMonths: '11 months', roi: '109%', startupCost: '€42,000' },
+    metrics: { monthlyRevenue: '€14,000', monthlyProfit: '€3,800', paybackMonths: '11 months', startupCost: '€42,000' },
     costBreakdown: [
       { label: 'Initial book inventory', value: '€15,000' },
       { label: 'Store renovation & shelving', value: '€12,000' },
@@ -326,7 +326,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Nail Salon Business Analysis — Sydney, Australia | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a nail salon in Sydney. AUD 32K/mo revenue, AUD 8,500/mo profit, 9-month payback.',
     },
-    metrics: { monthlyRevenue: '$21,000', monthlyProfit: '$5,600', paybackMonths: '9 months', roi: '133%', startupCost: '$50,000' },
+    metrics: { monthlyRevenue: '$21,000', monthlyProfit: '$5,600', paybackMonths: '9 months', startupCost: '$50,000' },
     costBreakdown: [
       { label: 'Stations & salon fitout (6 chairs)', value: '$22,000' },
       { label: 'Products & initial inventory', value: '$ 8,000' },
@@ -360,7 +360,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Pizzeria Business Analysis — Naples, Italy | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a pizzeria in Naples. €12,000/mo revenue, €4,200/mo profit, 8-month payback. Classic model.',
     },
-    metrics: { monthlyRevenue: '€12,000', monthlyProfit: '€4,200', paybackMonths: '8 months', roi: '150%', startupCost: '€34,000' },
+    metrics: { monthlyRevenue: '€12,000', monthlyProfit: '€4,200', paybackMonths: '8 months', startupCost: '€34,000' },
     costBreakdown: [
       { label: 'Wood-fired oven installation', value: '€12,000' },
       { label: 'Kitchen equipment', value: '€8,000' },
@@ -394,7 +394,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Pet Store Business Analysis — Vancouver, Canada | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a premium pet store in Vancouver. CAD 28K/mo revenue, CAD 6,400/mo profit, 11-month payback.',
     },
-    metrics: { monthlyRevenue: '$20,500', monthlyProfit: '$4,700', paybackMonths: '11 months', roi: '109%', startupCost: '$52,000' },
+    metrics: { monthlyRevenue: '$20,500', monthlyProfit: '$4,700', paybackMonths: '11 months', startupCost: '$52,000' },
     costBreakdown: [
       { label: 'Initial inventory', value: '$20,000' },
       { label: 'Store buildout & fixtures', value: '$15,000' },
@@ -429,7 +429,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Car Wash Business Analysis — Riyadh, Saudi Arabia | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for an automated car wash in Riyadh. SAR 120K/mo revenue, SAR 42K/mo profit, 14-month payback.',
     },
-    metrics: { monthlyRevenue: '$32,000', monthlyProfit: '$11,200', paybackMonths: '14 months', roi: '86%', startupCost: '$157,000' },
+    metrics: { monthlyRevenue: '$32,000', monthlyProfit: '$11,200', paybackMonths: '14 months', startupCost: '$157,000' },
     costBreakdown: [
       { label: 'Tunnel wash equipment', value: '$80,000' },
       { label: 'Site preparation & construction', value: '$35,000' },
@@ -464,7 +464,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Childcare Center Business Analysis — Singapore | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a childcare center in Singapore. SGD 80K/mo revenue, SGD 18K/mo profit, 22-month payback.',
     },
-    metrics: { monthlyRevenue: '$59,000', monthlyProfit: '$13,300', paybackMonths: '22 months', roi: '55%', startupCost: '$293,000' },
+    metrics: { monthlyRevenue: '$59,000', monthlyProfit: '$13,300', paybackMonths: '22 months', startupCost: '$293,000' },
     costBreakdown: [
       { label: 'Center buildout & safety compliance', value: '$120,000' },
       { label: 'Furniture, toys & learning materials', value: '$30,000' },
@@ -500,7 +500,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Gelato Shop Business Analysis — Barcelona, Spain | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a gelato shop in Barcelona. €9,500/mo revenue, €3,200/mo profit, 9-month payback. Tourist-driven model.',
     },
-    metrics: { monthlyRevenue: '€9,500', monthlyProfit: '€3,200', paybackMonths: '9 months', roi: '133%', startupCost: '€29,000' },
+    metrics: { monthlyRevenue: '€9,500', monthlyProfit: '€3,200', paybackMonths: '9 months', startupCost: '€29,000' },
     costBreakdown: [
       { label: 'Gelato machines & display case', value: '€12,000' },
       { label: 'Shop renovation', value: '€7,000' },
@@ -534,7 +534,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Tutoring Academy (Hagwon) Analysis — Seoul | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a hagwon in Seoul Gangnam. KRW 25M/mo revenue, KRW 8M/mo profit, 10-month payback.',
     },
-    metrics: { monthlyRevenue: '$18,500', monthlyProfit: '$5,900', paybackMonths: '10 months', roi: '120%', startupCost: '$59,000' },
+    metrics: { monthlyRevenue: '$18,500', monthlyProfit: '$5,900', paybackMonths: '10 months', startupCost: '$59,000' },
     costBreakdown: [
       { label: 'Classroom buildout (4 rooms)', value: '$20,000' },
       { label: 'Furniture & teaching materials', value: '$8,000' },
@@ -569,7 +569,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Craft Brewery Business Analysis — Melbourne, Australia | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a craft brewery in Melbourne. AUD 55K/mo revenue, AUD 12K/mo profit, 19-month payback.',
     },
-    metrics: { monthlyRevenue: '$36,000', monthlyProfit: '$7,800', paybackMonths: '19 months', roi: '63%', startupCost: '$148,000' },
+    metrics: { monthlyRevenue: '$36,000', monthlyProfit: '$7,800', paybackMonths: '19 months', startupCost: '$148,000' },
     costBreakdown: [
       { label: 'Brewing equipment (10-barrel system)', value: '$ 65,000' },
       { label: 'Taproom buildout', value: '$30,000' },
@@ -604,7 +604,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Flower Shop Business Analysis — Amsterdam | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a flower shop in Amsterdam. €11,000/mo revenue, €3,400/mo profit, 8-month payback.',
     },
-    metrics: { monthlyRevenue: '€11,000', monthlyProfit: '€3,400', paybackMonths: '8 months', roi: '150%', startupCost: '€27,000' },
+    metrics: { monthlyRevenue: '€11,000', monthlyProfit: '€3,400', paybackMonths: '8 months', startupCost: '€27,000' },
     costBreakdown: [
       { label: 'Refrigeration & display units', value: '€8,000' },
       { label: 'Shop renovation', value: '€6,000' },
@@ -639,7 +639,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Fintech SaaS Business Analysis — Lagos, Nigeria | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a fintech startup in Lagos. $15K/mo MRR target, $4,200/mo profit, 16-month payback.',
     },
-    metrics: { monthlyRevenue: '$15,000', monthlyProfit: '$4,200', paybackMonths: '16 months', roi: '75%', startupCost: '$67,000' },
+    metrics: { monthlyRevenue: '$15,000', monthlyProfit: '$4,200', paybackMonths: '16 months', startupCost: '$67,000' },
     costBreakdown: [
       { label: 'Development (MVP)', value: '$25,000' },
       { label: 'CBN licensing & compliance', value: '$10,000' },
@@ -674,7 +674,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Juice Bar Business Analysis — Miami, FL | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a juice bar in Miami Brickell. $22K/mo revenue, $5,800/mo profit, 8-month payback.',
     },
-    metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$5,800', paybackMonths: '8 months', roi: '150%', startupCost: '$46,000' },
+    metrics: { monthlyRevenue: '$22,000', monthlyProfit: '$5,800', paybackMonths: '8 months', startupCost: '$46,000' },
     costBreakdown: [
       { label: 'Cold-press equipment & blenders', value: '$15,000' },
       { label: 'Store buildout', value: '$ 12,000' },
@@ -709,7 +709,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Tattoo Studio Business Analysis — Brooklyn, NY | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a tattoo studio in Brooklyn. $38K/mo revenue, $12K/mo profit, 6-month payback. High-margin model.',
     },
-    metrics: { monthlyRevenue: '$38,000', monthlyProfit: '$12,000', paybackMonths: '6 months', roi: '200%', startupCost: '$72,000' },
+    metrics: { monthlyRevenue: '$38,000', monthlyProfit: '$12,000', paybackMonths: '6 months', startupCost: '$72,000' },
     costBreakdown: [
       { label: 'Studio buildout (4 stations)', value: '$25,000' },
       { label: 'Equipment & autoclave', value: '$12,000' },
@@ -744,7 +744,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Moving Company Business Analysis — Phoenix, AZ | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a moving company in Phoenix. $48K/mo revenue, $14K/mo profit, 5-month payback.',
     },
-    metrics: { monthlyRevenue: '$48,000', monthlyProfit: '$14,000', paybackMonths: '5 months', roi: '240%', startupCost: '$70,000' },
+    metrics: { monthlyRevenue: '$48,000', monthlyProfit: '$14,000', paybackMonths: '5 months', startupCost: '$70,000' },
     costBreakdown: [
       { label: '2 box trucks (used)', value: '$30,000' },
       { label: 'Moving equipment & supplies', value: '$8,000' },
@@ -778,7 +778,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Wedding Planning Business Analysis — Mumbai | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a wedding planning agency in Mumbai. ₹8L/mo revenue, ₹3.2L/mo profit, 6-month payback.',
     },
-    metrics: { monthlyRevenue: '$9,600', monthlyProfit: '$3,800', paybackMonths: '6 months', roi: '200%', startupCost: '$23,000' },
+    metrics: { monthlyRevenue: '$9,600', monthlyProfit: '$3,800', paybackMonths: '6 months', startupCost: '$23,000' },
     costBreakdown: [
       { label: 'Office setup & furniture', value: '$5,000' },
       { label: 'Portfolio & website', value: '$4,000' },
@@ -812,7 +812,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Cleaning Service Business Analysis — Dubai | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a cleaning company in Dubai. AED 120K/mo revenue, AED 35K/mo profit, 8-month payback.',
     },
-    metrics: { monthlyRevenue: '$32,700', monthlyProfit: '$9,500', paybackMonths: '8 months', roi: '150%', startupCost: '$76,000' },
+    metrics: { monthlyRevenue: '$32,700', monthlyProfit: '$9,500', paybackMonths: '8 months', startupCost: '$76,000' },
     costBreakdown: [
       { label: 'Equipment & supplies', value: '$15,000' },
       { label: 'Vehicle (2 vans)', value: '$25,000' },
@@ -847,7 +847,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Photography Studio Business Analysis — Prague | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a photography studio in Prague. CZK 180K/mo revenue, CZK 65K/mo profit, 7-month payback.',
     },
-    metrics: { monthlyRevenue: '$7,800', monthlyProfit: '$2,800', paybackMonths: '7 months', roi: '171%', startupCost: '$20,000' },
+    metrics: { monthlyRevenue: '$7,800', monthlyProfit: '$2,800', paybackMonths: '7 months', startupCost: '$20,000' },
     costBreakdown: [
       { label: 'Camera equipment & lighting', value: '$ 8,000' },
       { label: 'Studio rental deposit & setup', value: '$4,000' },
@@ -881,7 +881,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Language School Business Analysis — Mexico City | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a Spanish school in Mexico City. $12K/mo revenue, $4,800/mo profit, 5-month payback.',
     },
-    metrics: { monthlyRevenue: '$12,000', monthlyProfit: '$4,800', paybackMonths: '5 months', roi: '240%', startupCost: '$24,000' },
+    metrics: { monthlyRevenue: '$12,000', monthlyProfit: '$4,800', paybackMonths: '5 months', startupCost: '$24,000' },
     costBreakdown: [
       { label: 'Classroom space setup', value: '$8,000' },
       { label: 'Teaching materials & tech', value: '$4,000' },
@@ -915,7 +915,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Accounting Firm Business Analysis — Zurich | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for an accounting firm in Zurich. CHF 35K/mo revenue, CHF 14K/mo profit, 8-month payback.',
     },
-    metrics: { monthlyRevenue: '$38,500', monthlyProfit: '$15,400', paybackMonths: '8 months', roi: '150%', startupCost: '$123,000' },
+    metrics: { monthlyRevenue: '$38,500', monthlyProfit: '$15,400', paybackMonths: '8 months', startupCost: '$123,000' },
     costBreakdown: [
       { label: 'Office setup & furniture', value: '$15,000' },
       { label: 'Accounting software licenses', value: '$8,000' },
@@ -950,7 +950,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Cloud Kitchen Business Analysis — Bangkok | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a cloud kitchen in Bangkok. ฿450K/mo revenue, ฿120K/mo profit, 10-month payback.',
     },
-    metrics: { monthlyRevenue: '$12,800', monthlyProfit: '$3,400', paybackMonths: '10 months', roi: '120%', startupCost: '$34,000' },
+    metrics: { monthlyRevenue: '$12,800', monthlyProfit: '$3,400', paybackMonths: '10 months', startupCost: '$34,000' },
     costBreakdown: [
       { label: 'Kitchen equipment', value: '$12,000' },
       { label: 'Kitchen rental deposit (6 months)', value: '$8,000' },
@@ -985,7 +985,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Airbnb Management Business Analysis — Lisbon | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for Airbnb management in Lisbon. €18K/mo revenue, €7,200/mo profit, 6-month payback.',
     },
-    metrics: { monthlyRevenue: '€18,000', monthlyProfit: '€7,200', paybackMonths: '6 months', roi: '200%', startupCost: '€43,000' },
+    metrics: { monthlyRevenue: '€18,000', monthlyProfit: '€7,200', paybackMonths: '6 months', startupCost: '€43,000' },
     costBreakdown: [
       { label: 'Property setup & styling (15 units)', value: '$18,000' },
       { label: 'Cleaning equipment & supplies', value: '$5,000' },
@@ -1021,7 +1021,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Music School Business Analysis — Nashville, TN | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a music school in Nashville. $16K/mo revenue, $5,200/mo profit, 8-month payback.',
     },
-    metrics: { monthlyRevenue: '$16,000', monthlyProfit: '$5,200', paybackMonths: '8 months', roi: '150%', startupCost: '$42,000' },
+    metrics: { monthlyRevenue: '$16,000', monthlyProfit: '$5,200', paybackMonths: '8 months', startupCost: '$42,000' },
     costBreakdown: [
       { label: 'Instruments & equipment', value: '$12,000' },
       { label: 'Studio buildout (4 rooms)', value: '$10,000' },
@@ -1056,7 +1056,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Co-Working Space Business Analysis — Cape Town | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a co-working space in Cape Town. ZAR 180K/mo revenue, ZAR 55K/mo profit, 14-month payback.',
     },
-    metrics: { monthlyRevenue: '$9,800', monthlyProfit: '$3,000', paybackMonths: '14 months', roi: '86%', startupCost: '$42,000' },
+    metrics: { monthlyRevenue: '$9,800', monthlyProfit: '$3,000', paybackMonths: '14 months', startupCost: '$42,000' },
     costBreakdown: [
       { label: 'Furniture & desks', value: '$12,000' },
       { label: 'Renovation & design', value: '$10,000' },
@@ -1091,7 +1091,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Veterinary Clinic Business Analysis — Madrid | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a vet clinic in Madrid. €28K/mo revenue, €7,500/mo profit, 16-month payback.',
     },
-    metrics: { monthlyRevenue: '€28,000', monthlyProfit: '€7,500', paybackMonths: '16 months', roi: '75%', startupCost: '€120,000' },
+    metrics: { monthlyRevenue: '€28,000', monthlyProfit: '€7,500', paybackMonths: '16 months', startupCost: '€120,000' },
     costBreakdown: [
       { label: 'Medical equipment & surgery suite', value: '€50,000' },
       { label: 'Clinic buildout', value: '€25,000' },
@@ -1126,7 +1126,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Wine Bar Business Analysis — Buenos Aires | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled finances for a wine bar in Buenos Aires. ARS 3.5M/mo revenue, ARS 1.2M/mo profit, 7-month payback.',
     },
-    metrics: { monthlyRevenue: '$3,500', monthlyProfit: '$1,200', paybackMonths: '7 months', roi: '171%', startupCost: '$8,400' },
+    metrics: { monthlyRevenue: '$3,500', monthlyProfit: '$1,200', paybackMonths: '7 months', startupCost: '$8,400' },
     costBreakdown: [
       { label: 'Bar buildout & design', value: '$3,000' },
       { label: 'Initial wine inventory', value: '$2,000' },
@@ -1161,7 +1161,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'HR Tech SaaS Business Analysis — Bangalore | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for an HR tech platform in Bangalore. ₹12L/mo MRR, ₹5L/mo profit, 14-month payback.',
     },
-    metrics: { monthlyRevenue: '$14,400', monthlyProfit: '$6,000', paybackMonths: '14 months', roi: '86%', startupCost: '$84,000' },
+    metrics: { monthlyRevenue: '$14,400', monthlyProfit: '$6,000', paybackMonths: '14 months', startupCost: '$84,000' },
     costBreakdown: [
       { label: 'Development (MVP, 6 months)', value: '$40,000' },
       { label: 'Cloud infrastructure', value: '$8,000' },
@@ -1196,7 +1196,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Print Shop Business Analysis — Warsaw, Poland | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a custom print shop in Warsaw. PLN 45K/mo revenue, PLN 15K/mo profit, 9-month payback.',
     },
-    metrics: { monthlyRevenue: '$11,500', monthlyProfit: '$3,800', paybackMonths: '9 months', roi: '133%', startupCost: '$34,000' },
+    metrics: { monthlyRevenue: '$11,500', monthlyProfit: '$3,800', paybackMonths: '9 months', startupCost: '$34,000' },
     costBreakdown: [
       { label: 'DTG printer & heat press', value: '$15,000' },
       { label: 'Blank inventory (t-shirts, mugs, etc.)', value: '$5,000' },
@@ -1231,7 +1231,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
       title: 'Plumbing Business Analysis — Toronto, Canada | AIWMC Quantis',
       description: 'Illustrative Quantis report. Modeled business case for a plumbing company in Toronto. CAD 65K/mo revenue, CAD 18K/mo profit, 7-month payback.',
     },
-    metrics: { monthlyRevenue: '$47,500', monthlyProfit: '$13,300', paybackMonths: '7 months', roi: '171%', startupCost: '$93,000' },
+    metrics: { monthlyRevenue: '$47,500', monthlyProfit: '$13,300', paybackMonths: '7 months', startupCost: '$93,000' },
     costBreakdown: [
       { label: '3 service vans (used)', value: '$35,000' },
       { label: 'Tools & equipment', value: '$15,000' },
