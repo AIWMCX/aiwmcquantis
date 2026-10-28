@@ -165,6 +165,23 @@ jobs:
         run: |
           echo "::error title=Tests failed::A quality test failed. See test-output.txt artifact, or run 'bun run test:quality' locally."
 
+      # Outreach guards (doubled sign-off, implied track record, copied footer,
+      # suppression) are Deno tests under supabase/functions/_shared, which
+      # vitest does not include. Without this step they never ran in CI.
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Outreach tests (Deno)
+        id: outreach_tests
+        run: deno test --no-check --allow-read --allow-env supabase/functions/_shared/commercial/ supabase/functions/_shared/commercial-suppression.test.ts
+
+      - name: Outreach test failure hint
+        if: failure() && steps.outreach_tests.outcome == 'failure'
+        run: |
+          echo "::error title=Outreach tests failed::A guard on outbound email copy failed. Run the same deno test command locally."
+
       - name: Coverage (best-effort)
         if: always()
         run: bun run test:coverage || true
