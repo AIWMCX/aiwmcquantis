@@ -16,6 +16,7 @@
 
 import type { ComputedMetrics, NarratorOutput } from './schemas.ts';
 import type { IndustryBenchmarks } from './financial-engine.ts';
+import { ltvCacPhrase, ltvCacReading, ltvCacStatusLabel } from './ltv-cac-language.ts';
 
 // ========== SHARED MASTER PROMPT DIRECTIVES ==========
 
@@ -206,9 +207,7 @@ export function buildNarratorSystemPrompt(
     ? `✅ PROFITABLE (+$${metrics.netProfit.toLocaleString()}/mo)`
     : `❌ LOSS (-$${Math.abs(metrics.netProfit).toLocaleString()}/mo)`;
     
-  const ltvCacStatus = metrics.ltvCacRatio >= 3 
-    ? '✅ HEALTHY' 
-    : '⚠️ NEEDS IMPROVEMENT';
+  const ltvCacStatus = ltvCacStatusLabel(metrics.ltvCacRatio);
 
   // ========== COMPUTED ANCHORS BLOCK ==========
   // These exact numbers MUST appear in AI output when referenced
@@ -509,13 +508,13 @@ export function generateFallbackNarrator(
     : benchmarks.name.toLowerCase();
 
   return {
-    executive_summary: `This analysis evaluates ${industryLabel} in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}. The LTV:CAC ratio of ${metrics.ltvCacRatio}x ${metrics.ltvCacRatio >= 3 ? 'indicates healthy unit economics' : 'suggests customer acquisition costs need optimization'}. With an initial investment of $${metrics.startupInvestment.toLocaleString()}, the projected payback period is ${metrics.paybackMonths === 999 ? 'indeterminate until profitability is achieved' : `${metrics.paybackMonths} months`}. All financial projections are computed using industry benchmarks adjusted for the ${location} market.\n\nNote: This is an exploratory analysis. Key inputs were not provided by the user and have been filled with benchmark placeholders. Treat all projections as illustrative ranges, not predictions.`,
+    executive_summary: `This analysis evaluates ${industryLabel} in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}. The LTV:CAC ratio of ${metrics.ltvCacRatio}x ${ltvCacPhrase(metrics.ltvCacRatio)}. With an initial investment of $${metrics.startupInvestment.toLocaleString()}, the projected payback period is ${metrics.paybackMonths === 999 ? 'indeterminate until profitability is achieved' : `${metrics.paybackMonths} months`}. All financial projections are computed using industry benchmarks adjusted for the ${location} market.\n\nNote: This is an exploratory analysis. Key inputs were not provided by the user and have been filled with benchmark placeholders. Treat all projections as illustrative ranges, not predictions.`,
     
     investment_verdict: verdict as NarratorOutput['investment_verdict'],
     
     key_takeaways: [
       `Monthly revenue potential of $${metrics.mrr.toLocaleString()} with ${metrics.netMarginPercent}% net margin (benchmark-derived, not user-validated)`,
-      `LTV:CAC ratio of ${metrics.ltvCacRatio}x ${metrics.ltvCacRatio >= 3 ? 'supports scalable growth' : 'requires optimization before scaling'} (based on industry reference range ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`,
+      `LTV:CAC ratio of ${metrics.ltvCacRatio}x ${ltvCacReading(metrics.ltvCacRatio) === 'healthy' ? 'supports scalable growth' : ltvCacReading(metrics.ltvCacRatio) === 'implausible' ? 'is implausibly high; confirm acquisition cost first' : 'requires optimization before scaling'} (based on industry reference range ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`,
       `Break-even requires $${metrics.breakEvenRevenue.toLocaleString()}/month in revenue`,
       metrics.isProfitable 
         ? `Year 1 ROI of ${metrics.roiYear1Percent}% — attractive if assumptions hold`
