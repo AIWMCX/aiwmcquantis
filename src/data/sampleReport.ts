@@ -146,16 +146,18 @@ export const SAMPLE_REPORT = {
     {
       id: 9,
       kicker: `Monte Carlo (${MONTE_CARLO_ITERATIONS_DISPLAY} runs)`,
-      title: 'Payback distribution',
+      title: 'Monthly profit range at steady state',
       kpis: [
-        { label: 'P10 (best case)', value: '11 months' },
-        { label: 'P25', value: '14 months' },
-        { label: 'P50 (base)', value: '18 months' },
-        { label: 'P75', value: '26 months' },
-        { label: 'P90 (worst)', value: '38 months' },
+        { label: 'P10 (low month)', value: '$8,400' },
+        { label: 'P25', value: '$9,800' },
+        { label: 'Median', value: '$11,500' },
+        { label: 'P75', value: '$13,300' },
+        { label: 'P90 (high month)', value: '$14,600' },
+        { label: 'Profitable months', value: '100%' },
       ],
       body: [
-        'Distribution is right-skewed: in 22% of runs the business never reaches break-even within 36 months, driven almost entirely by member-acquisition shortfall (< 120 paying members) compounding with $9.4k rent.',
+        'Real output of the Quantis profit-range engine on page 7: 1,000 simulated months with revenue between 80% and 120% and costs between 90% and 115% of the steady-state P&L ($28,400 revenue, $16,600 costs).',
+        'Once the space holds 180 members, even a weak month stays profitable. The range does not cover the ramp-up on page 8: reaching 180 members is the real risk (page 10).',
       ],
     },
     {
@@ -241,9 +243,9 @@ export const HEADLINE_METRICS: SampleMetric[] = [
     label: 'Payback period',
     value: SAMPLE_REPORT.metrics.paybackMonths.label,
     raw: SAMPLE_REPORT.metrics.paybackMonths.value,
-    sub: 'Base case (P50)',
+    sub: 'Base case',
     detail:
-      'Cumulative free cash flow turns positive in month 18 under the base scenario. P25 = 14mo, P75 = 26mo across the Monte Carlo runs. Page 9.',
+      'Cumulative free cash flow turns positive in month 18 under the base scenario. Page 8 shows the ramp; page 10 shows what pushes it out.',
   },
   {
     id: 'profit',

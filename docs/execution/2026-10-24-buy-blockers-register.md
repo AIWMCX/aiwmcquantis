@@ -155,7 +155,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 79 | How It Works example output not labelled | "$4,200/mo profit, 7.1 months payback, 168% ROI" vs /examples Denver coffee "$4,200/mo, 109% ROI, 12 months" | Label it illustrative and use one consistent example | DONE #326 |
 | 80 | Example reports show implausible returns | "679% ROI" consulting firm, "585% ROI" dropshipping on /examples | Hand-typed ROI removed; the page computes year-1 profit ÷ startup cost from each example's own numbers and labels it an upper bound (5 of 51 had disagreed, e.g. a mobile app showed 102% vs 31%) | DONE (PR) |
 | 81 | Example "8/10" scores have no stated scale | /examples cards | Removed: it was derived from ROI alone | DONE (PR) |
-| 82 | Homepage sample page 9 shows a payback distribution the product does not produce | Hand-authored sample shows P10–P90 payback months; the engine produces a monthly profit range | Match the sample to the real output | CODE |
+| 82 | Homepage sample page 9 shows a payback distribution the product does not produce | Hand-authored sample showed P10–P90 payback months | Page 9 now shows the real profit-range engine output on page 7 ($8,400 / $11,500 / $14,600, 100% profitable months); a test recomputes it | DONE (PR) |
 | 83 | State of Quantis "Last verified August 30" | Two months stale | Re-verify every line, then date it | CODE |
 | 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | DONE #326 |
 | 85 | Blog's last post July 2 | 19 posts; none since July | One post a week from real work (e.g. this audit) | FOUNDER |
