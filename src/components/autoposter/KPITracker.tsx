@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { calendarDate } from '@/lib/autoposter-status';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -126,12 +127,12 @@ export function KPITracker() {
                     <XAxis
                       dataKey="period_start"
                       tick={{ fontSize: 10 }}
-                      tickFormatter={(v) => format(new Date(v), 'MMM d')}
+                      tickFormatter={(v) => format(calendarDate(String(v)), 'MMM d')}
                     />
                     <YAxis tick={{ fontSize: 10 }} width={40} />
                     <Tooltip
                       contentStyle={{ fontSize: 11, background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-subtle)' }}
-                      labelFormatter={(v) => format(new Date(v as string), 'MMM d, yyyy')}
+                      labelFormatter={(v) => format(calendarDate(v as string), 'MMM d, yyyy')}
                     />
                     <Line
                       type="monotone"
