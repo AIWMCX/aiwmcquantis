@@ -266,6 +266,10 @@ export function useApproveAndSchedule() {
         const time = p.best_time_mt ?? '09:00:00';
         return { p, scheduledAt: denverWallTimeToUtcIso(input.post.post_date, time) };
       });
+      // Every LinkedIn post goes out with an image (founder rule 2026-10-27).
+      if (!input.post.asset_path && input.platforms.some((p) => p.platform === 'linkedin')) {
+        throw new Error('Attach an image first. Every LinkedIn post goes out with an image.');
+      }
       // A past time would publish the moment it is approved. Make the founder
       // pick a new date instead (2026-10-27: Oct 26/27 drafts were left behind).
       if (plan.some(({ scheduledAt }) => new Date(scheduledAt).getTime() <= Date.now())) {
@@ -343,6 +347,10 @@ export function useReschedulePlatform() {
     mutationFn: async (input: { row: AutoposterPlatformRow; date: string; time: string }) => {
       const scheduledAt = denverWallTimeToUtcIso(input.date, input.time);
       if (new Date(scheduledAt).getTime() <= Date.now()) throw new Error('Pick a time in the future.');
+      if (input.row.platform === 'linkedin') {
+        const { data: post } = await supabase.from('autoposter_posts').select('asset_path').eq('id', input.row.post_id).maybeSingle();
+        if (!post?.asset_path) throw new Error('Attach an image first. Every LinkedIn post goes out with an image.');
+      }
       const { data, error } = await supabase
         .from('autoposter_post_platforms')
         .update({ status: 'scheduled', scheduled_at: scheduledAt, error_message: null })
