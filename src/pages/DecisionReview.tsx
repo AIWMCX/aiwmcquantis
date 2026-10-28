@@ -18,6 +18,7 @@ const OFFER_ICON: Record<OfferCode, typeof FileCheck2> = {
 };
 
 const OFFERS = ENGAGEMENT_OFFERS.map((offer) => ({ ...offer, icon: OFFER_ICON[offer.code] }));
+const SCHEMA_SERVICES = ENGAGEMENT_OFFERS.map((offer) => offer.code);
 
 /** Mirrors the fields of EngagementIntake.tsx (register #92); guarded by decision-review-intake-preview.test.ts. */
 const INTAKE_PREVIEW = {
@@ -78,7 +79,7 @@ export default function DecisionReview() {
           })),
         }}
       />
-      <StructuredData includeBreadcrumbs breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Decision Review', url: '/decision-review' }]} />
+      <StructuredData includeBreadcrumbs breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Decision Review', url: '/decision-review' }]} services={SCHEMA_SERVICES} />
 
       <section className="aiwmc-section-wash py-12 md:py-20">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">Founder-assisted · fixed scope · paid upfront</p>

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { BENCHMARK_COUNT_DISPLAY, FREE_ANALYSES_PER_MONTH, GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
 import { TIERS } from '@/config/tiers';
-import { ENGAGEMENT_OFFERS } from '@/config/engagement-offers';
+import { ENGAGEMENT_OFFERS, type EngagementOfferCode } from '@/config/engagement-offers';
 
 const SITE_URL = 'https://www.aiwmcquantis.com';
 
@@ -16,13 +16,16 @@ interface StructuredDataProps {
   faqItems?: Array<{ question: string; answer: string }>;
   includeBreadcrumbs?: boolean;
   breadcrumbs?: BreadcrumbItem[];
+  /** Paid one-time offers sold on this page, emitted as Service + Offer. */
+  services?: EngagementOfferCode[];
 }
 
 export function StructuredData({ 
   includeFAQ = false, 
   faqItems = [],
   includeBreadcrumbs = false,
-  breadcrumbs = []
+  breadcrumbs = [],
+  services = []
 }: StructuredDataProps) {
   const location = useLocation();
 
@@ -177,11 +180,35 @@ export function StructuredData({
       injectSchema(breadcrumbSchema, 'schema-breadcrumb');
     }
 
+    // Service + Offer for the one-time offers this page sells. Name, price
+    // and scope come from engagement-offers.ts, the same source the page shows.
+    if (services.length > 0) {
+      const pageUrl = `${SITE_URL}${location.pathname}`;
+      const serviceSchema = ENGAGEMENT_OFFERS.filter((o) => services.includes(o.code)).map((o) => ({
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        '@id': `${pageUrl}#${o.code}`,
+        name: o.name,
+        serviceType: 'Business decision review',
+        description: `${o.cases}: ${o.included.join('; ')}.`,
+        audience: { '@type': 'Audience', audienceType: o.audience },
+        provider: { '@id': `${SITE_URL}/#organization` },
+        offers: {
+          '@type': 'Offer',
+          price: String(o.price),
+          priceCurrency: 'USD',
+          url: pageUrl,
+          availability: 'https://schema.org/InStock',
+        },
+      }));
+      injectSchema(serviceSchema, 'schema-services');
+    }
+
     // Cleanup on unmount
     return () => {
       scripts.forEach(script => script.remove());
     };
-  }, [includeFAQ, faqItems, includeBreadcrumbs, breadcrumbs, location.pathname]);
+  }, [includeFAQ, faqItems, includeBreadcrumbs, breadcrumbs, services, location.pathname]);
 
   return null;
 }
