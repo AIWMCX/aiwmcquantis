@@ -697,3 +697,10 @@ export const EXAMPLE_LIST = Object.entries(EXAMPLE_ANALYSES).map(([slug, data]) 
   profit: data.metrics.monthlyProfit,
   yearOneReturn: yearOneReturn(data.metrics),
 }));
+
+/** Real counts for page copy (SEO audit 2026-10-27: the page claimed "50+ cities"). Online/remote examples are not cities. */
+export const EXAMPLE_COUNTS = {
+  examples: EXAMPLE_LIST.length,
+  industries: new Set(EXAMPLE_LIST.map((e) => e.industry)).size,
+  cities: new Set(EXAMPLE_LIST.map((e) => e.location).filter((l) => !/^(online|remote) /i.test(l))).size,
+};

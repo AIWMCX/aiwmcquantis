@@ -26,7 +26,7 @@ describe('truth pass 2026-10-25', () => {
 
   it('city coverage matches the geo table, never "50+ cities" as a product capability', () => {
     expect(GEO_COEFFICIENTS.length - 1).toBe(GEO_METRO_COUNT);
-    const allowed = new Set(['src/pages/examples/ExamplesIndex.tsx']); // the example set itself spans 50+ cities
+    const allowed = new Set(['src/pages/examples/ExamplesIndex.tsx']); // shows the example set's own computed city count (EXAMPLE_COUNTS)
     const hits = files.filter((p) => !allowed.has(p.replace(/\\/g, '/')) && codeLines(p).some((l) => /50\+ cities/.test(l)));
     expect(hits).toEqual([]);
   });
