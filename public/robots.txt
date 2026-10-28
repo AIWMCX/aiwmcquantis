@@ -36,7 +36,6 @@ Disallow: /reset-password
 Disallow: /api/
 Disallow: /*?ref=
 Disallow: /*?source=
-Crawl-delay: 1
 
 # Sitemap location
 Sitemap: https://www.aiwmcquantis.com/sitemap.xml
