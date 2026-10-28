@@ -10,6 +10,7 @@ import { ENGAGEMENT_OFFERS } from '@/config/engagement-offers';
 import { FREE_ANALYSES_PER_MONTH, LEGAL_ENTITY_NAME } from '@/config/canonical-facts';
 
 const PILOT = ENGAGEMENT_OFFERS.find((o) => o.code === 'consultant_founding_pilot')!;
+const SCHEMA_SERVICES = [PILOT.code];
 
 /**
  * /consultants — one advisor workflow, in the Sadewa layer.
@@ -106,6 +107,7 @@ export default function Consultants() {
           { name: 'Home', url: '/' },
           { name: 'For Advisors', url: '/consultants' },
         ]}
+        services={SCHEMA_SERVICES}
       />
 
       <RmgHeader />
