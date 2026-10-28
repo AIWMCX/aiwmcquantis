@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
-import { EXAMPLE_LIST, EXAMPLE_ANALYSES, YEAR_ONE_RETURN_NOTE } from './exampleData';
+import { EXAMPLE_LIST, EXAMPLE_ANALYSES, EXAMPLE_COUNTS, YEAR_ONE_RETURN_NOTE } from './exampleData';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
@@ -61,8 +61,8 @@ export default function ExamplesIndex() {
   return (
     <PublicPageShell active="examples" maxWidth="xl">
       <PageSEO
-        title="50+ Business Analysis Examples — Real AI Reports by City & Industry"
-        description="See complete deterministic-engine financial reports for coffee shops, gyms, SaaS, restaurants, dental clinics and more across 50+ cities. Revenue projections, risk flags, and action plans."
+        title={`${EXAMPLE_COUNTS.examples} Illustrative Business Analysis Examples by City & Industry`}
+        description={`Illustrative Quantis reports for coffee shops, gyms, SaaS, restaurants, clinics and more across ${EXAMPLE_COUNTS.cities} cities: revenue, costs, risks and action plans.`}
         canonical="/examples"
         jsonLd={{
           "@context": "https://schema.org",
@@ -76,9 +76,9 @@ export default function ExamplesIndex() {
 
       <section aria-labelledby="examples-hero-heading" className="aiwmc-section-wash py-10 md:py-14">
         <SectionHeader
-          eyebrow={`${EXAMPLE_LIST.length}+ Sample Reports`}
+          eyebrow={`${EXAMPLE_COUNTS.examples} illustrative reports`}
           title="Business Analysis Examples"
-          subtitle={`Illustrative example reports across ${industries.length}+ industries and 50+ cities. Each page is a full analysis — see what you'll get before analyzing your own idea.`}
+          subtitle={`Illustrative example reports across ${EXAMPLE_COUNTS.industries} industries and ${EXAMPLE_COUNTS.cities} cities. Each page is a full analysis — see what you'll get before analyzing your own idea.`}
         />
       </section>
 
