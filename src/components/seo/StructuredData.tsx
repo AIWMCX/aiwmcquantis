@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { BENCHMARK_COUNT_DISPLAY, FREE_ANALYSES_PER_MONTH, GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
+import { TIERS } from '@/config/tiers';
+import { ENGAGEMENT_OFFERS } from '@/config/engagement-offers';
 
 const SITE_URL = 'https://www.aiwmcquantis.com';
 
@@ -30,8 +32,8 @@ export function StructuredData({
       '@context': 'https://schema.org',
       '@type': 'Organization',
       '@id': `${SITE_URL}/#organization`,
-      name: 'AIWMC™ LLC',
-      alternateName: 'AIWMC Quantis',
+      name: 'AIWMC Quantis',
+      legalName: 'AIWMC LLC',
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
@@ -39,10 +41,8 @@ export function StructuredData({
         width: 1200,
         height: 630
       },
-      description: 'AI-powered business validation platform. Stress-test your startup idea before you commit capital.',
-      slogan: 'AI-powered business validation. Stress-test your startup idea before you commit capital.',
+      description: 'Test a business decision before you fund it: explicit assumptions, deterministic cash, break-even and payback math, and downside scenarios.',
       email: 'support@aiwmcquantis.com',
-      foundingDate: '2024',
       founder: {
         '@type': 'Person',
         name: 'Bogdan Jeltov'
@@ -52,9 +52,17 @@ export function StructuredData({
         minValue: 1,
         maxValue: 10
       },
+      // Official profiles (same as the footer). The Facebook link is a share
+      // redirect, not a profile URL, so it is left out.
       sameAs: [
         'https://www.linkedin.com/company/aiwmc/',
-        'https://x.com/aiwmcx1'
+        'https://x.com/aiwmcx1',
+        'https://t.me/AIWMC',
+        'https://www.instagram.com/wmc.ai',
+        'https://www.threads.com/@wmc.ai',
+        'https://www.youtube.com/@AIWMCX',
+        'https://github.com/AIWMCX',
+        'https://whop.com/aiwmc'
       ],
       contactPoint: {
         '@type': 'ContactPoint',
@@ -68,10 +76,11 @@ export function StructuredData({
         addressRegion: 'CO',
         addressCountry: 'US'
       },
-      keywords: 'Business Validation, Startup Tools, AI Financial Modeling, Risk Assessment, Scenario Analysis, Entrepreneurship, Solo Founder Tools, SaaS, Startup Strategy, Business Intelligence, Early-Stage Startups, Venture Validation'
+      keywords: 'Business Decision Analysis, Financial Modeling, Scenario Analysis, Break-Even, Payback, Hiring Decisions, Fractional CFO Tools'
     };
 
-    // SoftwareApplication Schema — enriched per SEO v3
+    // SoftwareApplication Schema — every claim from config (SEO audit 2026-10-27
+    // removed "12 financial variables", multi-model consensus, team workspaces).
     const softwareSchema = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
@@ -80,47 +89,28 @@ export function StructuredData({
       applicationCategory: 'BusinessApplication',
       applicationSubCategory: 'Financial Analysis',
       operatingSystem: 'Web',
-      browserRequirements: 'Requires JavaScript. Works in Chrome, Firefox, Safari, Edge.',
-      softwareVersion: '2.0',
-      description: `AI-powered business validation platform that stress-tests business decisions across 12 financial variables with deterministic calculations and a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid (modeled cells, not observed companies).`,
+      description: `Tests a business decision with deterministic cash, break-even and payback calculations, base/downside/upside scenarios, and benchmark defaults from a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid (modeled cells, not observed companies).`,
       url: SITE_URL,
       screenshot: `${SITE_URL}/og-image.png`,
-      datePublished: '2024-06-01',
-      dateModified: '2026-03-25',
       author: { '@id': `${SITE_URL}/#organization` },
       publisher: { '@id': `${SITE_URL}/#organization` },
       offers: [
-        {
-          '@type': 'Offer',
-          name: 'Free',
-          price: '0',
-          priceCurrency: 'USD',
-          availability: 'https://schema.org/InStock',
-          description: `${FREE_ANALYSES_PER_MONTH} complete Decision Runs per month, each with the full analysis, Monte Carlo simulation, and failure pre-mortem`
-        },
-        {
-          '@type': 'Offer',
-          name: 'Plus',
-          price: '17',
-          priceCurrency: 'USD',
-          priceValidUntil: '2026-12-31',
-          availability: 'https://schema.org/InStock',
-          description: 'Unlimited analyses with PDF export, document studio, custom branding, and priority support'
-        }
+        { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: `${FREE_ANALYSES_PER_MONTH} complete Decision Runs per month` },
+        { '@type': 'Offer', name: 'Plus', price: String(TIERS.plus.priceMonthly), priceCurrency: 'USD', description: 'Unlimited analyses, PDF export, scenarios and decision tools (per month)' },
+        { '@type': 'Offer', name: 'Pro', price: String(TIERS.pro.priceMonthly), priceCurrency: 'USD', description: 'Everything in Plus, with investor-ready outputs (per month)' },
+        ...ENGAGEMENT_OFFERS.map((o) => ({ '@type': 'Offer', name: o.name, price: String(o.price), priceCurrency: 'USD', url: `${SITE_URL}/decision-review`, description: `One-time, founder-assisted: ${o.cases}` })),
       ],
       featureList: [
-        'Financial Pre-Mortem Analysis',
-        '3-Scenario Revenue Projections',
-        'Unit Economics Calculator (CAC, LTV, Payback)',
-        'Monte Carlo Risk Simulation',
-        'Benchmark defaults from a 97,500-cell modeled coverage grid',
+        'Financial pre-mortem',
+        'Base, downside and upside scenarios',
+        'Cash, break-even and payback reconciliation',
+        'Unit economics (CAC, LTV, payback)',
+        '1,000-iteration monthly profit range (P10/P50/P90)',
+        `Benchmark defaults from a ${BENCHMARK_COUNT_DISPLAY}-cell modeled coverage grid`,
         `Location-adjusted cost estimates (${GEO_COVERAGE_DISPLAY})`,
-        'Sensitivity & Tornado Analysis',
-        'Document Studio (Business Plans, Pitch Decks, NDAs)',
-        'PDF Export with Custom Branding',
-        'Multi-Model Consensus Validation',
-        'Real-Time Risk Flags & Anomaly Detection',
-        'Collaborative Team Workspaces'
+        'Risk flags',
+        'Document Studio',
+        'PDF export'
       ]
     };
 
@@ -131,17 +121,9 @@ export function StructuredData({
       '@id': `${SITE_URL}/#website`,
       name: 'AIWMC Quantis',
       url: SITE_URL,
-      description: 'AI-powered business validation platform — stress-test any startup idea',
+      description: 'Test a business decision before you fund it',
       publisher: { '@id': `${SITE_URL}/#organization` },
-      inLanguage: 'en-US',
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${SITE_URL}/blog?q={search_term_string}`
-        },
-        'query-input': 'required name=search_term_string'
-      }
+      inLanguage: 'en-US'
     };
 
     // Create and inject script tags

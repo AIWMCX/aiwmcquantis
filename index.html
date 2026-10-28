@@ -198,7 +198,9 @@
   
   
 
-  <!-- JSON-LD Structured Data — SoftwareApplication -->
+  <!-- JSON-LD — SoftwareApplication. Prices must match src/config (guarded by
+       seo-schema-truth.test.ts). No site-wide FAQPage: FAQ markup is added per page
+       from that page's visible FAQ, never sitewide (SEO audit 2026-10-27). -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -207,93 +209,15 @@
     "url": "https://www.aiwmcquantis.com",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
-    "description": "AI-powered business idea validator that stress-tests a business decision with deterministic financial calculations, 1,000 scenario iterations and a 97,500-cell modeled coverage grid (modeled cells, not observed companies), producing a financial pre-mortem.",
+    "description": "Tests a business decision with deterministic cash, break-even and payback calculations, base/downside/upside scenarios, and benchmark defaults from a 97,500-cell modeled coverage grid (modeled cells, not observed companies).",
     "offers": [
-      {
-        "@type": "Offer",
-        "name": "Free",
-        "price": "0",
-        "priceCurrency": "USD",
-        "description": "5 complete Decision Runs per month, each with the full 36-month analysis, Monte Carlo simulation, and failure pre-mortem"
-      },
-      {
-        "@type": "Offer",
-        "name": "Plus",
-        "price": "17",
-        "priceCurrency": "USD",
-        "priceSpecification": {
-          "@type": "UnitPriceSpecification",
-          "billingDuration": "P1M"
-        },
-        "description": "Unlimited analyses, Monte Carlo, 36-month P&L, TAM/SAM/SOM, Pre-Mortem, Invoice Capacity"
-      },
-      {
-        "@type": "Offer",
-        "name": "Pro",
-        "price": "49",
-        "priceCurrency": "USD",
-        "priceSpecification": {
-          "@type": "UnitPriceSpecification",
-          "billingDuration": "P1M"
-        },
-        "description": "Everything in Plus plus 5-Year Model, Pitch Deck Package, Strategic Roadmap, White-Label PDF, Team Seats"
-      }
+      { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD", "description": "5 complete Decision Runs per month" },
+      { "@type": "Offer", "name": "Plus", "price": "17", "priceCurrency": "USD", "description": "Unlimited analyses, PDF export, scenarios and decision tools (per month)" },
+      { "@type": "Offer", "name": "Pro", "price": "49", "priceCurrency": "USD", "description": "Everything in Plus, with investor-ready outputs (per month)" },
+      { "@type": "Offer", "name": "Founder Decision Review", "price": "349", "priceCurrency": "USD", "url": "https://www.aiwmcquantis.com/decision-review", "description": "One-time, founder-assisted: 1 decision" },
+      { "@type": "Offer", "name": "Consultant Founding Pilot", "price": "499", "priceCurrency": "USD", "url": "https://www.aiwmcquantis.com/decision-review", "description": "One-time, founder-assisted: 2 client cases" }
     ],
-    "creator": {
-      "@type": "Organization",
-      "name": "AIWMC LLC",
-      "url": "https://www.aiwmcquantis.com"
-    }
-  }
-  </script>
-
-  <!-- JSON-LD Structured Data — FAQPage -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is AIWMC Quantis?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "AIWMC Quantis is an AI-powered business idea validator that runs deterministic financial calculations and 1,000 scenario iterations, compares inputs against a 97,500-cell modeled coverage grid (modeled cells, not observed companies), and produces a financial pre-mortem report."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How accurate is the analysis?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Quantis runs deterministic calculations first, then 1,000 scenario iterations with P10/P50/P90 modeled ranges. Benchmark defaults come from a 97,500-cell modeled coverage grid, not observed companies, and are labeled so you can replace them with your own numbers. Quantis does not predict or guarantee outcomes."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What is a Pre-Mortem stress test?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "A Pre-Mortem imagines your business has already failed and works backward to identify the most likely causes. Quantis automates this by simulating churn shocks, cost spikes, customer concentration risk, and 12 other failure modes."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Is there a free plan?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes. The Free plan includes 5 complete Decision Runs per month, each with the full financial analysis, Monte Carlo simulation, failure pre-mortem, and scenario comparison. No credit card required."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What does the Plus plan include?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Plus ($17/mo) includes unlimited analyses, 1,000-scenario Monte Carlo, 36-month P&L projections, TAM/SAM/SOM market sizing, Pre-Mortem stress tests, Invoice & Capacity Check, Document Studio with 10 templates, and custom branded PDF exports."
-        }
-      }
-    ]
+    "publisher": { "@type": "Organization", "name": "AIWMC Quantis", "legalName": "AIWMC LLC", "url": "https://www.aiwmcquantis.com" }
   }
   </script>
   
@@ -352,8 +276,8 @@
           <h2>How Quantis Works — 3 Steps to Financial Clarity</h2>
           <h3>Step 1: Describe Your Business Idea</h3>
           <p>Enter your business concept and target location. No financial background required — just your idea in plain language. Example: "Coffee shop with remote work focus in Denver, Colorado."</p>
-          <h3>Step 2: AI Runs Financial Stress Tests</h3>
-          <p>Our deterministic engine calculates 12 financial variables using 97,500 industry benchmarks, adjusted for your specific city. It runs Monte Carlo simulations with P10/P50/P90 percentile projections across revenue, costs, unit economics, and break-even timeline.</p>
+          <h3>Step 2: The Engine Runs the Numbers</h3>
+          <p>A deterministic engine calculates cash, break-even, payback and unit economics from your inputs, filling gaps with labeled defaults from a 97,500-cell modeled coverage grid (modeled cells, not observed companies), location-adjusted where supported. It then builds a monthly profit range (P10/P50/P90) from 1,000 modeled months.</p>
           <h3>Step 3: Get Your Risk Report &amp; Action Plan</h3>
           <p>Receive 3-scenario projections (conservative, realistic, optimistic), risk flags with severity ratings, and a clear action plan. Each input is labeled as your input, a benchmark default, or an assumption.</p>
           <p><strong>What you get:</strong> Revenue projections, cost breakdown, break-even timeline, LTV:CAC ratio, risk flags, competitive landscape, and a step-by-step launch checklist.</p>
@@ -388,7 +312,7 @@
           <h3>Deterministic Financial Engine</h3>
           <p>Every projection uses a deterministic math engine — not AI hallucination. The engine calculates 12 financial variables: revenue, COGS, gross margin, operating expenses, net profit, break-even month, startup investment, payback period, LTV, CAC, LTV:CAC ratio, and monthly burn rate.</p>
           <h3>Monte Carlo Simulation</h3>
-          <p>Each analysis runs 1,000 Monte Carlo simulations to produce P10 (pessimistic), P50 (realistic), and P90 (optimistic) projections. Revenue volatility, seasonality coefficients, and cost variance are modeled per industry and location.</p>
+          <p>Each report builds a monthly profit range from 1,000 modeled months that vary the report's own revenue (80% to 120%) and costs (90% to 115%), and shows P10, P50 and P90. It is a range of modeled outcomes, not a prediction.</p>
           <h3>8-Layer AI Safety Architecture</h3>
           <ul>
             <li>Layer 1: Input sanitization &amp; business type classification</li>
