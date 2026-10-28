@@ -56,7 +56,7 @@ export default function ExampleAnalysis() {
       "author": { "@type": "Organization", "name": "AIWMC Quantis" },
       "publisher": { "@type": "Organization", "name": "AIWMC Quantis" },
       "datePublished": "2026-02-25",
-      "mainEntityOfPage": `https://aiwmcquantis.com/examples/${slug}`,
+      "mainEntityOfPage": `https://www.aiwmcquantis.com/examples/${slug}`,
     },
     {
       "@context": "https://schema.org",
@@ -64,7 +64,7 @@ export default function ExampleAnalysis() {
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.aiwmcquantis.com" },
         { "@type": "ListItem", "position": 2, "name": "Examples", "item": "https://www.aiwmcquantis.com/examples" },
-        { "@type": "ListItem", "position": 3, "name": data.title, "item": `https://aiwmcquantis.com/examples/${slug}` },
+        { "@type": "ListItem", "position": 3, "name": data.title, "item": `https://www.aiwmcquantis.com/examples/${slug}` },
       ],
     },
   ];

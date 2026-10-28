@@ -41,6 +41,13 @@ export default function ExamplesIndex() {
     setVisibleCount(INITIAL_VISIBLE);
   }, [search, selectedIndustry]);
 
+  // Every example as a plain link, grouped by industry, so crawlers and
+  // keyboard users reach all of them without pressing "Load more".
+  const byIndustry = useMemo(
+    () => industries.map((ind) => [ind, EXAMPLE_LIST.filter((e) => e.industry === ind)] as const),
+    [industries],
+  );
+
   const visibleSlice = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
 
@@ -196,6 +203,28 @@ export default function ExamplesIndex() {
           </Button>
         </div>
       )}
+
+      <section aria-labelledby="all-examples" className="mb-12">
+        <h2 id="all-examples" className="text-lg font-bold mb-4" style={{ color: 'hsl(var(--foreground))' }}>
+          All {EXAMPLE_COUNTS.examples} examples by industry
+        </h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+          {byIndustry.map(([ind, list]) => (
+            <div key={ind}>
+              <h3 className="text-xs uppercase tracking-[0.14em] mb-1" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>{ind}</h3>
+              <ul className="space-y-1">
+                {list.map((ex) => (
+                  <li key={ex.slug}>
+                    <Link to={`/examples/${ex.slug}`} className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+                      {ex.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Closing CTA — glass, matches site-wide pattern */}
       <section className="py-8 md:py-12">
