@@ -1,21 +1,39 @@
 # AIWMC Quantis
 
-> AI-powered business validation. Stress-test any startup idea against a 97,500-cell modeled coverage grid (modeled cells, not observed companies) — deterministic financial engine, Monte Carlo risk simulation, location-adjusted unit economics. Built by AIWMC™ LLC.
+> Test a business decision before you fund it. Quantis turns a decision (a hire, a new location, a price change, a new business) into explicit assumptions and deterministic cash, break-even and payback math, with base, downside and upside scenarios. Built by AIWMC LLC.
 
-Quantis runs a deterministic financial engine over your business idea (industry, location, pricing, costs) and returns: 3-scenario revenue projections, break-even timeline, LTV:CAC, risk flags, and a Monte Carlo distribution. Financial outputs are calculated deterministically before any AI narration; benchmark defaults come from a modeled grid informed by SEC XBRL filings, World Bank enterprise surveys, and industry modeling, and are labeled as defaults. Free tier gives one full analysis; Plus ($17/mo) unlocks unlimited runs, PDF export, and Document Studio.
+Financial figures are calculated by a deterministic engine before any AI writes narration. Each report includes a 1,000-iteration monthly profit range (P10/P50/P90) that varies the report's own revenue and costs; it is a range of modeled months, not a prediction. Benchmark defaults come from a 97,500-cell modeled coverage grid (modeled cells, not observed companies) and are labeled so users can replace them with their own numbers. Quantis does not guarantee outcomes.
+
+## Plans and offers
+
+- Free ($0): 5 complete Decision Runs per month.
+- Plus ($17/month or $168/year): unlimited analyses, PDF export, scenarios and decision tools.
+- Pro ($49/month or $492/year): everything in Plus, with investor-ready outputs.
+- [Founder Decision Review](/decision-review) ($349, one-time): one active founder decision; 30-minute intake, fact/assumption/unknown register, base/downside/upside scenarios, cash/break-even/payback reconciliation, Decision Memo, live review and one revision.
+- [Consultant Founding Pilot](/decision-review) ($499, one-time): two client cases within 30 days, for consultants, fractional CFOs and advisors.
+
+## Try it without signing up
+
+- [Hiring decision demo](/demo/hiring-decision): can the business carry another employee? Cash low point and payback month for a hire.
+- [Founder decision review demo](/demo/founder-decision-review): what has to be true for a decision to work.
+- [Sample decision memo](/demo/sample-decision-memo): what a finished Decision Memo looks like.
+- [Consultant pilot demo](/demo/consultant-founding-pilot): capacity and economics for a consultant's client case.
+- [Start a free Decision Run](/app)
 
 ## Pages
 
 - [Home](/): What Quantis does and who it's for.
-- [How It Works](/how-it-works): 3-step flow from idea to risk report.
-- [Pricing](/pricing): Free vs Plus ($17/mo) vs Pro ($49/mo) tiers.
-- [Methodology](/methodology): Data sources, formulas, confidence scoring.
-- [Use Cases](/use-cases): Founder, consultant, investor, and operator workflows.
-- [Examples](/examples): 50+ worked analyses across industries and cities.
-- [Risk Gallery](/risk-gallery): Common failure patterns surfaced by the engine.
-- [Research](/research): Benchmark studies and accuracy reports.
-- [Blog](/blog): Articles on validation, unit economics, and pre-mortem thinking.
-- [Leaderboard](/leaderboard): Top recent analyses by score.
+- [How It Works](/how-it-works): From decision to modeled scenarios and memo.
+- [Pricing](/pricing): Free, Plus and Pro.
+- [For Consultants](/consultants): Stress-test a client recommendation.
+- [Methodology](/methodology): Formulas, modeled benchmark cells, scenarios, confidence levels and known limitations.
+- [State of Quantis](/state-of-quantis): What Quantis does, what it does not guarantee, and known issues.
+- [Use Cases](/use-cases): Founder, consultant and investor workflows.
+- [Examples](/examples): Illustrative example reports across industries and cities (examples, not client results).
+- [Risk Gallery](/risk-gallery): Common failure patterns Quantis tests for.
+- [Research](/research): Data sources and methodology notes.
+- [Blog](/blog): Guides on startup costs, unit economics and decision-making.
+- [Comparisons](/vs/chatgpt): Quantis compared with ChatGPT, LivePlan, Upmetrics and others.
 - [Changelog](/changelog): Release notes.
 
 ## Trust
@@ -25,7 +43,3 @@ Quantis runs a deterministic financial engine over your business idea (industry,
 - [Terms of Service](/terms)
 - [Refund Policy](/refund-policy)
 - [Status](/status): Service health.
-
-## Optional
-
-- [Cases Browser](/cases): Reference table of analysis cases.
