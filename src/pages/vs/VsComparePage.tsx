@@ -49,7 +49,7 @@ export default function VsComparePage() {
           '@type': 'WebPage',
           name: title,
           description,
-          url: `https://aiwmcquantis.com${canonical}`,
+          url: `https://www.aiwmcquantis.com${canonical}`,
           mainEntity: {
             '@type': 'FAQPage',
             mainEntity: page.faqs.map((f) => ({

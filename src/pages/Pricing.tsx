@@ -30,7 +30,7 @@ export default function Pricing() {
           '@type': 'WebPage',
           name: 'AIWMC™ Quantis Pricing',
           description: `Simple pricing for serious founders. Free (${FREE_ANALYSES_PER_MONTH}/mo) · Plus $${TIERS.plus.priceMonthly}/mo · Pro $${TIERS.pro.priceMonthly}/mo.`,
-          url: 'https://aiwmcquantis.com/pricing',
+          url: 'https://www.aiwmcquantis.com/pricing',
         }}
       />
       <StructuredData
