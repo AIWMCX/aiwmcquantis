@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { calendarDate } from '@/lib/autoposter-status';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -78,7 +79,7 @@ export function PostArchive() {
             <Card key={post.id} className="p-4">
               <div className="flex items-start gap-4">
                 <div className="shrink-0 text-center w-20">
-                  <div className="text-sm font-mono">{format(new Date(post.post_date), 'MMM d')}</div>
+                  <div className="text-sm font-mono">{format(calendarDate(post.post_date), 'MMM d')}</div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">

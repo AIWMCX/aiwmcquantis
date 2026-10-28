@@ -102,6 +102,16 @@ export function publishedUrlFor(row: { platform: string; published_url?: string 
   return row.platform === 'linkedin' ? linkedinUrlFromUrn(row.platform_post_id) : null;
 }
 
+/**
+ * A calendar date ("2026-10-28") as a local-midnight Date for display.
+ * new Date("2026-10-28") is UTC midnight, which is Oct 27 in Denver, so the
+ * queue showed every post a day before the day it publishes.
+ */
+export function calendarDate(value: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+}
+
 /** "2026-10-19T16:00:00Z" -> { date: "2026-10-19", time: "10:00" } in America/Denver. */
 export function toDenverParts(iso: string): { date: string; time: string } {
   const f = new Intl.DateTimeFormat('en-CA', {

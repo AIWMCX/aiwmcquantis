@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { calendarDate } from '@/lib/autoposter-status';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -84,7 +85,7 @@ export function PostQueue() {
     endNext.setDate(endNext.getDate() + 14);
 
     return posts.filter((p) => {
-      const d = new Date(p.post_date);
+      const d = calendarDate(p.post_date);
       if (filter === 'thisWeek' && (d < start || d >= endThis)) return false;
       if (filter === 'nextWeek' && (d < endThis || d >= endNext)) return false;
       if (search && !`${p.hook} ${p.content_brief} ${p.post_type ?? ''}`.toLowerCase().includes(search.toLowerCase())) return false;
@@ -168,7 +169,7 @@ export function PostQueue() {
                       W{post.week_number ?? '?'} D{post.day_number ?? '?'}
                     </div>
                     <div className="text-sm font-mono mt-1">
-                      {format(new Date(post.post_date), 'MMM d')}
+                      {format(calendarDate(post.post_date), 'MMM d')}
                     </div>
                   </div>
 
