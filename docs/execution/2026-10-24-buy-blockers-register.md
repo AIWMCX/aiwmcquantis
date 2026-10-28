@@ -259,4 +259,4 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 148 | No "what changed since last run" for returning users | — | Diff between runs | CODE |
 | 149 | No public roadmap | — | A short roadmap from this register | FOUNDER |
 | 150 | This register, round 2 | — | Read by the nightly audit | DONE |
-| 151 | Implausible LTV:CAC shown as "healthy" | Live 2026-10-26 grooming run: "LTV:CAC 79.3x indicates healthy unit economics" | Flag LTV:CAC above ~20x as a likely CAC input problem, like the payroll flag | CODE |
+| 151 | Implausible LTV:CAC shown as "healthy" | Live 2026-10-26 grooming run: "LTV:CAC 79.3x indicates healthy unit economics" | Above 20x the summary and narrator say "implausibly high, check CAC" instead of "healthy" (`ltv-cac-language.ts`); the calculator flag and validator rule already existed | DONE (PR) |
