@@ -114,7 +114,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
         ],
         bullets: [
           'Median commercial rent on a 1,000–1,500 sq ft retail space in LoHi: $4,000–$5,500/month, NNN, with $30–$60/sq ft annual rates depending on frontage.',
-          'Walk Score 92, Bike Score 85 — both directly correlate with morning-rush coffee revenue per a 2024 Specialty Coffee Association study.',
+          'Walkability and bike access drive morning-rush coffee traffic. Check the Walk Score of the exact address before signing.',
           'Tenant build-out concessions are rare in LoHi after 2023; budget the full equipment + buildout cost up front rather than amortizing against rent.',
           'Adjacent neighborhoods (Sunnyside, Jefferson Park) offer 25–35% lower rent for ~60% of the foot traffic — a defensible alternative if the LoHi math does not pencil out.',
         ],
@@ -128,7 +128,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
           { label: 'Payroll (2 baristas + owner-operator)', value: '$3,200', note: 'Net of owner draw; full burden if hiring out is +$1,400' },
           { label: 'Utilities + WiFi + POS', value: '$520', note: 'Includes 200 Mbps business fiber' },
           { label: 'Insurance + permits + licensing', value: '$340', note: 'Amortized monthly' },
-          { label: 'Marketing (loyalty app, ads, content)', value: '$420', note: '~2.3% of revenue — light by SCA benchmark' },
+          { label: 'Marketing (loyalty app, ads, content)', value: '$420', note: '~2.3% of revenue — light for a new café that needs to be found' },
           { label: 'Reserve + miscellaneous', value: '$140', note: 'Equipment repair sinking fund' },
         ],
         footnote: 'Total monthly OpEx ≈ $14,300; gross profit ≈ $4,200/mo at the base case. Pessimistic case (rent +10%, ticket −8%) drops monthly profit to ≈ $1,100. Optimistic case (loyalty conversion 45%+, weekend uplift) drives profit to ≈ $7,400.',
@@ -136,7 +136,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       unitEconomics: {
         heading: 'Unit Economics — The Numbers That Decide Whether This Survives',
         bullets: [
-          { label: 'Average ticket', value: '$5.60', explainer: 'Drink + occasional pastry; lower than Seattle/Portland averages, in line with Denver SCA city data.' },
+          { label: 'Average ticket', value: '$5.60', explainer: 'Drink + occasional pastry. An assumption: check it against nearby menus.' },
           { label: 'Daily transactions to break even', value: '~85 / day', explainer: 'Below this, fixed costs eat all of contribution margin.' },
           { label: 'Daily transactions at target', value: '~110 / day', explainer: 'Achievable in LoHi at peak season — slower Q1 needs to be modeled.' },
           { label: 'Customer acquisition cost (CAC)', value: '$3–$8', explainer: 'Loyalty app referrals + local social. Paid acquisition rarely pays back in single-shop hospitality.' },

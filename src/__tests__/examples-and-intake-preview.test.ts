@@ -47,3 +47,18 @@ describe('decision review intake preview', () => {
     }
   });
 });
+
+// 2026-10-27: the Denver deep-dive cited "a 2024 Specialty Coffee Association
+// study" and "SCA" data that were never sourced.
+describe('example deep-dives make no unsourced attributions', () => {
+  it('names no study or association as a source', () => {
+    for (const f of ['exampleData.ts', 'exampleDataExpanded.ts']) {
+      const src = readFileSync(`src/pages/examples/${f}`, 'utf8');
+      expect(src).not.toMatch(/Specialty Coffee Association|\bSCA\b|per a \d{4}|study\./);
+    }
+  });
+
+  it('labels deep-dive figures as estimates', () => {
+    expect(readFileSync('src/pages/examples/ExampleAnalysis.tsx', 'utf8')).toContain('not sourced statistics');
+  });
+});

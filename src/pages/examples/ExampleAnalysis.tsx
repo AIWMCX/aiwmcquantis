@@ -215,6 +215,9 @@ export default function ExampleAnalysis() {
             Renders only when `deepDive` is populated on this example. */}
         {data.deepDive && (
           <>
+            <p className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground" data-testid="deep-dive-estimates-note">
+              Market and location figures below are Quantis estimates for this illustrative example, not sourced statistics. Check them locally before you rely on them.
+            </p>
             {/* Market Overview */}
             <section className="mb-10" aria-labelledby="market-overview-heading">
               <h2 id="market-overview-heading" className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
