@@ -21,6 +21,11 @@ export interface WhatHasToBeTrueInput {
   costsInconsistent: boolean;
   /** Months for cumulative profit to recover the startup investment (>= 99 = never). */
   paybackMonths: number;
+  /**
+   * Payback if revenue and costs stay at the month-6 level instead of growing
+   * 5% / 2.5% a month (>= 99 = not within 5 years). Omitted when unknown.
+   */
+  flatPaybackMonths?: number | null;
   /** Months of cash the plan shows. */
   runwayMonths: number;
   /** Headlines of the risks that would break the plan, most serious first. */
@@ -53,6 +58,12 @@ export function whatHasToBeTrue(i: WhatHasToBeTrueInput): string[] {
       lines.push(`The investment pays back in about ${p} months, so the plan has to hold for that long.`);
     } else {
       lines.push(`The investment pays back in about ${p} months, but the cash shown lasts about ${i.runwayMonths}. The gap has to be funded.`);
+    }
+    if (p > 6 && i.flatPaybackMonths != null && Math.ceil(i.flatPaybackMonths) !== p) {
+      const flat = i.flatPaybackMonths < 99
+        ? `about ${Math.ceil(i.flatPaybackMonths)} months`
+        : 'more than 5 years';
+      lines.push(`That payback assumes revenue keeps growing 5% a month after month 6 (costs 2.5%). If revenue stays at the month-6 level, payback takes ${flat}.`);
     }
   }
 
