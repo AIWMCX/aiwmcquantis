@@ -121,9 +121,17 @@ export function calculateStrictFinancials(
   // 5% churn on 10 clients needed 50 new clients/month, and with no total
   // costs supplied, a +$7,000/mo business became -$17,500/mo. Convert once,
   // here. Internal value stays a fraction (default 8% = 0.08).
+  // No churn typed: 1 / the industry's client lifetime (consulting 24 months
+  // = 4.2%), not a generic 8%. Found 2026-10-29: acquisition spend used 8%
+  // while LTV used the 24-month lifetime, so one report called the unit
+  // economics "4.7x, strong" next to a negative contribution margin. One
+  // churn figure now drives both (see effectiveLifetime below).
+  const benchmarkLifetime = benchmarks.client_lifetime_months;
   let effectiveChurnRate = typeof userProvidedChurnRate === 'number' && Number.isFinite(userProvidedChurnRate)
     ? Math.min(Math.max(userProvidedChurnRate, 0), 100) / 100
-    : 0.08; // Default 8% monthly
+    : typeof benchmarkLifetime === 'number' && Number.isFinite(benchmarkLifetime) && benchmarkLifetime > 0
+      ? 1 / benchmarkLifetime
+      : 0.08; // last resort when the benchmark has no lifetime
 
   if (subIndustry && subIndustry.confidence > 50) {
     const modified = applySubIndustryModifiers(
@@ -274,12 +282,17 @@ export function calculateStrictFinancials(
   const lifetimeFromChurn = userChurnFraction === null
     ? null
     : userChurnFraction <= 0 ? LIFETIME_CAP_MONTHS : Math.min(LIFETIME_CAP_MONTHS, 1 / userChurnFraction);
+  // Without a typed churn, lifetime = 1 / the same churn the acquisition
+  // spend below uses, so LTV:CAC and the margin can't tell different stories.
+  const modeledLifetime = effectiveChurnRate > 0
+    ? Math.min(LIFETIME_CAP_MONTHS, 1 / effectiveChurnRate)
+    : LIFETIME_CAP_MONTHS;
   const effectiveLifetime = lifetimeFromChurn !== null
     ? Math.round(lifetimeFromChurn * 10) / 10
-    : effectiveBenchmarks.client_lifetime_months;
+    : Math.round(modeledLifetime * 10) / 10;
   const lifetimeSource = lifetimeFromChurn !== null
     ? `1 ÷ your ${(userChurnFraction! * 100).toFixed(1)}% monthly churn${userChurnFraction! <= 0 || 1 / userChurnFraction! > LIFETIME_CAP_MONTHS ? `, capped at ${LIFETIME_CAP_MONTHS} months` : ''}`
-    : 'industry benchmark lifetime';
+    : `1 ÷ ${(effectiveChurnRate * 100).toFixed(1)}% modeled monthly churn (industry benchmark)`;
   const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
   const calculatedLtv = QMath.round(
     QMath.sanitize(avgCheck)
@@ -331,6 +344,14 @@ export function calculateStrictFinancials(
   // P0-01: previously this rewrote LTV itself to force the ratio down to a
   // benchmark ceiling -- fabricating a lower LTV the calculation never
   // produced. Flag only now; the calculated LTV and ratio stand.
+  if (cac > 0 && ltvCacRatio < 1) {
+    corrections.push({
+      field: 'ltv_cac_ratio',
+      original: ltvCacRatio,
+      corrected: 1,
+      reason: `Check this result: LTV:CAC ${ltvCacRatio}x means winning a client ($${cac}) costs more than the client earns you over its lifetime ($${ltv}). If you win clients by referral or your own network for less, enter your real acquisition cost; the analysis keeps your figures.`
+    });
+  }
   if (cac > 0 && ltvCacRatio > benchmarks.ltv_cac_max) {
     corrections.push({
       field: 'ltv_cac_ratio',
@@ -393,8 +414,11 @@ export function calculateStrictFinancials(
   }
 
   const monthlyChurnPercent = effectiveChurnRate * 100;
-  const newClientsNeeded = Math.ceil(clientsActive * effectiveChurnRate);
-  const marketing = newClientsNeeded * cac;
+  // Expected replacements per month, not rounded up: 12 clients at 4.2%
+  // churn need ~0.5 new clients a month on average; Math.ceil charged a full
+  // CAC every month, doubling acquisition spend for small client books.
+  const newClientsNeeded = Math.round(clientsActive * effectiveChurnRate * 100) / 100;
+  const marketing = Math.round(newClientsNeeded * cac);
 
   audit.push({
     formula: 'Marketing = New_Clients × CAC',

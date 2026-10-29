@@ -21,6 +21,11 @@
  * All five inputs use locationMultipliers = 1.0 (no city adjustment) and
  * subIndustry = null (no sub-industry modifier layer) so the reference
  * calculation only has to model calculateStrictFinancials's own core
+ * 2026-10-29: Marketing = expected new clients × CAC, where new clients =
+ *   active clients ÷ client lifetime (fractional, no Math.ceil) when no churn
+ *   is typed — the same churn LTV uses. Marketing/total/net/margin/break-even
+ *   below were re-derived by hand under that rule; payback/ROI/NPV re-captured
+ *   from the engine's ramp simulation (see SaaS note).
  * formulas, not the location-intelligence.ts / sub-industry-detection.ts
  * layers those already have their own dedicated tests.
  */
@@ -73,19 +78,19 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
     expect(r.cac).toBe(800); // P0-01: no longer overwritten to the $2,000 floor
     expect(r.corrections.some((c) => c.field === 'cac')).toBe(true); // flag still fires
     expect(r.corrections.some((c) => c.field === 'ltv_cac_ratio')).toBe(true); // 10.8x exceeds the 6x ceiling -- flagged
-    expect(r.expenses.marketing).toBe(7200);
-    expect(r.totalExpenses).toBe(33200);
-    expect(r.netProfit).toBe(16800);
-    expect(r.netMarginPercent).toBe(34);
+    expect(r.expenses.marketing).toBe(3736);
+    expect(r.totalExpenses).toBe(29736);
+    expect(r.netProfit).toBe(20264);
+    expect(r.netMarginPercent).toBe(41);
     expect(r.grossProfit).toBe(40000);
     expect(r.grossMarginPercent).toBe(80);
     expect(r.ltv).toBe(8640);
     expect(r.ltvCacRatio).toBe(10.8); // P0-01: no longer forced down to the 6x ceiling
-    expect(r.paybackMonths).toBe(12);
-    expect(r.roiYear1Percent).toBe(111);
-    expect(r.npv3Years).toBe(373933);
-    expect(r.breakEvenRevenue).toBe(24390);
-    expect(r.revenueFor45kProfit).toBe(92988);
+    expect(r.paybackMonths).toBe(11);
+    expect(r.roiYear1Percent).toBe(139);
+    expect(r.npv3Years).toBe(481962);
+    expect(r.breakEvenRevenue).toBe(22060);
+    expect(r.revenueFor45kProfit).toBe(84105);
     expect(r.isProfitable).toBe(true);
   });
 
@@ -103,18 +108,18 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
     // netProfit/netMarginPercent below are the real, unaltered calculation.
     expect(r.corrections.some((c) => c.field === 'net_margin')).toBe(true);
     expect(r.expenses.cogs).toBe(7500);
-    expect(r.expenses.marketing).toBe(4000);
-    expect(r.totalExpenses).toBe(34000);
-    expect(r.netProfit).toBe(16000);
-    expect(r.netMarginPercent).toBe(32);
+    expect(r.expenses.marketing).toBe(2160);
+    expect(r.totalExpenses).toBe(32160);
+    expect(r.netProfit).toBe(17840);
+    expect(r.netMarginPercent).toBe(36);
     expect(r.grossMarginPercent).toBe(85);
     expect(r.ltv).toBe(40800);
     expect(r.ltvCacRatio).toBe(20.4);
     expect(r.paybackMonths).toBe(9);
-    expect(r.roiYear1Percent).toBe(197);
-    expect(r.npv3Years).toBe(418983);
-    expect(r.breakEvenRevenue).toBe(29221);
-    expect(r.revenueFor45kProfit).toBe(87662);
+    expect(r.roiYear1Percent).toBe(224);
+    expect(r.npv3Years).toBe(476366);
+    expect(r.breakEvenRevenue).toBe(27888);
+    expect(r.revenueFor45kProfit).toBe(83664);
     expect(r.isProfitable).toBe(true);
   });
 
@@ -132,19 +137,19 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
     expect(r.corrections.some((c) => c.field === 'net_margin')).toBe(true);
     expect(r.expenses.cogs).toBe(19200);
     expect(r.clientsActive).toBe(469);
-    expect(r.newClientsNeeded).toBe(38);
-    expect(r.expenses.marketing).toBe(950);
-    expect(r.totalExpenses).toBe(46150);
-    expect(r.netProfit).toBe(13850);
-    expect(r.netMarginPercent).toBe(23);
+    expect(r.newClientsNeeded).toBe(26.06);
+    expect(r.expenses.marketing).toBe(652);
+    expect(r.totalExpenses).toBe(45852);
+    expect(r.netProfit).toBe(14148);
+    expect(r.netMarginPercent).toBe(24);
     expect(r.grossMarginPercent).toBe(68);
     expect(r.ltv).toBe(1567);
     expect(r.ltvCacRatio).toBe(62.7); // QMath.ltvCacRatio rounds to 1 decimal
     expect(r.paybackMonths).toBe(15);
-    expect(r.roiYear1Percent).toBe(57);
-    expect(r.npv3Years).toBe(211932);
-    expect(r.breakEvenRevenue).toBe(39147);
-    expect(r.revenueFor45kProfit).toBe(106901);
+    expect(r.roiYear1Percent).toBe(59);
+    expect(r.npv3Years).toBe(221226);
+    expect(r.breakEvenRevenue).toBe(38856);
+    expect(r.revenueFor45kProfit).toBe(106107);
     expect(r.isProfitable).toBe(true);
   });
 
@@ -162,19 +167,19 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
     expect(r.corrections.some((c) => c.field === 'net_margin')).toBe(true);
     expect(r.expenses.cogs).toBe(22500);
     expect(r.clientsActive).toBe(257);
-    expect(r.newClientsNeeded).toBe(21);
-    expect(r.expenses.marketing).toBe(735);
-    expect(r.totalExpenses).toBe(38735);
-    expect(r.netProfit).toBe(11265);
+    expect(r.newClientsNeeded).toBe(17.13);
+    expect(r.expenses.marketing).toBe(600);
+    expect(r.totalExpenses).toBe(38600);
+    expect(r.netProfit).toBe(11400);
     expect(r.netMarginPercent).toBe(23);
     expect(r.grossMarginPercent).toBe(55);
     expect(r.ltv).toBe(1609);
     expect(r.ltvCacRatio).toBe(46); // QMath.ltvCacRatio rounds to 1 decimal
     expect(r.paybackMonths).toBe(12);
-    expect(r.roiYear1Percent).toBe(102);
-    expect(r.npv3Years).toBe(251315);
-    expect(r.breakEvenRevenue).toBe(28956);
-    expect(r.revenueFor45kProfit).toBe(113021);
+    expect(r.roiYear1Percent).toBe(104);
+    expect(r.npv3Years).toBe(255526);
+    expect(r.breakEvenRevenue).toBe(28810);
+    expect(r.revenueFor45kProfit).toBe(112454);
     expect(r.isProfitable).toBe(true);
   });
 
@@ -189,19 +194,19 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
 
     expect(r.expenses.cogs).toBe(4500);
     expect(r.clientsActive).toBe(250);
-    expect(r.newClientsNeeded).toBe(20);
-    expect(r.expenses.marketing).toBe(1400);
-    expect(r.totalExpenses).toBe(34000);
-    expect(r.netProfit).toBe(11000);
-    expect(r.netMarginPercent).toBe(24);
+    expect(r.newClientsNeeded).toBe(12.5);
+    expect(r.expenses.marketing).toBe(875);
+    expect(r.totalExpenses).toBe(33475);
+    expect(r.netProfit).toBe(11525);
+    expect(r.netMarginPercent).toBe(26);
     expect(r.grossMarginPercent).toBe(90);
     expect(r.ltv).toBe(3240);
     expect(r.ltvCacRatio).toBe(46.3); // QMath.ltvCacRatio rounds to 1 decimal
-    expect(r.paybackMonths).toBe(16);
-    expect(r.roiYear1Percent).toBe(57);
-    expect(r.npv3Years).toBe(163051);
-    expect(r.breakEvenRevenue).toBe(32340);
-    expect(r.revenueFor45kProfit).toBe(84130);
+    expect(r.paybackMonths).toBe(15);
+    expect(r.roiYear1Percent).toBe(60);
+    expect(r.npv3Years).toBe(179424);
+    expect(r.breakEvenRevenue).toBe(31912);
+    expect(r.revenueFor45kProfit).toBe(83016);
     expect(r.isProfitable).toBe(true);
   });
 });
