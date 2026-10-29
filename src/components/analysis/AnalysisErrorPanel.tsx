@@ -286,8 +286,8 @@ export function AnalysisErrorPanel({
               storage, so the copy promises only what Retry actually keeps. */}
           {parsed.isTransient && (
             <p className="mt-1.5 text-xs text-muted-foreground/80">
-              Your idea, location, and financial inputs stay in the form — retrying will not
-              erase anything you typed. Reloading the page would.
+              Your idea, location, and financial inputs stay in the form — retrying will not erase
+              anything you typed. Reloading the page would.
             </p>
           )}
 
