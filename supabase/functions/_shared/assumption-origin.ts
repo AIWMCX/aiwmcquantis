@@ -101,7 +101,7 @@ export interface ClassifyAssumptionOriginsInput {
  * Mirrors transformResponse()'s value-resolution chain exactly:
  *   rawMrr        = userInputs?.monthly_revenue || fa.mrr || 50000
  *   rawInvestment = userInputs?.startup_investment || fa.startup_investment || 100000
- *   rawCac        = userInputs?.cac || fa.cac || mp.cac || benchmarks.cac_typical
+ *   rawCac        = userInputs?.cac ?? benchmarks.cac_typical  (never the AI's estimate)
  *   rawAvgCheck   = userInputs?.average_price || fa.average_check || benchmark midpoint
  */
 export function classifyAssumptionOrigins(input: ClassifyAssumptionOriginsInput): AssumptionOriginMap {
@@ -122,13 +122,9 @@ export function classifyAssumptionOrigins(input: ClassifyAssumptionOriginsInput)
         ? entry('DERIVED', extractionConfidence)
         : entry('PLACEHOLDER', 15),
 
-    cac: userInputs?.cac
+    cac: typeof userInputs?.cac === 'number'
       ? entry('USER_ACTUAL', 100)
-      : fa.cac
-        ? entry('DERIVED', extractionConfidence, [benchmarks.cac_min, benchmarks.cac_max])
-        : mp.cac
-          ? entry('DERIVED', extractionConfidence, [benchmarks.cac_min, benchmarks.cac_max])
-          : entry('MODELED_BENCHMARK_PRIOR', benchmarkConfidence, [benchmarks.cac_min, benchmarks.cac_max]),
+      : entry('MODELED_BENCHMARK_PRIOR', benchmarkConfidence, [benchmarks.cac_min, benchmarks.cac_max]),
 
     average_price: userInputs?.average_price
       ? entry('USER_ACTUAL', 100)

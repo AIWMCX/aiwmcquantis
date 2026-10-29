@@ -12,9 +12,11 @@ interface FinancialFieldProps {
   benchmarkMax?: number;
   hint?: string;
   advisorHint?: string;
+  /** Submit stays disabled until this is filled, so never offer "leave it blank". */
+  required?: boolean;
 }
 
-export function FinancialField({ label, prefix, suffix, placeholder, value, onChange, benchmarkMin, benchmarkMax, hint, advisorHint }: FinancialFieldProps) {
+export function FinancialField({ label, prefix, suffix, placeholder, value, onChange, benchmarkMin, benchmarkMax, hint, advisorHint, required }: FinancialFieldProps) {
   const [focused, setFocused] = useState(false);
   const hasValue = value !== undefined && value > 0;
 
@@ -100,7 +102,12 @@ export function FinancialField({ label, prefix, suffix, placeholder, value, onCh
           Deliberately omits the range itself when advisorHint is present
           (same line above already states it) to avoid printing the same
           number twice in two different phrasings. */}
-      {!hasValue && benchmarkMin !== undefined && benchmarkMax !== undefined && (
+      {!hasValue && required && (
+        <span className="text-[11px] mt-1" style={{ color: 'var(--q-text-tertiary)' }}>
+          Required — your best estimate is fine.
+        </span>
+      )}
+      {!hasValue && !required && benchmarkMin !== undefined && benchmarkMax !== undefined && (
         <span className="text-[11px] mt-1" style={{ color: 'var(--q-text-disabled)' }}>
           {advisorHint
             ? "Not sure? Leave it blank — we'll use the typical value above."

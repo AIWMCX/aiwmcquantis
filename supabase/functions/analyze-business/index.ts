@@ -1695,7 +1695,14 @@ function transformResponse(
   const finite = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
   const rawMrr = userInputs?.monthly_revenue ?? finite(fa.mrr) ?? 50000;
   const rawInvestment = userInputs?.startup_investment ?? finite(fa.startup_investment) ?? 100000;
-  const rawCac = userInputs?.cac ?? finite(fa.cac) ?? finite(mp.cac) ?? benchmarks.cac_typical;
+  // A blank CAC uses the industry benchmark, as the form promises ("leave it
+  // blank — we'll use the typical value"). It used to take the AI's own
+  // estimate first (fa.cac / mp.cac): found 2026-10-29 on a live run, the AI
+  // guessed ~$4,400 per client for a 12-client bookkeeping firm, which made
+  // acquisition spend exceed revenue (contribution margin -5.1%, break-even
+  // "not achievable") and made the same inputs give different numbers on
+  // every run. The engine's inputs must not depend on narrated text.
+  const rawCac = userInputs?.cac ?? benchmarks.cac_typical;
   const rawLtv = finite(fa.ltv) || finite(mp.ltv) || 500;
   const rawAvgCheck = userInputs?.average_price ?? finite(fa.average_check) ?? (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
   
