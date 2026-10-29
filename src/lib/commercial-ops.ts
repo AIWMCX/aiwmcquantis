@@ -5,6 +5,7 @@
  * SEQUENCE_DAYS must match SEQUENCE_STEPS in
  * supabase/functions/_shared/commercial/stages/follow-up.ts.
  */
+import { followupOrderCheck } from '../../supabase/functions/_shared/mail/followup-order';
 
 export const SEQUENCE_DAYS: Record<number, number> = { 2: 3, 3: 7, 4: 14 };
 
@@ -90,7 +91,9 @@ interface SeqFollowup { prospect_id: string; status: string; sequence_step: numb
 /**
  * Which contacted, unanswered prospects have their next cold-sequence step
  * due. Anchored on the first-touch send time; a step already drafted
- * (draft/approved/sent) is never proposed twice.
+ * (draft/approved/sent) is never proposed twice, and step n is proposed only
+ * after step n-1 was actually sent and the last email is at least
+ * MIN_DAYS_BETWEEN_TOUCHES old (same rule the sender enforces).
  */
 export function sequenceDue<P extends SeqProspect>(
   prospects: P[],
@@ -107,6 +110,7 @@ export function sequenceDue<P extends SeqProspect>(
     const next = [2, 3, 4].find((s) => !taken.has(s));
     if (!next) continue;
     const days = (now.getTime() - new Date(first.sent_at as string).getTime()) / 86_400_000;
+    if (!followupOrderCheck(next, mine, now).ok) continue;
     if (days >= SEQUENCE_DAYS[next]) out.push({ prospect: p, step: next, day: SEQUENCE_DAYS[next] });
   }
   return out;
