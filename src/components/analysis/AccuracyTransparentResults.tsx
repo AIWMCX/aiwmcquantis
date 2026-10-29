@@ -41,6 +41,8 @@ import { ProfitRangeCard } from './ProfitRangeCard';
 import { ReviewOfferCard } from './ReviewOfferCard';
 import { whyTheseNumbers } from '@/lib/why-these-numbers';
 import { planKillers } from '@/lib/plan-killers';
+import { whatHasToBeTrue } from '@/lib/what-has-to-be-true';
+import { ltvCacReading } from '../../../supabase/functions/analyze-business/ltv-cac-language';
 
 interface AccuracyTransparentResultsProps {
   result: BusinessAnalysisResult;
@@ -441,6 +443,34 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
 
+              {/* What has to be true (#145/#68): the conditions this decision rests on, before any tab. */}
+              {(() => {
+                const conditions = whatHasToBeTrue({
+                  monthlyRevenue: metrics.monthlyRevenue,
+                  monthlyProfit: scenarioMetrics.profit,
+                  breakEvenRevenue: cvp?.breakEven.breakEvenRevenue != null ? Number(cvp.breakEven.breakEvenRevenue) : null,
+                  breakEvenStatus: cvp?.breakEven.status ?? null,
+                  costsInconsistent,
+                  paybackMonths: projectPaybackMonths,
+                  runwayMonths: metrics.runway,
+                  planKillerHeadlines: fatalAssumptions.map((f) => f.headline),
+                });
+                if (conditions.length === 0) return null;
+                return (
+                  <div className="q-card p-5 sm:p-6" data-testid="what-has-to-be-true">
+                    <h3 className="font-semibold mb-3">What has to be true for this to work</h3>
+                    <ul className="space-y-2">
+                      {conditions.map((c, i) => (
+                        <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                          <span className="shrink-0 w-5 h-5 rounded-full border border-border flex items-center justify-center text-[10px] font-semibold mt-0.5">{i + 1}</span>
+                          <span className="leading-relaxed">{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+
               <div className="grid lg:grid-cols-[58%_42%] gap-5">
               {/* LEFT: Fatal Assumptions + Stress Map */}
               <div className="space-y-5">
@@ -563,8 +593,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       <SimpleMetricCard 
                         title="LTV:CAC Ratio" 
                         value={isReportLocked ? '•.•x' : `${metrics.ltvCac.toFixed(1)}x`}
-                        variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
-                        chip={metrics.ltvCac >= 3 ? `${metrics.ltvCac.toFixed(1)}x — healthy` : `${metrics.ltvCac.toFixed(1)}x — below 3x target`}
+                        variant={ltvCacReading(metrics.ltvCac) === 'implausible' ? 'warning' : metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
+                        chip={ltvCacReading(metrics.ltvCac) === 'implausible' ? `${metrics.ltvCac.toFixed(1)}x — check CAC, likely understated` : metrics.ltvCac >= 3 ? `${metrics.ltvCac.toFixed(1)}x — healthy` : `${metrics.ltvCac.toFixed(1)}x — below 3x target`}
                         explanation="How much a customer is worth over their lifetime divided by what it costs to acquire them. Above 3× means healthy unit economics."
                         benchmarkMetric="ltv_cac_ratio"
                         benchmarkContext={benchmarkContext}
