@@ -15,6 +15,7 @@ import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmai
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
 import { GlassCard } from '@/components/ui/glass-card';
+import { IndustryCorrection } from '@/components/result/IndustryCorrection';
 
 const AccuracyTransparentResults = lazy(() =>
   import('@/components/analysis/AccuracyTransparentResults').then((m) => ({
@@ -186,6 +187,11 @@ export default function PublicAnalysisResult() {
               <> · <span className="font-medium">Location:</span> {data.location}</>
             )}
           </p>
+          <IndustryCorrection
+            idea={data.idea}
+            location={data.location}
+            detectedIndustry={(data.result.metadata as { industry_detected?: string; selected_industry?: string } | undefined)?.industry_detected ?? (data.result.metadata as { selected_industry?: string } | undefined)?.selected_industry}
+          />
         </section>
 
         {/* Conversion rail — anonymous nudge */}
