@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { GEO_COVERAGE_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, GEO_COVERAGE_DISPLAY, MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
 
 interface AnalysisStage {
   id: string;
@@ -374,17 +374,15 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   );
 });
 
+// Tips shown while a run is in progress. Only statements about how Quantis
+// works; no outside statistics we cannot source (truth rules, 2026-10-29).
 const EDUCATIONAL_TIPS = [
-  '💡 Coffee shops average 12-18% net margins in the US.',
-  '💡 A healthy LTV:CAC ratio is 3:1 or higher.',
-  '💡 Location costs vary up to 4x between cities globally.',
-  '💡 82% of startups fail due to cash flow problems, not bad ideas.',
-  '💡 SaaS companies typically need 18-24 months to reach profitability.',
-  '💡 Customer acquisition cost drops 60% with referral programs.',
+  '💡 Every assumption in your report is labeled: your number or a modeled default you can replace.',
+  '💡 The numbers are calculated first; the AI only writes the explanation around them.',
+  `💡 Missing inputs are filled from ${BENCHMARK_COUNT_DISPLAY} modeled benchmark cells, not observed companies.`,
   `💡 Costs are adjusted for ${GEO_COVERAGE_DISPLAY}.`,
-  '💡 Average payback period for small businesses is 6-18 months.',
-  '💡 Our engine cross-checks your numbers against 97,500 benchmarks.',
-  '💡 Businesses with a clear financial plan are 2.5x more likely to get funded.',
+  `💡 The profit range comes from ${MONTE_CARLO_ITERATIONS_DISPLAY} modeled months of revenue and cost variation.`,
+  '💡 Break-even and payback are different months: one is when monthly profit starts, the other when the investment is back.',
 ];
 
 function EducationalTip({ elapsedSeconds }: { elapsedSeconds: number }) {

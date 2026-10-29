@@ -20,7 +20,7 @@ export interface DirectoryEntry {
 export const optimizedDescriptions: Record<string, { label: string; text: string }> = {
   taaft: {
     label: 'TAAFT / AI Directories (200 chars)',
-    text: 'Business survival stress-test for founders. Deterministic financial engine checks your idea against 97,500 benchmarks before you invest a dollar.',
+    text: 'Business survival stress-test for founders. Deterministic financial engine shows what has to be true for your idea to work before you invest a dollar.',
   },
   productHunt: {
     label: 'Product Hunt (60 chars)',
