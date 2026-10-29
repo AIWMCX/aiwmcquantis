@@ -44,7 +44,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
   1. Fetch `/`, find `/assets/index-*.js`, then the lazy chunk (e.g. `assets/Autoposter-*.js`).
   2. Search it for a string your PR added. The index bundle does **not** contain the commit SHA.
 - **Redirects:** use `curl.exe -sI`. PowerShell 5.1's `Invoke-WebRequest` does not follow 308.
-- **New SPA routes** must be registered in `App.tsx`, `scripts/verify-internal-links.mjs` and `vercel.json`.
+- **New public routes** need: `App.tsx`; `scripts/generate-sitemap.ts` (its list regenerates `public/prerender-urls.txt` in `prebuild`; a page missing there ships with the homepage title and fails the visibility gate); `scripts/seo.routes.mjs`; a `RouteSEO.tsx` entry; and a body in `scripts/generate-static-bodies.mjs`. Add to `vercel.json` only for non-prerendered paths.
 
 ## Data rules
 - **Internal accounts:** exclude emails matching `jeltov|beltov|aiwmc|jjbalaganvasya` from every customer metric (beltovbogdan@ is the founder's alias). Always join to `auth.users` before trusting a count.

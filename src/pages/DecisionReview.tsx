@@ -26,7 +26,7 @@ const INTAKE_PREVIEW = {
     'Your business or company name',
     'The decision that must be made',
     'A contact email (pre-filled from your Stripe receipt)',
-    'For the $499 pilot only: your primary client type',
+    `For the $${ENGAGEMENT_OFFERS.find((o) => o.code === 'consultant_founding_pilot')!.price} pilot only: your primary client type`,
   ],
   optional: [
     'Industry and website',
@@ -38,19 +38,32 @@ const INTAKE_PREVIEW = {
   ],
 } as const;
 
-export default function DecisionReview() {
+const PILOT_OFFER = ENGAGEMENT_OFFERS.find((o) => o.code === 'consultant_founding_pilot')!;
+const FOUNDER_OFFER = ENGAGEMENT_OFFERS.find((o) => o.code === 'founder_decision_review')!;
+
+/**
+ * `variant="pilot"` renders /consultant-pilot (buy-blockers #91): the $499
+ * consultant pilot on its own page, so a consultant from outreach or
+ * /consultants does not land on the founder offer first. Same checkout,
+ * intake and copy source as /decision-review.
+ */
+export default function DecisionReview({ variant = 'all' }: { variant?: 'all' | 'pilot' }) {
   const [loading, setLoading] = useState<OfferCode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pilotOnly = variant === 'pilot';
+  const surface = pilotOnly ? 'consultant_pilot_page' : 'decision_review_page';
+  const offers = pilotOnly ? OFFERS.filter((o) => o.code === PILOT_OFFER.code) : OFFERS;
+  const path = pilotOnly ? '/consultant-pilot' : '/decision-review';
 
   useEffect(() => {
     // Funnel sink as well as GA4, so /admin/funnel sees paid-offer views.
-    recordFunnelEvent('paid_review_view', { surface: 'decision_review_page' });
-  }, []);
+    recordFunnelEvent('paid_review_view', { surface });
+  }, [surface]);
 
   async function startCheckout(offerCode: OfferCode) {
     setLoading(offerCode);
     setError(null);
-    recordFunnelEvent('paid_checkout_start', { offer_code: offerCode, surface: 'decision_review_page' });
+    recordFunnelEvent('paid_checkout_start', { offer_code: offerCode, surface });
     try {
       const { data, error: invokeError } = await supabase.functions.invoke('engagement-checkout', {
         body: { offer_code: offerCode },
@@ -66,26 +79,40 @@ export default function DecisionReview() {
   return (
     <PublicPageShell active="pricing" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
-        title="Founder Decision Review & Consultant Pilot — AIWMC Quantis"
-        description={`Founder-assisted decision reviews with reconciled scenarios, a decision memo, and live review. $${ENGAGEMENT_OFFERS[0].price} for one founder decision or $${ENGAGEMENT_OFFERS[1].price} for two consultant client cases.`}
-        canonical="/decision-review"
+        title={pilotOnly ? 'Consultant Founding Pilot: two client decisions — AIWMC Quantis' : 'Founder Decision Review & Consultant Pilot — AIWMC Quantis'}
+        description={pilotOnly
+          ? `For consultants and fractional CFOs: two real client decisions in 30 days, a reviewed Decision Memo for each, $${PILOT_OFFER.price} one-time.`
+          : `Founder-assisted decision reviews with reconciled scenarios, a decision memo, and live review. $${FOUNDER_OFFER.price} for one founder decision or $${PILOT_OFFER.price} for two consultant client cases.`}
+        canonical={path}
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'Service',
           name: 'AIWMC Quantis Founder-Assisted Decision Reviews',
           provider: { '@type': 'Organization', name: 'AIWMC LLC', url: 'https://www.aiwmcquantis.com' },
-          offers: OFFERS.map((offer) => ({
+          offers: offers.map((offer) => ({
             '@type': 'Offer', name: offer.name, price: offer.price, priceCurrency: 'USD', availability: 'https://schema.org/InStock',
           })),
         }}
       />
-      <StructuredData includeBreadcrumbs breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Decision Review', url: '/decision-review' }]} services={SCHEMA_SERVICES} />
+      <StructuredData
+        includeBreadcrumbs
+        breadcrumbs={pilotOnly
+          ? [{ name: 'Home', url: '/' }, { name: 'For Advisors', url: '/consultants' }, { name: 'Consultant Pilot', url: '/consultant-pilot' }]
+          : [{ name: 'Home', url: '/' }, { name: 'Decision Review', url: '/decision-review' }]}
+        services={pilotOnly ? [PILOT_OFFER.code] : SCHEMA_SERVICES}
+      />
 
       <section className="aiwmc-section-wash py-12 md:py-20">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">Founder-assisted · fixed scope · paid upfront</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">
+          {pilotOnly ? `${PILOT_OFFER.audience} · fixed scope · paid upfront` : 'Founder-assisted · fixed scope · paid upfront'}
+        </p>
         <SectionHeader
-          title="Bring one real decision. Leave with the assumptions that control it."
-          subtitle="Quantis structures the model; a founder reviews the inputs, reconciles the economics, and walks you through what changes the decision."
+          title={pilotOnly
+            ? 'Run two real client decisions through Quantis, with a founder reviewing each.'
+            : 'Bring one real decision. Leave with the assumptions that control it.'}
+          subtitle={pilotOnly
+            ? 'You bring the client cases; Quantis structures the model; a founder reconciles the economics and you get a Decision Memo you can review and put your name on.'
+            : 'Quantis structures the model; a founder reviews the inputs, reconciles the economics, and walks you through what changes the decision.'}
         />
         <div className="mt-7 flex flex-wrap gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" />48-hour target after complete intake</span>
@@ -93,8 +120,8 @@ export default function DecisionReview() {
         </div>
       </section>
 
-      <section aria-label="Paid review options" className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-8">
-        {OFFERS.map((offer) => {
+      <section aria-label="Paid review options" className={pilotOnly ? 'grid grid-cols-1 gap-6 py-8 max-w-2xl' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 py-8'}>
+        {offers.map((offer) => {
           const Icon = offer.icon;
           return (
             <GlassCard key={offer.code} glow={offer.code === 'consultant_founding_pilot' ? 'brand' : 'cyan'} className="p-7 md:p-8 flex flex-col">
@@ -171,6 +198,15 @@ export default function DecisionReview() {
           );
         })}
       </section>
+      {pilotOnly && (
+        <p className="pb-4 text-sm text-muted-foreground">
+          Deciding for your own business instead?{' '}
+          <Link to="/decision-review" className="underline underline-offset-4 hover:text-foreground">
+            The {FOUNDER_OFFER.name} covers one decision for ${FOUNDER_OFFER.price}
+          </Link>
+          .
+        </p>
+      )}
 
       {error && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
 

@@ -196,6 +196,7 @@ const App = () => {
                 <Route path="/security" element={<Security />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/decision-review" element={<DecisionReview />} />
+                <Route path="/consultant-pilot" element={<DecisionReview variant="pilot" />} />
                 <Route path="/demo/founder-decision-review" element={<FounderDecisionDemo />} />
                 <Route path="/demo/hiring-decision" element={<HiringDecisionDemo />} />
                 <Route path="/demo/sample-decision-memo" element={<SampleDecisionMemo />} />
