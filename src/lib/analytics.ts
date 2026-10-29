@@ -207,6 +207,7 @@ export type SowFunnelEvent =
   | 'invite_page_view'
   | 'invite_magic_link_sent'
   | 'invite_redeemed'
+  | 'sample_cta_click'
   // Sample Decision Memo view (surface: 'decision_memo'), already allowed by the DB constraint.
   | 'sample_view'
   // Prompt 3 canonical conversion funnel (audit 16-Jun-2026).

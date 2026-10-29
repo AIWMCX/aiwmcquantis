@@ -11,6 +11,11 @@ describe('invite funnel events', () => {
     expect(page).toMatch(/recordFunnelEvent\('invite_magic_link_sent', \{ ok: true \}\)/);
     expect(page).toMatch(/recordFunnelEvent\('invite_redeemed', \{ result: row\.result \}\)/);
   });
+  it('offers an example report before asking for an email, tracked, in a new tab', () => {
+    expect(page).toContain('href="/demo/sample-decision-memo"');
+    expect(page).toMatch(/recordFunnelEvent\('sample_cta_click', \{ surface: 'invite' \}\)/);
+    expect(page).toMatch(/data-testid="invite-sample-link"/);
+  });
   it('never sends the token', () => {
     for (const m of page.matchAll(/recordFunnelEvent\([^)]*\)/g)) expect(m[0]).not.toMatch(/token/);
   });

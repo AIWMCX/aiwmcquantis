@@ -340,6 +340,19 @@ export default function Invite() {
               </Button>
             </div>
             {magicError && <p className="text-xs text-destructive mt-2">{magicError}</p>}
+            {/* 2026-10-29: the first community post got 3 opens and 0 emails —
+                visitors were asked for an email before seeing any output.
+                Opens in a new tab so this invite page stays open. */}
+            <a
+              href="/demo/sample-decision-memo"
+              target="_blank"
+              rel="noopener"
+              onClick={() => recordFunnelEvent('sample_cta_click', { surface: 'invite' })}
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline mt-3"
+              data-testid="invite-sample-link"
+            >
+              Not sure yet? See an example report first <ArrowRight className="w-3.5 h-3.5" />
+            </a>
             <p className="text-xs text-muted-foreground mt-3">
               New here or already have an account — either way, one email link gets you in and turns Pro on. No password to set up front.
             </p>
