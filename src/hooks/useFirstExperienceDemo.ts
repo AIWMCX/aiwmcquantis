@@ -66,8 +66,20 @@ export function useFirstExperienceDemo(options: UseFirstExperienceDemoOptions = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const result = useMemo(() => runFounderDemo(assumptions, fixture), [assumptions, fixture]);
-  const requiredToWork = useMemo(() => solveRequiredToWork(assumptions, fixture), [assumptions, fixture]);
+  // runFounderDemo + solveRequiredToWork cost a few hundred ms per change.
+  // Cache by assumption values so "reset to base" and toggling back to an
+  // earlier value reuse the earlier run instead of recomputing.
+  const runCache = useRef(new Map<string, { result: ReturnType<typeof runFounderDemo>; requiredToWork: ReturnType<typeof solveRequiredToWork> }>());
+  const { result, requiredToWork } = useMemo(() => {
+    const key = JSON.stringify(assumptions);
+    let hit = runCache.current.get(key);
+    if (!hit) {
+      hit = { result: runFounderDemo(assumptions, fixture), requiredToWork: solveRequiredToWork(assumptions, fixture) };
+      if (runCache.current.size >= 50) runCache.current.clear();
+      runCache.current.set(key, hit);
+    }
+    return hit;
+  }, [assumptions, fixture]);
   const hasMeaningfulInteraction = inspectedVariables.size > 0 || changedVariables.size > 0;
 
   function goToStep(next: DemoStep) {

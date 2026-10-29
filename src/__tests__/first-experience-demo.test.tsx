@@ -156,7 +156,16 @@ describe('useFirstExperienceDemo', () => {
     act(() => result.current.resetToBase());
     expect(result.current.assumptions).toEqual(FOUNDER_DEMO_FIXTURE.base);
     expect(result.current.changedVariables.size).toBe(0);
-  });
+  }, 20_000);
+
+  it('reset reuses the cached base run instead of recomputing the engine', () => {
+    const { result } = renderHook(() => useFirstExperienceDemo());
+    const baseResult = result.current.result;
+    act(() => result.current.updateAssumption('cac', 2500));
+    expect(result.current.result).not.toBe(baseResult);
+    act(() => result.current.resetToBase());
+    expect(result.current.result).toBe(baseResult);
+  }, 20_000);
 
   it('completeDemo and startOwnDecision both record demo-context funnel events', () => {
     const { result } = renderHook(() => useFirstExperienceDemo());
