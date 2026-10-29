@@ -185,13 +185,13 @@ Method: two internal-tagged runs on production, then a read of every public page
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
 | 101 | Homepage is long | Hero, film, hiring demo, 15-page sample, features, kit, pricing, FAQ | Cut to hero, sample memo, demos, pricing | CODE |
-| 102 | Two idea forms on one page | Hero box plus the report form four sections down | One form | CODE |
+| 102 | Two idea forms on one page | Hero box plus the report form four sections down | One form | VERIFY (2026-10-28: hero box already submits into the form below; one run path) |
 | 103 | Product film loads on the homepage | `quantis-decision-film.mp4` metadata requests on load | Checked: the film loads metadata only; the intro opens only from a share link | DONE |
 | 104 | Large first bundle | index JS 559 KB decoded; 57 requests on the homepage | Split the landing bundle | CODE |
 | 105 | No hiring decision as a real run | The hiring model exists only as a fixed demo | Let a visitor run it on their numbers and save it | CODE |
 | 106 | No second-location or price-change model | The engine models a new business | Add these decision types (they match the hero question) | CODE |
 | 107 | Anonymous result → sign-up prompt untested at volume | 1 outside result in 30 days | Re-check after traffic returns | VERIFY |
-| 108 | Starter kit and popups compete with the main action | Exit-intent and scroll popups | Keep one capture point | CODE |
+| 108 | Starter kit and popups compete with the main action | Exit-intent and scroll popups | Keep one capture point | PR (scroll and 30-second popups removed; exit popup lost its invented "used by founders" line) |
 | 109 | Hero label "What are you deciding?" vs an engine that models a business | #51 | Keep the label; routing plus examples now handle it | DONE #322 |
 | 110 | No visible progress on mobile for the 30-second run | Narration only | Show the steps as a checklist | CODE |
 
@@ -261,3 +261,6 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 150 | This register, round 2 | — | Read by the nightly audit | DONE |
 | 151 | Implausible LTV:CAC shown as "healthy" | Live 2026-10-26 grooming run: "LTV:CAC 79.3x indicates healthy unit economics" | Above 20x the summary and narrator say "implausibly high, check CAC" instead of "healthy" (`ltv-cac-language.ts`); the calculator flag and validator rule already existed | DONE (PR) |
 | 152 | Example deep-dive cites a study that was never sourced | Denver coffee page: "per a 2024 Specialty Coffee Association study", plus "SCA benchmark" / "SCA city data" | Attributions removed; deep-dive sections now say their figures are Quantis estimates, not sourced statistics | DONE (PR) |
+| 153 | No one signs up | 2026-10-28 /admin/users: last real signup Sep 9; 40 external accounts, 0 with an analysis, 0 signed in in 30 days. Not a tracking bug: Google sign-in is off, and the email form fires start and complete | Signup is not on the path to paying; measure analysis and checkout instead | VERIFY |
+| 154 | Almost no homepage visitor tries the product | 30 days: 164 homepage sessions, 2 analysis starts (1.2%), 3 completes, 2 checkout starts, 0 paid | #108 popups, then a shorter homepage (#101) | CODE |
+| 155 | Homepage FAQ schema repeats removed claims | JSON-LD said "multi-model consensus pass" and "12 financial variables"; a vs row said "P10/P50/P90 across 12 financial variables" | Same wording as the visible copy | PR |

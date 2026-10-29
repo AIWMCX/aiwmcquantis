@@ -74,7 +74,7 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
       'Business Model Canvas Template — map your idea structure',
       'Financial Projection Structure — pre-built formulas for 5-year models',
       '20 AI Prompts for Validation — the exact questions to stress-test your idea',
-      'Risk Checklist — red flags investors look for',
+      'Risk Checklist — common warning signs in the numbers',
     ],
     ctaText: 'Download Free Kit',
     successMessage: 'Your Starter Kit is on its way! Check your inbox.',
@@ -83,7 +83,7 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
   free_analysis: {
     offer: 'free_analysis',
     headline: 'Before you go — validate your idea',
-    subheadline: 'Get the AI Validation Checklist used by early founders',
+    subheadline: 'Get the AI Validation Checklist. Free, instant download.',
     benefits: [
       'Structured financial logic check for your idea',
       'Risk signals identified before you invest',
@@ -170,26 +170,15 @@ export interface PopupTriggerConfig {
   delaySeconds?: number;    // For time delay trigger
 }
 
+// One capture point (buy-blockers #108). The 50%-scroll and 30-second popups
+// interrupted visitors before they tried an analysis; 30-day data showed 2 of
+// 164 homepage sessions starting one. Exit intent (desktop only) stays.
 export const POPUP_TRIGGERS: PopupTriggerConfig[] = [
   {
     type: 'exit_intent',
     source: 'exit_intent_popup',
     offer: 'free_analysis',
     priority: 1,
-  },
-  {
-    type: 'scroll',
-    source: 'scroll_popup',
-    offer: 'validation_questions',
-    priority: 2,
-    scrollDepth: 50,
-  },
-  {
-    type: 'time_delay',
-    source: 'time_delay_popup',
-    offer: 'projection_template',
-    priority: 3,
-    delaySeconds: 30,
   },
 ];
 
