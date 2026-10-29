@@ -38,6 +38,8 @@ export const PUBLIC_ROUTES = [
   { path: "/refund-policy",   title: "Refund" },
   { path: "/decision-review", title: "Founder Decision Review",
     must: ["$349", "$499", "Founder Decision Review", "Consultant Founding Pilot"] },
+  { path: "/consultant-pilot", title: "Consultant Founding Pilot",
+    must: ["Consultant Founding Pilot", "two real client decisions"] },
   { path: "/demo/founder-decision-review", title: "Founder Decision Review" },
   { path: "/demo/hiring-decision", title: "Hiring Decision" },
   { path: "/demo/sample-decision-memo", title: "Sample Decision Memo" },

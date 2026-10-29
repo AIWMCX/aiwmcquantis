@@ -100,6 +100,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Founder Decision Review & Consultant Pilot — AIWMC Quantis',
     description: 'Founder-assisted financial decision review for one live decision at $349, or a two-case consultant founding pilot at $499.',
   },
+  '/consultant-pilot': {
+    title: 'Consultant Founding Pilot: two client decisions — AIWMC Quantis',
+    description: 'For consultants and fractional CFOs: two real client decisions in 30 days, a reviewed Decision Memo for each, one-time founding pilot.',
+  },
   '/changelog': {
     title: 'Changelog — What\'s New in Quantis',
     description: 'Release notes and product updates for AIWMC Quantis: new features, accuracy improvements, and engine versions.',

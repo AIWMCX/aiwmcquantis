@@ -47,7 +47,7 @@ describe('Service schema for one-time offers', () => {
 
   it('both offer pages pass their offers', async () => {
     const { readFileSync } = await import('node:fs');
-    expect(readFileSync('src/pages/DecisionReview.tsx', 'utf8')).toMatch(/services=\{SCHEMA_SERVICES\}/);
+    expect(readFileSync('src/pages/DecisionReview.tsx', 'utf8')).toMatch(/services=\{pilotOnly \? \[PILOT_OFFER\.code\] : SCHEMA_SERVICES\}/);
     expect(readFileSync('src/pages/Consultants.tsx', 'utf8')).toMatch(/services=\{SCHEMA_SERVICES\}/);
   });
 });

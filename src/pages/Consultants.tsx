@@ -28,7 +28,7 @@ const SCHEMA_SERVICES = [PILOT.code];
  */
 
 const WORKED_DEMO = '/demo/founder-decision-review';
-const CLIENT_CASE = '/decision-review';
+const CLIENT_CASE = '/consultant-pilot'; // #91: advisors land on their own offer
 
 const STEPS: Array<{ label: string; title: string; body: string }> = [
   {
@@ -232,7 +232,7 @@ export default function Consultants() {
                 Bring two client cases. Each gets three scenarios, reconciled economics, a source and uncertainty register, and a memo you can hand to the client after one review and one revision.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <SplitButton variant="primary" size="sm" to="/decision-review" onClick={() => trackCtaClick('consultants_pilot', 'consultants_plans')}>See the pilot</SplitButton>
+                <SplitButton variant="primary" size="sm" to="/consultant-pilot" onClick={() => trackCtaClick('consultants_pilot', 'consultants_plans')}>See the pilot</SplitButton>
                 <SplitButton variant="secondary" size="sm" to="/demo/consultant-founding-pilot">Try the capacity demo</SplitButton>
               </div>
             </div>
