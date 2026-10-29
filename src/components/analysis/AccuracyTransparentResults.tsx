@@ -42,6 +42,7 @@ import { ReviewOfferCard } from './ReviewOfferCard';
 import { whyTheseNumbers } from '@/lib/why-these-numbers';
 import { planKillers } from '@/lib/plan-killers';
 import { whatHasToBeTrue } from '@/lib/what-has-to-be-true';
+import { calculateInvestmentPaybackMonth } from '../../../supabase/functions/analyze-business/operating-projection';
 import { ltvCacReading } from '../../../supabase/functions/analyze-business/ltv-cac-language';
 
 interface AccuracyTransparentResultsProps {
@@ -338,6 +339,18 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   // Project payback = months for net profit to recover total startup investment.
   const cacPaybackMonths: number | undefined = result.financial_analysis?.unit_economics?.cac_payback_months;
   const projectPaybackMonths: number = result.financial_analysis?.payback_period_months ?? 99;
+  // Same payback with no growth after month 6. Shown only when re-running the
+  // engine's own growth projection on these inputs reproduces its payback, so
+  // the two figures provably share inputs and differ only in the growth.
+  const flatPaybackMonths: number | null = useMemo(() => {
+    const fa = result.financial_analysis;
+    const investment = fa?.startup_investment?.total;
+    const expenses = fa?.monthly_expenses?.total;
+    const revenue = metrics.monthlyRevenue;
+    if (typeof investment !== 'number' || investment <= 0 || typeof expenses !== 'number' || !(revenue > expenses)) return null;
+    if (calculateInvestmentPaybackMonth(investment, revenue, expenses) !== projectPaybackMonths) return null;
+    return calculateInvestmentPaybackMonth(investment, revenue, expenses, 60, { growthAfterRamp: false });
+  }, [result.financial_analysis, metrics.monthlyRevenue, projectPaybackMonths]);
   // Handbook §19 Wave 1 — Contribution Margin & CVP (additive; absent on
   // older stored analyses generated before this field existed).
   const cvp = (result.financial_analysis as any)?.cvp as
@@ -452,6 +465,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   breakEvenStatus: cvp?.breakEven.status ?? null,
                   costsInconsistent,
                   paybackMonths: projectPaybackMonths,
+                  flatPaybackMonths,
                   runwayMonths: metrics.runway,
                   planKillerHeadlines: fatalAssumptions.map((f) => f.headline),
                 });

@@ -3,13 +3,25 @@
  * payback. Month 1–6 revenue ramps from 30% to 100%; after month 6 revenue
  * grows 5% monthly and total expenses grow 2.5% monthly. Total expenses are
  * modeled as 60% fixed and 40% variable during the ramp.
+ *
+ * `growthAfterRamp: false` holds revenue and expenses at the month-6 level
+ * instead — the flat case reports show next to the growth case, so the 5%
+ * monthly growth assumption is visible rather than buried in the payback.
  */
 const RAMP = [0.3, 0.45, 0.6, 0.75, 0.9, 1];
+
+export const POST_RAMP_REVENUE_GROWTH = 0.05;
+export const POST_RAMP_EXPENSE_GROWTH = 0.025;
+
+export interface ProjectionOptions {
+  growthAfterRamp?: boolean;
+}
 
 export function projectOperatingMonth(
   steadyRevenue: number,
   steadyExpenses: number,
   month: number,
+  options: ProjectionOptions = {},
 ): { revenue: number; expenses: number } {
   if (!Number.isInteger(month) || month < 1) {
     throw new RangeError('month must be a positive integer');
@@ -28,10 +40,14 @@ export function projectOperatingMonth(
     };
   }
 
+  if (options.growthAfterRamp === false) {
+    return { revenue: steadyRevenue, expenses: steadyExpenses };
+  }
+
   const periodsAfterRamp = month - RAMP.length;
   return {
-    revenue: steadyRevenue * Math.pow(1.05, periodsAfterRamp),
-    expenses: steadyExpenses * Math.pow(1.025, periodsAfterRamp),
+    revenue: steadyRevenue * Math.pow(1 + POST_RAMP_REVENUE_GROWTH, periodsAfterRamp),
+    expenses: steadyExpenses * Math.pow(1 + POST_RAMP_EXPENSE_GROWTH, periodsAfterRamp),
   };
 }
 
@@ -57,12 +73,13 @@ export function calculateInvestmentPaybackMonth(
   steadyRevenue: number,
   steadyExpenses: number,
   horizonMonths = 60,
+  options: ProjectionOptions = {},
 ): number {
   if (startupInvestment <= 0) return 0;
   if (steadyRevenue - steadyExpenses <= 0) return 999;
   let cumulativeCashFlow = 0;
   for (let month = 1; month <= horizonMonths; month += 1) {
-    const projection = projectOperatingMonth(steadyRevenue, steadyExpenses, month);
+    const projection = projectOperatingMonth(steadyRevenue, steadyExpenses, month, options);
     cumulativeCashFlow += projection.revenue - projection.expenses;
     if (cumulativeCashFlow >= startupInvestment) return month;
   }

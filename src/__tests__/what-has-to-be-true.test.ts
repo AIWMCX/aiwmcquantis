@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { calculateInvestmentPaybackMonth, projectOperatingMonth } from '../../supabase/functions/analyze-business/operating-projection';
 import { whatHasToBeTrue } from '@/lib/what-has-to-be-true';
 
 // Buy-blockers #145/#68: the result led with a verdict label and six tabs.
@@ -33,5 +34,21 @@ describe('whatHasToBeTrue', () => {
     const src = readFileSync('src/components/analysis/AccuracyTransparentResults.tsx', 'utf8');
     expect(src).toMatch(/data-testid="what-has-to-be-true"/);
     expect(src).toMatch(/ltvCacReading\(metrics\.ltvCac\) === 'implausible'/);
+  });
+  it('shows the flat-revenue payback next to the growth payback', () => {
+    const l = whatHasToBeTrue({ ...base, paybackMonths: 19, runwayMonths: 36, flatPaybackMonths: 31, planKillerHeadlines: [] });
+    expect(l[2]).toBe('That payback assumes revenue keeps growing 5% a month after month 6 (costs 2.5%). If revenue stays at the month-6 level, payback takes about 31 months.');
+    const never = whatHasToBeTrue({ ...base, paybackMonths: 40, runwayMonths: 60, flatPaybackMonths: 999, planKillerHeadlines: [] });
+    expect(never[2]).toMatch(/payback takes more than 5 years\.$/);
+    // Within the ramp, growth plays no part: no extra line.
+    expect(whatHasToBeTrue({ ...base, paybackMonths: 5, flatPaybackMonths: 5, planKillerHeadlines: [] })).toHaveLength(2);
+  });
+
+  it('flat projection holds month-6 levels; growth case unchanged', () => {
+    expect(calculateInvestmentPaybackMonth(60_000, 30_000, 22_000)).toBe(11);
+    expect(calculateInvestmentPaybackMonth(60_000, 30_000, 22_000, 60, { growthAfterRamp: false })).toBe(13);
+    expect(calculateInvestmentPaybackMonth(200_000, 30_000, 22_000)).toBe(19);
+    expect(calculateInvestmentPaybackMonth(200_000, 30_000, 22_000, 60, { growthAfterRamp: false })).toBe(31);
+    expect(projectOperatingMonth(30_000, 22_000, 20, { growthAfterRamp: false })).toEqual({ revenue: 30_000, expenses: 22_000 });
   });
 });
