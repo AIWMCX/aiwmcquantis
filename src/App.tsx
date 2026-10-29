@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { PendingInviteRedirect } from "@/components/invite/PendingInviteRedirect";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
@@ -157,6 +158,7 @@ const App = () => {
           <TooltipProvider>
             <Toaster richColors position="top-center" />
             <BrowserRouter>
+            <ScrollToTop />
             <SkipToContent />
             <FounderPromoBanner />
             <PendingInviteRedirect />
