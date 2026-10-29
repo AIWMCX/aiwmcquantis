@@ -31,6 +31,9 @@ import { deriveReportVerdict, deriveDegradedFlags } from './pdf-verdict';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { buildBenchmarkCitationsSummary } from './pdf-benchmark-summary';
 import { computeVerdict } from '@/lib/verdict';
+import { whatHasToBeTrue } from '@/lib/what-has-to-be-true';
+import { planKillers } from '@/lib/plan-killers';
+import { costsReconcile } from '@/lib/break-even';
 import {
   selectCriticalAssumptions,
   selectWhatBreaksFirst,
@@ -1929,6 +1932,24 @@ export const createDecisionMemoReport = (
   };
   const verdictColor = verdictToneColor[verdict.tone];
 
+  // Same "What has to be true" list the result screen shows under the
+  // verdict (#145/#68), built from the same figures, so page 1 of the memo
+  // says what the decision rests on before any table.
+  const memoCvp = (financial as any)?.cvp as
+    | { breakEven?: { status?: string; breakEvenRevenue?: string | null } }
+    | undefined;
+  const memoInvestment = Number(financial.startup_investment?.total ?? 0);
+  const memoConditions = whatHasToBeTrue({
+    monthlyRevenue,
+    monthlyProfit,
+    breakEvenRevenue: memoCvp?.breakEven?.breakEvenRevenue != null ? Number(memoCvp.breakEven.breakEvenRevenue) : null,
+    breakEvenStatus: memoCvp?.breakEven?.status ?? null,
+    costsInconsistent: !costsReconcile(financial as any),
+    paybackMonths: paybackMonths > 0 ? paybackMonths : 999,
+    runwayMonths: monthlyProfit >= 0 ? 36 : Math.max(1, Math.floor(memoInvestment / Math.abs(monthlyProfit))),
+    planKillerHeadlines: planKillers(rawResult.actionable_insights?.insights || []).map((f) => f.headline),
+  });
+
   const criticalAssumptions = selectCriticalAssumptions(rawResult, 5);
   const breaksFirst = selectWhatBreaksFirst(rawResult, 3);
   const nextActions = selectNextActions(rawResult, breaksFirst, 3);
@@ -2032,6 +2053,10 @@ export const createDecisionMemoReport = (
         ...reconciliationFlags.map((flag) =>
           React.createElement(Text, { key: flag, style: { fontSize: 8, color: '#78350f', lineHeight: 1.5, marginBottom: 2 } }, `⚠  ${flag}`)
         )
+      ),
+      memoConditions.length > 0 && sectionHeading('What Has To Be True'),
+      ...memoConditions.map((c, i) =>
+        React.createElement(Text, { key: `wht-${i}`, style: { fontSize: 9.5, color: brandedColors.textPrimary, lineHeight: 1.5, marginBottom: 4 } }, `${i + 1}.  ${c}`)
       ),
       pageFooter('Page 1')
     ),
