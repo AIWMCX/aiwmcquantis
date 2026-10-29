@@ -851,7 +851,7 @@ describe('T17 — reconciliation module map is honestly labeled, not silently de
     const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
     expect(src).toMatch(/const rawMrr = userInputs\?\.monthly_revenue \?\? finite\(fa\.mrr\)/);
     expect(src).toMatch(/const rawInvestment = userInputs\?\.startup_investment \?\? finite\(fa\.startup_investment\)/);
-    expect(src).toMatch(/const rawCac = userInputs\?\.cac \?\? finite\(fa\.cac\)/);
+    expect(src).toMatch(/const rawCac = userInputs\?\.cac \?\? benchmarks\.cac_typical;/); // explicit 0 preserved by ??; no AI estimate (2026-10-29)
     expect(src).toContain('import { hasFiniteNumber } from "../_shared/financial-inputs.ts";');
     expect(src).not.toMatch(/const raw(?:Mrr|Investment|Cac|AvgCheck) = userInputs\?\.[^\n]+ \|\|/);
   });

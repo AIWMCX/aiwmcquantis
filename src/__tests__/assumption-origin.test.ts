@@ -31,7 +31,7 @@ describe('classifyAssumptionOrigins', () => {
     expect(origins.cac.origin).toBe('USER_ACTUAL');
   });
 
-  it('falls back to DERIVED when only the AI-extracted value is present, with a benchmark evidence range for CAC', () => {
+  it('falls back to DERIVED for revenue when only the AI-extracted value is present; CAC ignores the AI estimate (benchmark)', () => {
     const origins = classifyAssumptionOrigins({
       userInputs: {},
       fa: { mrr: 9999, cac: 5000 },
@@ -42,7 +42,8 @@ describe('classifyAssumptionOrigins', () => {
     });
     expect(origins.monthly_revenue.origin).toBe('DERIVED');
     expect(origins.monthly_revenue.confidence).toBe(62);
-    expect(origins.cac.origin).toBe('DERIVED');
+    // 2026-10-29: a blank CAC uses the benchmark, never fa.cac.
+    expect(origins.cac.origin).toBe('MODELED_BENCHMARK_PRIOR');
     expect(origins.cac.evidence_range).toEqual([REAL_BENCHMARKS.cac_min, REAL_BENCHMARKS.cac_max]);
   });
 

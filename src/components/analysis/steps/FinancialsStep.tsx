@@ -36,9 +36,9 @@ export function FinancialsStep({ financialInputs, updateField, selectedIndustry,
       <div className="p-4 space-y-3">
         {/* Core fields */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <FinancialField label="Starting Capital" prefix="$" placeholder="50,000" value={financialInputs.startup_investment} onChange={v => updateField('startup_investment', v)} benchmarkMin={benchmarks?.capital?.[0]} benchmarkMax={benchmarks?.capital?.[1]} hint="How much to start" advisorHint={hints?.capital} />
-          <FinancialField label="Price per Customer" prefix="$" placeholder="89" value={financialInputs.average_price} onChange={v => updateField('average_price', v)} benchmarkMin={benchmarks?.price?.[0]} benchmarkMax={benchmarks?.price?.[1]} hint="Per transaction / month / unit" advisorHint={hints?.price} />
-          <FinancialField label="Customers at Launch" placeholder="30" value={financialInputs.expected_customers} onChange={v => updateField('expected_customers', v)} benchmarkMin={benchmarks?.customers?.[0]} benchmarkMax={benchmarks?.customers?.[1]} hint="Month 1 target" advisorHint={hints?.customers} />
+          <FinancialField label="Starting Capital" prefix="$" placeholder="50,000" value={financialInputs.startup_investment} onChange={v => updateField('startup_investment', v)} required benchmarkMin={benchmarks?.capital?.[0]} benchmarkMax={benchmarks?.capital?.[1]} hint="How much to start" advisorHint={hints?.capital} />
+          <FinancialField label="Price per Customer" prefix="$" placeholder="89" value={financialInputs.average_price} onChange={v => updateField('average_price', v)} required benchmarkMin={benchmarks?.price?.[0]} benchmarkMax={benchmarks?.price?.[1]} hint="Per transaction / month / unit" advisorHint={hints?.price} />
+          <FinancialField label="Customers at Launch" placeholder="30" value={financialInputs.expected_customers} onChange={v => updateField('expected_customers', v)} required benchmarkMin={benchmarks?.customers?.[0]} benchmarkMax={benchmarks?.customers?.[1]} hint="Month 1 target" advisorHint={hints?.customers} />
           <FinancialField label="Monthly Op. Costs" prefix="$" placeholder="10,000" value={financialInputs.monthly_costs} onChange={v => updateField('monthly_costs', v)} benchmarkMin={benchmarks?.opex?.[0]} benchmarkMax={benchmarks?.opex?.[1]} hint="Rent + staff + software" advisorHint={hints?.opex} />
         </div>
 

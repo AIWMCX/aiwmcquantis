@@ -88,7 +88,8 @@ describe('financial input presence and provenance', () => {
   it('uses explicit user zeros before AI estimates in canonical financial inputs', () => {
     expect(analysisSource).toContain('userInputs?.monthly_revenue ?? finite(fa.mrr)');
     expect(analysisSource).toContain('userInputs?.startup_investment ?? finite(fa.startup_investment)');
-    expect(analysisSource).toContain('userInputs?.cac ?? finite(fa.cac)');
+    // 2026-10-29: blank CAC = industry benchmark (never the AI estimate); an explicit 0 still wins via ??.
+    expect(analysisSource).toContain('userInputs?.cac ?? benchmarks.cac_typical');
     expect(analysisSource).toContain('userInputs?.average_price ?? finite(fa.average_check)');
     expect(analysisSource).toContain('Object.values(financial_inputs).filter(hasFiniteNumber)');
     expect(analysisSource).toContain('hasFiniteNumber(mergedFinancialInputs?.churn_rate)');
