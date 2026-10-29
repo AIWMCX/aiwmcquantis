@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
 import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
 import { IndustrySelector } from './IndustrySelector';
 import { FileUploader } from './FileUploader';
@@ -317,7 +317,7 @@ export function WizardForm({
             className="mt-2 text-base text-[var(--q-text-secondary)]"
             style={{ fontFamily: 'var(--q-font-body)' }}
           >
-            Two AI engines. 97,500 benchmarks. Your numbers, sourced.
+            Deterministic engine first. {BENCHMARK_COUNT_DISPLAY} modeled benchmark cells. Every input labeled.
           </p>
         </div>
       </div>

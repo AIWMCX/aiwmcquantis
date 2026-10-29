@@ -15,6 +15,7 @@ import {
 import { CaseGridDisplay } from '@/components/cases/CaseGridDisplay';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard } from '@/components/ui/glass-card';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 interface CaseRow { case_id: string; business_idea: string; industry: string; city: string }
 
@@ -64,7 +65,7 @@ export default function CaseBrowser() {
         <div>
           <h1 className="text-xl font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Reference Case Library</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            40 representative business cases · 11 analysis blocks each · backed by 97,500 benchmarks
+            40 representative business cases · 11 analysis blocks each · defaults from {BENCHMARK_COUNT_DISPLAY} modeled benchmark cells
           </p>
         </div>
         {selectedId && (
