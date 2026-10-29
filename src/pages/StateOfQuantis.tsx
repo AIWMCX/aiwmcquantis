@@ -10,6 +10,10 @@ import {
   MONTE_CARLO_ITERATIONS_DISPLAY,
   PIPELINE_LAYERS_LABEL,
 } from '@/config/canonical-facts';
+import { PROFIT_RANGE_ASSUMPTIONS } from '@/lib/profit-range';
+
+const pct = (x: number) => `${Math.round(x * 100)}%`;
+const R = PROFIT_RANGE_ASSUMPTIONS;
 
 /**
  * "State of Quantis" honesty page (charter 6.12-6.17, Phase 6 Public Trust
@@ -20,7 +24,7 @@ import {
  * dynamic `new Date()`, so it reflects when a human actually reviewed this
  * page's claims, not when it happened to build.
  */
-const LAST_VERIFIED = 'August 30, 2026';
+const LAST_VERIFIED = 'October 28, 2026';
 
 export default function StateOfQuantis() {
   return (
@@ -43,11 +47,13 @@ export default function StateOfQuantis() {
 
         <Section title="What Quantis does">
           <p className="text-sm text-muted-foreground">
-            Quantis runs a deterministic financial engine — {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo
-            simulation across a {PIPELINE_LAYERS_LABEL} pipeline — against a grid of {BENCHMARK_COUNT_DISPLAY} benchmark
-            cells covering {BENCHMARK_SECTORS} sectors ({BENCHMARK_DEFINITION}), informed by {BENCHMARK_SOURCES_DISPLAY}.
-            It produces a financial verdict plus an AI-authored narrative layered on top of
-            those numbers.
+            Quantis runs a deterministic financial engine through a {PIPELINE_LAYERS_LABEL} pipeline, filling missing
+            inputs from a grid of {BENCHMARK_COUNT_DISPLAY} benchmark cells covering {BENCHMARK_SECTORS} sectors
+            ({BENCHMARK_DEFINITION}), informed by {BENCHMARK_SOURCES_DISPLAY}. Each report also runs
+            {MONTE_CARLO_ITERATIONS_DISPLAY} modeled months around the base case, varying revenue
+            ({pct(R.revenue.min)}–{pct(R.revenue.max)}) and costs ({pct(R.costs.min)}–{pct(R.costs.max)}), and shows the
+            resulting monthly profit range. It produces a financial verdict plus an AI-authored narrative layered on top
+            of those numbers.
           </p>
         </Section>
 
@@ -65,19 +71,31 @@ export default function StateOfQuantis() {
 
         <Section title="Where the deterministic engine ends and AI narration begins">
           <p className="text-sm text-muted-foreground">
-            Every dollar figure, ratio, and verdict on a Quantis report is computed by the deterministic financial engine —
-            the AI narrator never invents or recomputes a number. The narrator writes prose around numbers it is
-            handed. An automated integrity check (<code className="text-xs">enforceNarrativeIntegrity()</code>) compares
-            the AI's narrative against the engine's own figures on every analysis and rewrites the narrative wholesale if
-            it detects a mismatched dollar figure, wrong currency symbol, or a verdict (profitable/unprofitable) that
-            contradicts the engine's own calculation. Two narrower failure modes — a narrative referencing the wrong time
-            period, or a stale benchmark comparison — are not yet covered by that check; see Known Issues below.
+            The dollar figures, ratios and verdict on a Quantis report are computed by the deterministic financial
+            engine; the AI narrator is handed those numbers and writes prose around them. An automated integrity check
+            (<code className="text-xs">enforceNarrativeIntegrity()</code>) compares the AI-written executive summary with
+            the engine's figures on every analysis. If the summary contains a dollar figure the engine did not produce,
+            a wrong currency symbol, or a verdict that contradicts the calculation, the summary is replaced with one
+            built only from the engine's figures, and the report says so. The check covers the executive summary, not
+            every sentence of the narrative; see Known Issues below.
           </p>
         </Section>
 
         <Section title="Recently fixed issues">
           <IssueList
             items={[
+              {
+                date: '2026-10-27',
+                text: 'A report could call an implausibly high LTV:CAC ratio (for example 79x) "healthy". Above 20x the report now says acquisition cost is likely understated and should be checked.',
+              },
+              {
+                date: '2026-10-24',
+                text: `The ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo described on the site was not actually running on reports. It now runs on every report and shows a seeded monthly profit range. Copy that described capabilities the product did not have was removed the same week.`,
+              },
+              {
+                date: '2026-10-23',
+                text: 'Analyses run without an account were not being saved, so they could not be claimed after signing up. They are now saved and claimable.',
+              },
               {
                 date: '2026-08-29',
                 text: 'A PDF export disclosure flag read the wrong field path and never displayed the "AI narrative generation degraded" notice on any export since it shipped, even when the AI narrative had in fact fallen back to a deterministic-only summary. The underlying calculations were never affected — this was a disclosure-accuracy bug, not a math bug. Found during independent re-verification, fixed and deployed the same day.',
@@ -99,11 +117,15 @@ export default function StateOfQuantis() {
             items={[
               {
                 date: 'open',
+                text: 'The integrity check above is strict: it often replaces the AI summary because the summary quotes a derived figure (for example gross profit) that the check does not yet recognise. The replacement is correct but plainer. A context-aware check is planned.',
+              },
+              {
+                date: 'open',
                 text: 'Two narrow AI-narrative failure modes — referencing the wrong time period, or comparing against a stale benchmark cohort — are not yet covered by the automated integrity check described above. This is a deliberately deferred, accepted-risk item, not an oversight; it requires a schema change to carry period/vintage context into the check.',
               },
               {
                 date: 'open',
-                text: 'The Supabase Auth "leaked password protection" toggle is not yet enabled — it requires a manual action in the Supabase dashboard rather than a code or migration change, and remains outstanding.',
+                text: 'The Supabase Auth "leaked password protection" toggle was not enabled at our last check of the dashboard (August 30, 2026). It is a manual dashboard action, not a code change.',
               },
             ]}
           />
@@ -128,9 +150,8 @@ export default function StateOfQuantis() {
         <Section title="Support and escalation">
           <p className="text-sm text-muted-foreground">
             Email <a href="mailto:support@aiwmcquantis.com" className="underline">support@aiwmcquantis.com</a> with your
-            account email, the time of the issue, and what you observed. A reported math or data discrepancy is treated
-            as its own severity class, separate from general support, with response targets down to one hour for the
-            most severe case — see the incident runbook referenced from Status for the full policy.
+            account email, the time of the issue, and what you observed. A reported math or data discrepancy is handled
+            ahead of general support questions.
           </p>
         </Section>
 
