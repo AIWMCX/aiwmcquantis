@@ -91,7 +91,7 @@ export const VS_PAGES: VsPage[] = [
       },
       {
         feature: 'Output style',
-        quantis: 'Deterministic verdict: viability score, P10/P50/P90 across 12 financial variables, prioritized risk map, labeled assumptions.',
+        quantis: `Deterministic verdict: viability score, a P10/P50/P90 monthly profit range from ${MONTE_CARLO_ITERATIONS_DISPLAY} modeled months, prioritized risk map, labeled assumptions.`,
         competitor: 'Investor-ready written business plan, financial forecasts, one-click PDFs.',
       },
     ],
