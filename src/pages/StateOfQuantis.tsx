@@ -49,7 +49,7 @@ export default function StateOfQuantis() {
           <p className="text-sm text-muted-foreground">
             Quantis runs a deterministic financial engine through a {PIPELINE_LAYERS_LABEL} pipeline, filling missing
             inputs from a grid of {BENCHMARK_COUNT_DISPLAY} benchmark cells covering {BENCHMARK_SECTORS} sectors
-            ({BENCHMARK_DEFINITION}), informed by {BENCHMARK_SOURCES_DISPLAY}. Each report also runs
+            ({BENCHMARK_DEFINITION}), informed by {BENCHMARK_SOURCES_DISPLAY}. Each report also runs{' '}
             {MONTE_CARLO_ITERATIONS_DISPLAY} modeled months around the base case, varying revenue
             ({pct(R.revenue.min)}–{pct(R.revenue.max)}) and costs ({pct(R.costs.min)}–{pct(R.costs.max)}), and shows the
             resulting monthly profit range. It produces a financial verdict plus an AI-authored narrative layered on top

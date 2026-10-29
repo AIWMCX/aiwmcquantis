@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -6,6 +6,10 @@ import { HelmetProvider } from 'react-helmet-async';
 import DecisionReview from '@/pages/DecisionReview';
 import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
 import { PUBLIC_ROUTES } from '../../scripts/seo.routes.mjs';
+
+// The page records funnel events on mount; a real call logs after the test
+// environment closes and Vitest reports it as an unhandled error (CI, #359).
+vi.mock('@/lib/analytics', () => ({ recordFunnelEvent: vi.fn(), trackEvent: vi.fn() }));
 
 // Buy-blockers #91: the $499 pilot shared /decision-review with the $349
 // founder offer, which came first. Consultants now get /consultant-pilot.
