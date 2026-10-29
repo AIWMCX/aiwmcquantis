@@ -59,6 +59,7 @@ const staticEntries: Entry[] = [
   { path: '/security', changefreq: 'monthly', priority: '0.5' },
   { path: '/refund-policy', changefreq: 'yearly', priority: '0.3' },
   { path: '/decision-review', changefreq: 'weekly', priority: '0.9' },
+  { path: '/consultant-pilot', changefreq: 'weekly', priority: '0.9' },
   { path: '/demo/founder-decision-review', changefreq: 'monthly', priority: '0.7' },
   { path: '/demo/hiring-decision', changefreq: 'monthly', priority: '0.7' },
   { path: '/demo/sample-decision-memo', changefreq: 'monthly', priority: '0.6' },

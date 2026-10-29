@@ -10,13 +10,15 @@
 /leaderboard
 /risk-gallery
 /research
-/cases
 /status
 /state-of-quantis
 /security
 /refund-policy
 /decision-review
+/consultant-pilot
 /demo/founder-decision-review
+/demo/hiring-decision
+/demo/sample-decision-memo
 /demo/consultant-founding-pilot
 /connect
 /invite

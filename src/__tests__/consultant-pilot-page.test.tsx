@@ -39,5 +39,7 @@ describe('/consultant-pilot', () => {
     expect(readFileSync('src/components/seo/RouteSEO.tsx', 'utf8')).toMatch(/'\/consultant-pilot': \{/);
     expect(readFileSync('scripts/generate-static-bodies.mjs', 'utf8')).toMatch(/"\/consultant-pilot": `<p class="q-lede">/);
     expect(readFileSync('src/pages/Consultants.tsx', 'utf8')).toMatch(/to="\/consultant-pilot"/);
+    expect(readFileSync('scripts/generate-sitemap.ts', 'utf8')).toMatch(/path: '\/consultant-pilot'/);
+    expect(readFileSync('public/prerender-urls.txt', 'utf8')).toMatch(/^\/consultant-pilot$/m);
   });
 });
