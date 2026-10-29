@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { BrandLogo } from '@/components/brand/BrandLogo';
 
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge, ZoomIn, ZoomOut, Contrast, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowRight, Lock, Check, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge, ZoomIn, ZoomOut, Contrast, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
@@ -139,7 +139,6 @@ export function ReportFirstHero() {
   }, [pendingHeroIdea, idea, handleSubmit]);
 
   const valid = idea.trim().length >= 10;
-  const current = NARRATION[progressStep] ?? NARRATION[0];
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Array<HTMLElement | null>>([]);
@@ -844,10 +843,26 @@ export function ReportFirstHero() {
                     aria-live="polite"
                     style={{ background: 'hsl(var(--muted) / 0.5)', border: '1px solid hsl(var(--border))' }}
                   >
-                    <div className="flex items-center justify-center gap-2 mb-1.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'hsl(var(--primary))' }} />
-                      <span className="text-xs font-medium" style={{ color: 'hsl(var(--foreground))' }}>{current.label}</span>
-                    </div>
+                    {/* #110: every step as a checklist, so a 30-60s run reads as progress, not a stall. */}
+                    <ol className="mb-2 space-y-1 text-left" data-testid="run-progress-steps">
+                      {NARRATION.map((n, idx) => {
+                        const done = idx < progressStep;
+                        const active = idx === progressStep;
+                        return (
+                          <li key={n.label} className="flex items-center gap-2 text-xs" style={{ color: done || active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))' }}>
+                            {done ? (
+                              <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'hsl(var(--primary))' }} aria-hidden />
+                            ) : active ? (
+                              <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" style={{ color: 'hsl(var(--primary))' }} aria-hidden />
+                            ) : (
+                              <span className="w-3.5 h-3.5 shrink-0 rounded-full border" style={{ borderColor: 'hsl(var(--border))' }} aria-hidden />
+                            )}
+                            <span className={active ? 'font-medium' : undefined}>{n.label.replace(/…$/, '')}</span>
+                            <span className="sr-only">{done ? ' (done)' : active ? ' (in progress)' : ''}</span>
+                          </li>
+                        );
+                      })}
+                    </ol>
                     <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: 'hsl(var(--border))' }}>
                       <div
                         className="h-full transition-all duration-500 ease-out"
@@ -863,7 +878,7 @@ export function ReportFirstHero() {
                 <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-1 text-[10px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                   <span className="inline-flex items-center gap-1"><Lock className="w-3 h-3" /> Idea not stored publicly</span>
                   <span>·</span>
-                  <span>97,500 benchmarks</span>
+                  <span>{BENCHMARK_COUNT_DISPLAY} modeled benchmark cells</span>
                   <span>·</span>
                   <span>Red-flag checked</span>
                 </div>
