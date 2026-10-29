@@ -17,6 +17,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
+import { recordFunnelEvent } from '@/lib/analytics';
 import {
   consumeMagicLinkEntry,
   forgetInvite,
@@ -82,8 +83,12 @@ export default function Invite() {
     (supabase as any)
       .rpc('preview_plan_invite', { _token: token })
       .then(({ data, error: e }: { data: Array<{ status: InvitePreviewStatus; duration_days: number | null; redeem_by: string | null; email_locked: boolean }> | null; error: unknown }) => {
+        const status: InvitePreviewStatus = e || !data?.[0] ? 'not_found' : data[0].status;
         if (e || !data?.[0]) setPreview({ status: 'not_found', duration_days: null, redeem_by: null, email_locked: false });
         else setPreview(data[0]);
+        // Community/LinkedIn links were invisible in the funnel until a
+        // signup: record every open. Never the token (it grants Pro).
+        recordFunnelEvent('invite_page_view', { invite_status: status });
       });
   }, [valid, token]);
 
@@ -112,6 +117,7 @@ export default function Invite() {
       }
       const row = data[0];
       setRedeem({ result: row.result, endsAt: row.current_period_end });
+      recordFunnelEvent('invite_redeemed', { result: row.result });
       if (row.result !== 'not_signed_in') forgetInvite();
       if (row.result === 'granted') {
         await refetch();
@@ -133,9 +139,11 @@ export default function Invite() {
       const { error: e } = await signInWithMagicLink(email, `/invite/${token}`);
       if (e) {
         setMagicError(e.message);
+        recordFunnelEvent('invite_magic_link_sent', { ok: false, error: e.message.slice(0, 120) });
         return;
       }
       setMagicSent(true);
+      recordFunnelEvent('invite_magic_link_sent', { ok: true });
     } finally {
       setMagicBusy(false);
     }

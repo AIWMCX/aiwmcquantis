@@ -57,6 +57,14 @@ const INDEPENDENT_REVIEW_EVENTS = [
   { key: 'decision_consensus_viewed', label: 'Consensus viewed' },
 ] as const;
 
+// Invite links (2026-10-29): /invite/<token> opens were invisible until a
+// signup, so a community post's reach could not be measured.
+const INVITE_EVENTS = [
+  { key: 'invite_page_view', label: 'Invite link opened' },
+  { key: 'invite_magic_link_sent', label: 'Sign-in email requested' },
+  { key: 'invite_redeemed', label: 'Invite redeemed' },
+] as const;
+
 type Row = {
   event_name: string;
   total_events: number;
@@ -255,6 +263,39 @@ export default function AdminFunnel() {
                     <div className="text-xs text-muted-foreground mt-1">
                       sessions · {(row?.unique_users ?? 0).toLocaleString('en-US')} users ·{' '}
                       {(row?.unique_analyses ?? 0).toLocaleString('en-US')} analyses
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <header className="mt-10 mb-6">
+        <h2 className="text-xl font-bold">Invite links</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Opens of <code>/invite/…</code> links and what happened next. Who redeemed, and whether they
+          ran an analysis or now pay, is per person in Commercial Ops → Pro invites.
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-testid="invite-funnel">
+        {INVITE_EVENTS.map(({ key, label }) => {
+          const row = byEvent.get(key);
+          return (
+            <Card key={key}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {rows === null ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold">{(row?.unique_sessions ?? 0).toLocaleString('en-US')}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      sessions · {(row?.total_events ?? 0).toLocaleString('en-US')} events
                     </div>
                   </>
                 )}

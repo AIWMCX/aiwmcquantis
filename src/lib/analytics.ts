@@ -204,6 +204,9 @@ export type SowFunnelEvent =
   | 'paid_checkout_complete'
   // /decision-review view: was GA4-only, so the paid-offer funnel had no top step.
   | 'paid_review_view'
+  | 'invite_page_view'
+  | 'invite_magic_link_sent'
+  | 'invite_redeemed'
   // Sample Decision Memo view (surface: 'decision_memo'), already allowed by the DB constraint.
   | 'sample_view'
   // Prompt 3 canonical conversion funnel (audit 16-Jun-2026).
