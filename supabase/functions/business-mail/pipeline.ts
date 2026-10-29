@@ -2,6 +2,7 @@
 // acquisition, and the paced outreach sender (SMTP). HTTP concerns live in
 // index.ts.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { followupOrderCheck, type SentTouch } from '../_shared/mail/followup-order.ts';
 import {
   bouncedRecipient,
   classifyInbound,
@@ -591,6 +592,13 @@ async function preSendGate(svc: Svc, f: QueuedFollowup): Promise<{ ok: true; to:
     const { count: step } = await svc.from('commercial_followups').select('id', { count: 'exact', head: true })
       .eq('prospect_id', prospect.id).eq('status', 'sent').eq('sequence_step', f.sequence_step ?? -1);
     if ((step ?? 0) > 0) return { ok: false, reason: `step ${f.sequence_step} already sent` };
+    // Order + spacing: step n only after step n-1 was sent, and never within
+    // MIN_DAYS_BETWEEN_TOUCHES of this prospect's last email.
+    const { data: touches } = await svc.from('commercial_followups')
+      .select('kind, sequence_step, status, sent_at')
+      .eq('prospect_id', prospect.id).eq('status', 'sent');
+    const order = followupOrderCheck(f.sequence_step ?? 2, (touches ?? []) as SentTouch[]);
+    if (!order.ok) return { ok: false, reason: order.reason };
   }
   return { ok: true, to };
 }
