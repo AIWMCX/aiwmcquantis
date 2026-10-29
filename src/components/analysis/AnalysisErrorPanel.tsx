@@ -27,8 +27,8 @@ export interface AnalysisErrorPanelProps {
   /**
    * Optional attempt counter. When provided, the panel surfaces "Attempt N/max"
    * and applies exponential backoff between retries: min(2^(attempt-1), 30) seconds.
-   * Form-input persistence is handled upstream by WizardForm's draft system;
-   * we only reassure the user that their inputs are preserved.
+   * The form keeps its inputs in page state while the panel shows, so a
+   * Retry re-runs with what the user typed (nothing is saved across reloads).
    */
   attempt?: number;
   maxAttempts?: number;
@@ -282,12 +282,12 @@ export function AnalysisErrorPanel({
           </p>
 
           {/* Persistent reassurance about input preservation — drives confidence
-              to hit Retry instead of bailing. The WizardForm draft system
-              already serializes inputs to localStorage on every change. */}
+              to hit Retry instead of bailing. Inputs live in page state, not
+              storage, so the copy promises only what Retry actually keeps. */}
           {parsed.isTransient && (
             <p className="mt-1.5 text-xs text-muted-foreground/80">
-              Your idea, location, and financial inputs are saved locally and will be restored
-              automatically — retrying will not erase anything you typed.
+              Your idea, location, and financial inputs stay in the form — retrying will not erase
+              anything you typed. Reloading the page would.
             </p>
           )}
 
