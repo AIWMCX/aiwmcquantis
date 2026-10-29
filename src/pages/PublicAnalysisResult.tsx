@@ -229,6 +229,31 @@ export default function PublicAnalysisResult() {
           <AccuracyTransparentResults result={data.result} analysisId={id} />
         </Suspense>
 
+        {/* #120: a reason to share. A second reader is the honest next step for a founder,
+            and every forwarded report reaches someone who could use Quantis. */}
+        <GlassCard
+          glow="cyan"
+          className="mt-8 md:mt-10 p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          data-testid="second-opinion-share"
+        >
+          <div>
+            <p className="text-sm md:text-base font-semibold text-foreground">Get a second opinion on these numbers</p>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Send this report to your accountant, a partner or an advisor. Every assumption is labeled, so they can check the inputs, not just the verdict.
+            </p>
+          </div>
+          <ShareRail
+            title={verdict.headline}
+            analysisId={id}
+            isAuthenticated={isAuthenticated}
+            showSave={false}
+            onSave={onSave}
+            onCreateShareLink={onCreateShareLink}
+            isCreatingShareLink={isSharing}
+            className="w-full sm:w-auto"
+          />
+        </GlassCard>
+
         {/* Above-the-fold-of-decision email capture — anon users only.
             Wired through useLeadCapture → capture_lead RPC → send-welcome-email edge fn. */}
         {!isAuthenticated && (
