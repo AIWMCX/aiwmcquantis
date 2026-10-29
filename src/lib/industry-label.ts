@@ -1,8 +1,11 @@
 import { INDUSTRY_OPTIONS } from '@/types/analysis';
+import { INDUSTRIES } from '@/components/analysis/steps/shared';
 
-/** Display name for a detected industry slug: the option name, else the slug in words. */
+/** Display name for a detected industry slug: the /app chip label, then the option name, else the slug in words. */
 export function industryLabel(slug: string | undefined | null): string | null {
   if (!slug || slug === 'auto') return null;
+  const chip = INDUSTRIES.find((i) => i.id === slug);
+  if (chip) return chip.label;
   const option = INDUSTRY_OPTIONS.find((o) => o.id === slug);
   if (option) return option.name;
   return slug.replace(/[_-]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
