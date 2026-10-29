@@ -15,13 +15,13 @@ const bench: IndustryBenchmarks = {
 const run = (churn?: number) => calculateStrictFinancials(30000, 20000, 500, 0, 3000, bench, loc, null, undefined, churn, 10);
 
 describe('churn is a percent', () => {
-  it('5 (%) on 10 clients needs 1 new client a month, not 50', () => {
+  it('5 (%) on 10 clients needs 0.5 new clients a month, not 50', () => {
     const r = run(5);
-    expect(r.expenses.marketing).toBe(500); // ceil(10 x 0.05) = 1 x $500
-    expect(r.netProfit).toBe(7000);
+    expect(r.expenses.marketing).toBe(250); // 10 x 0.05 = 0.5 expected x $500 (no Math.ceil since 2026-10-29)
+    expect(r.netProfit).toBe(7250);
   });
-  it('matches the no-churn default path when the default is 8%', () => {
-    expect(run(8).expenses.marketing).toBe(run(undefined).expenses.marketing);
+  it('no churn typed = 1 / industry lifetime (18 months = 5.56%)', () => {
+    expect(run(100 / 18).expenses.marketing).toBe(run(undefined).expenses.marketing);
   });
   it('the audit note states the true percent', () => {
     const note = run(5).audit.find((a) => a.formula.startsWith('Marketing'))?.notes ?? '';
