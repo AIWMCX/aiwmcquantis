@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useRef, useEffect, useState } from 'react';
 import { useBotDetection } from '@/hooks/useBotDetection';
-import { QuantisOutputs } from '@/components/landing/QuantisOutputs';
+import { Link } from 'react-router-dom';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { recordFunnelEvent } from '@/lib/analytics';
@@ -13,21 +13,16 @@ import { ReportFirstHero } from '@/components/landing/ReportFirstHero';
 import { ProductFilm } from '@/components/landing/ProductFilm';
 import { IntroFilm } from '@/components/landing/IntroFilm';
 import { shouldShowIntroFilm } from '@/lib/intro-film';
-import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { WhoItsFor } from '@/components/landing/WhoItsFor';
 import { RmgHeader } from '@/components/landing/RmgHeader';
 import { SdwHero } from '@/components/landing/sadewa/SdwHero';
 import { PainPoints } from '@/components/landing/sadewa/PainPoints';
-import { Comparison } from '@/components/landing/sadewa/Comparison';
 import { FinalCTA } from '@/components/landing/sadewa/FinalCTA';
 import { HiringDemoBand } from '@/components/landing/sadewa/HiringDemoBand';
 import { TIERS } from '@/config/tiers';
 
 // Testimonials removed (2026-07-06): replaced by TrustStrip until real linkable founder profiles are verified.
 import { TrustStrip } from '@/components/landing/TrustStrip';
-import { SectionHeader } from '@/components/ui/glass-card';
-const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection').then(m => ({ default: m.HowItWorksSection })));
-const OpenTheHood = lazy(() => import('@/components/landing/OpenTheHood').then(m => ({ default: m.OpenTheHood })));
 const FounderStory = lazy(() => import('@/components/landing/FounderStory').then(m => ({ default: m.FounderStory })));
 const PricingSection = lazy(() => import('@/components/landing/PricingSection').then(m => ({ default: m.PricingSection })));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
@@ -90,40 +85,32 @@ export default function Landing() {
           <ReportFirstHero />
         </div>
 
-        {/* 5. What Quantis does */}
-        <QuantisOutputs />
+        {/* #101 (2026-10-29): "What Quantis does", How it works, the comparison
+            table and "Open the hood" each have their own page, so the homepage
+            links to them instead of repeating them; 2 of 164 home sessions
+            started an analysis with the 15-section version. */}
+        <nav aria-label="Go deeper" className="sdw-white">
+          <div className="sdw-container py-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <span className="sdw-label text-[12px]">Go deeper</span>
+            <Link to="/how-it-works" className="underline underline-offset-4">How it works</Link>
+            <Link to="/methodology" className="underline underline-offset-4">Methodology and limits</Link>
+            <Link to="/demo/sample-decision-memo" className="underline underline-offset-4">Read a sample Decision Memo</Link>
+            <Link to="/pricing#compare-links" className="underline underline-offset-4">Compare with other tools</Link>
+          </div>
+        </nav>
 
         {/* 6–11: Lazy loaded sections */}
         <div ref={belowFoldSection.ref} style={{ minHeight: belowFoldSection.isVisible ? undefined : '600px' }}>
           {belowFoldSection.isVisible ? (
             <Suspense fallback={<SectionSkeleton height={600} />}>
-              <HowItWorksSection />
-              <Comparison />
               <WhoItsFor />
               <TrustStrip />
-              <OpenTheHood />
               <FounderStory />
             </Suspense>
           ) : (
             <SectionSkeleton height={600} />
           )}
         </div>
-
-        {/* 12. Lead capture */}
-        <section aria-labelledby="starter-kit-heading" className="sdw-white sdw-section">
-          <div className="sdw-container grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-10 lg:gap-16 items-end">
-            <SectionHeader
-              align="left"
-              eyebrow="Not ready to analyze yet?"
-              title="Download the Founder Validation Starter Kit"
-              subtitle="Business Model Canvas, Financial Projection Template, 20 AI Prompts, and a Risk Checklist — free."
-              className="sdw-stack-header"
-            />
-            <div className="w-full max-w-md lg:justify-self-end">
-              <LeadCaptureInline />
-            </div>
-          </div>
-        </section>
 
         {/* 13. Pricing */}
         <div ref={pricingRef}>

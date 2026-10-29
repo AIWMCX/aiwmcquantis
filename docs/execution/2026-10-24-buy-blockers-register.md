@@ -184,7 +184,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
-| 101 | Homepage is long | Hero, film, hiring demo, 15-page sample, features, kit, pricing, FAQ | Cut to hero, sample memo, demos, pricing | CODE |
+| 101 | Homepage is long | Hero, film, hiring demo, 15-page sample, features, kit, pricing, FAQ | Cut to hero, sample memo, demos, pricing | PR (What Quantis does, How it works, Comparison, Open the hood and the Starter Kit capture moved off; "Go deeper" links to their pages) |
 | 102 | Two idea forms on one page | Hero box plus the report form four sections down | One form | VERIFY (2026-10-28: hero box already submits into the form below; one run path) |
 | 103 | Product film loads on the homepage | `quantis-decision-film.mp4` metadata requests on load | Checked: the film loads metadata only; the intro opens only from a share link | DONE |
 | 104 | Large first bundle | index JS 559 KB decoded; 57 requests on the homepage | Split the landing bundle | CODE |
