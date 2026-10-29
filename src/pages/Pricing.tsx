@@ -10,6 +10,8 @@ import { PricingSection } from '@/components/landing/PricingSection';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { TIERS } from '@/config/tiers';
 import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
+import { ENGAGEMENT_OFFERS } from '@/config/engagement-offers';
+import { CompareLinks } from '@/components/layout/CompareLinks';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
@@ -101,7 +103,7 @@ export default function Pricing() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-2">Want it done with you, not by you alone?</p>
-              <h2 className="text-xl font-bold" style={{ color: 'hsl(var(--foreground))' }}>Founder-assisted decision reviews — from $349, one-time</h2>
+              <h2 className="text-xl font-bold" style={{ color: 'hsl(var(--foreground))' }}>Founder-assisted decision reviews — from ${Math.min(...ENGAGEMENT_OFFERS.map((o) => o.price))}, one-time</h2>
               <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
                 A founder personally reconciles your numbers and walks you through the assumptions that control the decision. Fixed scope, 48-hour delivery target.
               </p>
@@ -114,6 +116,8 @@ export default function Pricing() {
           </div>
         </GlassCard>
       </section>
+
+      <CompareLinks className="py-6 md:py-8" />
 
       {/* Bottom CTA */}
       <section className="py-12 md:py-16">

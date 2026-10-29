@@ -4,6 +4,7 @@ import { ArrowRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { CompareLinks } from '@/components/layout/CompareLinks';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
@@ -275,6 +276,8 @@ export default function Blog() {
           View all examples <ArrowRight className="w-4 h-4" />
         </Link>
       </section>
+
+      <CompareLinks className="mb-10" />
 
       {/* Closing CTA — glass, matches Landing pattern */}
       <section className="py-8 md:py-12">
