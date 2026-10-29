@@ -166,7 +166,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
 
               {/* Subheadline */}
               <p className="text-center text-muted-foreground text-sm mb-6">
-                Get the AI Validation Checklist used by early-stage founders. Free, instant download.
+                Get the AI Validation Checklist. Free, instant download.
               </p>
 
               {/* Benefits */}
@@ -180,7 +180,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Risk Red Flags</span> — the exact signals investors look for
+                    <span className="font-medium text-foreground">Risk Red Flags</span> — common warning signs in the numbers
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
@@ -242,12 +242,6 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                 </p>
               </div>
 
-              {/* Social Proof — honest, no fake numbers */}
-              <div className="mt-4 pt-4 border-t border-border text-center">
-                <p className="text-xs text-muted-foreground">
-                  Used by early-stage founders validating their next idea
-                </p>
-              </div>
             </>
           )}
         </div>
