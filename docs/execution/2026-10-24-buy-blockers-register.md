@@ -225,8 +225,8 @@ Method: two internal-tagged runs on production, then a read of every public page
 | # | Blocker | Evidence | Fix | Status |
 |---|---|---|---|---|
 | 126 | Nightly audit stalled on a permission prompt | Run of 2026-10-25 23:36 stopped 14s in; no report written | Open the task, set its mode, Run now once | FOUNDER |
-| 127 | `analysis_start` fires on fewer paths than `analysis_complete` | 30 days: 9 vs 49 sessions | Fire start on every run path | CODE (2026-10-28: client fires one start and one complete per run; the extra completes come from the #128 trigger. Needs a migration that joins the trigger event to the browser session) |
-| 128 | Trigger-emitted `analysis_complete` has its own session | Session id = analysis id | Join to the browser session | CODE |
+| 127 | `analysis_start` fires on fewer paths than `analysis_complete` | 30 days: 9 vs 49 sessions | Fire start on every run path | PR (funnel_events_clean skips the analyses trigger rows; completes now come from the visitor session) |
+| 128 | Trigger-emitted `analysis_complete` has its own session | Session id = analysis id | Join to the browser session | PR (same migration 20261029010000; trigger kept as the saved-analyses count) |
 | 129 | RVCE runs are not logged in `ai_calls` | No RVCE task rows in 60 days | Log them so "validated" claims can be checked | CODE |
 | 130 | Hiring routing from the hero not yet measured | New in #322 | Watch `hero_hiring_routed` | VERIFY |
 | 131 | Supabase CLI outdated | v2.118.0 vs v2.122.0 | Update | FOUNDER |
