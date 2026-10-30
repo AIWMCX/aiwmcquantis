@@ -236,6 +236,17 @@ export default function Consultants() {
                 <SplitButton variant="secondary" size="sm" to="/demo/consultant-founding-pilot">Try the capacity demo</SplitButton>
               </div>
             </div>
+            {/* #105/#106: the two decisions advisors get asked about most, run on a client's own numbers. */}
+            <div className="sdw-card p-6 mt-4">
+              <p className="sdw-label text-[12px]">/Free · on your client&apos;s numbers</p>
+              <p className="mt-2 text-[15px]" style={{ color: 'var(--sdw-muted)' }}>
+                Two decisions clients often bring. Enter their numbers, see the month it pays off, and send them the link to that exact run.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <SplitButton variant="secondary" size="sm" to="/demo/hiring-decision?form=1" onClick={() => trackCtaClick('consultants_hiring_own', 'consultants_plans')}>Test a hire</SplitButton>
+                <SplitButton variant="secondary" size="sm" to="/demo/price-change" onClick={() => trackCtaClick('consultants_price_change', 'consultants_plans')}>Test a price change</SplitButton>
+              </div>
+            </div>
             <div className="mt-8">
               <SplitButton variant="secondary" size="sm" to="/pricing">Full pricing comparison</SplitButton>
             </div>
