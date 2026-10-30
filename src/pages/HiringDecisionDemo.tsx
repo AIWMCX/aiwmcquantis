@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, TrendingDown, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, TrendingDown, AlertTriangle, CheckCircle2, Link2 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts';
@@ -17,6 +17,17 @@ import {
   solveHiringRequiredToWork,
   type HiringDemoAssumptions,
 } from '@/lib/demo/hiring-decision-demo';
+import {
+  HIRING_OWN_DEFAULTS,
+  decodeHiringOwn,
+  encodeHiringOwn,
+  hiringSearchFor,
+  hiringSliderRangeFor,
+  toHiringFixture,
+  validateHiringOwn,
+  type HiringOwnInputs,
+} from '@/lib/demo/hiring-own-numbers';
+import { HiringOwnNumbersForm } from '@/components/demo/HiringOwnNumbersForm';
 
 const fmtUsd = (v: number) => {
   const sign = v < 0 ? '-' : '';
@@ -50,9 +61,28 @@ const SLIDER_RANGE: Record<Lever, { min: number; max: number; step: number }> = 
 };
 
 const SLUG = 'hiring_decision';
+const DRAFT_KEY = 'quantis.hiring-own.v1';
+
+function loadDraft(): HiringOwnInputs {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (raw) {
+      const v = { ...HIRING_OWN_DEFAULTS, ...JSON.parse(raw) } as HiringOwnInputs;
+      if (Object.keys(validateHiringOwn(v)).length === 0) return v;
+    }
+  } catch { /* storage unavailable */ }
+  return HIRING_OWN_DEFAULTS;
+}
 
 export default function HiringDecisionDemo() {
-  const f = HIRING_DEMO_FIXTURE;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [own, setOwn] = useState<HiringOwnInputs | null>(() => {
+    const fromLink = decodeHiringOwn(searchParams);
+    return fromLink && Object.keys(validateHiringOwn(fromLink)).length === 0 ? fromLink : null;
+  });
+  const [formOpen, setFormOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const f = useMemo(() => (own ? toHiringFixture(own) : HIRING_DEMO_FIXTURE), [own]);
   const [a, setA] = useState<HiringDemoAssumptions>(f.base);
   const [touched, setTouched] = useState(false);
   const startedRef = React.useRef(false);
@@ -61,11 +91,44 @@ export default function HiringDecisionDemo() {
     startedRef.current = true;
     trackEvent('demo_started', { offer: SLUG, demo_version: f.version });
     recordFunnelEvent('open_the_hood_view', { surface: 'demo_hiring_decision' });
+    if (own) recordFunnelEvent('hiring_own_run', { surface: 'demo_hiring_decision', via: 'saved_link' });
   }
 
-  const fromHero = useSearchParams()[0].get('from') === 'hero';
+  useEffect(() => { setA(f.base); setTouched(false); }, [f]);
+
+  const fromHero = searchParams.get('from') === 'hero';
+  const sliderRange = own ? hiringSliderRangeFor(own) : SLIDER_RANGE;
   const r = useMemo(() => runHiringDemo(a, f), [a, f]);
-  const required = useMemo(() => solveHiringRequiredToWork(a, f), [a, f]);
+  const required = useMemo(() => solveHiringRequiredToWork(a, f, own ? hiringSearchFor(own) : undefined), [a, f, own]);
+
+  function runOwn(inputs: HiringOwnInputs) {
+    setOwn(inputs);
+    setFormOpen(false);
+    setCopied(false);
+    setSearchParams(new URLSearchParams(encodeHiringOwn(inputs)), { replace: true });
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(inputs)); } catch { /* storage unavailable */ }
+    trackEvent('hiring_own_run', { offer: SLUG });
+    recordFunnelEvent('hiring_own_run', { surface: 'demo_hiring_decision', via: 'form' });
+  }
+
+  function backToExample() {
+    setOwn(null);
+    setFormOpen(false);
+    setSearchParams(new URLSearchParams(), { replace: true });
+  }
+
+  async function copyLink() {
+    if (!own) return;
+    // The slider positions go in too, so the link opens on exactly this run.
+    const url = `${window.location.origin}/demo/hiring-decision?${encodeHiringOwn({ ...own, ...a })}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      trackEvent('hiring_own_link_copied', { offer: SLUG });
+    } catch {
+      window.prompt('Copy this link to come back to your numbers:', url);
+    }
+  }
 
   function update(lever: Lever, value: number) {
     setA((prev) => ({ ...prev, [lever]: value }));
@@ -95,7 +158,9 @@ export default function HiringDecisionDemo() {
       />
 
       <section className="aiwmc-section-wash py-12 md:py-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">Interactive demo · illustrative example, not your business</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">
+          {own ? 'Your numbers · same engine as every Quantis Decision Run' : 'Interactive demo · illustrative example, not your business'}
+        </p>
         <SectionHeader
           title="Before the next hire, understand the cash commitment."
           subtitle="Can the business carry another employee before demand catches up? Payroll starts on day one; revenue only follows as new clients fill the new hours. Move a slider and every number below recomputes with the same deterministic engine behind every Quantis Decision Run."
@@ -109,6 +174,53 @@ export default function HiringDecisionDemo() {
         </GlassCard>
       )}
 
+      <GlassCard className="p-5 mb-6">
+        {formOpen ? (
+          <>
+            <h2 className="text-lg font-semibold mb-1">Run this on your own business</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Prefilled with the example. Replace each number with yours. Nothing is sent anywhere; the numbers stay in this browser and in the link you copy.
+            </p>
+            <HiringOwnNumbersForm initial={own ?? loadDraft()} onRun={runOwn} onCancel={() => setFormOpen(false)} />
+          </>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <p className="text-sm text-muted-foreground">
+              {own
+                ? <><strong className="text-foreground">Running on your numbers.</strong> Move the sliders to find what breaks it. Copy the link to keep this run.</>
+                : <><strong className="text-foreground">Deciding on a hire?</strong> Put in your own clients, costs and cash. About 2 minutes.</>}
+            </p>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant={own ? 'outline' : 'default'}
+                onClick={() => { setFormOpen(true); trackEvent('hiring_own_form_opened', { offer: SLUG }); }}
+              >
+                {own ? 'Edit my numbers' : 'Use my own numbers'}
+              </Button>
+              {own && (
+                <>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={copyLink}>
+                    <Link2 className="h-4 w-4" aria-hidden="true" />
+                    {copied ? 'Link copied' : 'Copy link to this run'}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={backToExample}>Back to the example</Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </GlassCard>
+
+      {own ? (
+        <GlassCard className="p-5 mb-6 text-sm text-muted-foreground">
+          <strong className="text-foreground">Your business.</strong> {own.startingClients} clients at ${own.avgMonthlyFee.toLocaleString('en-US')}/month,
+          {' '}{own.currentHoursMonthly} delivery hours (room for {Math.floor(own.currentHoursMonthly / own.hoursPerClientMonthly)} clients), ${own.startingCash.toLocaleString('en-US')} in the bank.
+          {' '}The hire adds {own.hireAddsHoursMonthly} client hours per month and costs ${own.hireOneTimeCost.toLocaleString('en-US')} up front.
+          {' '}Your rule: cash stays above ${own.cashFloor.toLocaleString('en-US')} and the hire pays for itself within {Math.round(own.maxPaybackMonths)} months.
+          {' '}These are your inputs, not checked facts: the result is only as good as they are.
+        </GlassCard>
+      ) : (
       <GlassCard className="p-5 mb-6 text-sm text-muted-foreground">
         <strong className="text-foreground">Illustrative example.</strong> A services business with {f.startingClients} clients at ${f.avgMonthlyFee.toLocaleString('en-US')}/month,
         already at capacity ({f.currentHoursMonthly} delivery hours = {currentCap} clients), ${f.startingCash.toLocaleString('en-US')} in the bank.
@@ -116,7 +228,9 @@ export default function HiringDecisionDemo() {
         ${f.hireOneTimeCost.toLocaleString('en-US')} up front to recruit and onboard. Decision rule: cash stays above ${f.criteria.cashFloor.toLocaleString('en-US')} and
         the hire pays for itself within {f.criteria.maxPaybackMonths} months.
       </GlassCard>
+      )}
 
+      {!own && (
       <GlassCard className="p-5 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,260px)_1fr] gap-5 items-center">
           <video
@@ -142,13 +256,16 @@ export default function HiringDecisionDemo() {
           </div>
         </div>
       </GlassCard>
+      )}
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GlassCard className="p-6">
           <h2 className="text-lg font-semibold mb-1">Change the assumptions</h2>
-          <p className="text-sm text-muted-foreground mb-6">The base case holds. Find the assumption that breaks it.</p>
+          <p className="text-sm text-muted-foreground mb-6">
+            {own ? 'Starting from your numbers. Find the assumption that breaks it.' : 'The base case holds. Find the assumption that breaks it.'}
+          </p>
           <div className="space-y-6">
-            {(Object.keys(SLIDER_RANGE) as Lever[]).map((lever) => (
+            {(Object.keys(sliderRange) as Lever[]).map((lever) => (
               <div key={lever} className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="text-sm font-medium text-foreground">{LEVER_LABEL[lever]}</label>
@@ -157,9 +274,9 @@ export default function HiringDecisionDemo() {
                 <Slider
                   value={[a[lever]]}
                   onValueChange={([v]) => update(lever, v)}
-                  min={SLIDER_RANGE[lever].min}
-                  max={SLIDER_RANGE[lever].max}
-                  step={SLIDER_RANGE[lever].step}
+                  min={Math.min(sliderRange[lever].min, a[lever])}
+                  max={Math.max(sliderRange[lever].max, a[lever])}
+                  step={sliderRange[lever].step}
                   className="w-full"
                   aria-label={LEVER_LABEL[lever]}
                 />
@@ -173,7 +290,7 @@ export default function HiringDecisionDemo() {
           </div>
           {touched && (
             <Button variant="outline" size="sm" className="mt-6" onClick={() => { setA(f.base); setTouched(false); }}>
-              Reset to base case
+              {own ? 'Reset to my numbers' : 'Reset to base case'}
             </Button>
           )}
         </GlassCard>
@@ -201,6 +318,16 @@ export default function HiringDecisionDemo() {
               <p className="text-xl font-bold">{firstFullMonth ? `Month ${firstFullMonth}` : 'Not in 18 mo'}</p>
             </div>
           </div>
+
+          {r.floorBreachWithoutHireMonth !== null && (
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 mb-3 text-sm flex items-start gap-2" role="status">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
+              <span>
+                <strong>The hire is not the only problem.</strong> Even without it, cash falls below the {fmtUsd(f.criteria.cashFloor)} floor
+                in month {r.floorBreachWithoutHireMonth}. Fix the current monthly gap first, or the floor test fails whatever the hire does.
+              </span>
+            </div>
+          )}
 
           {!r.holds && (
             <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 mb-5 text-sm flex items-start gap-2">
@@ -256,11 +383,12 @@ export default function HiringDecisionDemo() {
       <section className="pb-16 text-center">
         <p className="text-sm text-muted-foreground mb-4 max-w-2xl mx-auto">
           Quantis does not make the hiring decision for you. It shows the cash commitment, how long payroll runs ahead of demand,
-          and which assumption the decision depends on most. Your own numbers will differ from this example.
+          and which assumption the decision depends on most.
+          {own ? ' A reviewer can go through your inputs and the assumptions behind them with you.' : ' Your own numbers will differ from this example.'}
         </p>
         <Link to="/decision-review" onClick={() => trackEvent('demo_cta_clicked', { offer: SLUG, demo_version: f.version })}>
           <Button size="lg" className="gap-2 py-6 px-8">
-            Discuss my decision
+            {own ? 'Get a second opinion on this hire' : 'Discuss my decision'}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>

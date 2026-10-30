@@ -116,6 +116,9 @@ export interface HiringDemoResult {
   lowestCash: number;
   lowestCashMonth: number;
   floorBreachMonth: number | null;
+  /** First month cash breaks the floor even WITHOUT the hire (null = it never does).
+   *  When set, the hire is not the only problem. */
+  floorBreachWithoutHireMonth: number | null;
   /** Clients needed just to cover the hire's monthly cost at this margin. */
   clientsToCoverHire: number;
   /** Revenue needed per month just to cover the hire (cost ÷ margin). */
@@ -172,6 +175,7 @@ export function runHiringDemo(a: HiringDemoAssumptions, f: HiringDemoFixture = H
 
   const lowest = months.reduce((lo, m) => (m.cashWith < lo.cashWith ? m : lo), months[0]);
   const breach = months.find((m) => m.cashWith < f.criteria.cashFloor);
+  const breachWithout = months.find((m) => m.cashWithout < f.criteria.cashFloor);
 
   const failures: HiringDemoFailure[] = [];
   if (paybackMonth === null) failures.push('no_payback');
@@ -185,6 +189,7 @@ export function runHiringDemo(a: HiringDemoAssumptions, f: HiringDemoFixture = H
     lowestCash: lowest.cashWith,
     lowestCashMonth: lowest.month,
     floorBreachMonth: breach ? breach.month : null,
+    floorBreachWithoutHireMonth: breachWithout ? breachWithout.month : null,
     clientsToCoverHire: revenueToCoverHire / f.avgMonthlyFee,
     revenueToCoverHire,
     holds: failures.length === 0,
@@ -211,9 +216,10 @@ export interface HiringRequiredToWork {
 export function solveHiringRequiredToWork(
   a: HiringDemoAssumptions,
   f: HiringDemoFixture = HIRING_DEMO_FIXTURE,
+  search: typeof HIRING_LEVER_SEARCH = HIRING_LEVER_SEARCH,
 ): HiringRequiredToWork[] {
-  return (Object.keys(HIRING_LEVER_SEARCH) as Lever[]).map((lever) => {
-    const { min, max, tolerance, worseWhen } = HIRING_LEVER_SEARCH[lever];
+  return (Object.keys(search) as Lever[]).map((lever) => {
+    const { min, max, tolerance, worseWhen } = search[lever];
     const norm = (v: number) => (lever === 'collectionLagMonths' ? Math.round(v) : v);
     const holdsAt = (v: number) => runHiringDemo({ ...a, [lever]: norm(v) }, f).holds;
     const best = worseWhen === 'higher' ? min : max;
