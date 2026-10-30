@@ -14,11 +14,10 @@ name: Vercel Production Deploy (one-click)
 #   5. Roll back to the previous READY production deployment on failure
 #   6. Notify
 
+# Manual only. Production Deploy already ships the exact CI-approved commit to
+# Vercel (and rolls back on a failed smoke test); running this automatically
+# too deployed every merge twice and doubled the Actions minutes.
 on:
-  workflow_run:
-    workflows: ['CI']
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       skip_smoke:

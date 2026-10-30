@@ -27,11 +27,19 @@ name: semgrep
 #      review, and can graduate to blocking once a real baseline exists.
 # ============================================================================
 
+# Actions minutes: runs on PRs only (not again on the push to main -- the PR
+# head was already scanned) plus a weekly full run. The informational community
+# rulesets run only on the weekly schedule / manual dispatch.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '23 6 * * 1' # Mondays 06:23 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -52,6 +60,7 @@ jobs:
 
   community-rulesets:
     name: Community rulesets (informational)
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:

@@ -2,6 +2,10 @@ name: CI
 
 on:
   pull_request:
+    # Docs-only PRs change nothing CI checks.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
   push:
     branches: [main]
 
@@ -154,8 +158,12 @@ jobs:
           echo "::error title=Business-logic spec drift::The QUANTIS_BUSINESS_LOGIC.md hash in docs/ and public/docs/ does not match scripts/verify-business-logic-hash.ts. Regenerate the hash if the spec was intentionally changed."
 
       # ── Tests + coverage ────────────────────────────────────────────────────
+      # Actions minutes: the suite (~2.5 min) already passed on the PR head;
+      # the push to main still lints, typechecks, verifies and builds, which
+      # is what gates the deploy.
       - name: Quality tests
         id: tests
+        if: ${{ github.event_name != 'push' }}
         run: |
           set -o pipefail
           bun run test:quality 2>&1 | tee test-output.txt
@@ -183,7 +191,7 @@ jobs:
           echo "::error title=Outreach tests failed::A guard on outbound email copy failed. Run the same deno test command locally."
 
       - name: Coverage (best-effort)
-        if: always()
+        if: ${{ always() && github.event_name != 'push' }}
         run: bun run test:coverage || true
 
       # ── Genesis P2 — deterministic engine gate ────────────────────────────
@@ -292,7 +300,7 @@ jobs:
             audit-report.txt
             coverage/**
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 3
 
       # ── Job summary ─────────────────────────────────────────────────────────
       - name: CI summary

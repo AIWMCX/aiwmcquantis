@@ -14,7 +14,7 @@ name: Stuck AI Calls Check (scheduled)
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '7 */3 * * *' # every 3 hours (each run bills a full minute)
   workflow_dispatch: {}
 
 permissions:

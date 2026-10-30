@@ -11,7 +11,7 @@ name: P0 10-Table Regression Check (scheduled)
 
 on:
   schedule:
-    - cron: '17 */6 * * *' # every 6 hours
+    - cron: '17 */12 * * *' # every 12 hours
   workflow_dispatch: {}
 
 permissions:
