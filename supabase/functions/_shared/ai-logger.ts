@@ -17,6 +17,7 @@ export type AiCallTask =
   | 'action_plan'
   | 'consensus_check'
   | 'narrator'
+  | 'rvce_extract'
   | 'other';
 
 export interface LogAiCallInput {
