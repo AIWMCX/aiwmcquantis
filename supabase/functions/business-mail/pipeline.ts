@@ -2,6 +2,7 @@
 // acquisition, and the paced outreach sender (SMTP). HTTP concerns live in
 // index.ts.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { postalAddressBlock, withPostalAddress } from '../_shared/mail/compliance-footer.ts';
 import { followupOrderCheck, type SentTouch } from '../_shared/mail/followup-order.ts';
 import {
   bouncedRecipient,
@@ -42,6 +43,7 @@ export interface FullSettings extends MailSettings {
   outreach_from: string;
   dkim_selector: string;
   support_auto_ack: boolean;
+  postal_address: string | null;
 }
 
 export interface MailboxRow extends Mailbox {
@@ -622,6 +624,12 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
   const result: SendTickResult = { decision, dns, sent: null, held: [], queued: counters.queued, sent_today: counters.sentToday };
   if (!decision.ok || counters.queued === 0) return result;
 
+  const addressBlock = postalAddressBlock(settings.postal_address);
+  if (addressBlock) {
+    result.held.push({ followup_id: '-', reason: addressBlock });
+    return result;
+  }
+
   const sender = sendingMailbox(ctx, mailboxes, settings.outreach_from);
   if (!sender) {
     result.held.push({ followup_id: '-', reason: `${settings.outreach_from} is not connected (password missing) or cannot send` });
@@ -670,8 +678,9 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
       // SMTP cannot provide an idempotent send guarantee. If the connection
       // drops after the server accepted DATA, automatic retry could duplicate
       // a real cold email while the CRM still says it is unsent.
+      const text = withPostalAddress(f.draft, settings.postal_address!);
       smtpAttemptStarted = true;
-      const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text: f.draft, inReplyTo: parent, references: parent ? [parent] : [] });
+      const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text, inReplyTo: parent, references: parent ? [parent] : [] });
       const { error } = await svc.rpc('record_commercial_followup_provider_send', {
         _followup_id: f.id,
         _sent_via: 'mailbox_smtp',
@@ -684,7 +693,7 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
       await insertMessage(svc, {
         provider: 'imap', provider_account_id: sender.box.address, internet_message_id: res.messageId,
         direction: 'outbound', mailbox_address: sender.box.address, from_address: sender.box.address, from_name: fromName, to_addresses: [gate.to],
-        subject, body_text: f.draft, message_at: new Date().toISOString(), route: 'outreach', classification: 'outbound',
+        subject, body_text: text, message_at: new Date().toISOString(), route: 'outreach', classification: 'outbound',
         prospect_id: f.prospect_id, followup_id: f.id, match_status: 'matched', sent_by_user_id: f.send_requested_by,
       });
       result.sent = { followup_id: f.id, to: gate.to, from: sender.box.address, message_id: res.messageId };

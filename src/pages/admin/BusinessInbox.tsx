@@ -517,6 +517,7 @@ function MailboxPanel({ status, loading, error }: { status: any; loading: boolea
           <Field label="Warm-up: + per day" type="number" value={String(s.warmup_step ?? '')} onChange={(v) => setDraft({ ...draft, warmup_step: Number(v) })} />
           <Field label="DKIM selector" value={String(s.dkim_selector ?? '')} onChange={(v) => setDraft({ ...draft, dkim_selector: v })} />
         </div>
+        <Field label="Postal address in every outreach email (required by law; nothing sends while empty)" value={String(s.postal_address ?? '')} onChange={(v) => setDraft({ ...draft, postal_address: v || null })} />
         <label className="flex items-center gap-2 text-sm">
           <Switch checked={!!s.support_auto_ack} onCheckedChange={(v) => setDraft({ ...draft, support_auto_ack: v })} />
           Auto-acknowledge new support@ tickets (never for legal, auto-replies or system mail)

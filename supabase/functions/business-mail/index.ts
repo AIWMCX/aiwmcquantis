@@ -37,7 +37,7 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const SETTINGS_FIELDS = new Set([
   'outreach_enabled', 'outreach_from', 'daily_cap', 'warmup_start', 'warmup_base', 'warmup_step', 'min_gap_minutes',
-  'send_timezone', 'send_start_hour', 'send_end_hour', 'send_weekdays', 'dkim_selector', 'support_auto_ack',
+  'send_timezone', 'send_start_hour', 'send_end_hour', 'send_weekdays', 'dkim_selector', 'support_auto_ack', 'postal_address',
 ]);
 
 Deno.serve(async (req) => {
