@@ -21,7 +21,7 @@ permissions:
 jobs:
   check:
     name: Check for unreviewed RLS policy exceptions schema-wide
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     environment:
       name: production

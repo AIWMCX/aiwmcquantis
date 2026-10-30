@@ -23,7 +23,7 @@ permissions:
 jobs:
   check:
     name: Check for stuck pending ai_calls rows
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     environment:
       name: production
