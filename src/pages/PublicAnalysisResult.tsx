@@ -239,7 +239,7 @@ export default function PublicAnalysisResult() {
           <div>
             <p className="text-sm md:text-base font-semibold text-foreground">Test a decision of your own</p>
             <p className="text-xs md:text-sm text-muted-foreground">
-              Describe a hire, a price change or a new location in plain words. You get the same kind of report, with every assumption labeled. Free to try, no card.
+              Describe a hire, a price change or a new location in plain words. You get the same kind of report, with the benchmark sources behind its numbers. Free to try, no card.
             </p>
           </div>
           <Button asChild className="w-full sm:w-auto shrink-0">
@@ -263,7 +263,7 @@ export default function PublicAnalysisResult() {
           <div>
             <p className="text-sm md:text-base font-semibold text-foreground">Get a second opinion on these numbers</p>
             <p className="text-xs md:text-sm text-muted-foreground">
-              Send this report to your accountant, a partner or an advisor. Every assumption is labeled, so they can check the inputs, not just the verdict.
+              Send this report to your accountant, a partner or an advisor. The benchmark sources behind each number are listed, so they can check the inputs, not just the verdict.
             </p>
           </div>
           <ShareRail
