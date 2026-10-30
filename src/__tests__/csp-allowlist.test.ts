@@ -10,7 +10,7 @@ describe('Content-Security-Policy allowlist', () => {
   });
 
   it('still allows the hosts index.html loads', () => {
-    for (const host of ['www.googletagmanager.com', 'www.clarity.ms', 'assets.apollo.io', 'api.fontshare.com']) {
+    for (const host of ['www.googletagmanager.com', 'www.clarity.ms', 'assets.apollo.io', 'api.fontshare.com', 'connect.facebook.net', 'analytics.tiktok.com']) {
       expect(csp).toContain(host);
     }
   });

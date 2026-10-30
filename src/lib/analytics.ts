@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { currentTouches } from './attribution';
+import { trackAdEvent } from './ad-pixels';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -334,6 +335,8 @@ export function recordFunnelEvent(
 
   // 1. GA4 mirror (keeps marketing dashboards intact)
   trackEvent(eventName, metadata);
+  // 1b. Meta / TikTok pixels: mapped events only, no-op until pixel IDs are set (src/lib/ad-pixels.ts)
+  trackAdEvent(eventName, metadata);
 
   // 2. Supabase sink (powers /admin/funnel)
   try {

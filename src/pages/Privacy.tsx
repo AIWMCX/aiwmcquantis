@@ -92,6 +92,7 @@ export default function Privacy() {
             <li><strong>Vercel</strong> - Website hosting</li>
             <li><strong>Resend</strong> - Delivery of account and service emails</li>
             <li><strong>Google Analytics</strong> - Counting visits and which pages are used (see Cookies)</li>
+            <li><strong>Meta Pixel and TikTok Pixel</strong> - Measuring which of our ads lead to visits, tool runs and purchases (see Cookies)</li>
             <li><strong>Google Fonts and Fontshare</strong> - Web fonts; your browser requests them directly, which shares your IP address with those services</li>
           </ul>
           <p className="text-muted-foreground leading-relaxed mt-4">
@@ -158,6 +159,12 @@ export default function Privacy() {
             visits and see which pages are used. You can block these cookies in your browser or with Google's
             opt-out browser add-on. Separately, we record which steps of the site a visit reaches (for example, an
             analysis started or a pricing page viewed) under a random session ID, to measure what works.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            When you arrive from one of our ads, the Meta Pixel and the TikTok Pixel may set cookies (for example <code>_fbp</code>,
+            <code>_ttp</code>) so Meta and TikTok can tell us which ads led to a page view, a tool run, a sign-up or a purchase. We send
+            them the event name only, never your inputs, analyses or contact details. You can limit this in your Meta and TikTok ad
+            settings or block these cookies in your browser.
           </p>
         </section>
 

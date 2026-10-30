@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
+import { initAdPixels } from './lib/ad-pixels';
 import { initClarity } from './lib/clarity';
 import { scheduleAnonymousResultsSweep } from './lib/anonResultsCleanup';
 import './i18n'; // Side-effect import: initializes i18next before any component mounts
@@ -26,6 +27,7 @@ installChunkReloadListener();
 // Initialize monitoring and analytics before rendering
 initSentry();
 initAnalytics();
+initAdPixels();
 initClarity(); // Session replay + heatmaps. No-op unless VITE_CLARITY_PROJECT_ID is set.
 scheduleAnonymousResultsSweep(); // Idle-time TTL + cap eviction for anon /r/:id cache.
 currentTouches(); // Capture landing UTM/referrer before SPA navigation drops them.
