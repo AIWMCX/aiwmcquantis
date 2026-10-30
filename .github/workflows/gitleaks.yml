@@ -11,11 +11,18 @@ name: gitleaks
 # check. .gitleaks.toml documents exactly what's allowlisted and why.
 # ============================================================================
 
+# Actions minutes: PRs only (the PR's commits are what reach main) plus a weekly
+# run on main as a backstop for anything pushed outside a PR.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '41 6 * * 1' # Mondays 06:41 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: gitleaks-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

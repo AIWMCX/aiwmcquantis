@@ -15,11 +15,21 @@ name: qoc-gate
 #                  (defends against silent stub-replacement).
 # ============================================================================
 
+# Actions minutes: PRs that touch QOC code only. Nothing else can change what
+# these tests check.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - 'supabase/functions/qoc-orchestrate/**'
+      - 'supabase/functions/_shared/**'
+      - 'tests/qoc.test.ts'
+      - '.github/workflows/qoc-gate.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: qoc-gate-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   qoc-gate:

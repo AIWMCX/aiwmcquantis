@@ -10,12 +10,12 @@ name: Invariant Sweep Freshness Check (scheduled)
 # scheduled workflows would all produce silence, not a failing run --
 # this checks for that silence directly.
 #
-# Runs more often (every 6 hours) than the sweep itself (daily) so a
-# missed run is caught within hours, not up to another full day late.
+# Runs more often (every 12 hours) than the sweep itself (daily) so a
+# missed run is caught within half a day, not up to another full day late.
 
 on:
   schedule:
-    - cron: '52 */6 * * *'
+    - cron: '52 */12 * * *'
   workflow_dispatch: {}
 
 permissions:

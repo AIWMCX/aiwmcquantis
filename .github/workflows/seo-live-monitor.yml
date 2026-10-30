@@ -17,10 +17,10 @@ name: SEO Live Monitor
 
 on:
   schedule:
-    # Every 6 hours. Frequent enough to catch a regression within the same
+    # Every 12 hours. Frequent enough to catch a regression within the same
     # day it happens; infrequent enough not to spam Actions minutes on a
     # check that (when passing) has nothing new to say.
-    - cron: '17 */6 * * *'
+    - cron: '17 */12 * * *'
   workflow_dispatch: {}
 
 concurrency:

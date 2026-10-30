@@ -36,7 +36,11 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
    - Vercel
 3. **Deploy batching.** CI on main cancels older runs when commits land close together, and their deploys show "skipped". The deploy of the newest commit ships everything before it. Check the deploy for the **HEAD** commit.
 4. **Edge functions deploy only if listed** in the `FUNCTIONS=()` array in `.github/workflows/production-deploy.yml`. Deliberate exclusions go in `supabase/functions/.deploy-ignore`. A function in both lists fails CI. Never "complete" deploys by un-excluding functions.
-5. **Migrations.** Applying one by hand in production means you must add its ledger row, or the ledger check blocks every deploy. Intentionally unapplied files go in `supabase/migrations/.ledger-ignore`.
+5. **Actions minutes cost money.** This is a Free-plan private repo with 2,000 min/month; overage is billed to the founder's card. Before adding a workflow, a push trigger or a cron, count its minutes; each job bills at least 1 minute.
+   - semgrep and gitleaks run on PRs plus a weekly run; qoc-gate runs only on QOC paths.
+   - CI on main skips the test suite, which already ran on the PR.
+   - `Vercel Production Deploy (one-click)` is manual only. `Production Deploy` ships the frontend and rolls back on a failed smoke test.
+6. **Migrations.** Applying one by hand in production means you must add its ledger row, or the ledger check blocks every deploy. Intentionally unapplied files go in `supabase/migrations/.ledger-ignore`.
 
 ## Proving what's live (don't trust job status alone)
 - **Edge function:** `GET https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/<fn>?health=1` returns a `commit_sha` to compare against main.
