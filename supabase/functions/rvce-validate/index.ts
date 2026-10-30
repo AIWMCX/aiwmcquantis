@@ -16,6 +16,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { getUserTier } from '../_shared/entitlements.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
 import { computeRvceStatus, fmtMetricValue } from './status.ts';
+import { logAiCall } from '../_shared/ai-logger.ts';
+import { deepseekCostUsd } from './cost.ts';
 
 const FUNCTION_NAME = 'rvce-validate';
 const FUNCTION_VERSION = '0.5.0';
@@ -330,6 +332,7 @@ async function extractObservations(
   metric: string,
   searchResults: SearchResult[],
   profile: { industry: string; city: string; business_model: string },
+  logCtx: RvceLogCtx = {},
 ): Promise<ExtractionResult> {
   if (searchResults.length === 0) return { accepted: [], normalized: [] };
   if (!DEEPSEEK_API_KEY) return extractNumericFallback(metric, searchResults);
@@ -366,6 +369,7 @@ Rules:
 - Report the unit as written in the source (e.g. "$3/sq ft" -> raw_unit "per_sqft_monthly", value 3) — never silently convert it yourself
 - If nothing found: {"observations":[]}`;
 
+  const startedAt = Date.now();
   try {
     const resp = await fetch(DEEPSEEK_URL, {
       method: 'POST',
@@ -392,9 +396,16 @@ Rules:
       signal: AbortSignal.timeout(20000),
     });
 
-    if (!resp.ok) return extractNumericFallback(metric, searchResults);
+    if (!resp.ok) {
+      void logRvceCall(logCtx, metric, startedAt, 0, 0, false, `HTTP ${resp.status}`);
+      return extractNumericFallback(metric, searchResults);
+    }
 
     const data = await resp.json();
+    void logRvceCall(
+      logCtx, metric, startedAt,
+      Number(data.usage?.prompt_tokens) || 0, Number(data.usage?.completion_tokens) || 0, true, null,
+    );
     const content: string = data.choices?.[0]?.message?.content ?? '{}';
     const parsed = JSON.parse(content);
 
@@ -414,9 +425,34 @@ Rules:
       console.log(`[RVCE] ${metric} (deepseek): ${summarizeNormalization(normalized)}`);
     }
     return splitNormalized(normalized);
-  } catch {
+  } catch (e) {
+    void logRvceCall(logCtx, metric, startedAt, 0, 0, false, (e as Error)?.message ?? 'error');
     return extractNumericFallback(metric, searchResults);
   }
+}
+
+interface RvceLogCtx { analysis_id?: string | null; user_id?: string | null }
+
+/** #129: every RVCE extraction call goes to ai_calls, so "validated" claims
+ *  can be checked against what actually ran. Never throws. */
+function logRvceCall(
+  ctx: RvceLogCtx, metric: string, startedAt: number,
+  inputTokens: number, outputTokens: number, ok: boolean, error: string | null,
+): Promise<void> {
+  return logAiCall({
+    user_id: ctx.user_id ?? null,
+    analysis_id: ctx.analysis_id ?? null,
+    task: 'rvce_extract',
+    provider: 'deepseek',
+    model: 'deepseek-v4-flash',
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    cost_usd: deepseekCostUsd(inputTokens, outputTokens),
+    latency_ms: Date.now() - startedAt,
+    ok,
+    error,
+    metadata: { metric, rvce_version: RVCE_VERSION },
+  });
 }
 
 const VALID_RAW_UNITS = new Set<string>([
@@ -482,6 +518,7 @@ async function validateMetric(
   originalValue: number,
   profile: { industry: string; city: string; business_model: string; country: string },
   adminClient?: any,
+  logCtx: RvceLogCtx = {},
 ): Promise<{ validation: any; evidence: any[]; diagnostics: SearchDiagnostics }> {
   const fill = (tpl: string) =>
     tpl.replace(/{industry}/g,      profile.industry)
@@ -531,7 +568,7 @@ async function validateMetric(
         (diag as any).raw_results_found += results.length;
         diag.results_found += results.length;
         diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
-        const extracted = await extractObservations(metric, results, profile);
+        const extracted = await extractObservations(metric, results, profile, logCtx);
         observations.push(...extracted.accepted);
         addNormalizationCounts(extracted.normalized);
       }
@@ -556,7 +593,7 @@ async function validateMetric(
           (diag as any).raw_results_found += results.length;
           diag.results_found += results.length;
           diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
-          const extracted = await extractObservations(metric, results, profile);
+          const extracted = await extractObservations(metric, results, profile, logCtx);
           observations.push(...extracted.accepted);
           addNormalizationCounts(extracted.normalized);
         }
@@ -891,7 +928,10 @@ serve(async (req) => {
     // Process in batches of 3 (parallel per batch, sequential between batches)
     for (const batch of chunk(metricsToProcess, 3)) {
       const results = await Promise.allSettled(
-        batch.map(m => validateMetric(m, core_metrics[m], profile, adminClient)),
+        batch.map(m => validateMetric(m, core_metrics[m], profile, adminClient, {
+          analysis_id: UUID_RE.test(String(analysis_id)) ? analysis_id : null,
+          user_id: userId,
+        })),
       );
 
       results.forEach((res, i) => {
