@@ -281,28 +281,29 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
     `,
   },
 
+  // Key kept for email_send_log dedupe in process-subscription-downgrades.
+  // 2026-10-30: the email promised 30% off three months of Plus with a promo code,
+  // expires in 7 days", but no such code exists in Stripe, so the offer failed
+  // at checkout. No discount until a real promotion code exists.
   winback_discount: {
-    subject: "30% off Plus — come back to Quantis",
+    subject: "Your Quantis analyses are still here",
     html: (data) => `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">${data.first_name || 'Hey'}, your data's still here</h1>
+        <h1 style="color: #1a1a1a; font-size: 24px;">${data.first_name || 'Hi'}, your analyses are still here</h1>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          It's been a week since your Plus subscription ended. Every analysis you ran is still on your account — but you've been locked out of Monte Carlo, P&L projections, and the Document Studio.
+          Your Plus subscription ended a week ago. Every analysis you ran is still on your account, and you're on the free plan with ${FREE_RUNS_PER_MONTH} complete runs a month.
         </p>
-        <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 28px; border-radius: 12px; margin: 24px 0; text-align: center;">
-          <p style="color: white; font-size: 14px; margin: 0; opacity: 0.9; letter-spacing: 1px;">EXCLUSIVE WIN-BACK OFFER</p>
-          <p style="color: white; font-size: 36px; font-weight: 700; margin: 8px 0;">30% OFF</p>
-          <p style="color: white; font-size: 16px; margin: 0; opacity: 0.95;">First 3 months of Plus</p>
-          <p style="color: white; font-size: 13px; margin: 12px 0 0 0; opacity: 0.8;">Code: <strong style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 4px; letter-spacing: 1.5px;">COMEBACK30</strong></p>
-        </div>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          If you have a decision coming up that needs the Plus tools, you can reactivate any time from the pricing page.
+        </p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/pricing?promo=COMEBACK30"
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/pricing"
              style="background: #1e40af; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-            Reactivate at $11.90/mo
+            See plans
           </a>
         </div>
         <p style="color: #888; font-size: 13px; text-align: center;">
-          Offer expires in 7 days. No further reminders after this — your data stays read-only regardless.
+          This is the only reminder we send. If something didn't work for you, reply to this email; a person reads it.
         </p>
         ${unsubscribeFooter(data)}
       </div>
