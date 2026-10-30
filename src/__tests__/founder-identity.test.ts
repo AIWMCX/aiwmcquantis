@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { FOUNDER } from '@/config/founder';
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -20,5 +21,13 @@ describe('founder identity', () => {
 
   it('LinkedIn links come from config/founder.ts', () => {
     expect(src.filter((p) => /linkedin\.com\/in\/bogdan/.test(readFileSync(p, 'utf8')))).toEqual([]);
+  });
+
+  it('/linkedin redirects to the profile in config/founder.ts, never the dead slug', () => {
+    const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
+    const r = vercel.redirects.find((x: { source: string }) => x.source === FOUNDER.linkedinUrl);
+    expect(r?.destination).toBe(FOUNDER.linkedinProfile);
+    expect(r?.permanent).toBe(false);
+    expect(FOUNDER.linkedinProfile).not.toMatch(/\/in\/bogdan-jeltov\/$/);
   });
 });
