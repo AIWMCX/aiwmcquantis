@@ -14,7 +14,7 @@ Content leads to a conversation. The conversation surfaces one real decision. Th
 | Whop | https://whop.com/aiwmc | 200 ("AIWMC | Whop") |
 | Facebook | https://www.facebook.com/share/1BGWt3CTiw/ | 200, redirects to profile 61575711584311 ("AIWMC, Denver CO") |
 | Instagram | https://www.instagram.com/wmc.ai | Login wall for bots, so **check by hand** |
-| Founder LinkedIn | /in/bogdan-jeltov/ **and** /in/bogdan-jeltov-6218b9324 are both used on the site | **Tell me which one is yours**, and I'll make the site use only that one |
+| Founder LinkedIn | /in/bogdan-jeltov/ is a 404 (founder, 2026-10-30) | Site links go to /linkedin, which redirects to /in/bogdan-jeltov-6218b9324/ (`src/config/founder.ts` + `vercel.json`) |
 
 **Fixed in code (in #211):**
 - The site's search-engine profile data pointed at `linkedin.com/company/aiwmc-quantis` (404) and `twitter.com/aiwmcquantis` (404). Both now point to the live accounts above.

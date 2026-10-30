@@ -5,7 +5,10 @@
 export const FOUNDER = {
   name: 'Bogdan Jeltov',
   role: 'Founder, AIWMC Quantis',
-  linkedinUrl: 'https://www.linkedin.com/in/bogdan-jeltov/',
+  /** The real profile. /in/bogdan-jeltov/ is a 404 (founder screenshot, 2026-10-30). */
+  linkedinProfile: 'https://www.linkedin.com/in/bogdan-jeltov-6218b9324/',
+  /** What pages link to: our own redirect (vercel.json), so a profile change is one edit. */
+  linkedinUrl: '/linkedin',
   /** Google Calendar booking page. The "Book a call" button is hidden while this is null. */
   bookingUrl: null as string | null,
   bookingMinutes: 20,
