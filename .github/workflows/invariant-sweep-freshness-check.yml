@@ -24,7 +24,7 @@ permissions:
 jobs:
   check:
     name: Check the invariant sweep has run recently
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     environment:
       name: production

@@ -47,7 +47,7 @@ permissions:
 jobs:
   quantis-rules:
     name: Quantis custom rules (blocking)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
@@ -61,7 +61,7 @@ jobs:
   community-rulesets:
     name: Community rulesets (informational)
     if: ${{ github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     continue-on-error: true
     steps:
       - uses: actions/checkout@v5

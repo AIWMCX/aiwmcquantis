@@ -20,7 +20,7 @@ permissions:
 jobs:
   check:
     name: Check the 10-table incident boundary for regression
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     environment:
       name: production

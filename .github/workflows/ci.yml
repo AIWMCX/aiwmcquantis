@@ -16,7 +16,7 @@ concurrency:
 jobs:
   quality:
     name: Lint · Format · Typecheck · Verify · Tests · Audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5

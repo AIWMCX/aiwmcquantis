@@ -30,7 +30,7 @@ concurrency:
 jobs:
   verify-live:
     name: Verify live production SEO invariants
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5

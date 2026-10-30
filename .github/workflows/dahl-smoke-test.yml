@@ -22,7 +22,7 @@ permissions:
 jobs:
   smoke-test:
     name: Live Dahl chat-completions call
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     # The JSON-mode probe now tests all 3 documented models sequentially at
     # up to 120s each (see scripts/dahl-json-mode-probe.ts) -- 5 minutes was
     # only ever enough for the single-alias trivial smoke test.

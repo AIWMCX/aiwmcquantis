@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   build-verify-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5

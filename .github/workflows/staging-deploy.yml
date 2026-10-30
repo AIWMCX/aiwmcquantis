@@ -17,7 +17,7 @@ jobs:
   deploy-staging:
     name: Deploy preview (staging environment)
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     environment:
       name: staging

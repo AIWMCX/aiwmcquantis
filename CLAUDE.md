@@ -40,6 +40,11 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
    - semgrep and gitleaks run on PRs plus a weekly run; qoc-gate runs only on QOC paths.
    - CI on main skips the test suite, which already ran on the PR.
    - `Vercel Production Deploy (one-click)` is manual only. `Production Deploy` ships the frontend and rolls back on a failed smoke test.
+   - **Self-hosted runner (free minutes):** every job uses `runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}`.
+     - The repo variable `RUNNER=quantis-wsl` sends jobs to the runner `aiwmc-pc-wsl`. It runs in the founder's PC under WSL Ubuntu, in `/opt/actions-runner` as a systemd service, as user `ghrunner`.
+     - Deleting that variable sends everything back to GitHub-hosted, which is billed: `gh variable delete RUNNER -R AIWMCX/aiwmcquantis`.
+     - If the PC is off, jobs queue (deploys wait).
+     - New workflows must use the same `runs-on` expression.
 6. **Migrations.** Applying one by hand in production means you must add its ledger row, or the ledger check blocks every deploy. Intentionally unapplied files go in `supabase/migrations/.ledger-ignore`.
 
 ## Proving what's live (don't trust job status alone)
