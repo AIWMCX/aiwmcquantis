@@ -120,6 +120,7 @@ const COLUMNS: { label: string; links: { to: string; label: string }[] }[] = [
       { to: '/decision-review', label: 'Founder Decision Review' },
       { to: '/demo/sample-decision-memo', label: 'Sample Decision Memo' },
       { to: '/demo/hiring-decision', label: 'Hiring Decision Demo' },
+      { to: '/demo/price-change', label: 'Price Change Decision' },
       { to: '/consultants', label: 'For Consultants' },
     ],
   },

@@ -81,7 +81,7 @@ export default function HiringDecisionDemo() {
     return fromLink && Object.keys(validateHiringOwn(fromLink)).length === 0 ? fromLink : null;
   });
   // Arriving from the homepage hero with a hiring question: start on their own numbers.
-  const [formOpen, setFormOpen] = useState(() => searchParams.get('from') === 'hero' && !own);
+  const [formOpen, setFormOpen] = useState(() => (searchParams.get('from') === 'hero' || searchParams.get('form') === '1') && !own);
   const [copied, setCopied] = useState(false);
   const f = useMemo(() => (own ? toHiringFixture(own) : HIRING_DEMO_FIXTURE), [own]);
   const [a, setA] = useState<HiringDemoAssumptions>(f.base);

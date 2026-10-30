@@ -170,6 +170,14 @@ export default function DecisionReview({ variant = 'all' }: { variant?: 'all' | 
                   </Button>
                 </Link>
               )}
+              {offer.code === 'founder_decision_review' && (
+                <Link to="/demo/price-change" className="mt-3">
+                  <Button variant="outline" size="lg" className="w-full gap-2">
+                    <PlayCircle className="h-4 w-4" />
+                    Test a price change on your numbers
+                  </Button>
+                </Link>
+              )}
               {offer.code === 'consultant_founding_pilot' && (
                 <Link to="/demo/consultant-founding-pilot" className="mt-6">
                   <Button variant="outline" size="lg" className="w-full gap-2">
