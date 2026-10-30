@@ -84,6 +84,48 @@ export function selectNextActions(result: BusinessAnalysisResult, breaksFirst: W
 }
 
 /** D. Cash runway label -- derived from real monthlyProfit/requiredCapital, never invented. */
+export interface AssumptionSourceRow {
+  label: string;
+  value: string;
+  source: string;
+}
+
+/** How each node's raw value is shown. churn is a monthly fraction (0.05), cogs
+ *  and gross_margin are already percents (50), the rest are money or counts. */
+const NODE_FORMAT: Record<string, 'money' | 'count' | 'fraction_pct' | 'pct'> = {
+  price: 'money',
+  customers: 'count',
+  cac: 'money',
+  churn: 'fraction_pct',
+  cogs: 'pct',
+  fixed_costs: 'money',
+  ltv: 'money',
+  gross_margin: 'pct',
+};
+
+function formatNodeValue(id: string, value: number): string {
+  if (!Number.isFinite(value)) return '—';
+  switch (NODE_FORMAT[id]) {
+    case 'money': return `$${Math.round(value).toLocaleString('en-US')}`;
+    case 'count': return Math.round(value).toLocaleString('en-US');
+    case 'fraction_pct': return `${(value * 100).toFixed(1)}%/mo`;
+    case 'pct': return `${Math.round(value)}%`;
+    default: return String(value);
+  }
+}
+
+/**
+ * "Where each input came from" -- reads assumption_graph.nodes' origin, which
+ * the engine copies from the Living Assumption Register. Returns [] for older
+ * analyses whose nodes predate that field, so no source is ever guessed.
+ */
+export function selectAssumptionSources(result: BusinessAnalysisResult): AssumptionSourceRow[] {
+  const nodes = result.assumption_graph?.nodes ?? [];
+  return nodes
+    .filter((n) => typeof n.origin_label === 'string' && n.origin_label.length > 0)
+    .map((n) => ({ label: n.label, value: formatNodeValue(n.id, n.value), source: n.origin_label as string }));
+}
+
 export function computeRunwayLabel(fa: FinancialAnalysis | undefined, monthlyProfit: number): string {
   const requiredCapital = fa?.startup_investment?.total;
   if (monthlyProfit >= 0) return 'Profitable at base case â€” no runway constraint';

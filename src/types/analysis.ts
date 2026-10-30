@@ -393,7 +393,7 @@ export interface BusinessAnalysisResult {
   document_analysis_summary?: DocumentAnalysisSummary;
   // CTO Architecture Upgrades
   assumption_graph?: {
-    nodes: Array<{ id: string; label: string; value: number; source: string; confidence: number }>;
+    nodes: Array<{ id: string; label: string; value: number; source: string; confidence: number; origin?: string; origin_label?: string }>;
     edges: Array<{ from: string; to: string; weight: number }>;
     criticalPath: Array<{ assumption: string; sensitivity: number; breakingThreshold: number; currentValue: number; direction: string; recommendation: string }>;
     fragility_score: number;

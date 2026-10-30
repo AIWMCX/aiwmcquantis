@@ -36,6 +36,7 @@ import { planKillers } from '@/lib/plan-killers';
 import { costsReconcile } from '@/lib/break-even';
 import {
   selectCriticalAssumptions,
+  selectAssumptionSources,
   selectWhatBreaksFirst,
   selectNextActions,
   computeRunwayLabel,
@@ -1951,6 +1952,7 @@ export const createDecisionMemoReport = (
   });
 
   const criticalAssumptions = selectCriticalAssumptions(rawResult, 5);
+  const assumptionSources = selectAssumptionSources(rawResult);
   const breaksFirst = selectWhatBreaksFirst(rawResult, 3);
   const nextActions = selectNextActions(rawResult, breaksFirst, 3);
   const risks = result.business_plan.risks || [];
@@ -2088,6 +2090,30 @@ export const createDecisionMemoReport = (
             )
           )
         : React.createElement(Text, { style: styles.emptyText }, 'Not available for this analysis.'),
+
+      sectionHeading('Where Each Input Came From'),
+      assumptionSources.length > 0
+        ? React.createElement(
+            View,
+            { style: { marginBottom: 16 } },
+            React.createElement(
+              View, { style: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: brandedColors.border, paddingBottom: 3, marginBottom: 3 } },
+              React.createElement(Text, { style: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: brandedColors.textMuted, width: '38%' } }, 'INPUT'),
+              React.createElement(Text, { style: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: brandedColors.textMuted, width: '20%' } }, 'VALUE'),
+              React.createElement(Text, { style: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: brandedColors.textMuted, width: '42%' } }, 'SOURCE')
+            ),
+            ...assumptionSources.map((row, i) =>
+              React.createElement(
+                View, { key: i, style: { flexDirection: 'row', paddingVertical: 2 } },
+                React.createElement(Text, { style: { fontSize: 9, color: brandedColors.textPrimary, width: '38%' } }, row.label),
+                React.createElement(Text, { style: { fontSize: 9, color: brandedColors.textPrimary, width: '20%' } }, row.value),
+                React.createElement(Text, { style: { fontSize: 9, color: brandedColors.textSecondary, width: '42%' } }, row.source)
+              )
+            ),
+            React.createElement(Text, { style: { fontSize: 8, color: brandedColors.textMuted, marginTop: 4 } },
+              'Values you did not enter are modeled. Replace them with your own numbers to firm up the result.')
+          )
+        : React.createElement(Text, { style: styles.emptyText }, 'Input sources were not recorded for this analysis. Re-run it to see them.'),
 
       sectionHeading('Downside Case'),
       pessimistic

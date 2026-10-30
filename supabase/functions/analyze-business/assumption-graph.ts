@@ -6,6 +6,8 @@
  */
 
 import type { SensitivityResult, SensitivityVariable } from './sensitivity-analyzer.ts';
+import type { AssumptionOrigin, AssumptionOriginClass } from '../_shared/assumption-origin.ts';
+import type { AssumptionKey } from '../_shared/scenario-delta.ts';
 
 // ========== TYPES ==========
 
@@ -13,8 +15,13 @@ export interface AssumptionNode {
   id: string;
   label: string;
   value: number;
-  source: 'user' | 'benchmark' | 'calculated';
-  confidence: number; // 0-100
+  /** Coarse bucket kept for older readers. `origin` is the authoritative field. */
+  source: 'user' | 'benchmark' | 'calculated' | 'unknown';
+  confidence: number; // 0-100, a source-quality signal, not a probability of correctness
+  /** Where the value really came from, from the Living Assumption Register
+   *  (assumption-origin.ts). Absent only when no register was available. */
+  origin?: AssumptionOriginClass;
+  origin_label?: string;
 }
 
 export interface AssumptionEdge {
@@ -92,22 +99,77 @@ interface MetricsInput {
   marketSize?: number;
 }
 
+/** Which register entry backs each input node. COGS has no register key: the
+ *  engine always takes it from the industry benchmark (see the call site). */
+const NODE_TO_ORIGIN_KEY: Record<string, AssumptionKey> = {
+  price: 'average_price',
+  customers: 'expected_customers',
+  cac: 'cac',
+  churn: 'churn_rate',
+  fixed_costs: 'monthly_costs',
+};
+
+const DERIVED_NODE_INPUTS: Record<string, string[]> = {
+  ltv: ['price', 'churn'],
+  gross_margin: ['price', 'cogs'],
+};
+
+function coarseSource(origin: AssumptionOriginClass): AssumptionNode['source'] {
+  if (origin === 'USER_ACTUAL') return 'user';
+  if (origin === 'MODELED_BENCHMARK_PRIOR') return 'benchmark';
+  return 'calculated';
+}
+
 export function computeAssumptionGraph(
   metrics: MetricsInput,
   sensitivity: SensitivityResult | undefined,
-  benchmarkConfidence: number = 75
+  benchmarkConfidence: number = 75,
+  origins?: Partial<Record<AssumptionKey, AssumptionOrigin>>,
 ): AssumptionGraphResult {
-  // Build nodes from metrics
-  const nodes: AssumptionNode[] = [
-    { id: 'price', label: 'Price (Avg Check)', value: metrics.averageCheck, source: 'user', confidence: 85 },
-    { id: 'customers', label: 'Customer Count', value: metrics.clientsActive, source: 'calculated', confidence: 70 },
-    { id: 'cac', label: 'Customer Acquisition Cost', value: metrics.cac, source: 'benchmark', confidence: benchmarkConfidence },
-    { id: 'churn', label: 'Monthly Churn Rate', value: metrics.churnRate, source: 'benchmark', confidence: benchmarkConfidence * 0.9 },
-    { id: 'cogs', label: 'COGS %', value: metrics.cogsPercent, source: 'benchmark', confidence: benchmarkConfidence },
-    { id: 'fixed_costs', label: 'Fixed Costs', value: metrics.fixedCosts, source: 'calculated', confidence: 75 },
-    { id: 'ltv', label: 'Customer Lifetime Value', value: metrics.ltv, source: 'calculated', confidence: 65 },
-    { id: 'gross_margin', label: 'Gross Margin %', value: metrics.grossMarginPercent, source: 'calculated', confidence: 70 },
-  ];
+  const values: Record<string, { label: string; value: number }> = {
+    price: { label: 'Price (Avg Check)', value: metrics.averageCheck },
+    customers: { label: 'Customer Count', value: metrics.clientsActive },
+    cac: { label: 'Customer Acquisition Cost', value: metrics.cac },
+    churn: { label: 'Monthly Churn Rate', value: metrics.churnRate },
+    cogs: { label: 'COGS %', value: metrics.cogsPercent },
+    fixed_costs: { label: 'Fixed Costs', value: metrics.fixedCosts },
+    ltv: { label: 'Customer Lifetime Value', value: metrics.ltv },
+    gross_margin: { label: 'Gross Margin %', value: metrics.grossMarginPercent },
+  };
+
+  // Input nodes take their provenance from the register; nothing is asserted
+  // without it (an unknown origin is reported as unknown, not as "user").
+  const nodes: AssumptionNode[] = [];
+  const byId: Record<string, AssumptionNode> = {};
+  for (const id of ['price', 'customers', 'cac', 'churn', 'cogs', 'fixed_costs']) {
+    const { label, value } = values[id];
+    let node: AssumptionNode;
+    if (id === 'cogs') {
+      node = {
+        id, label, value, source: 'benchmark', confidence: Math.round(benchmarkConfidence),
+        origin: 'MODELED_BENCHMARK_PRIOR', origin_label: 'Industry benchmark prior',
+      };
+    } else {
+      const o = origins?.[NODE_TO_ORIGIN_KEY[id]];
+      node = o
+        ? { id, label, value, source: coarseSource(o.origin), confidence: o.confidence, origin: o.origin, origin_label: o.label }
+        : { id, label, value, source: 'unknown', confidence: 0 };
+    }
+    nodes.push(node);
+    byId[id] = node;
+  }
+  // Derived nodes are computed from other inputs, so they are no better
+  // evidenced than their weakest input.
+  for (const id of ['ltv', 'gross_margin']) {
+    const { label, value } = values[id];
+    const inputs = DERIVED_NODE_INPUTS[id].map((i) => byId[i]);
+    const known = inputs.every((n) => n.source !== 'unknown');
+    nodes.push({
+      id, label, value, source: 'calculated',
+      confidence: known ? Math.min(...inputs.map((n) => n.confidence)) : 0,
+      origin: 'SYSTEM_ASSUMPTION', origin_label: 'System-derived from your other inputs',
+    });
+  }
 
   // Build critical path from sensitivity data
   const criticalPath: CriticalPathItem[] = [];

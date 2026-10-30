@@ -14,7 +14,7 @@ import { deriveInvestmentVerdict, computeInputCompletenessPct } from './investme
 import { scoreIndustriesByKeywords } from './industry-classifier-core.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
-import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
+import { classifyAssumptionOrigins, type AssumptionOriginMap } from '../_shared/assumption-origin.ts';
 import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT, BENCHMARK_SOURCES_DISPLAY } from '../_shared/canonical-facts.ts';
 import { monthlyRevenueFromDocument } from './document-revenue.ts';
 import { buildQualityDimensions } from '../_shared/quality-dimensions.ts';
@@ -3998,7 +3998,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           mrr: calc.mrr,
         },
         sensitivityAnalysis,
-        benchmarkConfidence || 75
+        benchmarkConfidence || 75,
+        (result as { _scenarioBaseInput?: { assumptionOrigins?: AssumptionOriginMap } })._scenarioBaseInput?.assumptionOrigins,
       );
       log.info(`Assumption graph: fragility=${assumptionGraph.fragility_score}, critical_path=${assumptionGraph.criticalPath.length}`);
     } catch (agErr) {
