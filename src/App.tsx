@@ -80,6 +80,7 @@ const DecisionReview = lazy(() => import("./pages/DecisionReview"));
 const FounderDecisionDemo = lazy(() => import("./pages/FounderDecisionDemo"));
 const HiringDecisionDemo = lazy(() => import("./pages/HiringDecisionDemo"));
 const PriceChangeDemo = lazy(() => import("./pages/PriceChangeDemo"));
+const SecondLocationDemo = lazy(() => import("./pages/SecondLocationDemo"));
 const SampleDecisionMemo = lazy(() => import("./pages/SampleDecisionMemo"));
 const ConsultantCapacityDemo = lazy(() => import("./pages/ConsultantCapacityDemo"));
 const EngagementIntake = lazy(() => import("./pages/EngagementIntake"));
@@ -203,6 +204,7 @@ const App = () => {
                 <Route path="/demo/founder-decision-review" element={<FounderDecisionDemo />} />
                 <Route path="/demo/hiring-decision" element={<HiringDecisionDemo />} />
                 <Route path="/demo/price-change" element={<PriceChangeDemo />} />
+                <Route path="/demo/second-location" element={<SecondLocationDemo />} />
                 <Route path="/demo/sample-decision-memo" element={<SampleDecisionMemo />} />
                 <Route path="/demo/consultant-founding-pilot" element={<ConsultantCapacityDemo />} />
                 <Route path="/engagement-intake" element={<EngagementIntake />} />

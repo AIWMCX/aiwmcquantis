@@ -213,6 +213,8 @@ export type SowFunnelEvent =
   | 'hiring_own_run'
   // #106: price-change decision run on the visitor's own numbers (/demo/price-change).
   | 'price_change_run'
+  // #106: second-location decision run on the visitor's own numbers (/demo/second-location).
+  | 'second_location_run'
   | 'sample_cta_click'
   // Sample Decision Memo view (surface: 'decision_memo'), already allowed by the DB constraint.
   | 'sample_view'
