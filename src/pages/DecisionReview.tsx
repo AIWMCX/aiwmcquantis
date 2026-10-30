@@ -9,6 +9,7 @@ import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { supabase } from '@/integrations/supabase/client';
 import { recordFunnelEvent, trackEvent } from '@/lib/analytics';
 import { ENGAGEMENT_OFFERS, type EngagementOfferCode } from '@/config/engagement-offers';
+import { FounderCard } from '@/components/offers/FounderCard';
 
 type OfferCode = EngagementOfferCode;
 
@@ -209,6 +210,10 @@ export default function DecisionReview({ variant = 'all' }: { variant?: 'all' | 
       )}
 
       {error && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
+
+      <section className="pt-8">
+        <FounderCard surface={surface} />
+      </section>
 
       <section className="py-12 grid grid-cols-1 md:grid-cols-3 gap-4">
         {[

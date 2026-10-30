@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Linkedin } from 'lucide-react';
-import founderPortrait from '@/assets/founder-portrait.png';
+import { FOUNDER, founderInitials } from '@/config/founder';
 import { GlassCard, Reveal, SectionHeader } from '@/components/ui/glass-card';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
@@ -35,15 +35,19 @@ export function FounderStory() {
                 boxShadow: '0 24px 60px -18px rgba(2,6,23,0.65)',
               }}
             >
-              <img
-                src={founderPortrait}
-                alt="Bogdan Jeltov, founder of AIWMC Quantis"
-                className="w-full h-full object-cover object-top"
-                loading="lazy"
-              />
+              {/* The old image here was a homepage screenshot, not a portrait.
+                  Initials until a real photo is supplied. */}
+              <div
+                role="img"
+                aria-label={`${FOUNDER.name}, founder of AIWMC Quantis`}
+                className="w-full h-full flex items-center justify-center text-5xl font-semibold tracking-wide bg-muted"
+                style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}
+              >
+                {founderInitials()}
+              </div>
             </div>
             <a
-              href="https://www.linkedin.com/in/bogdan-jeltov/"
+              href={FOUNDER.linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] hover:underline"
