@@ -7,7 +7,13 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
-import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT_DISPLAY } from '../_shared/canonical-facts.ts';
+import {
+  MONTE_CARLO_ITERATIONS_DISPLAY,
+  BENCHMARK_COUNT_DISPLAY,
+  BENCHMARK_SECTORS,
+  DOC_TEMPLATE_COUNT_DISPLAY,
+  FREE_ANALYSES_PER_MONTH,
+} from '../_shared/canonical-facts.ts';
 const FUNCTION_NAME = 'send-lifecycle-email';
 const FUNCTION_VERSION = '1.0.0';
 
@@ -25,9 +31,9 @@ const unsubscribeFooter = (data: Record<string, unknown>) => `
       &copy; ${new Date().getFullYear()} AIWMC Quantis. All Rights Reserved.
     </p>
     <p style="margin: 6px 0 0 0; font-size: 11px; color: #9ca3af;">
-      <a href="https://aiwmcquantis.com/terms" style="color: #6b7280; text-decoration: underline;">Terms</a>
+      <a href="https://www.aiwmcquantis.com/terms" style="color: #6b7280; text-decoration: underline;">Terms</a>
       &nbsp;|&nbsp;
-      <a href="https://aiwmcquantis.com/privacy" style="color: #6b7280; text-decoration: underline;">Privacy</a>
+      <a href="https://www.aiwmcquantis.com/privacy" style="color: #6b7280; text-decoration: underline;">Privacy</a>
       &nbsp;|&nbsp;
       <a href="${data.unsubscribe_url || '#'}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a>
     </p>
@@ -35,9 +41,31 @@ const unsubscribeFooter = (data: Record<string, unknown>) => `
 `;
 
 // Email templates
+// Free-plan runs per month come from canonical-facts (FREE_ANALYSES_PER_MONTH),
+// kept equal to TIERS.free.limits.analysesPerMonth by lifecycle-email-copy.test.ts.
+// The emails used to say "3": the remaining count was computed from a stale limit.
+const FREE_RUNS_PER_MONTH = FREE_ANALYSES_PER_MONTH;
+
+const nurtureEmail = (
+  data: Record<string, unknown>,
+  c: { heading: string; paras: string[]; cta: string; path: string },
+) => `
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #1a1a1a; font-size: 24px;">${c.heading}</h1>
+        ${c.paras.map((t) => `<p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">${t}</p>`).join('')}
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://www.aiwmcquantis.com${c.path}"
+             style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+            ${c.cta}
+          </a>
+        </div>
+        ${unsubscribeFooter(data)}
+      </div>
+    `;
+
 const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<string, unknown>) => string }> = {
   onboarding_step_1: {
-    subject: "Your first analysis is just 2 minutes away",
+    subject: "Your first decision run takes a few minutes",
     html: (data) => `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #1a1a1a; font-size: 24px;">Hi ${data.first_name || 'there'}! 👋</h1>
@@ -45,46 +73,46 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           We noticed you haven't run your first business analysis yet. Let's change that!
         </p>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          In just <strong>2 minutes</strong>, you can:
+          In a few minutes, you can:
         </p>
         <ul style="color: #4a4a4a; font-size: 16px; line-height: 1.8;">
-          <li>Get financial projections for any business idea</li>
+          <li>Estimate monthly profit, cash and break-even for your idea</li>
           <li>See estimated startup costs and payback period</li>
-          <li>Receive a detailed market analysis</li>
+          <li>See every assumption labeled, so you can change the ones you know better</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Start Your Free Analysis
           </a>
         </div>
         <p style="color: #888; font-size: 14px;">
-          You have ${data.remaining_analyses || 3} free analyses remaining this month.
+          Your free plan includes ${FREE_RUNS_PER_MONTH} complete runs each month.
         </p>
         ${unsubscribeFooter(data)}
       </div>
     `,
   },
   onboarding_step_2: {
-    subject: "3 things you're missing without your analysis",
+    subject: "What one Quantis run shows you",
     html: (data) => `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Don't miss out, ${data.first_name || 'friend'}!</h1>
+        <h1 style="color: #1a1a1a; font-size: 24px;">Hi ${data.first_name || 'there'},</h1>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Every day without data is a day of guessing. Here's what you're missing:
+          Here's what one run gives you:
         </p>
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="color: #1a1a1a; margin: 0 0 12px 0;"><strong>1. Financial Clarity</strong></p>
-          <p style="color: #4a4a4a; margin: 0 0 16px 0; font-size: 14px;">Know exactly how much to invest and when you'll break even.</p>
+          <p style="color: #1a1a1a; margin: 0 0 12px 0;"><strong>1. The money side</strong></p>
+          <p style="color: #4a4a4a; margin: 0 0 16px 0; font-size: 14px;">Estimated investment, monthly profit and break-even, with the assumptions behind each number.</p>
           
           <p style="color: #1a1a1a; margin: 0 0 12px 0;"><strong>2. Market Insights</strong></p>
-          <p style="color: #4a4a4a; margin: 0 0 16px 0; font-size: 14px;">Understand your competition and market opportunity.</p>
+          <p style="color: #4a4a4a; margin: 0 0 16px 0; font-size: 14px;">The local market and competition assumptions the estimate relies on.</p>
           
-          <p style="color: #1a1a1a; margin: 0 0 12px 0;"><strong>3. Investor-Ready Reports</strong></p>
-          <p style="color: #4a4a4a; margin: 0; font-size: 14px;">Export professional PDFs for presentations.</p>
+          <p style="color: #1a1a1a; margin: 0 0 12px 0;"><strong>3. A report you can share</strong></p>
+          <p style="color: #4a4a4a; margin: 0; font-size: 14px;">Share a link, or export a PDF (watermarked on the free plan).</p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Get Your Analysis Now
           </a>
@@ -99,16 +127,16 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #1a1a1a; font-size: 24px;">Congratulations! 🎉</h1>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          You've completed your first business analysis. That puts you ahead of most aspiring entrepreneurs!
+          You've completed your first business analysis.
         </p>
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 20px; border-radius: 8px; margin: 20px 0; color: white;">
           <p style="margin: 0; font-size: 18px; font-weight: 600;">Did you know?</p>
           <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">
-            You can export your analysis as a professional PDF to share with investors, partners, or your team.
+            You can export your analysis as a PDF to share with a partner, an advisor or your team. Every assumption is labeled, so they can check the inputs.
           </p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             View & Export Your Analysis
           </a>
@@ -126,18 +154,18 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           It's been a week since your last visit to AIWMC Quantis, and we wanted to check in.
         </p>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Your <strong>${data.remaining_analyses || 3} free analyses</strong> are still waiting for you.
+          Your free plan includes <strong>${FREE_RUNS_PER_MONTH} complete runs</strong> each month.
         </p>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
           In case you missed it, here's what you can do:
         </p>
         <ul style="color: #4a4a4a; font-size: 16px; line-height: 1.8;">
-          <li>Analyze any business idea in under 2 minutes</li>
-          <li>Get detailed financial projections</li>
-          <li>Export bank-ready PDF reports</li>
+          <li>Describe a business decision in plain words</li>
+          <li>Get profit, cash and break-even estimates under three scenarios</li>
+          <li>Export the analysis as a PDF</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Start Your Free Analysis
           </a>
@@ -170,7 +198,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
         </p>
         ` : ''}
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app"
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/app"
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Run a Decision
           </a>
@@ -206,7 +234,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           </div>
         ` : ''}
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             View Your Progress
           </a>
@@ -240,7 +268,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           <li>Watermark-free PDF exports + unlimited downloads</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/plus-settings"
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/plus-settings"
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Reactivate before ${data.period_end_human || 'period end'}
           </a>
@@ -268,7 +296,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           <p style="color: white; font-size: 13px; margin: 12px 0 0 0; opacity: 0.8;">Code: <strong style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 4px; letter-spacing: 1.5px;">COMEBACK30</strong></p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.com'}/pricing?promo=COMEBACK30"
+          <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/pricing?promo=COMEBACK30"
              style="background: #1e40af; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Reactivate at $11.90/mo
           </a>
@@ -282,200 +310,81 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
   },
 
   // ── LEAD NURTURE SEQUENCE (Days 2–7 after email confirmation) ──
+  // Rewritten 2026-10-30 (buy-blockers #121): the old series claimed 200+
+  // industries, "real pricing data", consulting-grade work worth $5k-$15k,
+  // free market sizing (paid-only) and a hard-coded $17. Every fact below
+  // comes from _shared/canonical-facts.ts or src/config/tiers.ts.
   nurture_day_2: {
-    subject: "See how Quantis analyzes your market",
-    html: (data) => `
-      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Hi ${data.first_name || 'there'},</h1>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Ever wonder what your local market really looks like — who your competitors are, what they charge, and where the gaps are?
-        </p>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Quantis pulls from <strong>${BENCHMARK_COUNT_DISPLAY}+ real benchmarks</strong> across 200+ industries to build a market snapshot specific to your business idea.
-        </p>
-        <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0; border-radius: 4px;">
-          <p style="color: #1e40af; margin: 0; font-size: 15px; font-weight: 600;">What you'll see in your analysis:</p>
-          <ul style="color: #1e40af; font-size: 14px; line-height: 1.8; margin: 8px 0 0 0; padding-left: 20px;">
-            <li>Competitive landscape with real pricing data</li>
-            <li>Target market size and growth trends</li>
-            <li>Revenue opportunity by customer segment</li>
-          </ul>
-        </div>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://aiwmcquantis.com/app"
-             style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-            Run Your Free Market Analysis
-          </a>
-        </div>
-        <p style="color: #888; font-size: 13px; text-align: center;">No credit card required. Takes under 2 minutes.</p>
-        ${unsubscribeFooter(data)}
-      </div>
-    `,
+    subject: "Where the numbers in a Quantis run come from",
+    html: (data) => nurtureEmail(data, {
+      heading: `Hi ${data.first_name || 'there'},`,
+      paras: [
+        `Every Quantis run starts from benchmarks: ${BENCHMARK_COUNT_DISPLAY} industry and location observations across ${BENCHMARK_SECTORS} sectors, from sources such as SEC filings and the World Bank.`,
+        `Your own numbers replace the benchmark wherever you have them, and every assumption is labeled with where it came from, so you can see which ones are yours and which are estimates.`,
+      ],
+      cta: 'Run a decision',
+      path: '/app',
+    }),
   },
   nurture_day_3: {
-    subject: "The #1 mistake first-time founders make",
-    html: (data) => `
-      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">${data.first_name || 'Hey'}, quick question:</h1>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Do you know your break-even point? Most first-time founders don't — and it's the #1 reason businesses run out of cash in year one.
-        </p>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Quantis calculates it for you automatically:
-        </p>
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <div style="display: flex; margin-bottom: 12px;">
-            <span style="font-size: 24px; margin-right: 12px;">📊</span>
-            <div>
-              <p style="color: #1a1a1a; margin: 0; font-weight: 600;">Startup Cost Breakdown</p>
-              <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 14px;">Exactly how much you need before day one</p>
-            </div>
-          </div>
-          <div style="display: flex; margin-bottom: 12px;">
-            <span style="font-size: 24px; margin-right: 12px;">📈</span>
-            <div>
-              <p style="color: #1a1a1a; margin: 0; font-weight: 600;">Cash Flow Projections</p>
-              <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 14px;">Month-by-month for the first 3 years</p>
-            </div>
-          </div>
-          <div style="display: flex;">
-            <span style="font-size: 24px; margin-right: 12px;">🎯</span>
-            <div>
-              <p style="color: #1a1a1a; margin: 0; font-weight: 600;">Break-Even Timeline</p>
-              <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 14px;">When your revenue covers all costs</p>
-            </div>
-          </div>
-        </div>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://aiwmcquantis.com/app"
-             style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-            Calculate Your Break-Even Point
-          </a>
-        </div>
-        ${unsubscribeFooter(data)}
-      </div>
-    `,
+    subject: "Do you know your break-even point?",
+    html: (data) => nurtureEmail(data, {
+      heading: `${data.first_name || 'Hi'}, a quick question`,
+      paras: [
+        `Do you know how many sales a month it takes before your plan covers its costs? It is the number most plans leave out.`,
+        `A Quantis run estimates your startup costs, monthly profit, cash position and break-even, and shows which assumptions move them the most.`,
+      ],
+      cta: 'Estimate your break-even',
+      path: '/app',
+    }),
   },
   nurture_day_4: {
-    subject: "Your competitors are already using data",
-    html: (data) => `
-      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Data beats gut feeling, ${data.first_name || 'every time'}</h1>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          The businesses that survive past year 2 have one thing in common: they validate before they invest.
-        </p>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Quantis gives you the same caliber of analysis that consulting firms charge <strong>$5,000–$15,000</strong> for — except it takes 2 minutes and your first analysis is free.
-        </p>
-        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 24px; border-radius: 12px; margin: 24px 0; text-align: center;">
-          <p style="color: rgba(255,255,255,0.8); font-size: 13px; margin: 0; letter-spacing: 1px;">WHAT YOU GET FOR FREE</p>
-          <div style="color: white; font-size: 15px; text-align: left; margin: 16px auto; max-width: 300px;">
-            <p style="margin: 8px 0;">&#10003; Financial projections (12-month)</p>
-            <p style="margin: 8px 0;">&#10003; Market & competitor analysis</p>
-            <p style="margin: 8px 0;">&#10003; Startup cost estimates</p>
-            <p style="margin: 8px 0;">&#10003; Risk assessment</p>
-          </div>
-        </div>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://aiwmcquantis.com/pricing"
-             style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-            See What's Included Free
-          </a>
-        </div>
-        ${unsubscribeFooter(data)}
-      </div>
-    `,
+    subject: "What the free plan includes",
+    html: (data) => nurtureEmail(data, {
+      heading: `Hi ${data.first_name || 'there'},`,
+      paras: [
+        `The free plan includes ${FREE_ANALYSES_PER_MONTH} complete runs a month. Each one gives you a verdict, profit and cash estimates under base, downside and upside scenarios, a pre-mortem of what could break the plan, and a PDF you can share (watermarked on free).`,
+        `It is a model built on stated assumptions, not a forecast: the point is to see which assumptions your decision depends on before you commit money.`,
+      ],
+      cta: 'See plans and limits',
+      path: '/pricing',
+    }),
   },
   nurture_day_5: {
-    subject: "From idea to investor deck in 2 minutes",
-    html: (data) => `
-      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Need to pitch investors, ${data.first_name || 'fast'}?</h1>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Whether you're talking to a bank, a partner, or an investor, they all want the same thing: <strong>numbers that make sense.</strong>
-        </p>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Quantis generates professional, export-ready reports that include:
-        </p>
-        <ul style="color: #4a4a4a; font-size: 15px; line-height: 1.8;">
-          <li>Executive summary with key financial metrics</li>
-          <li>Revenue projections with realistic assumptions</li>
-          <li>Cost structure and margin analysis</li>
-          <li>Market opportunity sizing</li>
-          <li>Risk factors and mitigation strategies</li>
-        </ul>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Plus users get access to the <strong>Document Studio</strong> — 10 branded templates for pitch decks, loan applications, and business plans.
-        </p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://aiwmcquantis.com/app"
-             style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-            Create Your First Report — Free
-          </a>
-        </div>
-        ${unsubscribeFooter(data)}
-      </div>
-    `,
+    subject: "Sharing your numbers with a partner or a bank",
+    html: (data) => nurtureEmail(data, {
+      heading: `Hi ${data.first_name || 'there'},`,
+      paras: [
+        `If someone else has to check your plan, a partner, an accountant or a lender, they need to see the assumptions, not just the totals.`,
+        `Every Quantis report labels each input with its source, and you can share it as a link or a PDF. Plus adds the Document Studio: ${DOC_TEMPLATE_COUNT_DISPLAY} templates such as a business plan or a loan application.`,
+      ],
+      cta: 'Create a report',
+      path: '/app',
+    }),
   },
   nurture_day_6: {
-    subject: `${MONTE_CARLO_ITERATIONS_DISPLAY} scenarios — what could go wrong (and right)`,
-    html: (data) => `
-      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">What if you could stress-test your business before spending a dollar?</h1>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          That's exactly what our Monte Carlo simulation does. It runs <strong>${MONTE_CARLO_ITERATIONS_DISPLAY} different scenarios</strong> to show you the range of outcomes for your business — best case, worst case, and everything in between.
-        </p>
-        <div style="background: #faf5ff; border-left: 4px solid #8b5cf6; padding: 16px; margin: 24px 0; border-radius: 4px;">
-          <p style="color: #6d28d9; margin: 0; font-size: 15px; font-weight: 600;">How Monte Carlo works:</p>
-          <p style="color: #6d28d9; font-size: 14px; line-height: 1.6; margin: 8px 0 0 0;">
-            Instead of one projection, we simulate thousands of variations in costs, revenue, market conditions, and timing. You see a probability distribution — not a guess, but a range you can plan around.
-          </p>
-        </div>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Free accounts get a preview. <strong>Plus ($17/mo)</strong> unlocks the full simulation with confidence intervals and variance bands.
-        </p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://aiwmcquantis.com/pricing"
-             style="background: #8b5cf6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-            Explore Plus Features
-          </a>
-        </div>
-        ${unsubscribeFooter(data)}
-      </div>
-    `,
+    subject: "A range, not a single number",
+    html: (data) => nurtureEmail(data, {
+      heading: `Hi ${data.first_name || 'there'},`,
+      paras: [
+        `A single projection hides how uncertain it is. Each Quantis report runs ${MONTE_CARLO_ITERATIONS_DISPLAY} simulated variations of your key inputs and shows a low, typical and high profit outcome (P10, P50, P90).`,
+        `The range only reflects the variation in the assumptions you can see in the report. It is not a prediction of what will happen.`,
+      ],
+      cta: 'Run a decision',
+      path: '/app',
+    }),
   },
   nurture_day_7: {
-    subject: "Your free analysis is still waiting — last reminder",
-    html: (data) => `
-      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Last one from us, ${data.first_name || 'promise'}</h1>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          This is the final email in our welcome series. Here's a quick recap of what Quantis can do for you:
-        </p>
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 0 0 10px 0;"><strong>Day 1:</strong> We confirmed your email</p>
-          <p style="margin: 0 0 10px 0;"><strong>Day 2:</strong> Market analysis with ${BENCHMARK_COUNT_DISPLAY}+ benchmarks</p>
-          <p style="margin: 0 0 10px 0;"><strong>Day 3:</strong> Break-even and cash flow projections</p>
-          <p style="margin: 0 0 10px 0;"><strong>Day 4:</strong> Consulting-grade analysis, free</p>
-          <p style="margin: 0 0 10px 0;"><strong>Day 5:</strong> Investor-ready reports in minutes</p>
-          <p style="margin: 0 0 10px 0;"><strong>Day 6:</strong> Monte Carlo stress testing</p>
-          <p style="margin: 0;"><strong>Today:</strong> Your move</p>
-        </div>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          We won't email again unless you sign up or opt into our weekly insights. Your data stays private and your analysis is waiting.
-        </p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://aiwmcquantis.com/app"
-             style="background: #1e40af; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; display: inline-block;">
-            Start Your Free Analysis Now
-          </a>
-        </div>
-        <p style="color: #888; font-size: 13px; text-align: center;">
-          Questions? Reply to this email — a real person reads it.
-        </p>
-        ${unsubscribeFooter(data)}
-      </div>
-    `,
+    subject: "Last email in this series",
+    html: (data) => nurtureEmail(data, {
+      heading: `Hi ${data.first_name || 'there'},`,
+      paras: [
+        `This is the last email in the welcome series. If you have a decision coming up, a hire, a price change, a second location, a run takes a few minutes and is free.`,
+        `We won't send more of these unless you sign up or opt into our weekly insights. Questions? Reply to this email; a person reads it.`,
+      ],
+      cta: 'Run a decision',
+      path: '/app',
+    }),
   },
 
   // Sent automatically by supabase/functions/stripe-webhook on
@@ -616,7 +525,7 @@ serve(async (req: Request): Promise<Response> => {
           .eq("month_year", monthYear)
           .single();
 
-        userData.remaining_analyses = Math.max(0, 3 - (usage?.analyses_count || 0));
+        userData.remaining_analyses = Math.max(0, FREE_RUNS_PER_MONTH - (usage?.analyses_count || 0));
       }
     }
 
@@ -635,7 +544,7 @@ serve(async (req: Request): Promise<Response> => {
     const templateData = {
       ...userData,
       ...dynamic_data,
-      app_url: Deno.env.get("APP_URL") || "https://aiwmcquantis.com",
+      app_url: Deno.env.get("APP_URL") || "https://www.aiwmcquantis.com",
       unsubscribe_url: unsubscribeUrl,
     };
 

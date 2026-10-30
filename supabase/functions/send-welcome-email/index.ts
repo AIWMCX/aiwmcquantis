@@ -129,25 +129,25 @@ const generateWelcomeEmailHtml = (name: string, email: string, unsubscribeUrl?: 
                 <tr>
                   <td style="padding: 8px 0;">
                     <span style="color: #10b981; font-size: 16px;">✓</span>
-                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Analyze any business idea instantly</span>
+                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Describe a business decision in plain words and get a result in minutes</span>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0;">
                     <span style="color: #10b981; font-size: 16px;">✓</span>
-                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Get detailed financial projections</span>
+                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Profit, cash and break-even estimates under three scenarios</span>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0;">
                     <span style="color: #10b981; font-size: 16px;">✓</span>
-                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Download professional PDF reports</span>
+                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Every assumption labeled, so you can change the ones you know better</span>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0;">
                     <span style="color: #10b981; font-size: 16px;">✓</span>
-                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Access market analysis and insights</span>
+                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Export the analysis as a PDF to share</span>
                   </td>
                 </tr>
               </table>
