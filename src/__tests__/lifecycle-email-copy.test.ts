@@ -19,7 +19,7 @@ describe('lifecycle and welcome email copy', () => {
     expect(lifecycle).not.toMatch(/remaining_analyses \|\| 3|Math\.max\(0, 3 -/);
   });
   it('makes no claims the product cannot back', () => {
-    for (const bad of [/investor-ready/i, /bank-ready/i, /know exactly/i, /ahead of most/i, /instantly/i, /market analysis/i, /under 2 minutes/i, /200\+ industries/i, /\$5,000/, /#1 (reason|mistake)/i, /competitors are already/i, /\(\$17\/mo\)/])
+    for (const bad of [/investor-ready/i, /bank-ready/i, /know exactly/i, /ahead of most/i, /instantly/i, /market analysis/i, /under 2 minutes/i, /200\+ industries/i, /\$5,000/, /#1 (reason|mistake)/i, /competitors are already/i, /\(\$17\/mo\)/, /COMEBACK30/, /\$11\.90/])
       for (const src of [lifecycle, welcome]) expect(src).not.toMatch(bad);
   });
 });
