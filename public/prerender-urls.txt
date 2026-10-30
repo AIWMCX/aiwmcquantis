@@ -19,6 +19,7 @@
 /demo/founder-decision-review
 /demo/hiring-decision
 /demo/price-change
+/demo/second-location
 /demo/sample-decision-memo
 /demo/consultant-founding-pilot
 /connect

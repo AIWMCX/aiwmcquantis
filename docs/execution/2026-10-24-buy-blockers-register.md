@@ -195,7 +195,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 103 | Product film loads on the homepage | `quantis-decision-film.mp4` metadata requests on load | Checked: the film loads metadata only; the intro opens only from a share link | DONE |
 | 104 | Large first bundle | index JS 559 KB decoded; 57 requests on the homepage | Split the landing bundle | CODE |
 | 105 | No hiring decision as a real run | The hiring model exists only as a fixed demo | Let a visitor run it on their numbers and save it | PR ("Use my own numbers" on /demo/hiring-decision; saved as a link; `hiring_own_run` event; warns when cash breaks the floor even without the hire) |
-| 106 | No second-location or price-change model | The engine models a new business | Add these decision types (they match the hero question) | PR (price change: /demo/price-change on your own numbers, hero routes price questions there; second location still open) |
+| 106 | No second-location or price-change model | The engine models a new business | Add these decision types (they match the hero question) | PR (price change: #390, /demo/price-change; second location: /demo/second-location, opening cost, ramp, overlap, pooled capacity, cash floor. Hero still sends location questions to the general run) |
 | 107 | Anonymous result → sign-up prompt untested at volume | 1 outside result in 30 days | Re-check after traffic returns | VERIFY |
 | 108 | Starter kit and popups compete with the main action | Exit-intent and scroll popups | Keep one capture point | DONE #363 |
 | 109 | Hero label "What are you deciding?" vs an engine that models a business | #51 | Keep the label; routing plus examples now handle it | DONE #322 |

@@ -43,6 +43,7 @@ export const PUBLIC_ROUTES = [
   { path: "/demo/founder-decision-review", title: "Founder Decision Review" },
   { path: "/demo/hiring-decision", title: "Hiring Decision" },
   { path: "/demo/price-change", title: "Price Change Decision" },
+  { path: "/demo/second-location", title: "Second Location Decision" },
   { path: "/demo/sample-decision-memo", title: "Sample Decision Memo" },
   { path: "/demo/consultant-founding-pilot", title: "Consultant Capacity" },
   { path: "/connect", title: "Connect" },

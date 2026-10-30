@@ -156,6 +156,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Price Change Decision — should you raise your prices?',
     description: 'Test a price change on your own numbers: how many clients you can afford to lose, when it pays off, and cash with and without it.',
   },
+  '/demo/second-location': {
+    title: 'Second Location Decision � should you open another location?',
+    description: 'Test a second location on your own numbers: opening cost, ramp-up and overlap, when it pays back, and the lowest your cash gets.',
+  },
   '/demo/sample-decision-memo': {
     title: 'Sample Decision Memo — what a Founder Decision Review delivers',
     description: 'A fictional, fully worked Decision Memo: facts, assumptions and unknowns, three scenarios, cash and payback reconciled, and what would change the decision.',
