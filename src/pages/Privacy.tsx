@@ -24,7 +24,7 @@ export default function Privacy() {
 
       <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8 pb-8">
         <p className="text-muted-foreground text-lg">
-          Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          Last updated: October 30, 2026
         </p>
 
         <section className="space-y-4">
@@ -88,6 +88,11 @@ export default function Privacy() {
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
             <li><strong>Stripe</strong> - Payment processing (PCI-DSS compliant)</li>
+            <li><strong>Supabase</strong> - Database, sign-in and server functions that store and process your account and analyses</li>
+            <li><strong>Vercel</strong> - Website hosting</li>
+            <li><strong>Resend</strong> - Delivery of account and service emails</li>
+            <li><strong>Google Analytics</strong> - Counting visits and which pages are used (see Cookies)</li>
+            <li><strong>Google Fonts and Fontshare</strong> - Web fonts; your browser requests them directly, which shares your IP address with those services</li>
           </ul>
           <p className="text-muted-foreground leading-relaxed mt-4">
             Quantis uses approved AI providers for classification and narration. Provider routing can vary by
@@ -148,6 +153,12 @@ export default function Privacy() {
             <li>Form draft recovery</li>
             <li>Anonymous device identification (for rate limiting)</li>
           </ul>
+          <p className="text-muted-foreground leading-relaxed">
+            We also use Google Analytics, which sets analytics cookies (<code>_ga</code>, <code>_ga_*</code>) to count
+            visits and see which pages are used. You can block these cookies in your browser or with Google's
+            opt-out browser add-on. Separately, we record which steps of the site a visit reaches (for example, an
+            analysis started or a pricing page viewed) under a random session ID, to measure what works.
+          </p>
         </section>
 
         <section className="space-y-4">
