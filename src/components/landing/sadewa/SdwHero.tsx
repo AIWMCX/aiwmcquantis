@@ -6,17 +6,13 @@ import { isHiringDecision } from '@/lib/location-input';
 import { trackCtaClick } from '@/lib/analytics';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
-import { directories } from '@/data/directorySubmissions';
-import { FEATURED_IDS } from '@/components/landing/FeaturedDirectories';
+import { FEATURED_DIRECTORY_NAMES } from '@/data/featuredDirectoryNames';
 import { CharReveal, Img3D, InView, Marquee, RollingNumber, SegmentRule, SplitButton, WordStagger, usePrefersReducedMotion } from '@/components/sadewa/primitives';
 
 const FILM = '/video/quantis-decision-film.mp4';
 const POSTER = '/video/quantis-decision-film-poster.jpg';
 
-const LISTED = FEATURED_IDS
-  .map((id) => directories.find((d) => d.id === id))
-  .filter((d): d is NonNullable<typeof d> => !!d)
-  .map((d) => d.name.replace(/\s*\(.*\)\s*$/, ''));
+const LISTED = FEATURED_DIRECTORY_NAMES;
 
 /** Muted, looping preview of the real product film — only plays while on screen. */
 function ShowreelCard({ onOpen }: { onOpen: () => void }) {
