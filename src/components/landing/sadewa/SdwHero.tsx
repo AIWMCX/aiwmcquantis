@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { submitHeroIdea } from '@/lib/hero-idea';
-import { isHiringDecision } from '@/lib/location-input';
+import { isHiringDecision, isPriceDecision } from '@/lib/location-input';
 import { trackCtaClick } from '@/lib/analytics';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
@@ -90,6 +90,12 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
     if (ideaOk && isHiringDecision(idea)) {
       trackCtaClick('hero_hiring_routed', 'hero');
       navigate('/demo/hiring-decision?from=hero');
+      return;
+    }
+    // Price changes run in the price-change model (#106).
+    if (ideaOk && isPriceDecision(idea)) {
+      trackCtaClick('hero_price_routed', 'hero');
+      navigate('/demo/price-change?from=hero');
       return;
     }
     // The run and its progress live in the form section below (ReportFirstHero).

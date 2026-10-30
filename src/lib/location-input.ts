@@ -31,3 +31,8 @@ export function extractLocationFromText(text: string): string | null {
 export function isHiringDecision(text: string): boolean {
   return /^\s*(should (i|we) )?(hire|hiring|add|bring on|onboard)\b[^.]{0,40}\b(employee|technician|tech|staff|person|people|hire|salesperson|sales rep|rep|assistant|manager|engineer|developer|worker|crew|groomer|stylist|barista|driver)s?\b/i.test(text);
 }
+
+/** Homepage hero routing: "should I raise my prices", "increase our rates by 10%"… */
+export function isPriceDecision(text: string): boolean {
+  return /^\s*(should (i|we) )?(raise|increase|lift|hike|cut|lower|drop|reduce|change)\b[^.]{0,40}\b(price|prices|pricing|rate|rates|fee|fees)\b/i.test(text);
+}

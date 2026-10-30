@@ -152,6 +152,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Hiring Decision Demo — Can the business carry another employee?',
     description: 'Before the next hire, understand the cash commitment: payroll, revenue ramp-up and collection timing on an illustrative example.',
   },
+  '/demo/price-change': {
+    title: 'Price Change Decision — should you raise your prices?',
+    description: 'Test a price change on your own numbers: how many clients you can afford to lose, when it pays off, and cash with and without it.',
+  },
   '/demo/sample-decision-memo': {
     title: 'Sample Decision Memo — what a Founder Decision Review delivers',
     description: 'A fictional, fully worked Decision Memo: facts, assumptions and unknowns, three scenarios, cash and payback reconciled, and what would change the decision.',
