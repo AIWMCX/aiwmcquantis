@@ -141,7 +141,7 @@ const generateWelcomeEmailHtml = (name: string, email: string, unsubscribeUrl?: 
                 <tr>
                   <td style="padding: 8px 0;">
                     <span style="color: #10b981; font-size: 16px;">✓</span>
-                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">Every assumption labeled, so you can change the ones you know better</span>
+                    <span style="margin-left: 12px; font-size: 15px; color: #4b5563;">The benchmark range behind each number, and the option to change the ones you know better</span>
                   </td>
                 </tr>
                 <tr>

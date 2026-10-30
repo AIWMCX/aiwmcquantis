@@ -78,7 +78,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
         <ul style="color: #4a4a4a; font-size: 16px; line-height: 1.8;">
           <li>Estimate monthly profit, cash and break-even for your idea</li>
           <li>See estimated startup costs and payback period</li>
-          <li>See every assumption labeled, so you can change the ones you know better</li>
+          <li>See the benchmark range behind each number, and change the ones you know better</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${data.app_url || 'https://www.aiwmcquantis.com'}/app" 
@@ -132,7 +132,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 20px; border-radius: 8px; margin: 20px 0; color: white;">
           <p style="margin: 0; font-size: 18px; font-weight: 600;">Did you know?</p>
           <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">
-            You can export your analysis as a PDF to share with a partner, an advisor or your team. Every assumption is labeled, so they can check the inputs.
+            You can export your analysis as a PDF to share with a partner, an advisor or your team. The benchmark sources are listed, so they can check the inputs.
           </p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
@@ -320,7 +320,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
       heading: `Hi ${data.first_name || 'there'},`,
       paras: [
         `Every Quantis run starts from benchmarks: ${BENCHMARK_COUNT_DISPLAY} industry and location observations across ${BENCHMARK_SECTORS} sectors, from sources such as SEC filings and the World Bank.`,
-        `Your own numbers replace the benchmark wherever you have them, and every assumption is labeled with where it came from, so you can see which ones are yours and which are estimates.`,
+        `The report's Evidence tab shows the benchmark behind each number: its typical range, source and sample size. Where you enter your own figures, such as your price, the model uses them.`,
       ],
       cta: 'Run a decision',
       path: '/app',
@@ -356,7 +356,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
       heading: `Hi ${data.first_name || 'there'},`,
       paras: [
         `If someone else has to check your plan, a partner, an accountant or a lender, they need to see the assumptions, not just the totals.`,
-        `Every Quantis report labels each input with its source, and you can share it as a link or a PDF. Plus adds the Document Studio: ${DOC_TEMPLATE_COUNT_DISPLAY} templates such as a business plan or a loan application.`,
+        `Every Quantis report lists the benchmark sources behind its numbers, and you can share it as a link or a PDF. Plus adds the Document Studio: ${DOC_TEMPLATE_COUNT_DISPLAY} templates such as a business plan or a loan application.`,
       ],
       cta: 'Create a report',
       path: '/app',
@@ -368,7 +368,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
       heading: `Hi ${data.first_name || 'there'},`,
       paras: [
         `A single projection hides how uncertain it is. Each Quantis report runs ${MONTE_CARLO_ITERATIONS_DISPLAY} simulated variations of your key inputs and shows a low, typical and high profit outcome (P10, P50, P90).`,
-        `The range only reflects the variation in the assumptions you can see in the report. It is not a prediction of what will happen.`,
+        `The range only reflects the variation in the report's assumptions. It is not a prediction of what will happen.`,
       ],
       cta: 'Run a decision',
       path: '/app',
