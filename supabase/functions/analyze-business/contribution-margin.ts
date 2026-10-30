@@ -7,7 +7,7 @@
  * directory. Logic is identical to the webapp-side module — kept in sync
  * by hand since Deno cannot import from src/.
  */
-import Decimal from "https://esm.sh/decimal.js@10.4.3";
+import { Decimal } from "npm:decimal.js@10.4.3";
 
 const FORMULA_ID = "cvp.contribution_margin_breakeven.v1";
 const OPERATING_INCOME_NEAR_ZERO_THRESHOLD = new Decimal("0.005"); // 0.5%

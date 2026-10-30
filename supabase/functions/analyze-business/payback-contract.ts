@@ -10,7 +10,7 @@
  * same monthly free-cash-flow series through a typed, tested contract, so
  * a drift between the two signals a regression in the ramp simulation.
  */
-import Decimal from "https://esm.sh/decimal.js@10.4.3";
+import { Decimal } from "npm:decimal.js@10.4.3";
 
 export type MonthsMetricResult =
   | {

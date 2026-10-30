@@ -28,6 +28,9 @@ export default defineConfig({
       // decimal.js already in package.json — same library, same version
       // family, resolved the way Node actually resolves packages.
       "https://esm.sh/decimal.js@10.4.3": "decimal.js",
+      // Since 2026-10-30 they use an npm: specifier instead (esm.sh kept
+      // returning 520 to Supabase's bundler and blocked deploys).
+      "npm:decimal.js@10.4.3": "decimal.js",
     },
   },
 });
