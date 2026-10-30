@@ -7,7 +7,8 @@ import { trackSignupConversion } from '@/lib/analytics';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard } from '@/components/ui/glass-card';
-import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
+import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
+import { FOUNDER } from '@/config/founder';
 
 export default function ThankYou() {
   const navigate = useNavigate();
@@ -91,7 +92,7 @@ export default function ThankYou() {
 
           <div className="flex items-center justify-center gap-4 mt-4">
             <a
-              href="https://www.linkedin.com/in/bogdan-jeltov-6218b9324"
+              href={FOUNDER.linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"

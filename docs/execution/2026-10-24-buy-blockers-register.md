@@ -41,7 +41,7 @@ Statuses:
 | 13 | Consultant price anchor read as a quote | Pricing page | Labelled illustrative | DONE #314 |
 | 14 | Leaderboard claimed real analyses while showing samples | — | Copy follows the data source | DONE #308 |
 | 15 | Security copy overstated | — | Honest copy | DONE #311 |
-| 16 | No named person behind the $349 review | `/decision-review` has no name, photo or profile link | Add the founder's name, role and LinkedIn link | FOUNDER |
+| 16 | No named person behind the $349 review | `/decision-review` has no name, photo or profile link | Add the founder's name, role and LinkedIn link | PR (FounderCard on /decision-review and /consultant-pilot: name, role, LinkedIn) |
 | 17 | $349 buyers can't see the deliverable | No sample Decision Memo exists | Fictional, labelled sample memo linked from the offer cards | DONE #318 |
 | 18 | Example breadcrumbs used the apex host | JSON-LD on `/examples` | Canonical www | DONE #316 |
 | 19 | Pro features advertised without end-to-end proof | 5-year model, pitch-deck package, API keys, 3 seats | Run each once on a test Pro account; remove any that fail | VERIFY |
@@ -165,7 +165,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 83 | State of Quantis "Last verified August 30" | Two months stale | Re-verify every line, then date it | DONE #358 #359 |
 | 84 | Changelog ends August 27 | Nothing about Monte Carlo, anonymous saves, sample memo, truth passes | Add October entries | DONE #326 |
 | 85 | Blog's last post July 2 | 19 posts; none since July | One post a week from real work (e.g. this audit) | FOUNDER |
-| 86 | No person named anywhere | No About page, no founder name on $349 | About section with name, role, LinkedIn | FOUNDER |
+| 86 | No person named anywhere | No About page, no founder name on $349 | About section with name, role, LinkedIn | PR (same card; homepage 'portrait' was a screenshot of an old homepage showing SOC 2 / dual-AI claims, replaced with initials) |
 | 87 | Social links spread across 10 networks | Footer: X, Telegram, Threads, Whop and more | Keep the 3 that are active | FOUNDER |
 | 88 | "Listed on 21 directories" strip | 0 referrals from any directory in 30 days | Replace with something a buyer cares about (sample memo, demos) | FOUNDER |
 
@@ -177,7 +177,7 @@ Method: two internal-tagged runs on production, then a read of every public page
 | 90 | Footer had no link to the paid review | Footer product links | Founder Decision Review and Sample Decision Memo links | DONE #323 |
 | 91 | $499 pilot shares a page with the $349 review | /decision-review | A dedicated /consultant-pilot page | DONE #355 |
 | 92 | No intake preview for $349 | Buyer can't see what will be asked | Added, mirroring the real intake fields; a test keeps them in sync | DONE (PR) |
-| 93 | No way to book a call | Only mailto | Calendar link (Google Calendar is connected) | FOUNDER |
+| 93 | No way to book a call | Only mailto | Calendar link (Google Calendar is connected) | PR (Book-a-call button ready in config/founder.ts; waiting for the founder's Google Calendar booking link) |
 | 94 | Pricing page title says "$17/mo", page shows $14 | Annual default | Follows #29 | FOUNDER |
 | 95 | Plus value reads as niche | Invoice & Capacity Check, Document Studio, TAM | Lead with "unlimited runs + saved scenarios + branded PDF" | FOUNDER |
 | 96 | Pro lists five features with no end-to-end proof | 5-year model, pitch-deck package, roadmap, API, 3 seats | Test each (#19); remove any that fail | VERIFY |
