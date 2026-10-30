@@ -80,7 +80,8 @@ export default function HiringDecisionDemo() {
     const fromLink = decodeHiringOwn(searchParams);
     return fromLink && Object.keys(validateHiringOwn(fromLink)).length === 0 ? fromLink : null;
   });
-  const [formOpen, setFormOpen] = useState(false);
+  // Arriving from the homepage hero with a hiring question: start on their own numbers.
+  const [formOpen, setFormOpen] = useState(() => searchParams.get('from') === 'hero' && !own);
   const [copied, setCopied] = useState(false);
   const f = useMemo(() => (own ? toHiringFixture(own) : HIRING_DEMO_FIXTURE), [own]);
   const [a, setA] = useState<HiringDemoAssumptions>(f.base);
@@ -170,7 +171,7 @@ export default function HiringDecisionDemo() {
       {fromHero && (
         <GlassCard className="p-5 mb-4 text-sm" role="status">
           <strong>Hiring decisions run in this model.</strong>{' '}
-          <span className="text-muted-foreground">It compares cash with and without the hire. Set the sliders below to your own numbers (cost of the hire, new clients a month, when clients pay, margin).</span>
+          <span className="text-muted-foreground">It compares cash with and without the hire. Replace the example numbers below with yours and run it; the example stays underneath if you want to see it first.</span>
         </GlassCard>
       )}
 
