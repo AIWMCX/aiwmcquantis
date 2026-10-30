@@ -4,7 +4,7 @@
  * §19 Wave 2), same convention as contribution-margin.ts / payback-contract.ts
  * in this directory.
  */
-import Decimal from "https://esm.sh/decimal.js@10.4.3";
+import { Decimal } from "npm:decimal.js@10.4.3";
 
 const FORMULA_ID = "profitability_margins.v1";
 

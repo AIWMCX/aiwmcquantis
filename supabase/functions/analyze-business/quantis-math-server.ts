@@ -8,7 +8,7 @@
  * Every Math.round(a * b) pattern in the production pipeline should go through this.
  */
 
-import Decimal from "https://esm.sh/decimal.js@10.4.3";
+import { Decimal } from "npm:decimal.js@10.4.3";
 
 // Configure Decimal.js for financial precision
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
