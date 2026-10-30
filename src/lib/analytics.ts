@@ -207,6 +207,8 @@ export type SowFunnelEvent =
   | 'invite_page_view'
   | 'invite_magic_link_sent'
   | 'invite_redeemed'
+  // #100: "Test a decision of your own" on a shared /r/ report.
+  | 'shared_report_cta_click'
   | 'sample_cta_click'
   // Sample Decision Memo view (surface: 'decision_memo'), already allowed by the DB constraint.
   | 'sample_view'

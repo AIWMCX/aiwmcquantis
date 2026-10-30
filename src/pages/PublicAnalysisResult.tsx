@@ -1,12 +1,12 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Lock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchAnalysisForView } from '@/services/analysisDb';
 import { computeVerdict, type Verdict } from '@/lib/verdict';
 import { useAuth } from '@/hooks/useAuth';
 import { useShareReport } from '@/hooks/useShareReport';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, recordFunnelEvent } from '@/lib/analytics';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Footer } from '@/components/layout/Footer';
 import { ShareRail } from '@/components/result/ShareRail';
@@ -228,6 +228,30 @@ export default function PublicAnalysisResult() {
         <Suspense fallback={<AnalysisResultsSkeleton />}>
           <AccuracyTransparentResults result={data.result} analysisId={id} />
         </Suspense>
+
+        {/* #100: a shared report is the only page a forwarded reader sees, and its
+            only route onward was a small "New analysis" link in the top bar. */}
+        <GlassCard
+          glow="cyan"
+          className="mt-8 md:mt-10 p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          data-testid="test-your-own-cta"
+        >
+          <div>
+            <p className="text-sm md:text-base font-semibold text-foreground">Test a decision of your own</p>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Describe a hire, a price change or a new location in plain words. You get the same kind of report, with every assumption labeled. Free to try, no card.
+            </p>
+          </div>
+          <Button asChild className="w-full sm:w-auto shrink-0">
+            <Link
+              to="/app"
+              onClick={() => recordFunnelEvent('shared_report_cta_click', { surface: 'public_report' })}
+            >
+              Test your decision
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
+          </Button>
+        </GlassCard>
 
         {/* #120: a reason to share. A second reader is the honest next step for a founder,
             and every forwarded report reaches someone who could use Quantis. */}

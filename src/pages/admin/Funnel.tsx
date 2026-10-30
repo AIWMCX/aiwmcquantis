@@ -63,6 +63,8 @@ const INVITE_EVENTS = [
   { key: 'invite_page_view', label: 'Invite link opened' },
   { key: 'invite_magic_link_sent', label: 'Sign-in email requested' },
   { key: 'invite_redeemed', label: 'Invite redeemed' },
+  // #100: a reader of a shared /r/ report starting their own decision.
+  { key: 'shared_report_cta_click', label: 'Shared report → own test' },
 ] as const;
 
 type Row = {
@@ -273,14 +275,15 @@ export default function AdminFunnel() {
       </div>
 
       <header className="mt-10 mb-6">
-        <h2 className="text-xl font-bold">Invite links</h2>
+        <h2 className="text-xl font-bold">Invite and shared links</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Opens of <code>/invite/…</code> links and what happened next. Who redeemed, and whether they
-          ran an analysis or now pay, is per person in Commercial Ops → Pro invites.
+          ran an analysis or now pay, is per person in Commercial Ops → Pro invites. The last tile counts readers of a shared <code>/r/…</code> report
+          who clicked through to test their own decision.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-testid="invite-funnel">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="invite-funnel">
         {INVITE_EVENTS.map(({ key, label }) => {
           const row = byEvent.get(key);
           return (
