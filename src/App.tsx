@@ -12,7 +12,6 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingFallback from "./components/layout/LoadingFallback";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import { AdminLayout } from "./components/admin/AdminLayout";
 import { SkipToContent } from "./components/accessibility/SkipToContent";
 import { SEOPreviewPanel } from "./components/seo/SEOPreviewPanel";
 import { FounderPromoBanner } from "./components/promo/FounderPromoBanner";
@@ -22,6 +21,7 @@ import { trackReturnVisitIfApplicable } from "./lib/activationTracking";
 
 // CRITICAL: Landing page is NOT lazy loaded for instant first paint
 import Landing from "./pages/Landing";
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout").then((m) => ({ default: m.AdminLayout })));
 const AppDashboard = lazy(() => import("./pages/AppDashboard"));
 const AppDiagnostics = lazy(() => import("./pages/AppDiagnostics"));
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
