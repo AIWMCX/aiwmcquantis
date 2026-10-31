@@ -4,6 +4,7 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { postalAddressBlock, withPostalAddress } from '../_shared/mail/compliance-footer.ts';
 import { followupOrderCheck, type SentTouch } from '../_shared/mail/followup-order.ts';
+import { isPlaceholderSubject, planFollowupThread, type PriorTouch } from '../_shared/mail/followup-thread.ts';
 import {
   bouncedRecipient,
   classifyInbound,
@@ -657,18 +658,26 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
       continue;
     }
 
-    // Steps 2+ reply in the first touch's thread (In-Reply-To/References).
+    // Steps 2+ reply in the real thread (In-Reply-To/References), or go out
+    // standalone when the first touch was sent outside Quantis: never a fake "Re:".
     let subject = f.subject ?? '';
     let parent: string | null = null;
+    let references: string[] = [];
     if (f.kind === 'followup') {
-      const { data: first } = await svc.from('commercial_followups')
-        .select('subject, internet_message_id')
-        .eq('prospect_id', f.prospect_id).eq('kind', 'first_touch').eq('status', 'sent')
-        .order('sent_at', { ascending: true }).limit(1).maybeSingle();
-      const ft = first as { subject?: string | null; internet_message_id?: string | null } | null;
-      const base = (ft?.subject ?? subject).replace(/^(re:\s*)+/i, '');
-      subject = base ? `Re: ${base}` : subject;
-      parent = ft?.internet_message_id ?? null;
+      const { data: prior } = await svc.from('commercial_followups')
+        .select('kind, subject, internet_message_id, sent_at')
+        .eq('prospect_id', f.prospect_id).eq('status', 'sent');
+      const thread = planFollowupThread(f.subject, (prior ?? []) as PriorTouch[]);
+      if (!thread.ok) {
+        await hold(svc, f, thread.reason, result.held);
+        continue;
+      }
+      subject = thread.subject;
+      parent = thread.inReplyTo;
+      references = thread.references;
+    } else if (isPlaceholderSubject(subject)) {
+      await hold(svc, f, 'subject is a CRM placeholder, not a real subject', result.held);
+      continue;
     }
     if (!subject) subject = 'Quick question';
 
@@ -680,7 +689,7 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
       // a real cold email while the CRM still says it is unsent.
       const text = withPostalAddress(f.draft, settings.postal_address!);
       smtpAttemptStarted = true;
-      const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text, inReplyTo: parent, references: parent ? [parent] : [] });
+      const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text, inReplyTo: parent, references });
       const { error } = await svc.rpc('record_commercial_followup_provider_send', {
         _followup_id: f.id,
         _sent_via: 'mailbox_smtp',
@@ -691,7 +700,7 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
       });
       if (error) throw new Error(`sent but not recorded: ${error.message}`);
       await insertMessage(svc, {
-        provider: 'imap', provider_account_id: sender.box.address, internet_message_id: res.messageId,
+        provider: 'imap', provider_account_id: sender.box.address, internet_message_id: res.messageId, in_reply_to: parent,
         direction: 'outbound', mailbox_address: sender.box.address, from_address: sender.box.address, from_name: fromName, to_addresses: [gate.to],
         subject, body_text: text, message_at: new Date().toISOString(), route: 'outreach', classification: 'outbound',
         prospect_id: f.prospect_id, followup_id: f.id, match_status: 'matched', sent_by_user_id: f.send_requested_by,
