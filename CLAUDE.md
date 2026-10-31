@@ -45,6 +45,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
      - Deleting that variable sends everything back to GitHub-hosted, which is billed: `gh variable delete RUNNER -R AIWMCX/aiwmcquantis`.
      - If the PC is off, jobs queue (deploys wait).
      - New workflows must use the same `runs-on` expression.
+     - **Exception: `run-migrations` stays on `ubuntu-latest`.** From WSL the session pooler (port 5432) hangs on the Postgres TLS request, so `supabase link` always times out there. A link or `db push` failure now turns that job red on purpose; edge functions still deploy.
 6. **Migrations.** Applying one by hand in production means you must add its ledger row, or the ledger check blocks every deploy. Intentionally unapplied files go in `supabase/migrations/.ledger-ignore`.
 
 ## Proving what's live (don't trust job status alone)

@@ -137,7 +137,13 @@ jobs:
   run-migrations:
     name: Apply Supabase DB Migrations
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    # 2026-10-31: deliberately NOT on the self-hosted runner. From the WSL
+    # runner the session pooler (port 5432) accepts TCP but never answers the
+    # Postgres TLS request, so `supabase link` timed out on all 14 deploys
+    # after the Oct 30 runner switch and migrations were silently skipped.
+    # GitHub-hosted runners linked fine on every deploy before that.
+    # Cost: about 1 billed minute per deploy.
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
       name: production
@@ -166,9 +172,9 @@ jobs:
           PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "⚠ SUPABASE_ACCESS_TOKEN or SUPABASE_DB_PASSWORD not set — skipping migrations" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Migrations not applied::SUPABASE_ACCESS_TOKEN or SUPABASE_DB_PASSWORD not set"
             echo "Add SUPABASE_DB_PASSWORD to GitHub Secrets (Supabase Dashboard → Settings → Database → Connection string password)" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+            exit 1
           fi
           # 2026-10-12: strip whitespace defensively -- a pasted secret with a
           # trailing newline passed this -z check fine but still broke the CLI.
@@ -177,13 +183,18 @@ jobs:
           # be passed via -p or the command exits non-zero and kills the whole job
           # (which then skips deploy-edge-functions via `needs`). Root cause of the
           # red Production Deploy runs #162-#174.
+          # A failure here fails this job on purpose. deploy-edge-functions
+          # runs with always(), so function code still ships; the red job is
+          # the signal that migrations did NOT apply (a warning was missed for
+          # 14 deploys).
           supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" || {
-            echo "::warning title=Link failed::supabase link failed — skipping migrations (edge functions still deploy)"
-            exit 0
+            echo "::error title=Link failed::supabase link failed — migrations NOT applied (edge functions still deploy)"
+            exit 1
           }
-          # Push all pending migrations (idempotent — skips already-applied ones)
+          # Push all pending migrations (idempotent: exits 0 when up to date)
           supabase db push --password "$SUPABASE_DB_PASSWORD" --include-all 2>&1 || {
-            echo "::warning title=Migration warn::db push exited non-zero — check output above"
+            echo "::error title=Migration failed::db push exited non-zero — check output above"
+            exit 1
           }
           echo "✓ Migrations applied (or were already up to date)" >> "$GITHUB_STEP_SUMMARY"
 
