@@ -15,6 +15,16 @@ import { isTradesBusiness, scoreIndustriesByKeywords, TRADE_TERMS, TRADES_INDUST
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins, type AssumptionOriginMap } from '../_shared/assumption-origin.ts';
+import {
+  buildInputsUsed,
+  engineInputCacheKey,
+  ENGINE_INPUT_CACHE_VERSION,
+  parseStoredEngineInputs,
+  pickEngineInputs,
+  withEngineInputs,
+  type EngineInputs,
+  type EngineInputSource,
+} from './engine-inputs.ts';
 import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT, BENCHMARK_SOURCES_DISPLAY } from '../_shared/canonical-facts.ts';
 import { monthlyRevenueFromDocument } from './document-revenue.ts';
 import { buildQualityDimensions } from '../_shared/quality-dimensions.ts';
@@ -1702,6 +1712,9 @@ function transformResponse(
   subIndustry: SubIndustryResult | null,
   userInputs?: OptionalFinancialInputs,
   ideaText?: string,
+  // Who wrote financial_json's numbers (the narrator, or the benchmark
+  // fallback). Only changes the origin labels, never a number.
+  estimateSource: EngineInputSource = 'narrator',
 ) {
   const fa = safeParseJSON(raw.financial_json, {});
   const bp = safeParseJSON(raw.business_json, {});
@@ -1792,6 +1805,7 @@ function transformResponse(
     benchmarks,
     locationMultipliers,
     subIndustry,
+    estimateSource,
   });
 
   // Calculate with strict validation using enhanced multipliers and sub-industry
@@ -2028,6 +2042,9 @@ function transformResponse(
     // further below (accounting-identity failures, R-001..R-005) may set BLOCK.
     report_integrity: 'PASS',
     report_integrity_issues: scenarioContradictions,
+    // The key inputs the engine used and where each came from (your input,
+    // AI estimate, industry default, calculated). Shown on the result page.
+    inputs_used: buildInputsUsed(calc, assumptionOrigins),
     _calc: calc,
     // Internal only -- consumed and deleted alongside _calc in serve(),
     // then folded into validation.quality_dimensions.narrative_reconciliation.
@@ -2916,6 +2933,42 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       log.info(`Sub-industry: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale}) | CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x`);
     }
 
+    // ========== SAME IDEA, SAME NUMBERS (2026-11-03) ==========
+    // The narrator's revenue / price / investment guesses feed the engine when
+    // nothing is typed, and an LLM guesses differently on every call (live:
+    // one HVAC idea gave $15.1k and then $32.1k monthly net). The first run's
+    // engine inputs are stored under a hash of the normalized idea, location,
+    // industry and typed numbers; a repeat run reuses them. Runs with
+    // uploaded documents are not cached (their content is not in the key).
+    // Any cache failure (e.g. the table not migrated yet) just means no reuse.
+    let engineInputKey: string | null = null;
+    let cachedEngineInputs: { inputs: EngineInputs; source: EngineInputSource } | null = null;
+    if (!documents || documents.length === 0) {
+      try {
+        engineInputKey = await engineInputCacheKey({
+          idea: idea_clean,
+          location: location_clean,
+          industryId: detectedIndustry.id,
+          financialInputs: mergedFinancialInputs as Record<string, unknown>,
+        });
+        const { data: cacheRow, error: cacheErr } = await supabaseService
+          .from('engine_input_cache')
+          .select('inputs, source')
+          .eq('cache_key', engineInputKey)
+          .maybeSingle();
+        if (cacheErr) {
+          log.warn(`Engine input cache read failed (non-fatal): ${cacheErr.message}`);
+        } else if (cacheRow) {
+          const inputs = parseStoredEngineInputs(cacheRow.inputs);
+          const source = cacheRow.source === 'industry_default' ? 'industry_default' : 'narrator';
+          if (inputs) cachedEngineInputs = { inputs, source };
+        }
+        log.info(`Engine input cache ${cachedEngineInputs ? 'hit' : 'miss'}`);
+      } catch (cacheEx) {
+        log.warn(`Engine input cache lookup failed (non-fatal): ${String(cacheEx)}`);
+      }
+    }
+
     // Build user financial context for AI prompt
     const userFinancialContext = financial_inputs ? `
 ## USER-PROVIDED FINANCIAL DATA (IMPORTANT - USE THESE VALUES IN YOUR ANALYSIS!)
@@ -2928,6 +2981,16 @@ ${hasFiniteNumber(financial_inputs.cac) ? `- Customer Acquisition Cost: $${finan
 ${hasFiniteNumber(financial_inputs.churn_rate) ? `- Monthly Churn Rate: ${financial_inputs.churn_rate}%` : ''}
 
 Note: The user has provided specific financial data. Base your qualitative analysis (business plan, marketing, market analysis) on these realistic numbers.
+` : '';
+
+    // Repeat run of the same idea: the model inputs are already fixed, so the
+    // narrative should cite them (the engine uses them either way).
+    const fixed = cachedEngineInputs?.inputs;
+    const fixedInputsContext = fixed ? `
+## MODEL INPUTS ALREADY FIXED FOR THIS IDEA (use these exact values in financial_json and in your text)
+${fixed.mrr !== null ? `- Monthly Revenue: $${fixed.mrr.toLocaleString()}` : ''}
+${fixed.average_check !== null ? `- Average Price/Transaction: $${fixed.average_check.toLocaleString()}` : ''}
+${fixed.startup_investment !== null ? `- Initial Investment: $${fixed.startup_investment.toLocaleString()}` : ''}
 ` : '';
 
     // Build the enhanced McKinsey-level prompt
@@ -2985,7 +3048,7 @@ ${v2BenchmarkSummary.calibration ? `### Self-Learning Calibration (reality-bridg
 ADJUST your projections for this historical bias and explicitly disclose the calibration in the methodology note.` : ''}
 USE these v2 benchmarks to ground your TAM/SAM/SOM, risk analysis, and competitive assessment. Reference specific percentiles.
 ` : ''}
-${userFinancialContext}${documentContext}
+${userFinancialContext}${fixedInputsContext}${documentContext}
 
 ## ANALYSIS REQUIREMENTS
 
@@ -3120,7 +3183,11 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             ],
             response_format: { type: "json_object" },
             max_tokens: 6000,
-            temperature: 0.2,
+            // 0, not 0.2: fewer different guesses on a first run. Not the
+            // guarantee (that is the engine input cache above) and no `seed`:
+            // DeepSeek does not document one, the Dahl path drops it and
+            // Anthropic has none, so it cannot be relied on.
+            temperature: 0,
           },
           {
             task: 'analyze-business',
@@ -3224,8 +3291,40 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       }
     }
 
+    // Same idea, same numbers: a repeat run gets the first run's engine
+    // inputs back (whether the narrator answered this time or not); a first
+    // run stores its own. First writer wins (ignoreDuplicates), so two runs
+    // racing on a brand-new idea can differ once, never afterwards.
+    let engineInputSource: EngineInputSource = usedFallback ? 'industry_default' : 'narrator';
+    let engineInputsReused = false;
+    if (cachedEngineInputs) {
+      rawResult = withEngineInputs(rawResult, cachedEngineInputs.inputs);
+      engineInputSource = cachedEngineInputs.source;
+      engineInputsReused = true;
+    } else if (engineInputKey) {
+      try {
+        const { error: storeErr } = await supabaseService
+          .from('engine_input_cache')
+          .upsert(
+            {
+              cache_key: engineInputKey,
+              inputs: pickEngineInputs(rawResult),
+              source: engineInputSource,
+              industry_id: detectedIndustry.id,
+              input_version: ENGINE_INPUT_CACHE_VERSION,
+            },
+            { onConflict: 'cache_key', ignoreDuplicates: true },
+          );
+        if (storeErr) log.warn(`Engine input cache write failed (non-fatal): ${storeErr.message}`);
+      } catch (storeEx) {
+        log.warn(`Engine input cache write failed (non-fatal): ${String(storeEx)}`);
+      }
+    }
+
     // Transform using either AI result or fallback
-    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs, idea_clean);
+    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs, idea_clean, engineInputSource);
+    // Lets the result page say the inputs were reused from an earlier run.
+    (result as Record<string, unknown>).engine_inputs = { reused: engineInputsReused, source: engineInputSource };
     const calc = result._calc as StrictFinancialResult;
     delete (result as Record<string, unknown>)._calc;
     const narrativeWasModified = Boolean((result as Record<string, unknown>)._narrativeWasModified);

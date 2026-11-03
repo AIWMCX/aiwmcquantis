@@ -16,6 +16,7 @@ import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
 import { GlassCard } from '@/components/ui/glass-card';
 import { IndustryCorrection } from '@/components/result/IndustryCorrection';
+import { InputsUsed } from '@/components/result/InputsUsed';
 
 const AccuracyTransparentResults = lazy(() =>
   import('@/components/analysis/AccuracyTransparentResults').then((m) => ({
@@ -192,6 +193,7 @@ export default function PublicAnalysisResult() {
             location={data.location}
             detectedIndustry={(data.result.metadata as { industry_detected?: string; selected_industry?: string } | undefined)?.industry_detected ?? (data.result.metadata as { selected_industry?: string } | undefined)?.selected_industry}
           />
+          <InputsUsed rows={data.result.inputs_used} reused={data.result.engine_inputs?.reused} />
         </section>
 
         {/* Conversion rail — anonymous nudge */}
