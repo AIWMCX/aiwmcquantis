@@ -3,7 +3,7 @@ import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, Mail, Search, Radio, Megaphone, Handshake, Inbox,
   DollarSign, Cpu, ShieldCheck, Activity, Sigma, BarChart3, Database, Settings2,
-  MessageSquare, Ban, HeartPulse, Server, ScanSearch, Siren, ArrowLeft, Menu, X, FlaskConical, Users,
+  MessageSquare, Ban, HeartPulse, Server, ScanSearch, Siren, ArrowLeft, Menu, X, FlaskConical, Users, Linkedin,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,6 +31,7 @@ export const ADMIN_NAV: Group[] = [
       { to: '/admin/search-console', label: 'Search console', icon: Search },
       { to: '/admin/content-studio', label: 'Content Studio', icon: Radio },
       { to: '/admin/autoposter', label: 'Autoposter', icon: Megaphone },
+      { to: '/admin/linkedin-growth', label: 'LinkedIn Growth', icon: Linkedin },
       { to: '/admin/commercial', label: 'Commercial Ops', icon: Handshake, flag: 'commercial_workflow' },
       { to: '/admin/inbox', label: 'Business inbox', icon: Inbox },
     ],
