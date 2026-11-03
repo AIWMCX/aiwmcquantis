@@ -11,7 +11,9 @@ import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '
 import { SampleReportPages, type Density } from './SampleReportPages';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { SectionLabel } from '@/components/sadewa/primitives';
-import { HERO_IDEA_EVENT } from '@/lib/hero-idea';
+import { HERO_IDEA_EVENT, publishHeroRunState, takePendingHeroIdea } from '@/lib/hero-idea';
+import { NARRATION } from '@/lib/run-narration';
+import { validateIdea, validateLocation } from '@/services/analysisApi';
 import { DEFAULT_LOCATION, extractLocationFromText, locationInputValue } from '@/lib/location-input';
 
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
@@ -40,15 +42,6 @@ const ZOOM_MIN = 0.85;
 const ZOOM_MAX = 1.6;
 const ZOOM_STEP = 0.1;
 
-const NARRATION = [
-  { t: 0,  label: 'Reading your idea…' },
-  { t: 8,  label: `Matching against a ${BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid…` },
-  { t: 22, label: 'Stress-testing unit economics (CAC, LTV, churn)…' },
-  { t: 38, label: 'Simulating 1,000 months of revenue and costs…' },
-  { t: 55, label: 'Checking the numbers for red flags…' },
-  { t: 72, label: 'Compiling verdict…' },
-];
-
 /**
  * Report-first hero.
  * Left/top: a real, scrollable PDF preview of a Quantis report ("The Draft Lab", Austin TX, June 2026).
@@ -61,7 +54,7 @@ export function ReportFirstHero() {
     location, setLocation,
     errors,
     handleSubmit, isLoading, analysisId, result,
-    freeTierSummary, reset,
+    freeTierSummary, reset, rateLimitError,
   } = useAnalysis();
 
   const [progressStep, setProgressStep] = useState(0);
@@ -119,24 +112,48 @@ export function ReportFirstHero() {
   // so the run keeps this section's progress narration and report redirect.
   const [pendingHeroIdea, setPendingHeroIdea] = useState<string | null>(null);
   useEffect(() => {
-    const onHeroIdea = (ev: Event) => {
-      const text = String((ev as CustomEvent<string>).detail ?? '').trim();
+    const runHeroIdea = (raw: string | null) => {
+      const text = String(raw ?? '').trim();
       if (text.length < 10 || isLoading) return;
       // The hero has no location box: use a "City, ST" written in the idea.
+      // On the very first run the location may still be '' (the default is set
+      // in the same effect pass), so treat '' like the default.
       const fromText = extractLocationFromText(text);
-      if (fromText && location === DEFAULT_LOCATION) setLocation(fromText);
+      if (fromText && (!location || location === DEFAULT_LOCATION)) setLocation(fromText);
       setIdea(text);
       setPendingHeroIdea(text);
     };
+    const onHeroIdea = () => runHeroIdea(takePendingHeroIdea());
     window.addEventListener(HERO_IDEA_EVENT, onHeroIdea);
+    // An idea sent before this listener existed still runs (no lost click).
+    runHeroIdea(takePendingHeroIdea());
     return () => window.removeEventListener(HERO_IDEA_EVENT, onHeroIdea);
   }, [isLoading, setIdea, location, setLocation]);
   useEffect(() => {
     if (pendingHeroIdea === null || idea !== pendingHeroIdea) return;
     setPendingHeroIdea(null);
+    // Same checks handleSubmit runs, so the hero never waits on a run that did not start.
+    const invalid = validateIdea(idea).error ?? validateLocation(location).error;
+    if (invalid) {
+      publishHeroRunState({ phase: 'failed', message: invalid });
+      return;
+    }
     recordFunnelEvent('idea_submitted', { source: 'sdw_hero', idea_length: idea.length });
     handleSubmit(undefined, 'quick');
-  }, [pendingHeroIdea, idea, handleSubmit]);
+  }, [pendingHeroIdea, idea, location, handleSubmit]);
+
+  // The hero shows this run's progress next to the button the visitor pressed.
+  const wasLoading = useRef(false);
+  useEffect(() => {
+    if (isLoading) {
+      wasLoading.current = true;
+      publishHeroRunState({ phase: 'running' });
+      return;
+    }
+    if (!wasLoading.current) return;
+    wasLoading.current = false;
+    publishHeroRunState(result || freeTierSummary ? { phase: 'done' } : { phase: 'failed', message: rateLimitError ?? undefined });
+  }, [isLoading, result, freeTierSummary, rateLimitError]);
 
   const valid = idea.trim().length >= 10;
 

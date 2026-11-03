@@ -15,7 +15,7 @@ describe('hero inline decision input', () => {
   it('the hero renders the input and ReportFirstHero runs what it sends', () => {
     const hero = readFileSync('src/components/landing/sadewa/SdwHero.tsx', 'utf8');
     expect(hero).toContain('id="sdw-hero-idea"');
-    expect(hero).toContain('submitHeroIdea(idea.trim())');
+    expect(hero).toContain('submitHeroIdea(text)');
     const form = readFileSync('src/components/landing/ReportFirstHero.tsx', 'utf8');
     expect(form).toContain('window.addEventListener(HERO_IDEA_EVENT');
     expect(form).toContain("handleSubmit(undefined, 'quick')");

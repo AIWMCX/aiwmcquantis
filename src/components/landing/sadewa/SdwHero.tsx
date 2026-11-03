@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight, Loader2, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { submitHeroIdea } from '@/lib/hero-idea';
+import { HERO_RUN_EVENT, type HeroRunState, submitHeroIdea } from '@/lib/hero-idea';
+import { NARRATION, narrationStep } from '@/lib/run-narration';
 import { isHiringDecision, isPriceDecision } from '@/lib/location-input';
 import { trackCtaClick } from '@/lib/analytics';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
@@ -62,8 +63,8 @@ function ShowreelCard({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-// One tap fills the input with a concrete plan, so a visitor who doesn't know
-// what to type still gets to a first run. They still press "Test it free".
+// One tap runs a concrete plan (the text stays in the input), so a visitor who
+// doesn't know what to type still gets to a first run in one tap.
 // Each names a business and a "City, ST": the engine models a business, and
 // the city drives local calibration (a bare "hire a technician" was read as a
 // new SaaS company, 2026-10-25).
@@ -82,26 +83,79 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
   const navigate = useNavigate();
   const [idea, setIdea] = useState('');
   const ideaInput = useRef<HTMLInputElement>(null);
-  const ideaOk = idea.trim().length >= 10;
-  const runIdea = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Every press gets a visible answer: a hint when the text is too short, or
+  // the run's progress right here. The button used to be disabled under 10
+  // characters, so a press with text the app had not registered did nothing.
+  const [hint, setHint] = useState<string | null>(null);
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const running = runStartedAt !== null;
+
+  useEffect(() => {
+    const onRun = (ev: Event) => {
+      const state = (ev as CustomEvent<HeroRunState>).detail;
+      if (state.phase === 'running') {
+        setRunStartedAt((t) => t ?? Date.now());
+      } else if (state.phase === 'failed') {
+        setRunStartedAt(null);
+        setHint(state.message || 'The run did not finish. Please try again.');
+      }
+    };
+    window.addEventListener(HERO_RUN_EVENT, onRun);
+    return () => window.removeEventListener(HERO_RUN_EVENT, onRun);
+  }, []);
+
+  useEffect(() => {
+    if (runStartedAt === null) { setElapsed(0); return; }
+    const i = setInterval(() => setElapsed(Math.floor((Date.now() - runStartedAt) / 1000)), 500);
+    return () => clearInterval(i);
+  }, [runStartedAt]);
+
+  const startRun = (raw: string) => {
+    const text = raw.trim();
+    if (text.length < 10) {
+      trackCtaClick('hero_idea_too_short', 'hero');
+      setHint(text ? 'Add a few more words: the business, the city and a price or cost.' : 'Type your decision first, or tap an example below.');
+      ideaInput.current?.focus();
+      return;
+    }
+    setHint(null);
     trackCtaClick('hero_run_free_decision', 'hero');
     // Hiring decisions run in the hiring model, which compares with and without the hire.
-    if (ideaOk && isHiringDecision(idea)) {
+    if (isHiringDecision(text)) {
       trackCtaClick('hero_hiring_routed', 'hero');
       navigate('/demo/hiring-decision?from=hero');
       return;
     }
     // Price changes run in the price-change model (#106).
-    if (ideaOk && isPriceDecision(idea)) {
+    if (isPriceDecision(text)) {
       trackCtaClick('hero_price_routed', 'hero');
       navigate('/demo/price-change?from=hero');
       return;
     }
-    // The run and its progress live in the form section below (ReportFirstHero).
-    document.querySelector('[data-hero-form]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    if (ideaOk) submitHeroIdea(idea.trim());
+    // ReportFirstHero (below) runs it; the progress shows here, under the button.
+    setRunStartedAt(Date.now());
+    submitHeroIdea(text);
   };
+
+  const runIdea = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (running) return;
+    // Read the box itself: text can be in it without React having seen a
+    // change (autofill, restored form state), and that must still run.
+    const text = ideaInput.current?.value ?? idea;
+    if (text !== idea) setIdea(text);
+    startRun(text);
+  };
+
+  const runExample = (ex: string) => {
+    if (running) return;
+    setIdea(ex);
+    trackCtaClick('hero_example_decision', 'hero');
+    startRun(ex);
+  };
+
+  const step = narrationStep(elapsed);
 
   return (
     <section aria-labelledby="hero-heading" className="relative overflow-hidden">
@@ -127,39 +181,63 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
                   ref={ideaInput}
                   id="sdw-hero-idea"
                   value={idea}
-                  onChange={(e) => setIdea(e.target.value)}
+                  onChange={(e) => { setIdea(e.target.value); if (hint) setHint(null); }}
                   maxLength={300}
+                  readOnly={running}
+                  aria-invalid={hint ? true : undefined}
+                  aria-describedby={hint ? 'sdw-hero-hint' : undefined}
                   placeholder="e.g. Second coffee shop in Denver, CO, $80K build-out"
                   className="h-12 flex-1 rounded-md border bg-white px-4 text-[15px] outline-none focus-visible:ring-2"
                   style={{ borderColor: 'var(--sdw-line)', color: 'var(--sdw-ink)', ['--tw-ring-color' as string]: 'var(--sdw-blue)' }}
                 />
                 <button
                   type="submit"
-                  disabled={!ideaOk}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-5 text-[15px] font-semibold text-white transition-opacity disabled:opacity-50"
+                  disabled={running}
+                  aria-busy={running || undefined}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-5 text-[15px] font-semibold text-white transition-opacity disabled:opacity-80"
                   style={{ background: 'var(--sdw-blue)' }}
                 >
-                  Test it free <ArrowRight className="h-4 w-4" />
+                  {running ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Running your numbers…</>
+                  ) : (
+                    <>Test it free <ArrowRight className="h-4 w-4" /></>
+                  )}
                 </button>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Example decisions">
-                <span className="text-[12px]" style={{ color: 'var(--sdw-muted)' }}>Try:</span>
-                {EXAMPLE_DECISIONS.map((ex) => (
-                  <button
-                    key={ex}
-                    type="button"
-                    onClick={() => {
-                      setIdea(ex);
-                      trackCtaClick('hero_example_decision', 'hero');
-                      ideaInput.current?.focus();
-                    }}
-                    className="rounded-full border px-3 py-1 text-[12px] transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2"
-                    style={{ borderColor: 'var(--sdw-line)', color: 'var(--sdw-ink)', ['--tw-ring-color' as string]: 'var(--sdw-blue)' }}
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
+              {hint && !running && (
+                <p id="sdw-hero-hint" role="alert" className="mt-2 text-[13px] font-medium" style={{ color: 'var(--sdw-ink)' }}>
+                  {hint}
+                </p>
+              )}
+              {running ? (
+                <div className="mt-3" role="status" aria-live="polite" data-testid="hero-run-progress">
+                  <p className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--sdw-ink)' }}>
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" style={{ color: 'var(--sdw-blue)' }} aria-hidden />
+                    {NARRATION[step].label}
+                  </p>
+                  <div className="mt-2 h-1 w-full max-w-[640px] overflow-hidden rounded-full" style={{ background: 'var(--sdw-line)' }} aria-hidden="true">
+                    <div className="h-full transition-all duration-500 ease-out" style={{ width: `${((step + 1) / NARRATION.length) * 100}%`, background: 'var(--sdw-blue)' }} />
+                  </div>
+                  <p className="mt-1.5 font-mono text-[11px]" style={{ color: 'var(--sdw-muted)' }}>
+                    Step {step + 1} of {NARRATION.length} · {elapsed}s
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Example decisions">
+                  <span className="text-[12px]" style={{ color: 'var(--sdw-muted)' }}>Try:</span>
+                  {EXAMPLE_DECISIONS.map((ex) => (
+                    <button
+                      key={ex}
+                      type="button"
+                      onClick={() => runExample(ex)}
+                      className="rounded-full border px-3 py-1 text-[12px] transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2"
+                      style={{ borderColor: 'var(--sdw-line)', color: 'var(--sdw-ink)', ['--tw-ring-color' as string]: 'var(--sdw-blue)' }}
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              )}
               <p className="mt-2 text-[12px]" style={{ color: 'var(--sdw-muted)' }}>
                 No account or card needed for the first run · about a minute
               </p>
