@@ -27,6 +27,8 @@
 /changelog
 /privacy
 /terms
+/ai-policy
+/dmca
 /vs/liveplan
 /vs/upmetrics
 /vs/bizplanr

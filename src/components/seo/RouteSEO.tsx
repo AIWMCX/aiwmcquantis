@@ -92,6 +92,14 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Terms of Service',
     description: `Terms governing use of the Quantis platform operated by ${LEGAL_ENTITY_NAME}.`,
   },
+  '/ai-policy': {
+    title: 'AI Policy — How Quantis Uses AI',
+    description: 'How Quantis uses AI: which numbers are calculated by code, which text is AI-written, which providers may process your inputs, and what AI never decides.',
+  },
+  '/dmca': {
+    title: 'Copyright and DMCA Policy',
+    description: 'How to report copyright infringement on AIWMC Quantis, send a counter-notice, and how AIWMC LLC handles repeat infringers.',
+  },
   '/refund-policy': {
     title: 'Refund Policy',
     description: 'Quantis refund policy: full refund within 14 days of the first charge on Plus and Pro plans, no questions asked. Founder-assisted reviews have their own terms.',

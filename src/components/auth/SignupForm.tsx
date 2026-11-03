@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
 import { z } from 'zod';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { buildSignupConsentMetadata, savePendingConsent } from '@/lib/signupConsent';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { trackSignup, trackEvent, trackMobileSignupStarted, trackMobileSignupCompleted, trackSimplifiedFormConversion, trackPasswordValidationPassed, recordFunnelEvent } from '@/lib/analytics';
@@ -24,6 +26,12 @@ const signupFormSchema = z.object({
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(72, 'Password is too long'),
+  // Required: 18+ and Terms/Privacy acceptance. Starts unchecked.
+  acceptTerms: z.boolean().refine((v) => v === true, {
+    message: 'Please confirm you are 18 or older and accept the Terms of Service and Privacy Policy',
+  }),
+  // Optional marketing email opt-in. Starts unchecked; never implied.
+  marketingOptIn: z.boolean(),
 });
 
 type SignupFormData = z.infer<typeof signupFormSchema>;
@@ -54,6 +62,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors, touchedFields },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
@@ -61,8 +70,12 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     defaultValues: {
       email: prefillEmail,
       password: '',
+      acceptTerms: false,
+      marketingOptIn: false,
     },
   });
+  const acceptTerms = watch('acceptTerms');
+  const marketingOptIn = watch('marketingOptIn');
 
   useEffect(() => {
     initLeadFromUrl();
@@ -105,7 +118,12 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         time_to_submit_ms: timeToSubmit,
       });
 
-      const { data: authData, error } = await signUp(data.email, data.password, undefined, undefined, returnUrl);
+      const consent = buildSignupConsentMetadata({
+        termsAccepted: data.acceptTerms,
+        marketingOptIn: data.marketingOptIn,
+        source: 'signup_form',
+      });
+      const { data: authData, error } = await signUp(data.email, data.password, undefined, undefined, returnUrl, consent);
 
       if (error) {
         toast.error('Unable to create account. Please check your information and try again.');
@@ -260,7 +278,15 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
 
   return (
     <div className={cn('space-y-6', className)}>
-      <GoogleLoginButton mode="signup" className="w-full" />
+      <GoogleLoginButton
+        mode="signup"
+        className="w-full"
+        disabled={!acceptTerms}
+        onBeforeRedirect={() => {
+          if (!acceptTerms) return;
+          savePendingConsent(buildSignupConsentMetadata({ termsAccepted: true, marketingOptIn, source: 'google_oauth' }));
+        }}
+      />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -314,6 +340,61 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
             </button>
           </div>
           {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+        </div>
+
+        <div className="space-y-3 pt-1">
+          <div className="flex items-start gap-2.5">
+            <Controller
+              name="acceptTerms"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="signup-accept-terms"
+                  checked={field.value}
+                  onCheckedChange={(v) => field.onChange(v === true)}
+                  onBlur={field.onBlur}
+                  disabled={isLoading}
+                  aria-required="true"
+                  aria-invalid={errors.acceptTerms ? 'true' : 'false'}
+                  aria-describedby={errors.acceptTerms ? 'signup-accept-terms-error' : undefined}
+                  className="mt-0.5"
+                />
+              )}
+            />
+            <Label htmlFor="signup-accept-terms" className="text-sm font-normal leading-snug text-muted-foreground">
+              I am 18 or older and agree to the{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline text-foreground">Terms of Service</a>{' '}
+              and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-foreground">Privacy Policy</a>.
+            </Label>
+          </div>
+          {errors.acceptTerms && (
+            <p id="signup-accept-terms-error" role="alert" className="text-sm text-destructive">{errors.acceptTerms.message}</p>
+          )}
+
+          <div className="flex items-start gap-2.5">
+            <Controller
+              name="marketingOptIn"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="signup-marketing-opt-in"
+                  checked={field.value}
+                  onCheckedChange={(v) => field.onChange(v === true)}
+                  onBlur={field.onBlur}
+                  disabled={isLoading}
+                  className="mt-0.5"
+                />
+              )}
+            />
+            <Label htmlFor="signup-marketing-opt-in" className="text-sm font-normal leading-snug text-muted-foreground">
+              Optional: email me occasional product updates and tips from AIWMC LLC. Unsubscribe anytime.
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Account and billing emails are sent either way. See how we use AI in the{' '}
+            <Link to="/ai-policy" className="underline">AI Policy</Link>.
+          </p>
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>

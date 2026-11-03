@@ -1,10 +1,14 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { TIERS } from '@/config/tiers';
 import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { SectionHeader } from '@/components/ui/glass-card';
+
+/** Fixed date of the last material change. Never derive it from the current date. */
+export const TERMS_LAST_UPDATED = 'November 3, 2026';
 
 export default function Terms() {
   const breadcrumbs = [
@@ -26,45 +30,60 @@ export default function Terms() {
 
       <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8 pb-8">
         <p className="text-muted-foreground text-lg">
-          Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          Last updated: {TERMS_LAST_UPDATED}
         </p>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">1. Acceptance of Terms</h2>
           <p className="text-muted-foreground leading-relaxed">
-            By accessing or using AIWMC Quantis ("the Service"), you agree to be bound by these Terms of Service.
-            If you do not agree to these terms, please do not use our Service.
+            AIWMC Quantis ("the Service") is operated by AIWMC LLC, a Colorado limited liability company
+            ("AIWMC", "we", "our", or "us"). By accessing or using the Service, you agree to be bound by these
+            Terms of Service. If you do not agree to these terms, please do not use our Service.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">2. Description of Service</h2>
           <p className="text-muted-foreground leading-relaxed">
-            AIWMC Quantis is an AI-powered business analysis platform that provides:
+            AIWMC Quantis is decision-support software for testing business decisions. It provides:
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-            <li>Financial projections and modeling</li>
-            <li>Business plan generation</li>
-            <li>Market analysis and insights</li>
-            <li>Marketing strategy recommendations</li>
+            <li>Financial projections and modeling. Cash, break-even, payback and scenario figures are computed
+              by deterministic calculations from your inputs and from benchmark defaults you can see and change</li>
+            <li>Narrative, classification and commentary written by third-party AI language models on top of those figures</li>
+            <li>Business plan and document generation</li>
+            <li>Market analysis and marketing suggestions</li>
             <li>Document analysis and data extraction</li>
           </ul>
+          <p className="text-muted-foreground leading-relaxed">
+            The Service is decision support. It is not legal, tax, accounting, investment or lending advice, and
+            it does not make decisions for you. How AI is used is described in our{' '}
+            <Link to="/ai-policy" className="underline">AI Policy</Link>.
+          </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">3. User Accounts</h2>
-          <h3 className="text-xl font-medium text-foreground">3.1 Account Creation</h3>
+          <h3 className="text-xl font-medium text-foreground">3.1 Eligibility</h3>
+          <p className="text-muted-foreground leading-relaxed">
+            You must be at least 18 years old and able to form a binding contract to create an account or use the
+            Service. The Service is not directed to children, and we do not knowingly allow anyone under 18 to
+            register. If you use the Service on behalf of a business or other organization, you confirm that you
+            have authority to accept these Terms for it, and "you" includes that organization.
+          </p>
+
+          <h3 className="text-xl font-medium text-foreground">3.2 Account Creation</h3>
           <p className="text-muted-foreground leading-relaxed">
             To access certain features, you must create an account. You agree to:
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
             <li>Provide accurate and complete information</li>
-            <li>Maintain the security of your password (minimum 12 characters)</li>
+            <li>Maintain the security of your password (at least 8 characters)</li>
             <li>Notify us immediately of any unauthorized access</li>
             <li>Accept responsibility for all activities under your account</li>
           </ul>
 
-          <h3 className="text-xl font-medium text-foreground">3.2 Account Termination</h3>
+          <h3 className="text-xl font-medium text-foreground">3.3 Account Termination</h3>
           <p className="text-muted-foreground leading-relaxed">
             We reserve the right to suspend or terminate accounts that violate these terms or engage in
             fraudulent activity.
@@ -178,8 +197,16 @@ export default function Terms() {
 
           <h3 className="text-xl font-medium text-foreground">6.3 Generated Reports</h3>
           <p className="text-muted-foreground leading-relaxed">
-            Analysis reports generated by our AI are provided for your use. You may use these reports for
+            Analysis reports generated by the Service are provided for your use. You may use these reports for
             your business purposes but may not resell them as a service.
+          </p>
+
+          <h3 className="text-xl font-medium text-foreground">6.4 Copyright Complaints</h3>
+          <p className="text-muted-foreground leading-relaxed">
+            We respect intellectual property rights and respond to notices of alleged copyright infringement. To
+            report content on the Service that you believe infringes your copyright, or to send a counter-notice,
+            follow the procedure on our <Link to="/dmca" className="underline">Copyright / DMCA page</Link>. We
+            may disable access to infringing content and terminate the accounts of repeat infringers.
           </p>
         </section>
 
@@ -197,6 +224,14 @@ export default function Terms() {
           <p className="text-muted-foreground leading-relaxed font-medium">
             Our analyses are informational tools and should not replace professional business, legal, or
             financial advice.
+          </p>
+          <h3 className="text-xl font-medium text-foreground">7.1 AI-Generated Content</h3>
+          <p className="text-muted-foreground leading-relaxed">
+            Parts of each report (narrative, classification and commentary) are written by AI language models.
+            AI-generated text can be wrong or can describe the figures imprecisely; the calculated figures in the
+            report take precedence over any AI-written text. Review AI-generated content before relying on it. Our{' '}
+            <Link to="/ai-policy" className="underline">AI Policy</Link> explains which parts are AI-written, which
+            providers may process your inputs, and how to request a human review.
           </p>
         </section>
 
@@ -265,6 +300,7 @@ export default function Terms() {
             For questions about these Terms of Service:
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <li>AIWMC LLC (Colorado limited liability company)</li>
             <li>Email: legal@aiwmcquantis.com</li>
             <li>Address: Denver, Colorado, USA</li>
           </ul>

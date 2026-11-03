@@ -35,6 +35,8 @@ const AdminBenchmarkUpload = lazy(() => import("./pages/AdminBenchmarkUpload"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+const AiPolicy = lazy(() => import("./pages/AiPolicy"));
+const Dmca = lazy(() => import("./pages/Dmca"));
 const PlusSettings = lazy(() => import("./pages/PlusSettings"));
 const DocsStudio = lazy(() => import("./pages/DocsStudio"));
 const Blog = lazy(() => import("./pages/Blog"));
@@ -179,6 +181,8 @@ const App = () => {
                 } />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/ai-policy" element={<AiPolicy />} />
+                <Route path="/dmca" element={<Dmca />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<BlogArticle />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
