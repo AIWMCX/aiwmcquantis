@@ -560,6 +560,8 @@ jobs:
             content-plan-import
             # ── Commercial Ops workflow (admin-only internal sales tooling) ──
             commercial-workflow
+            # LinkedIn Growth Agent drafts (admin-only; never calls LinkedIn)
+            li-growth-draft
             # Business mailboxes: support@/legal@ tickets, hello@/marketing@
             # pipeline, paced outreach sender (pg_cron every 5 min).
             business-mail

@@ -93,6 +93,7 @@ const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
 const ContentStudio = lazy(() => import("./pages/admin/ContentStudio"));
+const LinkedInGrowth = lazy(() => import("./pages/admin/LinkedInGrowth"));
 const CommercialOps = lazy(() => import("./pages/admin/CommercialOps"));
 const InstagramHarvest = lazy(() => import("./pages/admin/InstagramHarvest"));
 const AdminUsers = lazy(() => import("./pages/admin/Users"));
@@ -333,6 +334,7 @@ const App = () => {
                   <Route path="search-console" element={<SearchConsole />} />
                   <Route path="autoposter" element={<Autoposter />} />
                   <Route path="content-studio" element={<ContentStudio />} />
+                  <Route path="linkedin-growth" element={<LinkedInGrowth />} />
                   <Route path="commercial" element={<CommercialOps />} />
                   <Route path="instagram-harvest" element={<InstagramHarvest />} />
                   <Route path="users" element={<AdminUsers />} />

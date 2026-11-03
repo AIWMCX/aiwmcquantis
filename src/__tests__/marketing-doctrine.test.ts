@@ -41,6 +41,22 @@ describe('marketing doctrine', () => {
     for (const s of FUNNEL_STAGES) expect(DOCTRINE_NOTES_INSTRUCTION).toContain(s);
   });
 
+  it('LinkedIn engagement rules match the draft lint and ban dashes and pitches', async () => {
+    const { ENGAGEMENT_RULES, ENGAGEMENT_RULES_VERSION } = await import('../../supabase/functions/_shared/marketing-doctrine.ts');
+    const { BANNED_OPENERS } = await import('../../supabase/functions/_shared/li-growth-lint.ts');
+    expect(ENGAGEMENT_RULES).toContain(ENGAGEMENT_RULES_VERSION);
+    for (const o of BANNED_OPENERS.filter((x) => !x.startsWith('could not'))) {
+      expect(ENGAGEMENT_RULES.toLowerCase()).toContain(o);
+    }
+    expect(ENGAGEMENT_RULES).toMatch(/No pitch/);
+    expect(ENGAGEMENT_RULES).toMatch(/No em dashes/);
+    expect(ENGAGEMENT_RULES).toMatch(/Never claim traction/);
+    expect(ENGAGEMENT_RULES).toMatch(/Nothing is posted automatically/);
+    expect(ENGAGEMENT_RULES).not.toMatch(/[–—]/);
+    const fn = readFileSync('supabase/functions/li-growth-draft/index.ts', 'utf8');
+    expect(fn).toContain("from '../_shared/marketing-doctrine.ts'");
+  });
+
   it('both generators load it', () => {
     const auto = readFileSync('supabase/functions/autoposter-generate-content/index.ts', 'utf8');
     expect(auto).toContain("from '../_shared/marketing-doctrine.ts'");

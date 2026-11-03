@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Copy, Loader2, Sparkles, Trash2, RefreshCw } from 'lucide-react';
+import { Copy, Loader2, Sparkles, Trash2, RefreshCw, Linkedin } from 'lucide-react';
 
 type Platform = 'linkedin' | 'twitter' | 'facebook' | 'instagram' | 'threads' | 'reddit';
 const PLATFORMS: { id: Platform; label: string; color: string }[] = [
@@ -202,6 +202,9 @@ export default function ContentStudio() {
             Admin-only. Generate viral, human-natural, platform-optimized social posts on demand.
             Tuned for brutal honesty, real storytelling, zero AI filler.
           </p>
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate('/admin/linkedin-growth')}>
+            <Linkedin className="w-4 h-4 mr-1" /> LinkedIn Growth: comment and DM queue
+          </Button>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-[420px,1fr] gap-6">

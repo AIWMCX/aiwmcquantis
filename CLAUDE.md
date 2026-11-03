@@ -66,6 +66,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
   - The publisher only claims `status='scheduled'` rows.
   - `external_scheduled` means scheduled natively in LinkedIn; it is never posted by us.
   - `unknown` means the post may be live: check before rescheduling. Never retry a publish.
+- **LinkedIn Growth (`/admin/linkedin-growth`, `li_*` tables):** nothing calls or reads LinkedIn; the founder sends every comment/DM by hand. A draft becomes `approved` only through `li-growth-draft` (server-side lint), and `sent`/`skipped`/outcomes only through the `li_mark_draft_sent` / `li_skip_draft` / `li_record_outcome` RPCs, which enforce the caps. Lint lives in `_shared/li-growth-lint.ts` (shared with the page).
 - **Outreach:** the sender only claims `commercial_followups.status='approved'` with `send_requested_at` set. Never change caps, warm-up dates or `mail_settings.outreach_enabled` without founder approval.
 
 ## Windows / shell gotchas
