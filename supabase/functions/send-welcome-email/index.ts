@@ -5,6 +5,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { assertEmailSendAllowed } from '../_shared/email-guard.ts';
+import { emailHash as hashEmail, listUnsubscribeHeaders, marketingSendDecision, MARKETING_POSTAL_ADDRESS_MISSING, postalAddressHtml } from '../_shared/email-compliance.ts';
+import { isSuppressed, loadPostalAddress } from '../_shared/email-unsubscribe.ts';
 
 import { maybeHealthResponse } from '../_shared/health.ts';
 const FUNCTION_NAME = 'send-welcome-email';
@@ -19,6 +21,7 @@ const sendEmail = async (options: {
   replyTo?: string;
   subject: string;
   html: string;
+  headers?: Record<string, string>;
 }) => {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -47,7 +50,7 @@ interface WelcomeEmailRequest {
   unsubscribeUrl?: string;
 }
 
-const generateWelcomeEmailHtml = (name: string, email: string, unsubscribeUrl?: string): string => {
+const generateWelcomeEmailHtml = (name: string, email: string, unsubscribeUrl?: string, postalAddress?: string | null): string => {
   const firstName = name.split(' ')[0] || 'Friend';
   const encodedEmail = encodeURIComponent(email);
   const signupUrl = `https://aiwmcquantis.com/auth?email=${encodedEmail}&tab=signup`;
@@ -224,6 +227,7 @@ const generateWelcomeEmailHtml = (name: string, email: string, unsubscribeUrl?: 
                       <a href="https://aiwmcquantis.com/privacy" style="color: #6b7280; text-decoration: underline;">Privacy Policy</a>
                       ${unsubscribeUrl ? `&nbsp;|&nbsp;<a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a>` : ''}
                     </p>
+                    ${postalAddress ? `<p style="margin: 8px 0 0 0; font-size: 11px; color: #9ca3af;">${postalAddressHtml(postalAddress)}</p>` : ''}
                   </td>
                 </tr>
               </table>
@@ -364,7 +368,14 @@ const handler = async (req: Request): Promise<Response> => {
     );
     let skipLimit = false;
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (authHeader.startsWith("Bearer ")) {
+    // Who may trigger the welcome (marketing) email: the service role (after a
+    // double opt-in confirmation) or the signed-in owner of the address. An
+    // anonymous caller only gets the confirmation request.
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const isServiceCaller = !!serviceKey && authHeader === `Bearer ${serviceKey}`;
+    let ownerMetadataOptIn: boolean | undefined;
+    let ownerUserId: string | null = null;
+    if (authHeader.startsWith("Bearer ") && !isServiceCaller) {
       try {
         const userClient = createClient(
           Deno.env.get("SUPABASE_URL")!,
@@ -374,6 +385,9 @@ const handler = async (req: Request): Promise<Response> => {
         const { data: u } = await userClient.auth.getUser();
         if (u.user?.email && u.user.email.toLowerCase() === email.toLowerCase()) {
           skipLimit = true;
+          ownerUserId = u.user.id;
+          const choice = u.user.user_metadata?.marketing_opt_in;
+          ownerMetadataOptIn = typeof choice === 'boolean' ? choice : undefined;
         }
       } catch { /* fall through to rate limit */ }
     }
@@ -420,24 +434,52 @@ const handler = async (req: Request): Promise<Response> => {
         html: generateConfirmationEmailHtml(name, confirmUrl, unsubscribeUrl),
       });
     } else {
+      const skip = (reason: string, status = 200) => new Response(
+        JSON.stringify({ success: false, skipped: reason }),
+        { status, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+      if (!isServiceCaller && !skipLimit) {
+        log.info('welcome email refused: caller is neither the service role nor the signed-in owner');
+        return skip('welcome email requires a confirmed subscription or a signed-in account', 403);
+      }
+
+      // Marketing email: honor opt-outs and carry the postal address (CAN-SPAM / CASL).
+      let profileOptIn: boolean | null | undefined;
+      if (ownerUserId) {
+        const { data: profile } = await admin.from('profiles').select('email_marketing_opt_in').eq('id', ownerUserId).maybeSingle();
+        profileOptIn = profile?.email_marketing_opt_in;
+      }
+      const decision = marketingSendDecision({
+        suppressed: await isSuppressed(admin, email),
+        profileOptIn,
+        metadataOptIn: ownerMetadataOptIn,
+      });
+      if (!decision.allowed) {
+        log.info(`welcome email skipped: ${decision.reason}`);
+        return skip(decision.reason);
+      }
+      const postalAddress = await loadPostalAddress(admin);
+      if (!postalAddress) {
+        log.warn(MARKETING_POSTAL_ADDRESS_MISSING);
+        return skip(MARKETING_POSTAL_ADDRESS_MISSING);
+      }
+
       log.info(`Sending welcome email to: ${email}`);
 
-      // Compute unsubscribe URL from email hash
-      let unsubscribeUrl = passedUnsubUrl;
-      if (!unsubscribeUrl) {
-        const encoder = new TextEncoder();
-        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(email.toLowerCase()));
-        const emailHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        unsubscribeUrl = `${supabaseUrl}/functions/v1/confirm-email-subscription?action=unsubscribe&hash=${emailHash}`;
-      }
+      // Unsubscribe URL: always our own endpoint (a caller-supplied URL is only kept if it is).
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const ownEndpoint = `${supabaseUrl}/functions/v1/confirm-email-subscription?`;
+      const unsubscribeUrl = passedUnsubUrl && passedUnsubUrl.startsWith(ownEndpoint)
+        ? passedUnsubUrl
+        : `${ownEndpoint}action=unsubscribe&hash=${await hashEmail(email)}${ownerUserId ? `&uid=${ownerUserId}` : ''}`;
 
       emailResponse = await sendEmail({
         from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
         to: [email],
         replyTo: "AIWMCSRM@gmail.com",
         subject: "Welcome to AIWMC Quantis - Your Free Analysis Awaits!",
-        html: generateWelcomeEmailHtml(name, email, unsubscribeUrl),
+        html: generateWelcomeEmailHtml(name, email, unsubscribeUrl, postalAddress),
+        headers: listUnsubscribeHeaders(unsubscribeUrl),
       });
     }
 

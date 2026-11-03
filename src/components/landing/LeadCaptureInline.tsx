@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLeadCapture } from '@/hooks/useLeadCapture';
 import { trackEvent } from '@/lib/analytics';
+import { EmailConsentNote } from '@/components/marketing/EmailConsentNote';
 import { GlassCard } from '@/components/ui/glass-card';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
@@ -101,8 +102,9 @@ export function LeadCaptureInline() {
       </form>
 
       <p className="text-xs text-center uppercase tracking-[0.14em]" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
-        2 emails / month · unsubscribe anytime · no upsell
+        Confirm by email first · unsubscribe anytime
       </p>
+      <EmailConsentNote className="text-center" />
     </GlassCard>
   );
 }

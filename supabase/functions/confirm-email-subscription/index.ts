@@ -5,10 +5,11 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { applyUnsubscribe } from '../_shared/email-unsubscribe.ts';
 
 const FUNCTION_NAME = 'confirm-email-subscription';
-const FUNCTION_VERSION = '1.0.0';
-const APP_URL = 'https://aiwmcquantis.com';
+const FUNCTION_VERSION = '1.1.0';
+const APP_URL = 'https://www.aiwmcquantis.com';
 
 serve(async (req: Request): Promise<Response> => {
   const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
@@ -84,36 +85,37 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // ── UNSUBSCRIBE ──
+    // GET: the footer link (redirects to the confirmation page).
+    // POST: RFC 8058 one-click from the List-Unsubscribe-Post header (mail clients
+    // expect a 2xx with no further interaction).
     if (action === 'unsubscribe') {
-      const hash = url.searchParams.get('hash');
-      if (!hash || hash.length !== 64) {
-        return redirect(`${APP_URL}/email-preferences?status=invalid`);
+      const oneClick = req.method === 'POST';
+      const hash = (url.searchParams.get('hash') ?? '').toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(hash)) {
+        return oneClick
+          ? new Response('Invalid unsubscribe link', { status: 400, headers: { 'Content-Type': 'text/plain' } })
+          : redirect(`${APP_URL}/email-preferences?status=invalid`);
       }
 
-      const { data: result } = await admin.rpc('unsubscribe_lead', { p_email_hash: hash });
+      const result = await applyUnsubscribe(admin, {
+        emailHash: hash,
+        userId: url.searchParams.get('uid'),
+        source: oneClick ? 'one-click header' : 'email link',
+      });
+      if (result.errors.length) log.error(`Unsubscribe partial failure for ${hash.slice(0, 8)}...: ${result.errors.join('; ')}`);
+      log.info(`Unsubscribed ${hash.slice(0, 8)}... lead=${result.leadMatched} profile=${result.profileUpdated} suppressed=${result.suppressed}`);
 
-      // Also unsubscribe authenticated user if they exist with this email hash
-      await admin
-        .from('profiles')
-        .update({ email_marketing_opt_in: false })
-        .eq('id',
-          admin.from('leads').select('metadata->>user_id').eq('email_hash', hash).single()
-        );
-
-      log.info(`Unsubscribed hash ${hash.slice(0, 8)}...`);
-      return redirect(`${APP_URL}/email-preferences?status=unsubscribed`);
+      return oneClick
+        ? new Response('Unsubscribed', { status: 200, headers: { 'Content-Type': 'text/plain' } })
+        : redirect(`${APP_URL}/email-preferences?status=unsubscribed`);
     }
 
     // ── RESUBSCRIBE ──
+    // Not from a link: anyone can compute the SHA-256 of an address, so a hash
+    // link cannot prove the owner wants mail again. Re-subscribing goes through
+    // a site form and the double opt-in confirmation email.
     if (action === 'resubscribe') {
-      const hash = url.searchParams.get('hash');
-      if (!hash || hash.length !== 64) {
-        return redirect(`${APP_URL}/email-preferences?status=invalid`);
-      }
-
-      await admin.rpc('resubscribe_lead', { p_email_hash: hash });
-      log.info(`Resubscribed hash ${hash.slice(0, 8)}...`);
-      return redirect(`${APP_URL}/email-preferences?status=resubscribed`);
+      return redirect(`${APP_URL}/email-preferences?status=resubscribe`);
     }
 
     // ── EMAIL OPEN TRACKING (1x1 pixel) ──

@@ -14,6 +14,14 @@ import {
   DOC_TEMPLATE_COUNT_DISPLAY,
   FREE_ANALYSES_PER_MONTH,
 } from '../_shared/canonical-facts.ts';
+import {
+  isMarketingTemplate,
+  listUnsubscribeHeaders,
+  marketingSendDecision,
+  postalAddressHold,
+  postalAddressHtml,
+} from '../_shared/email-compliance.ts';
+import { isSuppressed, loadPostalAddress } from '../_shared/email-unsubscribe.ts';
 const FUNCTION_NAME = 'send-lifecycle-email';
 const FUNCTION_VERSION = '1.0.0';
 
@@ -37,6 +45,7 @@ const unsubscribeFooter = (data: Record<string, unknown>) => `
       &nbsp;|&nbsp;
       <a href="${data.unsubscribe_url || '#'}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a>
     </p>
+    ${data.postal_address ? `<p style="margin: 6px 0 0 0; font-size: 11px; color: #9ca3af;">${postalAddressHtml(String(data.postal_address))}</p>` : ''}
   </div>
 `;
 
@@ -482,6 +491,9 @@ serve(async (req: Request): Promise<Response> => {
     // Get user email if only user_id provided
     let recipientEmail = email;
     let userData: Record<string, unknown> = {};
+    // Marketing consent inputs (see _shared/email-compliance.ts).
+    let profileOptIn: boolean | null | undefined;
+    let metadataOptIn: boolean | undefined;
 
     if (lead_id && !recipientEmail) {
       const { data: decryptedEmail } = await supabase.rpc('get_lead_email', { p_lead_id: lead_id });
@@ -498,13 +510,16 @@ serve(async (req: Request): Promise<Response> => {
       const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id);
       if (authError) throw authError;
       recipientEmail = authUser.user?.email;
+      const metaChoice = authUser.user?.user_metadata?.marketing_opt_in;
+      metadataOptIn = typeof metaChoice === 'boolean' ? metaChoice : undefined;
 
       // Get profile data
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, email_marketing_opt_in")
         .eq("id", user_id)
         .single();
+      profileOptIn = profile?.email_marketing_opt_in;
 
       userData = {
         first_name: profile?.full_name?.split(" ")[0] || "there",
@@ -534,12 +549,41 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("No recipient email provided or found");
     }
 
+    // Marketing email: honor every opt-out and carry the sender's postal address
+    // (CAN-SPAM / CASL). Transactional templates skip both checks.
+    const marketing = isMarketingTemplate(template_key);
+    let postalAddress: string | null = null;
+    if (marketing) {
+      const decision = marketingSendDecision({
+        suppressed: await isSuppressed(supabase, recipientEmail),
+        profileOptIn,
+        metadataOptIn,
+      });
+      if (!decision.allowed) {
+        log.info(`Skipped ${template_key}: ${decision.reason}`);
+        return new Response(JSON.stringify({ success: false, skipped: decision.reason }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      postalAddress = await loadPostalAddress(supabase);
+      const hold = postalAddressHold(template_key, postalAddress);
+      if (hold) {
+        log.warn(`Held ${template_key}: ${hold}`);
+        return new Response(JSON.stringify({ success: false, skipped: hold }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
     // Compute unsubscribe URL from recipient email hash
     const encoder = new TextEncoder();
     const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(recipientEmail.toLowerCase()));
     const emailHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const unsubscribeUrl = `${supabaseUrl}/functions/v1/confirm-email-subscription?action=unsubscribe&hash=${emailHash}`;
+    // uid lets the endpoint opt out the account itself; it is honored only when it matches the hash.
+    const unsubscribeUrl = `${supabaseUrl}/functions/v1/confirm-email-subscription?action=unsubscribe&hash=${emailHash}${user_id ? `&uid=${encodeURIComponent(user_id)}` : ''}`;
 
     // Merge dynamic data
     const templateData = {
@@ -547,6 +591,7 @@ serve(async (req: Request): Promise<Response> => {
       ...dynamic_data,
       app_url: Deno.env.get("APP_URL") || "https://www.aiwmcquantis.com",
       unsubscribe_url: unsubscribeUrl,
+      postal_address: postalAddress,
     };
 
     // Send email via Resend
@@ -574,6 +619,7 @@ serve(async (req: Request): Promise<Response> => {
         to: [recipientEmail],
         subject: template.subject,
         html: trackedHtml,
+        ...(marketing ? { headers: listUnsubscribeHeaders(unsubscribeUrl) } : {}),
       }),
     });
 

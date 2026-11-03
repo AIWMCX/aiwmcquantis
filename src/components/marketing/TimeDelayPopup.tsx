@@ -10,6 +10,7 @@ import { X, CheckCircle2, ArrowRight, Loader2, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLeadCapture } from '@/hooks/useLeadCapture';
+import { EmailConsentNote } from '@/components/marketing/EmailConsentNote';
 import { LEAD_MAGNET_CONTENT } from '@/lib/leadMagnets';
 
 interface TimeDelayPopupProps {
@@ -142,6 +143,7 @@ export function TimeDelayPopup({ isOpen, onClose, onSubmitSuccess }: TimeDelayPo
                   )}
                 </Button>
               </form>
+              <EmailConsentNote className="mt-3 text-center" />
 
               {/* Trust Signals */}
               <div className="mt-4 text-center">

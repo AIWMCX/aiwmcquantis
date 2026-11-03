@@ -14,11 +14,11 @@ export default function EmailPreferences() {
       title: 'Unsubscribed',
       message: "You've been unsubscribed from AIWMC Quantis marketing emails. You may still receive transactional emails related to your account.",
     },
-    resubscribed: {
+    resubscribe: {
       icon: <MailCheck className="h-16 w-16" style={{ color: '#4ade80' }} />,
       glow: 'cyan' as const,
-      title: 'Re-subscribed!',
-      message: "You've been re-subscribed to AIWMC Quantis emails. Welcome back!",
+      title: 'Want our emails again?',
+      message: 'Sign up again with the email form in the footer of www.aiwmcquantis.com. We will send a confirmation link first, and you will only get emails after you click it.',
     },
     invalid: {
       icon: <AlertCircle className="h-16 w-16" style={{ color: '#f87171' }} />,

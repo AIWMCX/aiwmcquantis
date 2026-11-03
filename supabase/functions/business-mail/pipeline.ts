@@ -2,7 +2,7 @@
 // acquisition, and the paced outreach sender (SMTP). HTTP concerns live in
 // index.ts.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { postalAddressBlock, withPostalAddress } from '../_shared/mail/compliance-footer.ts';
+import { postalAddressBlock, withOptOutLine, withPostalAddress } from '../_shared/mail/compliance-footer.ts';
 import { followupOrderCheck, type SentTouch } from '../_shared/mail/followup-order.ts';
 import { isPlaceholderSubject, planFollowupThread, type PriorTouch } from '../_shared/mail/followup-thread.ts';
 import {
@@ -687,9 +687,13 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
       // SMTP cannot provide an idempotent send guarantee. If the connection
       // drops after the server accepted DATA, automatic retry could duplicate
       // a real cold email while the CRM still says it is unsent.
-      const text = withPostalAddress(f.draft, settings.postal_address!);
+      // Opt-out instruction, then sender postal address (CAN-SPAM / CASL), applied at send
+      // time so a hand-edited draft can't lose them. The mailto List-Unsubscribe lands in this
+      // mailbox with subject "unsubscribe", which routing.isOptOut records as an opt-out.
+      const text = withPostalAddress(withOptOutLine(f.draft), settings.postal_address!);
+      const listUnsubscribe = `<mailto:${sender.box.address}?subject=unsubscribe>`;
       smtpAttemptStarted = true;
-      const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text, inReplyTo: parent, references });
+      const res = await sendFromMailbox(ctx.server, sender.cred, { fromName, to: gate.to, subject, text, inReplyTo: parent, references, listUnsubscribe });
       const { error } = await svc.rpc('record_commercial_followup_provider_send', {
         _followup_id: f.id,
         _sent_via: 'mailbox_smtp',

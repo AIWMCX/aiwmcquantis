@@ -7,6 +7,8 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { listUnsubscribeHeaders, MARKETING_POSTAL_ADDRESS_MISSING, postalAddressHtml } from '../_shared/email-compliance.ts';
+import { isSuppressed, loadPostalAddress } from '../_shared/email-unsubscribe.ts';
 const FUNCTION_NAME = 'send-weekly-insights';
 const FUNCTION_VERSION = '1.0.0';
 
@@ -69,7 +71,7 @@ function getWeekNumber(date: Date): number {
   return Math.ceil((diff / oneWeek) + 1);
 }
 
-function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number, year: number, unsubscribeUrl: string): string {
+function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number, year: number, unsubscribeUrl: string, postalAddress: string): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -182,6 +184,7 @@ function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number
               <p style="margin: 0; color: #a1a1aa; font-size: 12px;">
                 <a href="${unsubscribeUrl}" style="color: #a1a1aa; text-decoration: underline;">Unsubscribe</a> from weekly insights
               </p>
+              <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 12px;">${postalAddressHtml(postalAddress)}</p>
             </td>
           </tr>
           
@@ -241,6 +244,8 @@ serve(async (req: Request): Promise<Response> => {
       .from("leads")
       .select("id, email_encrypted")
       .eq("offer", "newsletter")
+      // Double opt-in: only addresses that clicked the confirmation link.
+      .not("confirmed_at", "is", null)
       .is("unsubscribed_at", null);
 
     if (subscribersError) {
@@ -256,6 +261,16 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     log.info(`Found ${subscribers.length} active subscribers`);
+
+    // CAN-SPAM / CASL: every commercial email carries the sender's postal address.
+    const postalAddress = await loadPostalAddress(supabase);
+    if (!postalAddress) {
+      log.warn(MARKETING_POSTAL_ADDRESS_MISSING);
+      return new Response(
+        JSON.stringify({ success: false, sent: 0, held: MARKETING_POSTAL_ADDRESS_MISSING }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Get content for this week (rotate through available content)
     const contentIndex = (weekNumber - 1) % WEEKLY_CONTENT.length;
@@ -293,12 +308,16 @@ serve(async (req: Request): Promise<Response> => {
         }
 
         const email = emailData as string;
+        if (await isSuppressed(supabase, email)) {
+          skipCount++;
+          continue;
+        }
         
         // Generate unsubscribe URL
         const unsubscribeUrl = `${supabaseUrl}/functions/v1/newsletter-unsubscribe?id=${subscriber.id}`;
 
         // Generate email HTML
-        const emailHtml = generateEmailHtml(content, weekNumber, year, unsubscribeUrl);
+        const emailHtml = generateEmailHtml(content, weekNumber, year, unsubscribeUrl, postalAddress);
 
         // Send via Resend
         const resendResponse = await fetch("https://api.resend.com/emails", {
@@ -312,10 +331,7 @@ serve(async (req: Request): Promise<Response> => {
             to: [email],
             subject: `Week ${weekNumber}: ${content.ai_spotlight.title}`,
             html: emailHtml,
-            headers: {
-              "List-Unsubscribe": `<${unsubscribeUrl}>`,
-              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-            },
+            headers: listUnsubscribeHeaders(unsubscribeUrl),
           }),
         });
 

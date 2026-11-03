@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { EmailConsentNote } from '@/components/marketing/EmailConsentNote';
 import { Mail, X, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +72,7 @@ export function PostAnalysisEmailCapture({ ideaTitle, monthlyProfit, onDismiss }
         <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-foreground mb-1">You're in! 🎉</h3>
         <p className="text-sm text-muted-foreground">
-          Check your inbox — we've sent your analysis summary and a link to save your results.
+          Check your inbox and click the link to confirm your email.
         </p>
       </div>
     );
@@ -99,13 +100,14 @@ export function PostAnalysisEmailCapture({ ideaTitle, monthlyProfit, onDismiss }
 
         <div className="flex-1 min-w-0">
           <h3 className="text-base font-semibold text-foreground mb-1">
-            Save this analysis before it's gone
+            Get notes on testing decisions like this one
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            {monthlyProfit 
-              ? `Your idea projects ${monthlyProfit}/mo. Drop your email to save these results, get the unlock link for the full report (Monte Carlo, P&L, action plan), and reload anytime.`
-              : 'Drop your email to save these results, get the unlock link for the full report (Monte Carlo, P&L, action plan), and reload anytime.'
-            }
+            {/* This form only subscribes to email (double opt-in). It used to promise
+                "save these results" and an "unlock link for the full report", which
+                entering an email never delivered. */}
+            {monthlyProfit ? `Your idea projects ${monthlyProfit}/mo. ` : ''}
+            Get occasional emails on testing business decisions. To keep this analysis, create a free account.
           </p>
           
           <form onSubmit={handleSubmit} className="mt-3 flex flex-col sm:flex-row gap-2">
@@ -126,14 +128,12 @@ export function PostAnalysisEmailCapture({ ideaTitle, monthlyProfit, onDismiss }
               disabled={isSubmitting || !email.includes('@')}
               className="gap-2 h-11 px-6 whitespace-nowrap"
             >
-              {isSubmitting ? 'Saving...' : 'Save & Continue'}
+              {isSubmitting ? 'Sending...' : 'Subscribe'}
               {!isSubmitting && <ArrowRight className="w-4 h-4" />}
             </Button>
           </form>
           
-          <p className="text-xs text-muted-foreground/70 mt-2">
-            No spam. Your analysis is saved instantly. Unsubscribe anytime.
-          </p>
+          <EmailConsentNote className="mt-2" />
         </div>
       </div>
     </div>

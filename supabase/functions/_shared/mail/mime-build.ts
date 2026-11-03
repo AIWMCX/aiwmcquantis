@@ -16,6 +16,11 @@ export interface OutgoingMessage {
   inReplyTo?: string | null;
   references?: string[];
   date?: Date;
+  /**
+   * RFC 2369 List-Unsubscribe value, e.g. `<mailto:hello@x.com?subject=unsubscribe>`.
+   * Set only on outreach (commercial) sends, never on support replies.
+   */
+  listUnsubscribe?: string | null;
 }
 
 const enc = new TextEncoder();
@@ -80,6 +85,7 @@ export function buildMessage(m: OutgoingMessage): string {
   if (m.inReplyTo) headers.push(`In-Reply-To: ${m.inReplyTo}`);
   const refs = (m.references ?? []).filter(Boolean);
   if (refs.length) headers.push(`References: ${refs.join(' ')}`);
+  if (m.listUnsubscribe && /^<[^<>\r\n]+>$/.test(m.listUnsubscribe)) headers.push(`List-Unsubscribe: ${m.listUnsubscribe}`);
   headers.push('MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: quoted-printable');
   return `${headers.join('\r\n')}\r\n\r\n${quotedPrintable(m.text)}\r\n`;
 }
