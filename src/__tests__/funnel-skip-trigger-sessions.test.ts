@@ -29,11 +29,14 @@ describe('funnel_events_clean skips the trigger copy of analysis_complete', () =
     expect(NEXT).toContain('GRANT SELECT ON public.funnel_events_clean TO service_role');
   });
 
-  it('leaves the trigger itself alone and is the newest view definition', () => {
+  it('leaves the trigger itself alone, and every later view definition keeps the filter', () => {
     expect(NEXT).not.toMatch(/DROP TRIGGER|CREATE TRIGGER|emit_analysis_complete_event\(\)/);
     const later = readdirSync('supabase/migrations')
       .filter((f) => f > '20261029010000_funnel_clean_skip_trigger_rows.sql' && f.endsWith('.sql'))
-      .filter((f) => readFileSync(`supabase/migrations/${f}`, 'utf8').includes('VIEW public.funnel_events_clean'));
-    expect(later).toEqual([]);
+      .map((f) => readFileSync(`supabase/migrations/${f}`, 'utf8'))
+      .filter((sql) => sql.includes('VIEW public.funnel_events_clean'));
+    for (const sql of later) {
+      expect(viewOf(sql)).toContain("WHERE COALESCE(fe.metadata ->> 'emitted_by', '') <> 'trg_analyses_emit_complete_event'");
+    }
   });
 });
