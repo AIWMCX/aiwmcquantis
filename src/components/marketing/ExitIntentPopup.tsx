@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { saveLeadEmail } from '@/lib/leadMemory';
+import { EmailConsentNote } from '@/components/marketing/EmailConsentNote';
 
 import { logger } from '@/lib/logger';
 interface ExitIntentPopupProps {
@@ -63,24 +64,22 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
       // 2. Save email to localStorage for prefilling auth forms
       saveLeadEmail(email, 'exit_intent_popup');
       
-      // 3. Send the same welcome email used for signup
+      // 3. Send the double opt-in confirmation request; the welcome email only
+      //    goes out after the address owner clicks the confirmation link.
       const emailName = email.split('@')[0].replace(/[._-]/g, ' ') || 'Friend';
       const capitalizedName = emailName.split(' ').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
       ).join(' ');
 
       const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
-        body: { 
-          email, 
-          name: capitalizedName 
-        },
+        body: { email, name: capitalizedName, mode: 'confirmation', leadId: data },
       });
 
       if (emailError) {
-        logger.error('Failed to send welcome email:', emailError);
+        logger.error('Failed to send confirmation email:', emailError);
         // Don't fail the whole flow, lead is already captured
       } else {
-        logger.info('✅ Welcome email sent to:', email);
+        logger.info('Confirmation email sent to:', email);
       }
 
       setIsSuccess(true);
@@ -222,6 +221,8 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                 </Button>
               </form>
 
+              <EmailConsentNote className="mt-3 text-center" />
+
               {/* Trust Signals */}
               <div className="mt-4 text-center">
                 <p className="text-xs text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
@@ -232,7 +233,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3 text-success" />
-                    Instant delivery
+                    Confirm by email first
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1">

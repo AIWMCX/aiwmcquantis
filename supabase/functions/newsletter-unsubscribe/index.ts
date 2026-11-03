@@ -7,8 +7,9 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { applyUnsubscribe } from '../_shared/email-unsubscribe.ts';
 const FUNCTION_NAME = 'newsletter-unsubscribe';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 
 // Styled HTML page for unsubscribe confirmation
 function getUnsubscribeHtml(success: boolean, message: string): string {
@@ -158,65 +159,47 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const oneClick = req.method === "POST";
+    const html = (status: number, ok: boolean, message: string) =>
+      oneClick
+        ? new Response(ok ? "Unsubscribed" : message, { status, headers: { "Content-Type": "text/plain" } })
+        : new Response(getUnsubscribeHtml(ok, message), {
+            status,
+            headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+          });
+
     // Check if lead exists
     const { data: lead, error: fetchError } = await supabase
       .from("leads")
-      .select("id, unsubscribed_at, offer")
+      .select("id, email_hash, unsubscribed_at")
       .eq("id", leadId)
       .single();
 
     if (fetchError || !lead) {
       log.error("Lead not found:", leadId, fetchError);
-      return new Response(
-        getUnsubscribeHtml(false, "We couldn't find your subscription. It may have already been removed."),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
-        }
-      );
+      return html(404, false, "We couldn't find your subscription. It may have already been removed.");
     }
 
-    // Check if already unsubscribed
-    if (lead.unsubscribed_at) {
-      return new Response(
-        getUnsubscribeHtml(true, "You've already been unsubscribed from our newsletter. You won't receive any more emails from us."),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
-        }
-      );
-    }
-
-    // Mark as unsubscribed
+    // Marks every lead row for this address, the account's marketing flag and the
+    // global suppression list (so outreach and lifecycle sends honor it too).
+    // The status column is left alone: leads_status_check has no 'unsubscribed'
+    // value, so writing one made this update fail and nobody was ever unsubscribed.
+    const result = lead.email_hash
+      ? await applyUnsubscribe(supabase, { emailHash: lead.email_hash, source: oneClick ? "one-click header" : "newsletter link" })
+      : null;
     const { error: updateError } = await supabase
       .from("leads")
-      .update({ 
-        unsubscribed_at: new Date().toISOString(),
-        status: "unsubscribed"
-      })
+      .update({ unsubscribed_at: lead.unsubscribed_at ?? new Date().toISOString(), marketing_opt_in: false })
       .eq("id", leadId);
 
     if (updateError) {
       log.error("Failed to unsubscribe:", leadId, updateError);
-      return new Response(
-        getUnsubscribeHtml(false, "There was an error processing your request. Please try again or contact support."),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
-        }
-      );
+      return html(500, false, "There was an error processing your request. Please try again or email privacy@aiwmcquantis.com.");
     }
+    if (result?.errors.length) log.error(`Unsubscribe partial failure for lead ${leadId}: ${result.errors.join("; ")}`);
 
-    log.info(`Successfully unsubscribed lead: ${leadId}`);
-
-    return new Response(
-      getUnsubscribeHtml(true, "You've been successfully unsubscribed from our weekly insights newsletter. We're sorry to see you go, but you're always welcome back!"),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
-      }
-    );
-
+    log.info(`Unsubscribed lead: ${leadId}`);
+    return html(200, true, "You've been unsubscribed from AIWMC Quantis marketing emails, including the weekly insights. You won't receive any more of them.");
   } catch (error) {
     log.error("Unsubscribe error:", error);
     return new Response(

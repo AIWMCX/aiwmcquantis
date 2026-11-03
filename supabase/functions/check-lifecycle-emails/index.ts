@@ -54,6 +54,7 @@ serve(async (req: Request): Promise<Response> => {
     const functionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-lifecycle-email`;
 
     let emailsSent = 0;
+    let emailsSkipped = 0;
     const errors: string[] = [];
 
     // Helper: check if email already sent for this sequence+step.
@@ -124,6 +125,9 @@ serve(async (req: Request): Promise<Response> => {
           body: JSON.stringify({ user_id: userId, template_key: templateKey }),
         });
         if (resp.ok) {
+          // 200 with `skipped` = not sent (opted out, suppressed, or held for a missing postal address).
+          const body = await resp.json().catch(() => ({}));
+          if (body?.skipped) { emailsSkipped++; return false; }
           emailsSent++;
           return true;
         }
@@ -340,7 +344,9 @@ serve(async (req: Request): Promise<Response> => {
                 body: JSON.stringify({ lead_id: lead.id, template_key: key }),
               });
               if (resp.ok) {
-                emailsSent++;
+                const body = await resp.json().catch(() => ({}));
+                if (body?.skipped) emailsSkipped++;
+                else emailsSent++;
               } else {
                 const errText = await resp.text();
                 errors.push(`Failed ${key} for lead ${lead.id}: ${errText}`);
@@ -353,12 +359,13 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    log.info(`Lifecycle email check complete: ${emailsSent} emails sent, ${errors.length} errors`);
+    log.info(`Lifecycle email check complete: ${emailsSent} emails sent, ${emailsSkipped} skipped (consent/postal address), ${errors.length} errors`);
 
     return new Response(
       JSON.stringify({
         success: true,
         emails_sent: emailsSent,
+        emails_skipped: emailsSkipped,
         errors: errors.length > 0 ? errors : undefined,
         checked_at: new Date().toISOString(),
       }),

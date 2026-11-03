@@ -16,6 +16,22 @@ export function postalAddressBlock(postalAddress: string | null | undefined): st
   return postalAddress && postalAddress.trim().length >= 10 ? null : POSTAL_ADDRESS_MISSING;
 }
 
+/** The opt-out line composeOutboundEmail appends; routing.isOptOut treats a reply "no" as an opt-out. */
+export const OPT_OUT_LINE = `If this isn't relevant, just reply "no" and I won't follow up.`;
+
+const HAS_OPT_OUT = /reply\s+(with\s+)?["“']?(no|stop|unsubscribe|remove)["”']?|unsubscribe/i;
+
+/**
+ * Guarantees the opt-out instruction is in the body. Drafts reach the send
+ * queue without it when they were hand-edited or drafted outside a sequence
+ * step (commercial-workflow skips composeOutboundEmail when `step` is null).
+ */
+export function withOptOutLine(draft: string): string {
+  const body = draft.trimEnd();
+  if (HAS_OPT_OUT.test(body)) return body;
+  return `${body}\n\n${OPT_OUT_LINE}`;
+}
+
 /** Appends "AIWMC Quantis · <address>" as the last line, once. */
 export function withPostalAddress(draft: string, postalAddress: string): string {
   const address = postalAddress.trim().replace(/\s*\n\s*/g, ', ');

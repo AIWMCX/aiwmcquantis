@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLeadCapture } from '@/hooks/useLeadCapture';
 import { trackEvent } from '@/lib/analytics';
+import { EmailConsentNote } from '@/components/marketing/EmailConsentNote';
 
 export function FooterEmailSignup() {
   const [email, setEmail] = useState('');
@@ -74,6 +75,7 @@ export function FooterEmailSignup() {
       <p className="text-xs text-muted-foreground mt-2">
         Occasional notes on testing business decisions. Unsubscribe anytime.
       </p>
+      <EmailConsentNote className="mt-1" />
     </div>
   );
 }
