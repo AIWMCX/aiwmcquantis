@@ -123,11 +123,14 @@ export function useAuth() {
   // choice for the invitee to get wrong, and no password to forget on a
   // repeat visit. Same email-delivery path Supabase already uses for
   // signup confirmation, so it needs no separate infrastructure.
-  const signInWithMagicLink = useCallback(async (email: string, returnUrl?: string) => {
+  // `consent` is written as metadata when the link creates a new account; an
+  // existing account gets it from the pending record on SIGNED_IN instead.
+  const signInWithMagicLink = useCallback(async (email: string, returnUrl?: string, consent?: SignupConsentMetadata) => {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: getEmailConfirmationRedirect(returnUrl),
+        ...(consent ? { data: { ...consent } } : {}),
       },
     });
     return { data, error };

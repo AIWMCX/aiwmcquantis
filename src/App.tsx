@@ -9,6 +9,7 @@ import { PendingInviteRedirect } from "@/components/invite/PendingInviteRedirect
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
+import { AccountConsentGate } from "@/components/consent/AccountConsentGate";
 import { useTrackingConsent } from "@/hooks/useTrackingConsent";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -171,6 +172,7 @@ const App = () => {
             <ScrollToTop />
             <SkipToContent />
             <ConsentBanner />
+            <AccountConsentGate />
             <FounderPromoBanner />
             <PendingInviteRedirect />
             <Suspense fallback={<LoadingFallback />}>
