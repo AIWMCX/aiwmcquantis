@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { CEILING, RAMP } from '@/lib/li-growth/caps';
 
-const SQL = readFileSync('supabase/migrations/20261102120000_li_engagement_growth_agent.sql', 'utf8');
+const SQL = readFileSync('supabase/migrations/20261102130000_li_engagement_growth_agent.sql', 'utf8');
 const FN = readFileSync('supabase/functions/li-growth-draft/index.ts', 'utf8');
 const LINT = readFileSync('supabase/functions/_shared/li-growth-lint.ts', 'utf8');
 const PAGE = readFileSync('src/pages/admin/LinkedInGrowth.tsx', 'utf8');
