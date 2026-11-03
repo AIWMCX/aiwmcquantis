@@ -54,10 +54,20 @@ describe('enforceNarrativeIntegrity', () => {
     expect(result.executiveSummary).toContain(Math.round(baseCalc.mrr).toLocaleString());
   });
 
-  it('does not flag small dollar figures under $100 (e.g. per-unit pricing mentions)', () => {
+  // Q6 (2026-11-03): small figures are now checked too. Before, every amount
+  // of $100 or less was skipped, so "CAC $90" could never be caught. A small
+  // figure that is the engine's own average ticket still passes.
+  it('accepts a small dollar figure that is the engine\'s average ticket', () => {
     const text = `Average ticket price is $15, well within the $9,396 CAC and $6,389 LTV envelope.`;
-    const result = enforceNarrativeIntegrity(text, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    const result = enforceNarrativeIntegrity(text, { ...baseCalc, averageCheck: 15 }, 'B2B SaaS', 'Austin, TX', noOpLog);
     expect(result.wasModified).toBe(false);
+  });
+
+  it('catches a small dollar figure that matches nothing the engine computed', () => {
+    const text = `Average ticket price is $15, well within the $9,396 CAC and $6,389 LTV envelope.`;
+    const result = enforceNarrativeIntegrity(text, { ...baseCalc, averageCheck: 22 }, 'B2B SaaS', 'Austin, TX', noOpLog);
+    expect(result.wasModified).toBe(true);
+    expect(result.reason).toBe('unanchored_dollar:$15');
   });
 
   it('does not crash and returns the original text on an empty executive_summary', () => {

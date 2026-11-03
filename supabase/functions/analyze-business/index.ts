@@ -72,6 +72,8 @@ import {
   checkKillSwitch,
   createSecurityAuditLog,
   enforceNarrativeIntegrity,
+  scrubNarrativeField,
+  dollarAmountsIn,
   AI_COST_LIMITS,
   type InputValidationResult,
   type OutputValidationResult,
@@ -1770,14 +1772,33 @@ function transformResponse(
   // _narrativeWasModified field. Previously this call's `.wasModified`
   // result was computed and immediately discarded -- see
   // quality-dimensions.ts's header comment for why that mattered.
+  // Q6 (2026-11-03): the check also needs CAC payback, which lives in the
+  // shaped unit economics rather than on calc.
+  const narrativeCalc = {
+    ...calc,
+    cacPaybackMonths: (financialAnalysis as { unit_economics?: { cac_payback_months?: number } })?.unit_economics?.cac_payback_months,
+  };
   const narrativeIntegrityResult = enforceNarrativeIntegrity(
     bp.executive_summary || "Business analysis in progress. Please provide more details for comprehensive summary.",
-    calc,
+    narrativeCalc,
     benchmarks.name,
     location,
     log,
     ideaText,
   );
+  // Q6: the other prose fields are checked sentence by sentence; only the
+  // sentences that contradict the engine are removed.
+  const narrativeUserAnchors = dollarAmountsIn(ideaText);
+  const scrubbedFields = {
+    product_description: scrubNarrativeField('product_description', bp.product_description, narrativeCalc, narrativeUserAnchors),
+    target_audience: scrubNarrativeField('target_audience', bp.target_audience, narrativeCalc, narrativeUserAnchors),
+    competitive_advantages: scrubNarrativeField('competitive_advantages', bp.competitive_advantages, narrativeCalc, narrativeUserAnchors),
+    operations: scrubNarrativeField('operations', bp.operations, narrativeCalc, narrativeUserAnchors),
+  };
+  const narrativeFieldsScrubbed = Object.values(scrubbedFields).flatMap((r) => r.removed);
+  if (narrativeFieldsScrubbed.length > 0) {
+    log.warn(`Narrative integrity check: removed ${narrativeFieldsScrubbed.length} sentence(s) that did not reconcile (${narrativeFieldsScrubbed.join('; ')})`);
+  }
 
   // FREE-NULL-VERDICT, root-cause corrected 2026-08-16 (supersedes the
   // 2026-08-16 raw.investment_verdict fix earlier the same day, which was
@@ -1797,10 +1818,10 @@ function transformResponse(
     financial_analysis: financialAnalysis,
     business_plan: {
       executive_summary: narrativeIntegrityResult.executiveSummary,
-      product_description: bp.product_description || "Product/service details being analyzed.",
-      target_audience: bp.target_audience || `Target customers in ${location} market.`,
-      competitive_advantages: bp.competitive_advantages || "Differentiation analysis in progress.",
-      operations: bp.operations || "Operational model being developed.",
+      product_description: scrubbedFields.product_description.text || "Product/service details being analyzed.",
+      target_audience: scrubbedFields.target_audience.text || `Target customers in ${location} market.`,
+      competitive_advantages: scrubbedFields.competitive_advantages.text || "Differentiation analysis in progress.",
+      operations: scrubbedFields.operations.text || "Operational model being developed.",
       // Transform launch_steps - handle various formats from AI
       launch_steps: (() => {
         if (!bp.launch_steps || !Array.isArray(bp.launch_steps)) {
@@ -1964,6 +1985,7 @@ function transformResponse(
     // then folded into validation.quality_dimensions.narrative_reconciliation.
     _narrativeWasModified: narrativeIntegrityResult.wasModified,
     _narrativeIntegrityReason: narrativeIntegrityResult.reason ?? null,
+    _narrativeFieldsScrubbed: narrativeFieldsScrubbed,
     // Phase D (2026-08-01): the exact raw bundle fed into
     // calculateStrictFinancials, frozen so a later scenario re-run never has
     // to re-derive industry/location/sub-industry detection (which drifts as
@@ -3162,6 +3184,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     delete (result as Record<string, unknown>)._narrativeWasModified;
     const narrativeIntegrityReason = ((result as Record<string, unknown>)._narrativeIntegrityReason as string | null) ?? null;
     delete (result as Record<string, unknown>)._narrativeIntegrityReason;
+    const narrativeFieldsScrubbed = ((result as Record<string, unknown>)._narrativeFieldsScrubbed as string[] | undefined) ?? [];
+    delete (result as Record<string, unknown>)._narrativeFieldsScrubbed;
 
     // ── WS1: SET GOLDEN — a valid deterministic result now exists ──
     GOLDEN = { ...result } as Record<string, unknown>;
@@ -4294,6 +4318,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         analysis_depth: depthLevel,
         // Why the AI summary was replaced (null when it was kept). Diagnostic only.
         narrative_integrity: { replaced: narrativeWasModified, reason: narrativeIntegrityReason },
+        // Sentences removed from the other prose fields (Q6). Diagnostic only.
+        narrative_fields_scrubbed: narrativeFieldsScrubbed,
         // ── NEW: canonical benchmarks block ──
         benchmarks: benchmarkRecords,
         benchmark_mode: benchmarkMode,

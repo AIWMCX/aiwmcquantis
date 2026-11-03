@@ -450,11 +450,29 @@ function sanitizeNarratorOutput(output: NarratorOutput): NarratorOutput {
 // AI-down fallback path — so the customer never sees a narrative contradicting
 // the KPI card. It does not try to surgically edit the AI's prose; per the
 // fail-closed doctrine, an untrustworthy sentence is discarded, not patched.
-// Never throws: any error in the check itself is caught and the original
-// text is returned unmodified (fail-open on the CHECK, fail-closed on a
-// DETECTED contradiction) — mirrors the QOC shadow-mode principle used
-// elsewhere in this codebase: a safety check must never break the response
-// it is trying to protect.
+// Never throws. Since 2026-11-03 (Q6) an error inside the check itself also
+// fails CLOSED: the AI text is withheld and the deterministic summary (or a
+// fixed "withheld" notice) is shipped instead. The response is never broken,
+// but unverified AI numbers are never shipped either.
+
+// Q6 tightening (2026-11-03, RF engineering review finding Q6). Before this
+// change the check let a figure through if it was within 10% of ANY anchor,
+// ignored every dollar amount of $100 or less (so "CAC $90" was never
+// checked), did not read "$1.2M"/"$80K" suffixes, did not check percentages,
+// months or the LTV:CAC ratio, looked at executive_summary only, and shipped
+// the AI text unchanged if the check itself threw. Now:
+//   - money matches within 1% of an anchor (or half the last written digit
+//     when the writer used a suffix or decimals, capped at 5%);
+//   - every dollar figure of $1 or more is checked, suffixes included;
+//   - percentages next to "gross margin"/"net margin", months next to
+//     "payback"/"break even"/"CAC payback", and "LTV:CAC Nx" are checked
+//     against the engine's own value for THAT metric;
+//   - industry/benchmark/target figures ("typical net margins of 8%-15%")
+//     are not claims about this business and are skipped;
+//   - the other prose fields are checked sentence by sentence and only the
+//     sentences that contradict the engine are removed;
+//   - an error inside the check withholds the AI text (fail closed).
+// What is still NOT checked is listed in NARRATIVE_CHECK_NOT_COVERED.
 
 export interface NarrativeIntegrityCalc {
   mrr: number;
@@ -477,9 +495,25 @@ export interface NarrativeIntegrityCalc {
     marketing: number;
     other: number;
   };
+  /** Optional engine fields (all present on StrictFinancialResult). */
+  averageCheck?: number;
+  totalExpenses?: number;
+  grossMarginPercent?: number;
+  netMarginPercent?: number;
+  breakEvenMonths?: number;
+  revenueFor45kProfit?: number;
+  /** From financial_analysis.unit_economics (not on calc itself). */
+  cacPaybackMonths?: number;
 }
 
-const DOLLAR_PATTERN = /\$[\d,]+(?:\.\d{1,2})?/g;
+/** Claims the checker does not verify yet; published so nobody assumes otherwise. */
+export const NARRATIVE_CHECK_NOT_COVERED = [
+  'percentages other than gross and net margin (ROI, growth, churn, market share)',
+  'counts (customers, orders, staff)',
+  'which metric a matching dollar figure is attached to (wrong-period labels)',
+  'benchmark vintage claims',
+  'fields outside business_plan prose (launch_steps costs, risks, marketing)',
+] as const;
 
 // Phase 5 re-validation (2026-08-29, charter 5.9/5.11) extension #1: a
 // figure in any other currency symbol appearing in what should be an
@@ -488,22 +522,13 @@ const DOLLAR_PATTERN = /\$[\d,]+(?:\.\d{1,2})?/g;
 // legitimate reason a non-USD symbol should appear next to a number in
 // generated business-plan prose. Deliberately no `g` flag: this is used
 // as a presence check via .test(), and a global-flagged regex's
-// stateful lastIndex would silently misbehave across repeated calls to
-// narrativeReconciles() from the same module instance.
+// stateful lastIndex would silently misbehave across repeated calls.
 const NON_USD_CURRENCY_PATTERN = /[€£¥₹₩]\s?[\d,]+(?:\.\d{1,2})?|[\d,]+(?:\.\d{1,2})?\s?[€£¥₹₩]/;
 
-// Phase 5 re-validation (2026-08-29, charter 5.9/5.11) extension #2: the
-// exact "reversed verdict" example AI_SAFETY_ARCHITECTURE.md itself
-// named as a currently-open gap -- prose calling the business
-// "profitable" while calc says otherwise, or vice versa. Deliberately
-// narrow (only unambiguous, strongly-worded claims): this function's
-// only remedy on detection is a WHOLESALE replacement of
-// executive_summary, so an over-eager pattern here would do more damage
-// than the gap it closes. A hedge like "could become profitable with
-// optimization," or a plain "profitable" mention next to correctly-
-// anchored numbers, is deliberately NOT flagged -- only a strong,
-// unhedged claim directly contradicting calc.isProfitable is. This is
-// intentionally NOT a general sentiment classifier.
+// Phase 5 re-validation (2026-08-29, charter 5.9/5.11) extension #2: only
+// strong, unhedged verdict claims that directly contradict calc.isProfitable.
+// A hedge like "could become profitable with optimization" is deliberately
+// NOT flagged. This is intentionally NOT a general sentiment classifier.
 const STRONG_PROFITABLE_CLAIMS = [
   /\bhighly profitable\b/i,
   /\bvery profitable\b/i,
@@ -516,7 +541,55 @@ const STRONG_UNPROFITABLE_CLAIMS = [
   /\ba failing business\b/i,
 ];
 
-function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
+const MONEY_REL_TOL = 0.01;
+const MONEY_SUFFIX_CAP = 0.05;
+
+interface Mention {
+  raw: string;
+  value: number;
+  /** Half of the last written digit (display precision). */
+  halfUnit: number;
+  start: number;
+  end: number;
+}
+
+const MONEY_PATTERN = /\$\s?(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?:\s?(k|mm|m|bn|b|thousand|million|billion)\b)?/gi;
+const SUFFIX_MULT: Record<string, number> = {
+  k: 1e3, thousand: 1e3, m: 1e6, mm: 1e6, million: 1e6, b: 1e9, bn: 1e9, billion: 1e9,
+};
+
+function decimalsOf(numText: string): number {
+  const dot = numText.indexOf('.');
+  return dot < 0 ? 0 : numText.length - dot - 1;
+}
+
+export function moneyMentions(text: string): Mention[] {
+  const out: Mention[] = [];
+  for (const m of text.matchAll(MONEY_PATTERN)) {
+    const num = m[1].replace(/,/g, '');
+    const base = parseFloat(num);
+    if (!Number.isFinite(base)) continue;
+    const mult = m[2] ? SUFFIX_MULT[m[2].toLowerCase()] ?? 1 : 1;
+    const d = decimalsOf(num);
+    const halfUnit = m[2] || d > 0 ? 0.5 * Math.pow(10, -d) * mult : 0;
+    const start = m.index ?? 0;
+    out.push({ raw: m[0].trim(), value: base * mult, halfUnit, start, end: start + m[0].length });
+  }
+  return out;
+}
+
+/**
+ * Dollar amounts the visitor wrote in their own idea ("$5,500/mo", "$80K").
+ * The narrator repeating them is not a contradiction; live 2026-10-25 both test
+ * runs had their summary replaced because the AI quoted the visitor's figures.
+ */
+export function dollarAmountsIn(text: string | undefined): number[] {
+  if (!text) return [];
+  return moneyMentions(text).map((m) => m.value);
+}
+
+function moneyAnchors(calc: NarrativeIntegrityCalc): number[] {
+  const e = calc.expenses;
   return [
     calc.mrr,
     calc.netProfit,
@@ -525,70 +598,190 @@ function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
     calc.startupInvestment,
     calc.breakEvenRevenue,
     calc.npv3Years ?? 0,
+    calc.averageCheck ?? 0,
+    calc.totalExpenses ?? 0,
+    calc.revenueFor45kProfit ?? 0,
     // Narrators often quote yearly figures; a year of the same monthly number
     // is not a contradiction.
     calc.mrr * 12,
     calc.netProfit * 12,
     calc.breakEvenRevenue * 12,
+    (calc.totalExpenses ?? 0) * 12,
     // Gross profit and total costs are routinely quoted; live 2026-10-26 a
     // summary was replaced for "$11,220", which is exactly revenue - COGS.
-    calc.mrr - calc.expenses.cogs,
+    calc.mrr - e.cogs,
     // Live 2026-10-26 the reason was "$5,940" = $10,800 x 55% while
     // mrr - expenses.cogs differed: the engine's margin uses effective COGS.
     calc.grossProfit ?? 0,
     (calc.grossProfit ?? 0) * 12,
-    calc.expenses.cogs + calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.marketing + calc.expenses.other,
-    calc.expenses.cogs,
-    calc.expenses.salaries,
-    calc.expenses.rent,
-    calc.expenses.utilities,
-    calc.expenses.marketing,
-    calc.expenses.other,
-  ].filter((v) => v !== 0 && Number.isFinite(v));
+    e.cogs + e.salaries + e.rent + e.utilities + e.marketing + e.other,
+    e.cogs,
+    e.salaries,
+    e.rent,
+    e.utilities,
+    e.marketing,
+    e.other,
+  ]
+    .filter((v) => v !== 0 && Number.isFinite(v))
+    // A loss is written as "a loss of $31,916", so compare magnitudes.
+    .map((v) => Math.abs(v));
 }
 
-/** Returns true if every dollar figure in text is within 10% of some computed
- *  anchor (small figures under $100 are ignored — those are never the subject
- *  of a payback/profit/CAC-style contradiction). */
-/**
- * Dollar amounts the visitor wrote in their own idea ("$5,500/mo", "$80K").
- * The narrator repeating them is not a contradiction; live 2026-10-25 both test
- * runs had their summary replaced because the AI quoted the visitor's figures.
- */
-export function dollarAmountsIn(text: string | undefined): number[] {
-  if (!text) return [];
-  const out: number[] = [];
-  for (const m of text.matchAll(/\$\s?([\d,]+(?:\.\d+)?)\s?([kKmM])?(?![A-Za-z])/g)) {
-    const base = parseFloat(m[1].replace(/,/g, ''));
-    if (!Number.isFinite(base)) continue;
-    const mult = m[2] ? (m[2].toLowerCase() === 'k' ? 1_000 : 1_000_000) : 1;
-    out.push(base * mult);
+function moneyMatches(m: Mention, anchor: number): boolean {
+  const tol = Math.max(Math.min(m.halfUnit, MONEY_SUFFIX_CAP * anchor), MONEY_REL_TOL * anchor, 0.5);
+  return Math.abs(m.value - anchor) <= tol;
+}
+
+const RANGE_JOINER = /^\s*(?:-|–|—|to)\s*$/i;
+
+/** Unanchored money mentions, with "$A–$B" ranges accepted when an anchor lies inside. */
+function unanchoredMoney(text: string, anchors: number[]): string[] {
+  const ms = moneyMentions(text);
+  const bad: string[] = [];
+  for (let i = 0; i < ms.length; i++) {
+    const m = ms[i];
+    const next = ms[i + 1];
+    if (next && RANGE_JOINER.test(text.slice(m.end, next.start))) {
+      const lo = Math.min(m.value, next.value);
+      const hi = Math.max(m.value, next.value);
+      // A narrow range around an engine figure is fine; a wide one proves nothing.
+      const inside = hi <= lo * 1.5 && anchors.some((a) => a >= lo * (1 - MONEY_REL_TOL) && a <= hi * (1 + MONEY_REL_TOL));
+      const bothEnds = anchors.some((a) => moneyMatches(m, a)) && anchors.some((a) => moneyMatches(next, a));
+      if (!inside && !bothEnds) bad.push(`${m.raw}–${next.raw}`);
+      i++;
+      continue;
+    }
+    if (!anchors.some((a) => moneyMatches(m, a))) bad.push(m.raw);
   }
-  return out;
+  return bad;
+}
+
+// Figures about the industry, a benchmark or a goal are not claims about the
+// engine's result for this business.
+const NOT_A_RESULT_CONTEXT = /\b(?:typical(?:ly)?|industry|benchmarks?|averages?|median|peers?|sector|competitors?|targets?|goal|aim)\b/i;
+
+interface MetricClaim {
+  label: string;
+  re: RegExp;
+  unit: 'percent' | 'months' | 'ratio';
+  anchors: (c: NarrativeIntegrityCalc) => Array<number | undefined>;
+}
+
+const NUM = String.raw`(-?\d+(?:\.\d+)?)`;
+const RANGE_TAIL = String.raw`(?:\s?(?:-|–|to)\s?(-?\d+(?:\.\d+)?))?`;
+const GAP = String.raw`[^.;:\d$%]{0,30}?`;
+const DURATION = String.raw`\s?(months?|mos?\b|years?|yrs?)`;
+const INVEST_PAYBACK = String.raw`(?:payback(?: period)?|pays? (?:itself )?back|paid back|recoup\w*|break[- ]?even|breaks? even|breaking even)`;
+const LTV_CAC = String.raw`LTV\s?(?::|\/|-to-|to)\s?CAC(?: ratio)?`;
+
+const CLAIMS: MetricClaim[] = [
+  { label: 'gross margin', unit: 'percent', anchors: (c) => [c.grossMarginPercent],
+    re: new RegExp(String.raw`\bgross (?:profit )?margins?\b${GAP}${NUM}${RANGE_TAIL}\s?%`, 'gi') },
+  { label: 'gross margin', unit: 'percent', anchors: (c) => [c.grossMarginPercent],
+    re: new RegExp(String.raw`${NUM}${RANGE_TAIL}\s?%\s(?:\w+\s){0,2}gross (?:profit )?margin`, 'gi') },
+  { label: 'net margin', unit: 'percent', anchors: (c) => [c.netMarginPercent],
+    re: new RegExp(String.raw`\b(?:net (?:profit )?|profit )margins?\b${GAP}${NUM}${RANGE_TAIL}\s?%`, 'gi') },
+  { label: 'net margin', unit: 'percent', anchors: (c) => [c.netMarginPercent],
+    re: new RegExp(String.raw`${NUM}${RANGE_TAIL}\s?%\s(?:\w+\s){0,2}(?:net (?:profit )?|profit )margin`, 'gi') },
+  { label: 'CAC payback', unit: 'months', anchors: (c) => [c.cacPaybackMonths],
+    re: new RegExp(String.raw`\bCAC payback(?: period)?\b${GAP}${NUM}${RANGE_TAIL}${DURATION}`, 'gi') },
+  { label: 'payback', unit: 'months', anchors: (c) => [c.paybackMonths, c.breakEvenMonths],
+    re: new RegExp(String.raw`(?<!CAC )\b${INVEST_PAYBACK}\b${GAP}${NUM}${RANGE_TAIL}${DURATION}`, 'gi') },
+  { label: 'payback', unit: 'months', anchors: (c) => [c.paybackMonths, c.breakEvenMonths],
+    re: new RegExp(String.raw`(?<!CAC )\b${INVEST_PAYBACK}\b${GAP}\bmonth\s(\d+)()()`, 'gi') },
+  { label: 'payback', unit: 'months', anchors: (c) => [c.paybackMonths, c.breakEvenMonths],
+    re: new RegExp(String.raw`${NUM}[- ](months?|years?)()\s(?!CAC)${INVEST_PAYBACK}`, 'gi') },
+  { label: 'LTV:CAC', unit: 'ratio', anchors: (c) => [c.ltvCacRatio],
+    re: new RegExp(String.raw`\b${LTV_CAC}\b${GAP}${NUM}${RANGE_TAIL}\s?(?:x|×|:1|to 1)?`, 'gi') },
+  { label: 'LTV:CAC', unit: 'ratio', anchors: (c) => [c.ltvCacRatio],
+    re: new RegExp(String.raw`${NUM}\s?(?:x|×|:1)()\s(?:an?\s)?${LTV_CAC}`, 'gi') },
+];
+
+function halfUnitOf(numText: string): number {
+  return 0.5 * Math.pow(10, -decimalsOf(numText));
+}
+
+/** Months that mean "never" (999 sentinel, Infinity) are not real anchors. */
+function usableAnchor(v: number | undefined): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && Math.abs(v) < 600;
+}
+
+function claimMismatches(text: string, calc: NarrativeIntegrityCalc): string[] {
+  const bad: string[] = [];
+  for (const claim of CLAIMS) {
+    for (const m of text.matchAll(claim.re)) {
+      const start = m.index ?? 0;
+      const before = text.slice(Math.max(0, start - 40), start);
+      if (NOT_A_RESULT_CONTEXT.test(before) || NOT_A_RESULT_CONTEXT.test(m[0])) continue;
+      // Group layout is (number, rangeEnd?, durationUnit?) except the
+      // prefix-duration pattern, whose groups are (number, unit, '').
+      const numText = m[1];
+      let rangeText: string | undefined = m[2];
+      let durUnit: string | undefined = m[3];
+      if (claim.unit === 'months' && rangeText && /^(?:months?|years?)$/i.test(rangeText)) {
+        durUnit = rangeText;
+        rangeText = undefined;
+      }
+      const isYears = claim.unit === 'months' && !!durUnit && /^y/i.test(durUnit);
+      const scale = isYears ? 12 : 1;
+      let lo = parseFloat(numText) * scale;
+      let hi = rangeText ? parseFloat(rangeText) * scale : lo;
+      if (!Number.isFinite(lo) || !Number.isFinite(hi)) continue;
+      if (claim.unit === 'percent' && /negative|loss|−/i.test(before.slice(-12) + m[0]) && lo > 0) { lo = -lo; hi = -hi; }
+      if (lo > hi) [lo, hi] = [hi, lo];
+      const floor = claim.unit === 'ratio' ? 0.05 : 0.5;
+      const tol = Math.max(halfUnitOf(numText) * scale, floor);
+      const raw = claim.anchors(calc);
+      const anchors = raw.filter(usableAnchor);
+      if (anchors.length === 0) {
+        // The engine says this never happens (e.g. payback 999 = not
+        // achievable) but the text gives a number: a contradiction. A metric
+        // the caller did not supply at all is simply not checked.
+        const engineSaysNever = claim.unit === 'months' && raw.some((v) => typeof v === 'number' && !usableAnchor(v));
+        if (engineSaysNever) bad.push(`months_claim_but_not_achievable:${m[0].trim()}`);
+        continue;
+      }
+      const ok = anchors.some((a) => a >= lo - tol && a <= hi + tol);
+      if (!ok) bad.push(`mismatched_${claim.unit}:${claim.label}:${m[0].trim()}`);
+    }
+  }
+  return bad;
+}
+
+const FINANCIAL_CONTEXT = /\b(?:revenue|sales|profit|loss|margin|CAC|acquisition cost|LTV|lifetime value|investment|startup cost|capital|payback|break[- ]?even|expenses?|costs?|burn|cash flow|NPV|ROI|MRR)\b/i;
+
+export interface NarrativeCheckOptions {
+  /** Only check dollar figures in sentences that talk about a financial metric. */
+  moneyOnlyInFinancialContext?: boolean;
+}
+
+/** Every reason the text fails to reconcile (empty when it reconciles). */
+export function narrativeMismatches(
+  text: string,
+  calc: NarrativeIntegrityCalc,
+  userAnchors: number[] = [],
+  opts: NarrativeCheckOptions = {},
+): string[] {
+  const anchors = [
+    ...moneyAnchors(calc),
+    ...userAnchors.filter((v) => v !== 0 && Number.isFinite(v)).map((v) => Math.abs(v)),
+  ];
+  const reasons: string[] = [];
+  const checkMoney = !opts.moneyOnlyInFinancialContext || FINANCIAL_CONTEXT.test(text);
+  if (checkMoney) for (const raw of unanchoredMoney(text, anchors)) reasons.push(`unanchored_dollar:${raw}`);
+  // Extension #1 (2026-08-29): non-USD currency symbol anywhere in the narrative.
+  if (NON_USD_CURRENCY_PATTERN.test(text)) reasons.push('non_usd_currency');
+  // Extension #2 (2026-08-29): a strong verdict claim contradicting calc.isProfitable.
+  if (calc.isProfitable === false && STRONG_PROFITABLE_CLAIMS.some((p) => p.test(text))) reasons.push('claims_profitable');
+  if (calc.isProfitable === true && STRONG_UNPROFITABLE_CLAIMS.some((p) => p.test(text))) reasons.push('claims_unprofitable');
+  reasons.push(...claimMismatches(text, calc));
+  return reasons;
 }
 
 /** Why a narrative fails to reconcile, or null when it reconciles. Recorded in
  *  report metadata so a replaced summary can be diagnosed (2026-10-26). */
 export function narrativeMismatch(text: string, calc: NarrativeIntegrityCalc, userAnchors: number[] = []): string | null {
-  const anchors = [...buildAnchorSet(calc), ...userAnchors.filter((v) => v !== 0 && Number.isFinite(v))];
-  const matches = text.match(DOLLAR_PATTERN) || [];
-  for (const match of matches) {
-    const value = parseFloat(match.replace(/[$,]/g, ''));
-    if (!Number.isFinite(value) || value <= 100) continue;
-    const isAnchored = anchors.some((anchor) => Math.abs(value - anchor) / Math.abs(anchor) < 0.1);
-    if (!isAnchored) return `unanchored_dollar:${match}`;
-  }
-
-  // Extension #1 (2026-08-29): non-USD currency symbol anywhere in the
-  // narrative -- see NON_USD_CURRENCY_PATTERN's comment above.
-  if (NON_USD_CURRENCY_PATTERN.test(text)) return 'non_usd_currency';
-
-  // Extension #2 (2026-08-29): a strong, unhedged verdict claim directly
-  // contradicting calc.isProfitable -- see the claim-list comments above.
-  if (calc.isProfitable === false && STRONG_PROFITABLE_CLAIMS.some((p) => p.test(text))) return 'claims_profitable';
-  if (calc.isProfitable === true && STRONG_UNPROFITABLE_CLAIMS.some((p) => p.test(text))) return 'claims_unprofitable';
-
-  return null;
+  return narrativeMismatches(text, calc, userAnchors)[0] ?? null;
 }
 
 /** Deterministic, always-consistent replacement for executive_summary — built
@@ -601,6 +794,10 @@ export function buildSafeExecutiveSummary(calc: NarrativeIntegrityCalc, industry
   return `This analysis evaluates ${industryLabel} in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}, with a monthly net profit of $${Math.round(calc.netProfit).toLocaleString()} against $${Math.round(calc.mrr).toLocaleString()} in monthly revenue. The LTV:CAC ratio of ${calc.ltvCacRatio}x ${ltvCacPhrase(calc.ltvCacRatio)}. With an initial investment of $${Math.round(calc.startupInvestment).toLocaleString()}, the projected payback period is ${paybackText}.\n\nNote: this summary was regenerated from verified computed figures after an automated integrity check found the AI-authored narrative did not reconcile with them.`;
 }
 
+/** Shown when even the deterministic summary cannot be built safely. */
+export const WITHHELD_SUMMARY =
+  'The written summary for this analysis was withheld because an automated integrity check could not be completed. The computed figures in this report are unaffected.';
+
 export interface NarrativeIntegrityResult {
   executiveSummary: string;
   wasModified: boolean;
@@ -609,7 +806,8 @@ export interface NarrativeIntegrityResult {
 }
 
 /** Safe, non-throwing entry point: call with the AI-authored executive_summary
- *  and the same request's calc object, right after both become available. */
+ *  and the same request's calc object, right after both become available.
+ *  Fails closed: if the check itself errors, the AI text is not shipped. */
 export function enforceNarrativeIntegrity(
   executiveSummary: string,
   calc: NarrativeIntegrityCalc,
@@ -619,23 +817,66 @@ export function enforceNarrativeIntegrity(
   /** The visitor's own idea text: dollar figures in it count as anchors. */
   userText?: string,
 ): NarrativeIntegrityResult {
-  try {
-    if (typeof executiveSummary !== 'string' || executiveSummary.length === 0) {
-      return { executiveSummary, wasModified: false };
-    }
-    const reason = narrativeMismatch(executiveSummary, calc, dollarAmountsIn(userText));
-    if (reason === null) {
-      return { executiveSummary, wasModified: false };
-    }
-    log.warn(`Narrative integrity check: executive_summary did not reconcile with computed metrics (${reason}) — regenerating from calc`);
-    return {
-      executiveSummary: buildSafeExecutiveSummary(calc, industryLabel, location),
-      wasModified: true,
-      reason,
-    };
-  } catch (err) {
-    log.warn(`Narrative integrity check failed; shipping original AI narrative unchanged: ${err instanceof Error ? err.message : String(err)}`);
+  if (typeof executiveSummary !== 'string' || executiveSummary.length === 0) {
     return { executiveSummary, wasModified: false };
+  }
+  let reason: string | null;
+  try {
+    reason = narrativeMismatch(executiveSummary, calc, dollarAmountsIn(userText));
+  } catch (err) {
+    log.warn(`Narrative integrity check errored; withholding the AI summary (fail closed): ${err instanceof Error ? err.message : String(err)}`);
+    return { executiveSummary: safeSummaryOrWithheld(calc, industryLabel, location), wasModified: true, reason: 'check_error' };
+  }
+  if (reason === null) {
+    return { executiveSummary, wasModified: false };
+  }
+  log.warn(`Narrative integrity check: executive_summary did not reconcile with computed metrics (${reason}) — regenerating from calc`);
+  return { executiveSummary: safeSummaryOrWithheld(calc, industryLabel, location), wasModified: true, reason };
+}
+
+function safeSummaryOrWithheld(calc: NarrativeIntegrityCalc, industryLabel: string, location: string): string {
+  try {
+    const core = [calc?.netProfit, calc?.mrr, calc?.ltvCacRatio, calc?.startupInvestment, calc?.paybackMonths];
+    if (!core.every((v) => typeof v === 'number' && Number.isFinite(v))) return WITHHELD_SUMMARY;
+    return buildSafeExecutiveSummary(calc, industryLabel, location);
+  } catch {
+    return WITHHELD_SUMMARY;
+  }
+}
+
+/** Split prose into sentences, keeping list markers such as "1)" attached. */
+function sentencesOf(text: string): string[] {
+  return text.split(/(?<=[.!?])\s+(?=[A-Z0-9$"'(])/).filter((s) => s.trim().length > 0);
+}
+
+export interface FieldScrubResult {
+  text: string;
+  /** One entry per removed sentence: "<field>:<reason>". */
+  removed: string[];
+}
+
+/** Remove only the sentences of a prose field that contradict the engine.
+ *  Dollar figures are checked only in sentences about a financial metric, so
+ *  "households earning $75,000+" in target_audience is left alone. Fails
+ *  closed: if the check errors, the whole field is dropped. */
+export function scrubNarrativeField(
+  field: string,
+  text: string | undefined,
+  calc: NarrativeIntegrityCalc,
+  userAnchors: number[] = [],
+): FieldScrubResult {
+  if (typeof text !== 'string' || text.length === 0) return { text: text ?? '', removed: [] };
+  try {
+    const kept: string[] = [];
+    const removed: string[] = [];
+    for (const s of sentencesOf(text)) {
+      const reasons = narrativeMismatches(s, calc, userAnchors, { moneyOnlyInFinancialContext: true });
+      if (reasons.length === 0) kept.push(s);
+      else removed.push(`${field}:${reasons[0]}`);
+    }
+    return { text: removed.length === 0 ? text : kept.join(' '), removed };
+  } catch {
+    return { text: '', removed: [`${field}:check_error`] };
   }
 }
 
