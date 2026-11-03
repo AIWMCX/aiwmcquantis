@@ -12,6 +12,7 @@ import { runCommercialAgent, type CommercialAgentRunResult } from '../agent-runt
 import type { R3Reconciler } from '../../r3-validator.ts';
 import { foundationGroundingBlock, type CommercialFoundation } from '../contracts.ts';
 import { scanOutbound } from '../claim-guard.ts';
+import { FOLLOWUP_DAY } from '../../mail/followup-order.ts';
 
 export const FollowupDraftOutput = z.object({
   draft: z.string().min(1),
@@ -23,15 +24,16 @@ export type FollowupDraftOutput = z.infer<typeof FollowupDraftOutput>;
 export const FOLLOWUP_MAX_WORDS = 110;
 
 /**
- * Cold sequence after the first touch. Each step changes the angle rather
- * than "bumping" the same ask -- the pattern shared by the open-source
- * AI-SDR sequencers (avcap/ai-sdr multi-step sequences) and standard B2B
- * outbound practice. Days are offsets from the first touch.
+ * Cold sequence after the first touch. Since 2026-11-03 it is ONE step: two
+ * touches in total (docs/execution/2026-10-30-cold-outreach-zero-replies-
+ * diagnosis.md section 5; founder rule: never a 3rd, 4th or 5th contact).
+ * The old steps 3 and 4 are gone, so draft_followup rejects them, and
+ * followupOrderCheck() makes the sender hold any that were already drafted.
+ * Step 2's copy is fixed (outreach-copy.ts renderFollowupBody), not generated.
+ * Days are offsets from the first touch.
  */
-export const SEQUENCE_STEPS: Record<number, { day: number; brief: string }> = {
-  2: { day: 3, brief: 'Short bump (40-70 words). Do not repeat the first email. Add ONE new concrete angle: a specific assumption type (e.g. customer volume, rent, utilization) that usually decides whether a decision like theirs works. CTA: reply with one decision they are weighing and you will send back the base and downside case within 24 hours, free, no call. Never ask for a call, meeting, demo or walkthrough.' },
-  3: { day: 7, brief: 'Value step (50-90 words). Offer something they can use without a call: run one anonymized client case or one real decision through Quantis and send back which assumptions control cash and payback, within 24 hours, free. Never ask for a call, meeting, demo or walkthrough. Mention the Free tier (5 Decision Runs/month, no card) only here, factually.' },
-  4: { day: 14, brief: 'Polite close-the-loop (30-60 words). Assume timing is wrong, no guilt, no urgency. Leave the door open with one line on what Quantis is for. No further ask beyond "reply any time".' },
+export const SEQUENCE_STEPS: Record<number, { day: number }> = {
+  2: { day: FOLLOWUP_DAY },
 };
 
 export function reconcileFollowup(foundation: CommercialFoundation): R3Reconciler<FollowupDraftOutput> {

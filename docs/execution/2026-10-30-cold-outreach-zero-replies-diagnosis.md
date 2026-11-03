@@ -95,6 +95,12 @@ Written from the buyer's side. Only claims the product and the published offers 
 
 Two touches, not three. The second gives something (a sample memo, attached on request) and asks for a one-word reply.
 
+**Built 2026-11-03 (F6 + F8, branch `fix/first-touch-low-ask-copy`, founder approves the copy before merge).**
+- The first-touch body is a fixed template in `supabase/functions/_shared/commercial/outreach-copy.ts` (`low_ask_v1`). The model writes only the opening sentence, and only from a recorded signal; with confidence `low` the opener is role and firm only.
+- `lintFirstTouch` blocks the jargon, the heavy ask, generic openers, meeting asks, in-body legal text and em dashes. It requires exactly one link (the hiring demo with `utm_source=email&utm_medium=outreach&utm_campaign=<campaign slug>`) and 50–90 words.
+- The cadence is 2 touches for everyone (`MAX_SEQUENCE_STEP = 2`, follow-up on day 6, which is at least 4 business days). Step 3+ is never drafted or proposed, and the sender holds any step 3+ that was already approved.
+- Two changes from the draft above. "In about two minutes" was dropped: it is a speed claim, and "90-second" claims are prohibited. "Each number tagged fact or assumption" was also dropped, because the hiring demo does not tag numbers. The copy says what the demo shows instead: the cash dip, the payback month, and which assumption a hire depends on most.
+
 ## 6. How we will know it worked
 
 - **Before the next batch:** a seed test lands in the Inbox (not Spam or Promotions) at Gmail and Outlook. DKIM shows `pass` in the headers.

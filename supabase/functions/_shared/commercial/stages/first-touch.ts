@@ -1,19 +1,23 @@
 /**
  * Commercial Ops workflow -- First-touch (cold outreach) stage.
  *
- * The "Copywriter" role from open-source AI-SDR designs (avcap/ai-sdr's
- * Prospector -> Enrichment -> Copywriter crew; SalesGPT's Introduction ->
- * Qualification -> Value -> Close stages) compressed into ONE short email,
- * run through the shared runtime -- not a second agent framework.
+ * Since 2026-11-03 (low_ask_v1, docs/execution/2026-10-30-cold-outreach-zero-
+ * replies-diagnosis.md section 5): the email body is a fixed, founder-approved
+ * template (outreach-copy.ts). The model writes ONE opening sentence, and only
+ * when a recorded signal supports it; everything else is code.
  *
  * What is enforced as code, not prompt:
  *   - no observed signals -> no LLM call at all (insufficient_evidence)
  *   - every personalization signal the model says it used must be one of
  *     the signals the human actually recorded (no invented research)
+ *   - confidence "low" or an empty opener -> the neutral opener (role and
+ *     firm only), never an invented one (diagnosis F8)
+ *   - lintOpener()/lintFirstTouch(): blocked jargon and heavy asks, no em
+ *     dashes, exactly one link (the hiring demo with UTM tags), 50-90 words
  *   - scanOutbound(): prohibited claims, fake urgency, invented social
- *     proof, prices not in the foundation, and a word ceiling
- *   - no links in a first touch (deliverability + trust)
- *   - signature and opt-out line are appended by code, never generated
+ *     proof, prices not in the foundation
+ *   - signature and opt-out line are appended by code, never generated;
+ *     the sender adds the postal address
  *
  * Output is always a DRAFT; the human approval firewall
  * (approve_commercial_followup) is the only path to READY TO SEND.
@@ -23,13 +27,19 @@ import type { R3Reconciler } from '../../r3-validator.ts';
 import { runCommercialAgent, type CommercialAgentRunResult } from '../agent-runtime.ts';
 import { foundationGroundingBlock, type CommercialFoundation } from '../contracts.ts';
 import { scanOutbound } from '../claim-guard.ts';
-
-export const FIRST_TOUCH_MAX_WORDS = 120;
+import {
+  firstTouchSubject,
+  lintFirstTouch,
+  lintOpener,
+  neutralOpener,
+  OPENER_MAX_WORDS,
+  renderFirstTouchBody,
+  type OutreachAudience,
+} from '../outreach-copy.ts';
 
 export const FirstTouchOutput = z.object({
-  subject: z.string().min(2).max(70),
-  body: z.string().min(20),
-  signals_used: z.array(z.string()).min(1),
+  opener: z.string(),
+  signals_used: z.array(z.string()),
   segment_angle: z.string().min(1),
   confidence: z.enum(['high', 'medium', 'low']),
   missing_evidence: z.array(z.string()),
@@ -50,40 +60,73 @@ export function isSignalGrounded(claimed: string, recorded: string[]): boolean {
   });
 }
 
+/** The model's opener is used only when it is not low-confidence and not empty. */
+export function usesPersonalOpener(data: Pick<FirstTouchOutput, 'opener' | 'confidence'>): boolean {
+  return data.confidence !== 'low' && data.opener.trim().length > 0;
+}
+
+export interface FirstTouchCopyArgs {
+  audience: OutreachAudience;
+  link: string;
+  contactRole: string | null;
+  companyName: string;
+}
+
+/** The finished subject + body for one prospect (before greeting and footer). */
+export function composeFirstTouch(
+  data: Pick<FirstTouchOutput, 'opener' | 'confidence'>,
+  args: FirstTouchCopyArgs,
+): { subject: string; body: string; personalized: boolean } {
+  const personalized = usesPersonalOpener(data);
+  const opener = personalized ? data.opener.trim() : neutralOpener(args.contactRole, args.companyName);
+  return {
+    subject: firstTouchSubject(args.audience),
+    body: renderFirstTouchBody({ audience: args.audience, opener, link: args.link }),
+    personalized,
+  };
+}
+
 export function reconcileFirstTouch(
   foundation: CommercialFoundation,
   recordedSignals: string[],
+  copy: FirstTouchCopyArgs,
 ): R3Reconciler<FirstTouchOutput> {
   return (data) => {
     for (const s of data.signals_used) {
       if (!isSignalGrounded(s, recordedSignals)) return `signal not in recorded evidence: "${s.slice(0, 80)}"`;
     }
-    if (/https?:\/\/|www\./i.test(data.body)) return 'first touch must not contain links';
-    const scan = scanOutbound(`${data.subject}\n${data.body}`, foundation, { maxWords: FIRST_TOUCH_MAX_WORDS });
+    if (!usesPersonalOpener(data)) return null; // code uses the neutral opener
+    if (data.signals_used.length === 0) return 'a personalized opener must name the recorded signal it uses (signals_used)';
+    const opener = lintOpener(data.opener);
+    if (opener.length) return `opener: ${opener.join('; ')}`;
+    const { subject, body } = composeFirstTouch(data, copy);
+    const lint = lintFirstTouch(body, copy.link);
+    if (lint.length) return `first touch: ${lint.join('; ')}`;
+    const scan = scanOutbound(`${subject}\n${body}`, foundation);
     if (!scan.ok) return `claim guard: ${scan.violations.join('; ')}`;
     return null;
   };
 }
 
-function buildSystemPrompt(foundation: CommercialFoundation): string {
+function buildSystemPrompt(foundation: CommercialFoundation, copy: FirstTouchCopyArgs): string {
+  const fixed = renderFirstTouchBody({ audience: copy.audience, opener: '<YOUR SENTENCE>', link: copy.link });
   return [
-    'You write ONE first-touch cold email from a founder to a single prospect. The founder reviews it and sends it by hand.',
+    'You write the FIRST SENTENCE of a short cold email from a founder to one prospect. Code writes the rest; the founder reviews every email before it is sent.',
     '',
-    'STRUCTURE (plain text, 60-110 words, no greeting fluff, no bullet points):',
-    '1. Opener: one sentence that references a SPECIFIC recorded signal about this prospect (from the list you are given). Never invent research, posts, news, clients, or numbers about them.',
-    '2. Problem: one or two sentences naming the ONE customer problem from the foundation most likely true for their segment, phrased as an observation or question, not an accusation.',
-    '3. What Quantis does: one sentence using ONLY approved claims. Describe the mechanism (assumptions made explicit, deterministic cash/break-even/payback math, downside scenarios), not superlatives.',
-    '4. CTA (founder decision 2026-10-23, after 0 replies to ~145 "20-minute walkthrough" asks): offer to do the work first, no meeting. For consultants/fractional CFOs/advisors: invite them to reply with one client decision they are weighing (a hire, a price change, a lease, a contract) and say you will send back the base and downside case within 24 hours, free, no call. For founders: the same, with one decision they are about to make. Never ask for a call, meeting, demo or walkthrough. No calendar links, no pricing, no trial pitch in a first touch.',
+    'The email that follows your sentence is fixed:',
+    '---',
+    fixed,
+    '---',
     '',
-    'RULES:',
-    '- Write like a busy operator writing to a peer: short sentences, concrete, no hype words (revolutionary, game-changing, cutting-edge, unlock, supercharge, AI-powered).',
-    '- Do not mention competitors. Do not claim customers, results, adoption, testimonials, or case studies -- Quantis has none to cite.',
-    '- Do not include links, signatures, or an unsubscribe line (code appends those).',
-    '- subject: 2-6 words, specific to them, no clickbait, no ALL CAPS, no "quick question".',
-    '- signals_used: copy the exact recorded signal text(s) you relied on.',
-    '- If the signals are too thin to personalize honestly, still write the best honest version, set confidence "low" and list what is missing in missing_evidence.',
+    'YOUR SENTENCE:',
+    `- One plain sentence, at most ${OPENER_MAX_WORDS} words, that refers to ONE specific recorded signal about this prospect (from the list you are given), as a simple observation. It must read naturally before the question that follows.`,
+    '- Never invent research, posts, news, clients, numbers or events. Do not flatter. Do not pitch or describe the product. No question, no link, no em dashes or en dashes.',
+    '- Plain words only. Never use: deterministic, narration, pre-mortem, baseline, explicit assumptions, Decision Run, advisor-grade.',
+    '- No greeting ("Hi ..."), no "hope this finds you", no "I\'ll skip the pitch", no "I came across your profile".',
+    '- If the only facts are a job title or a company name, or the signals are too thin to say something specific and true, return opener "" and confidence "low". Code then uses a neutral opener built from the role and firm. When in doubt, this is the right answer.',
+    '- signals_used: copy the exact recorded signal text you relied on ([] when opener is "").',
     '',
-    'Respond with ONLY a single valid JSON object with exactly these fields: subject, body, signals_used (array), segment_angle, confidence ("high"|"medium"|"low"), missing_evidence (array). No markdown, no code fences.',
+    'Respond with ONLY a single valid JSON object with exactly these fields: opener, signals_used (array), segment_angle, confidence ("high"|"medium"|"low"), missing_evidence (array). No markdown, no code fences.',
     '',
     foundationGroundingBlock(foundation),
   ].join('\n');
@@ -96,6 +139,8 @@ export interface DraftFirstTouchArgs {
   contactRole: string | null;
   segment: string | null;
   observedSignals: string[];
+  audience: OutreachAudience;
+  link: string;
   adminUserId?: string | null;
   requestId?: string | null;
   prospectId?: string | null;
@@ -104,6 +149,7 @@ export interface DraftFirstTouchArgs {
 export async function draftFirstTouch(
   args: DraftFirstTouchArgs,
 ): Promise<CommercialAgentRunResult<FirstTouchOutput>> {
+  const copy: FirstTouchCopyArgs = { audience: args.audience, link: args.link, contactRole: args.contactRole, companyName: args.companyName };
   const userPrompt = [
     `Prospect company: ${args.companyName}`,
     `Contact: ${args.contactName ?? '(unknown name)'}${args.contactRole ? `, ${args.contactRole}` : ''}`,
@@ -115,10 +161,10 @@ export async function draftFirstTouch(
   return runCommercialAgent({
     stage: 'first_touch',
     foundationVersion: args.foundation.version,
-    systemPrompt: buildSystemPrompt(args.foundation),
+    systemPrompt: buildSystemPrompt(args.foundation, copy),
     userPrompt,
     schema: FirstTouchOutput,
-    reconcile: reconcileFirstTouch(args.foundation, args.observedSignals),
+    reconcile: reconcileFirstTouch(args.foundation, args.observedSignals, copy),
     adminUserId: args.adminUserId,
     requestId: args.requestId,
     inputContext: {
@@ -126,6 +172,8 @@ export async function draftFirstTouch(
       company_name: args.companyName,
       segment: args.segment,
       observed_signals: args.observedSignals,
+      audience: args.audience,
+      link: args.link,
     },
   });
 }
