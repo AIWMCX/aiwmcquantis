@@ -167,3 +167,12 @@ describe('li-growth fit score v2: real fresh posts from 2026-11-03', () => {
     expect(post(excerpt).tier).not.toBe('none');
   });
 });
+
+describe('li-growth fit score v2: a fresh post alone never reaches the DM tier', () => {
+  it('a 1st-degree fractional CFO with only a fresh business post stays a comment', () => {
+    const r = scoreFit(input({ connection_degree: 1, signals: [{ signal_type: 'their_post', excerpt: 'Moved two clients to a new bookkeeping close this month.', observed_at: daysAgo(0) }] }), NOW);
+    expect(r.breakdown.trigger.points).toBe(15);
+    expect(r.score).toBe(69);
+    expect(r.tier).toBe('comment');
+  });
+});

@@ -274,6 +274,10 @@ export function scoreFit(input: FitInput, now: Date = new Date(), thresholds: Fi
   };
   const dq = disqualifier(input);
   const raw = Object.values(breakdown).reduce((s, d) => s + d.points, 0);
-  const score = dq ? 0 : Math.max(0, Math.min(100, raw));
+  // A fresh post with no decision in it is a reason to comment, never to DM:
+  // without this cap a 1st-degree fractional CFO reached 75 on one post.
+  const freshOnly = breakdown.trigger.points === FRESH_POST_POINTS && breakdown.trigger.evidence.startsWith('fresh ');
+  const capped = freshOnly ? Math.min(raw, thresholds.dm - 1) : raw;
+  const score = dq ? 0 : Math.max(0, Math.min(100, capped));
   return { score, tier: dq ? 'none' : tierFor(score, thresholds), persona: role.persona, disqualified: dq, breakdown, version: FIT_VERSION };
 }
