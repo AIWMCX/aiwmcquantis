@@ -214,13 +214,13 @@ export default function RiskGallery() {
     <PublicPageShell backTo={{ href: '/', label: 'Back to home' }} maxWidth="xl">
       <PageSEO
         title="Startup Risk Gallery — Common Business Model Failures"
-        description="Browse real risk flags caught by Quantis: revenue shocks, cost spikes, fatal unit economics. Learn from anonymized stress-test scenarios before you launch."
+        description="Illustrative stress-test scenarios on stated assumptions: revenue shocks, cost spikes, weak unit economics. Not real companies."
         canonical="/risk-gallery"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
           name: 'Risk Gallery — Startup Stress-Test Scenarios',
-          description: 'Anonymous, AI-powered stress tests of real startup models.',
+          description: 'Illustrative stress-test scenarios built on stated assumptions. Not real companies.',
           url: 'https://www.aiwmcquantis.com/risk-gallery',
           isPartOf: { '@type': 'WebSite', name: 'AIWMC™ Quantis', url: 'https://www.aiwmcquantis.com' },
         }}
@@ -236,8 +236,8 @@ export default function RiskGallery() {
           <Eye className="w-3.5 h-3.5" /> {SCENARIOS.length} scenarios
         </Badge>
         <SectionHeader
-          title="Risk gallery — real startup stress-test scenarios"
-          subtitle="Anonymous, AI-powered stress tests of real startup models. See how revenue shocks, cost spikes, and slowdowns actually impact survival."
+          title="Risk gallery — illustrative stress-test scenarios"
+          subtitle="Illustrative scenarios built on the assumptions listed on each card, not real companies or customer data. See how revenue shocks, cost spikes, and slowdowns can affect survival."
         />
         <div className="flex flex-wrap justify-center gap-3 mt-8">
           <a href="#scenarios">
@@ -411,7 +411,7 @@ export default function RiskGallery() {
             Ready to stress-test your own model?
           </h2>
           <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Validate your business idea with AI-powered financial analysis. Get structured revenue projections, risk signals, and an action plan — free.
+            Test your own numbers with the same deterministic calculations. Get structured revenue projections, risk signals, and an action plan — free.
           </p>
           <Link to="/app" onClick={() => trackCtaClick('start_validation_click', 'risk_gallery_bottom')}>
             <Button size="lg" className="gap-2 py-6 px-8">

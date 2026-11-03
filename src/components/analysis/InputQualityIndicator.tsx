@@ -194,7 +194,7 @@ export function InputQualityIndicator({
       bg: 'bg-success/10',
       progressColor: '[&>div]:bg-success',
       label: 'Excellent',
-      description: 'Your analysis will be highly accurate',
+      description: 'Inputs are complete. Results are only as realistic as these numbers.',
     };
     if (score >= 60) return {
       color: 'text-primary',

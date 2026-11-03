@@ -246,7 +246,7 @@ export function CompactAnalysisForm({
               color: 'var(--q-status-ai)',
             }}
           >
-            ⚡ QUANTIS AI · DeepSeek Powered
+            Deterministic math · AI-written narrative
           </span>
           <h1
             className="text-[28px] sm:text-[34px] font-bold leading-tight"
@@ -255,7 +255,7 @@ export function CompactAnalysisForm({
             Stress-test your business idea
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--q-text-secondary)' }}>
-            Fill in what you know. We validate with a {BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid.
+            Fill in what you know. Defaults come from a {BENCHMARK_COUNT_DISPLAY}-cell modeled benchmark grid (modeled, not observed companies).
           </p>
           {/* Domain 4 audit (Q40): nothing in this form previously named the
               decision or the capital behind it — every field below fed

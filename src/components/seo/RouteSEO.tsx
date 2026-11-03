@@ -53,7 +53,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description: `Start with ${TIERS.free.limits.analysesPerMonth} free Decision Runs. Plus is $${TIERS.plus.priceMonthly}/month with unlimited analyses, PDF export, scenarios, and decision tools.`,
   },
   '/risk-gallery': {
-    title: 'Risk Gallery — How Real Businesses Fail',
+    title: 'Risk Gallery — Illustrative Failure Scenarios',
     description: 'Explore common business failure patterns Quantis tests for, including weak unit economics, runway gaps, and churn pressure.',
   },
   '/methodology': {
