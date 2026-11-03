@@ -50,6 +50,10 @@ export const PUBLIC_ROUTES = [
   { path: "/changelog",       title: "Changelog" },
   { path: "/privacy",         title: "Privacy" },
   { path: "/terms",           title: "Terms" },
+  { path: "/ai-policy",       title: "AI Policy",
+    must: ["deterministic", "DeepSeek"] },
+  { path: "/dmca",            title: "DMCA",
+    must: ["512(c)(3)", "counter-notice"] },
 
   // ---- 3 competitive comparison pages (audit D10.3) -------------------------
   { path: "/vs/liveplan",     title: "Quantis vs LivePlan" },

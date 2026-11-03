@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry';
+import { needsConsentSync, takePendingConsent, type SignupConsentMetadata } from '@/lib/signupConsent';
 
 // returnUrl rides along in the confirmation-link redirect (not just
 // localStorage) because the invitee may click that link on a different
@@ -52,6 +53,12 @@ export function useAuth() {
                 }
                 // Idempotent: no-op if there's no pending grant for this user.
                 void supabase.rpc('claim_pending_plan_grant' as any);
+                // OAuth sign-ups can't carry metadata through the provider redirect:
+                // record the Terms/18+ and marketing choice saved before the redirect.
+                if (event === 'SIGNED_IN' && needsConsentSync(session.user.user_metadata)) {
+                  const pending = takePendingConsent();
+                  if (pending) void supabase.auth.updateUser({ data: { ...pending } });
+                }
               } catch { /* non-fatal */ }
             }, 0);
           }
@@ -87,7 +94,14 @@ export function useAuth() {
     return { data, error };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string, returnUrl?: string) => {
+  const signUp = useCallback(async (
+    email: string,
+    password: string,
+    fullName?: string,
+    phone?: string,
+    returnUrl?: string,
+    consent?: SignupConsentMetadata,
+  ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -96,6 +110,8 @@ export function useAuth() {
         data: {
           full_name: fullName,
           phone: phone,
+          // Terms/18+ acceptance and the (opt-in only) marketing choice, recorded on the account.
+          ...(consent ?? {}),
         },
       },
     });

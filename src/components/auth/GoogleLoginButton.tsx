@@ -14,9 +14,13 @@ interface GoogleLoginButtonProps {
   mode?: 'signup' | 'login';
   className?: string;
   variant?: 'default' | 'outline';
+  /** Sign-up gating: disabled until the Terms/18+ box is checked. */
+  disabled?: boolean;
+  /** Runs right before the OAuth redirect (the signup form saves the consent record here). */
+  onBeforeRedirect?: () => void;
 }
 
-export function GoogleLoginButton({ mode = 'signup', className, variant = 'outline' }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({ mode = 'signup', className, variant = 'outline', disabled = false, onBeforeRedirect }: GoogleLoginButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Don't render the button at all when Google OAuth is not configured.
@@ -28,6 +32,7 @@ export function GoogleLoginButton({ mode = 'signup', className, variant = 'outli
 
     try {
       trackEvent('social_login_attempt', { provider: 'google', mode });
+      onBeforeRedirect?.();
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -54,7 +59,7 @@ export function GoogleLoginButton({ mode = 'signup', className, variant = 'outli
       type="button"
       variant={variant}
       onClick={handleGoogleLogin}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       className={className}
     >
       {isLoading ? (

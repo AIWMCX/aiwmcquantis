@@ -141,6 +141,8 @@ const COLUMNS: { label: string; links: { to: string; label: string }[] }[] = [
       { to: '/refund-policy', label: 'Refund Policy' },
       { to: '/privacy', label: 'Privacy Policy' },
       { to: '/terms', label: 'Terms of Service' },
+      { to: '/ai-policy', label: 'AI Policy' },
+      { to: '/dmca', label: 'Copyright / DMCA' },
     ],
   },
 ];
