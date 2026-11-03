@@ -11,7 +11,7 @@ import { emitAnalysisComplete } from '../_shared/analysis-complete-event.ts';
 import { lockNumericPayload } from '../_shared/locked-numeric-payload.ts';
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
 import { deriveInvestmentVerdict, computeInputCompletenessPct } from './investment-verdict.ts';
-import { scoreIndustriesByKeywords } from './industry-classifier-core.ts';
+import { isTradesBusiness, scoreIndustriesByKeywords, TRADE_TERMS, TRADES_INDUSTRY_ID } from './industry-classifier-core.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins, type AssumptionOriginMap } from '../_shared/assumption-origin.ts';
@@ -579,6 +579,37 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
     keywords: ['logistics', 'delivery', 'shipping', 'courier', 'freight', 'transport', 'warehouse', 'fulfillment', 'supply chain']
   },
   {
+    // 2026-11-03: trades had no entry, so an HVAC company was "General
+    // Business". Chosen by rule (isTradesBusiness) before keyword scoring.
+    // The numbers below are deliberately General Business's, unchanged: the
+    // trade economics (COGS, margins, CAC, lifetime, price range) come from
+    // the V2 peer overlay (Construction / Specialty or General Contractor
+    // rows), which every trade term now reaches (benchmark-keywords.ts). No
+    // in-repo source gives trade fixed costs or order frequency, and the two
+    // sources that exist disagree on CAC ($220 in src/lib/industry-priors.ts
+    // vs $2,794 p50 in the V2 seed), so trade-specific defaults are a
+    // separate founder decision, not guessed here.
+    id: 'trades',
+    name: 'Trades / Contractor',
+    cogs_percent: 35,
+    salaries_fixed: 5000,
+    rent_fixed: 1500,
+    utilities_fixed: 300,
+    other_fixed: 1000,
+    cac_min: 30,
+    cac_max: 150,
+    cac_typical: 60,
+    average_check_min: 30,
+    average_check_max: 300,
+    orders_per_client: 2,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 10,
+    net_margin_max: 25,
+    keywords: [...TRADE_TERMS],
+  },
+  {
     id: 'general',
     name: 'General Business',
     cogs_percent: 35,
@@ -746,6 +777,23 @@ async function detectIndustryFromDatabase(
     }
   }
   
+  // ===== PHASE 0: deterministic rules (trades) =====
+  // Before the database keywords, which map 'contractor' to Freelance
+  // Services and have no trade rows (see industry-classifier-core.ts).
+  if (isTradesBusiness(businessIdea)) {
+    const trades = INDUSTRY_BENCHMARKS.find(i => i.id === TRADES_INDUSTRY_ID)!;
+    log.info(`Industry by rule: ${trades.name}`);
+    return {
+      benchmark: { ...trades },
+      source: 'hardcoded',
+      confidence: 75,
+      matchedIndustryId: trades.id,
+      matchedRegion: null,
+      sampleSize: null,
+      dataSource: 'default_benchmarks',
+    };
+  }
+
   // ===== PHASE 1: Search database benchmarks =====
   if (dbBenchmarks.length > 0) {
     let bestDbMatch: DatabaseBenchmarkRecord | null = null;
