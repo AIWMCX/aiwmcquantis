@@ -156,3 +156,14 @@ describe('li-growth fit score v2: a fresh post is something to comment on', () =
     expect(r.breakdown.trigger.points).toBe(25);
   });
 });
+
+describe('li-growth fit score v2: real fresh posts from 2026-11-03', () => {
+  const post = (excerpt: string) => scoreFit(input({ connection_degree: 2, posts_weekly: true, signals: [{ signal_type: 'their_post', excerpt, observed_at: daysAgo(0) }] }), NOW);
+  it.each([
+    "Hey business owners! What's your biggest money headache right now?",
+    'Choosing a new name for my business was harder than I expected.',
+  ])('%s → a comment card', (excerpt) => {
+    expect(post(excerpt).breakdown.trigger.points).toBe(15);
+    expect(post(excerpt).tier).not.toBe('none');
+  });
+});

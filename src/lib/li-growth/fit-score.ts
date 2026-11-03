@@ -128,7 +128,7 @@ export const FRESH_POST_DAYS = 3;
 export const FRESH_POST_POINTS = 15;
 /** A fresh post only counts when it is about money or running a business ("Happy Friday" does not). */
 export const BUSINESS_TOPIC =
-  /\b(cash|costs?|costing|margins?|financ(e|es|ing|ial)|inventory|revenue|profits?|profitability|pric(e|es|ing)|clients?|customers?|tax(es)?|fund(s|ing|raising)?|debt|loans?|capital|valuation|working capital|expenses?|cfo|forecast|budget|payables|receivables|growth|owners?|deals?|acquisitions?|p&l|balance sheet|ebitda)\b/i;
+  /\b(cash|costs?|costing|margins?|financ(e|es|ing|ial)|inventory|revenue|profits?|profitability|pric(e|es|ing)|clients?|customers?|tax(es)?|fund(s|ing|raising)?|debt|loans?|capital|valuation|working capital|expenses?|cfo|forecast|budget|payables|receivables|growth|owners?|deals?|acquisitions?|p&l|balance sheet|ebitda|business(es)?|money|bookkeeping|books|labor|sales)\b/i;
 
 /** Post text about a decision Quantis models (PRD 3.4, decision trigger 25). */
 export const TRIGGER_WORDS =
