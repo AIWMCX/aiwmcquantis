@@ -30,6 +30,46 @@
 // "AI-powered" or "an ML-based tool", where the fragment isn't followed
 // by a literal space).
 
+// ─── Rules that run before any keyword scoring (2026-11-03) ───
+//
+// "HVAC repair company in Phoenix, AZ, 3 technicians" was modeled as
+// "General Business" in production: no industry list on the edge had a trade
+// in it, and the database list maps 'contractor' to Freelance Services. A
+// trade is an unambiguous signal, so it is decided by rule, first, and the
+// same words always give the same industry.
+
+export const TRADES_INDUSTRY_ID = 'trades';
+
+/** Whole words or phrases; a plural "s"/"es" is allowed. */
+export const TRADE_TERMS = [
+  'hvac',
+  'heating and cooling',
+  'heating and air',
+  'air conditioning',
+  'furnace repair',
+  'plumbing',
+  'plumber',
+  'electrician',
+  'electrical contractor',
+  'roofing',
+  'roofer',
+  'handyman',
+  'contractor',
+] as const;
+
+// Software or a marketplace *for* trades is not a trade business.
+const PRODUCT_FOR_TRADES = /\b(saas|software|app|apps|platform|marketplace|crm|api)\b/i;
+// A self-employed "independent contractor" is not a building trade.
+const NON_TRADE_CONTRACTOR = /\b(independent|freelance|freelancer|1099)\s+contractors?\b/gi;
+
+/** True when the idea describes a trade / contractor business (HVAC, plumbing, electrical, roofing, handyman, contractor). */
+export function isTradesBusiness(idea: string | null | undefined): boolean {
+  const text = String(idea ?? '');
+  if (!text.trim() || PRODUCT_FOR_TRADES.test(text)) return false;
+  const cleaned = text.replace(NON_TRADE_CONTRACTOR, ' ');
+  return TRADE_TERMS.some((term) => new RegExp(`\\b${escapeRegExp(term)}(?:s|es)?\\b`, 'i').test(cleaned));
+}
+
 export interface KeywordIndustry {
   id: string;
   name: string;

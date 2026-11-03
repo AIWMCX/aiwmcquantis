@@ -143,6 +143,53 @@ export const SECTOR_KEYWORDS: Record<string, { level1: string; level2: string; m
     level2: 'Specialty Contractor (HVAC/Elec/Plumb)',
     model: 'transactional',
   },
+  // 2026-11-03: the trade words isTradesBusiness() recognises reach the same
+  // peer rows ("plumber" is not a plural of "plumbing").
+  plumber: {
+    level1: 'Construction',
+    level2: 'Specialty Contractor (HVAC/Elec/Plumb)',
+    model: 'transactional',
+  },
+  electrician: {
+    level1: 'Construction',
+    level2: 'Specialty Contractor (HVAC/Elec/Plumb)',
+    model: 'transactional',
+  },
+  'heating and cooling': {
+    level1: 'Construction',
+    level2: 'Specialty Contractor (HVAC/Elec/Plumb)',
+    model: 'transactional',
+  },
+  'heating and air': {
+    level1: 'Construction',
+    level2: 'Specialty Contractor (HVAC/Elec/Plumb)',
+    model: 'transactional',
+  },
+  'furnace repair': {
+    level1: 'Construction',
+    level2: 'Specialty Contractor (HVAC/Elec/Plumb)',
+    model: 'transactional',
+  },
+  'air conditioning': {
+    level1: 'Construction',
+    level2: 'Specialty Contractor (HVAC/Elec/Plumb)',
+    model: 'transactional',
+  },
+  roofing: {
+    level1: 'Construction',
+    level2: 'General Contractor (Residential)',
+    model: 'transactional',
+  },
+  roofer: {
+    level1: 'Construction',
+    level2: 'General Contractor (Residential)',
+    model: 'transactional',
+  },
+  handyman: {
+    level1: 'Construction',
+    level2: 'General Contractor (Residential)',
+    model: 'transactional',
+  },
   'property management': {
     level1: 'Real Estate',
     level2: 'Property Management',
