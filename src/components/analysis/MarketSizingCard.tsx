@@ -73,7 +73,7 @@ export function MarketSizingCard({ plusAnalysis }: Props) {
       {!sizing && (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Generate institutional-grade TAM / SAM / SOM with derivation methodology and investor
+            Generate a TAM / SAM / SOM estimate with derivation methodology and investor
             framing. Requires a completed PLUS analysis as input.
           </p>
           <Button
