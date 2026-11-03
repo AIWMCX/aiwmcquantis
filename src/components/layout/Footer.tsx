@@ -1,4 +1,5 @@
 import React from 'react';
+import { openConsentSettings } from '@/lib/consent';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Link } from 'react-router-dom';
 import { ScrambleText, Crosshairs } from '@/components/sadewa/primitives';
@@ -227,6 +228,9 @@ export function Footer() {
             © {new Date().getFullYear()} AIWMC™ LLC. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={openConsentSettings} className="sdw-label text-[12px] underline-offset-2 hover:underline" style={{ color: 'var(--sdw-muted)' }}>
+              Cookie settings
+            </button>
             <span className="sdw-label text-[12px]" style={{ color: 'var(--sdw-muted)' }}>GDPR &amp; CCPA rights supported</span>
             <LastAuditedBadge size="sm" />
           </div>

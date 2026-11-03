@@ -4,6 +4,8 @@ import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
 import { initAdPixels } from './lib/ad-pixels';
 import { initClarity } from './lib/clarity';
+import { whenTrackingAllowed } from './lib/consent';
+import { loadGoogleAnalytics, loadApolloTracker } from './lib/third-party-trackers';
 import { scheduleAnonymousResultsSweep } from './lib/anonResultsCleanup';
 import './i18n'; // Side-effect import: initializes i18next before any component mounts
 import App from './App.tsx';
@@ -27,8 +29,15 @@ installChunkReloadListener();
 // Initialize monitoring and analytics before rendering
 initSentry();
 initAnalytics();
-initAdPixels();
-initClarity(); // Session replay + heatmaps. No-op unless VITE_CLARITY_PROJECT_ID is set.
+// Third-party trackers load only after the visitor accepts in the consent
+// banner (or already accepted earlier). Nothing below runs on "Reject", on an
+// undecided visit, or when the browser sends a Global Privacy Control signal.
+whenTrackingAllowed(() => {
+  loadGoogleAnalytics();
+  loadApolloTracker();
+  initAdPixels();
+  initClarity(); // Session replay + heatmaps. No-op unless VITE_CLARITY_PROJECT_ID is set.
+});
 scheduleAnonymousResultsSweep(); // Idle-time TTL + cap eviction for anon /r/:id cache.
 currentTouches(); // Capture landing UTM/referrer before SPA navigation drops them.
 

@@ -8,6 +8,8 @@ import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { PendingInviteRedirect } from "@/components/invite/PendingInviteRedirect";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
+import { ConsentBanner } from "@/components/consent/ConsentBanner";
+import { useTrackingConsent } from "@/hooks/useTrackingConsent";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingFallback from "./components/layout/LoadingFallback";
@@ -149,6 +151,8 @@ function RenderedFlag() {
 }
 
 const App = () => {
+  // Vercel Web Analytics mounts only after consent (src/lib/consent.ts).
+  const trackingAllowed = useTrackingConsent();
   // Initialize performance and engagement tracking on mount
   useEffect(() => {
     initWebVitals();
@@ -166,6 +170,7 @@ const App = () => {
             <BrowserRouter>
             <ScrollToTop />
             <SkipToContent />
+            <ConsentBanner />
             <FounderPromoBanner />
             <PendingInviteRedirect />
             <Suspense fallback={<LoadingFallback />}>
@@ -364,7 +369,7 @@ const App = () => {
             </BrowserRouter>
           </TooltipProvider>
         </QueryClientProvider>
-        <Analytics />
+        {trackingAllowed && <Analytics />}
         <SpeedInsights />
       </ThemeProvider>
       </HelmetProvider>
