@@ -11,7 +11,7 @@ import { emitAnalysisComplete } from '../_shared/analysis-complete-event.ts';
 import { lockNumericPayload } from '../_shared/locked-numeric-payload.ts';
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
 import { deriveInvestmentVerdict, computeInputCompletenessPct } from './investment-verdict.ts';
-import { isTradesBusiness, scoreIndustriesByKeywords, TRADE_TERMS, TRADES_INDUSTRY_ID } from './industry-classifier-core.ts';
+import { isTradesBusiness, scoreIndustriesByKeywords, tradePayrollForIdea, TRADE_TERMS, TRADES_INDUSTRY_ID } from './industry-classifier-core.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins, type AssumptionOriginMap } from '../_shared/assumption-origin.ts';
@@ -794,9 +794,10 @@ async function detectIndustryFromDatabase(
   // Services and have no trade rows (see industry-classifier-core.ts).
   if (isTradesBusiness(businessIdea)) {
     const trades = INDUSTRY_BENCHMARKS.find(i => i.id === TRADES_INDUSTRY_ID)!;
-    log.info(`Industry by rule: ${trades.name}`);
+    const crewPayroll = tradePayrollForIdea(businessIdea);
+    log.info(`Industry by rule: ${trades.name}${crewPayroll != null ? `, crew payroll $${crewPayroll}/mo` : ''}`);
     return {
-      benchmark: { ...trades },
+      benchmark: crewPayroll != null ? { ...trades, salaries_fixed: crewPayroll } : { ...trades },
       source: 'hardcoded',
       confidence: 75,
       matchedIndustryId: trades.id,

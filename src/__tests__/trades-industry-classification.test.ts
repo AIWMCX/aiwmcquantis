@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   isTradesBusiness,
+  statedTradeCrew,
+  TRADE_WORKER_MONTHLY_WAGE_USD,
+  tradePayrollForIdea,
   TRADE_TERMS,
   TRADES_INDUSTRY_ID,
 } from '../../supabase/functions/analyze-business/industry-classifier-core';
@@ -98,5 +101,43 @@ describe('every trade word reaches the contractor peer data', () => {
 
   it('no unrelated sub-industry attaches to the trades id', () => {
     expect(detectSubIndustry(HVAC, 'trades').confidence).toBeLessThanOrEqual(50);
+  });
+});
+
+// 2026-11-03, production: "Plumbing repair company in Tucson, AZ, 4 plumbers"
+// showed $5,000/mo payroll, about one worker's pay for four.
+describe('trade payroll follows the stated crew', () => {
+  it('the production plumbing idea pays four plumbers, not one', () => {
+    expect(statedTradeCrew('Plumbing repair company in Tucson, AZ, 4 plumbers')).toBe(4);
+    expect(tradePayrollForIdea('Plumbing repair company in Tucson, AZ, 4 plumbers')).toBe(4 * TRADE_WORKER_MONTHLY_WAGE_USD);
+  });
+
+  it('one worker is the BLS median plumber wage, monthly', () => {
+    expect(TRADE_WORKER_MONTHLY_WAGE_USD).toBe(5129);
+  });
+
+  it.each([
+    ['HVAC repair company in Phoenix, AZ, 3 technicians', 3],
+    ['Residential electrician business with 4 electricians', 4],
+    ['Roofing company with three roofers and 2 helpers', 5],
+    ['Handyman business, 2 full-time employees', 2],
+    ['HVAC shop with 6 field techs', 6],
+  ])('%s → crew %i', (idea, crew) => {
+    expect(statedTradeCrew(idea)).toBe(crew);
+  });
+
+  it.each([
+    'Plumbing service in Austin, 2 vans',
+    'Licensed plumber in Denver',
+    'Roofing company in Dallas',
+    'HVAC company serving 500 homes',
+  ])('%s → no crew stated, default kept', (idea) => {
+    expect(statedTradeCrew(idea)).toBeNull();
+    expect(tradePayrollForIdea(idea)).toBeNull();
+  });
+
+  it('the trades rule applies the crew payroll to the benchmark', () => {
+    expect(INDEX).toMatch(/tradePayrollForIdea\(businessIdea\)/);
+    expect(INDEX).toMatch(/salaries_fixed: crewPayroll/);
   });
 });

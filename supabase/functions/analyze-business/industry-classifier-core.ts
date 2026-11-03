@@ -70,6 +70,54 @@ export function isTradesBusiness(idea: string | null | undefined): boolean {
   return TRADE_TERMS.some((term) => new RegExp(`\\b${escapeRegExp(term)}(?:s|es)?\\b`, 'i').test(cleaned));
 }
 
+// ─── Trade payroll from the stated crew (2026-11-03) ───
+//
+// "Plumbing repair company in Tucson, AZ, 4 plumbers" showed $5,000/mo
+// payroll (the General Business flat default): about one worker's pay for
+// four. When the idea states a crew size, payroll is crew × one trade
+// worker's monthly wage instead.
+
+/**
+ * BLS OEWS May 2023 national median annual wage, plumbers, pipefitters and
+ * steamfitters (47-2152): $61,550 → $5,129/month. Electricians (47-2111,
+ * $61,590) and HVAC mechanics (49-9021, $57,300) are within 7%. Wages only:
+ * employer taxes, insurance and benefits are not added. The location salary
+ * multiplier is applied downstream like every other payroll figure.
+ */
+export const TRADE_WORKER_MONTHLY_WAGE_USD = Math.round(61_550 / 12);
+export const TRADE_WAGE_SOURCE = 'BLS OEWS May 2023 median wage, plumbers (47-2152)';
+
+const CREW_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, fifteen: 15, twenty: 20,
+};
+const CREW_ROLES =
+  '(?:plumbers?|electricians?|technicians?|techs?|roofers?|installers?|handymen|handyman|workers?|employees?|staff|crew members?|apprentices?|journeymen|journeyman|helpers?|people)';
+const CREW_PATTERN = new RegExp(
+  `\\b(\\d{1,3}|${Object.keys(CREW_WORDS).join('|')})(?:\\s+(?:full[- ]time|licensed|field|hvac|service|in[- ]house))?\\s+${CREW_ROLES}\\b`,
+  'gi',
+);
+/** Crews above this are not a small-business idea; ignore rather than guess. */
+const MAX_STATED_CREW = 200;
+
+/** The crew size the idea states ("4 plumbers", "three technicians"), summed across roles; null when none is stated. */
+export function statedTradeCrew(idea: string | null | undefined): number | null {
+  const text = String(idea ?? '');
+  let total = 0;
+  for (const m of text.matchAll(CREW_PATTERN)) {
+    const raw = m[1].toLowerCase();
+    const n = /^\d+$/.test(raw) ? Number(raw) : CREW_WORDS[raw];
+    if (Number.isFinite(n) && n > 0) total += n;
+  }
+  return total > 0 && total <= MAX_STATED_CREW ? total : null;
+}
+
+/** Monthly trade payroll for the stated crew, or null to keep the default. */
+export function tradePayrollForIdea(idea: string | null | undefined): number | null {
+  const crew = statedTradeCrew(idea);
+  return crew == null ? null : crew * TRADE_WORKER_MONTHLY_WAGE_USD;
+}
+
 export interface KeywordIndustry {
   id: string;
   name: string;
