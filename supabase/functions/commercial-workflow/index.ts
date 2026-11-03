@@ -18,7 +18,8 @@ import { assessProspect } from '../_shared/commercial/stages/prospecting.ts';
 import { prepareCallBrief } from '../_shared/commercial/stages/call-preparation.ts';
 import { handleObjection } from '../_shared/commercial/stages/objection-handling.ts';
 import { draftFollowup, SEQUENCE_STEPS } from '../_shared/commercial/stages/follow-up.ts';
-import { draftFirstTouch, composeOutboundEmail } from '../_shared/commercial/stages/first-touch.ts';
+import { draftFirstTouch, composeFirstTouch, composeOutboundEmail } from '../_shared/commercial/stages/first-touch.ts';
+import { audienceFor, demoLink, lintFirstTouch, lintFollowup, OUTREACH_TEMPLATE, renderFollowupBody } from '../_shared/commercial/outreach-copy.ts';
 import { checkSuppression, type OtherProspectIdentity, type SuppressionProspect } from '../_shared/commercial-suppression.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -120,10 +121,15 @@ async function suppressionGate(
   return result;
 }
 
+async function campaignFor(svc: Svc, campaignId: string | null): Promise<{ sender_identity: string | null; name: string | null }> {
+  if (!campaignId) return { sender_identity: null, name: null };
+  const { data } = await svc.from('commercial_campaigns').select('sender_identity, name').eq('id', campaignId).maybeSingle();
+  const c = data as { sender_identity?: string | null; name?: string | null } | null;
+  return { sender_identity: c?.sender_identity ?? null, name: c?.name ?? null };
+}
+
 async function senderIdentityFor(svc: Svc, campaignId: string | null): Promise<string | null> {
-  if (!campaignId) return null;
-  const { data } = await svc.from('commercial_campaigns').select('sender_identity').eq('id', campaignId).maybeSingle();
-  return (data as { sender_identity?: string | null } | null)?.sender_identity ?? null;
+  return (await campaignFor(svc, campaignId)).sender_identity;
 }
 
 /**
@@ -153,6 +159,9 @@ async function draftFirstTouchFor(
     return { status: 'insufficient_evidence', detail: 'record at least one observed signal (post, hiring, niche, recent change) before drafting' };
   }
 
+  const campaign = await campaignFor(svc, row.campaign_id);
+  const audience = audienceFor(row.segment, row.contact_role);
+  const link = demoLink(campaign.name);
   const result = await draftFirstTouch({
     foundation,
     companyName: row.company_name,
@@ -160,23 +169,31 @@ async function draftFirstTouchFor(
     contactRole: row.contact_role,
     segment: row.segment,
     observedSignals: signals,
+    audience,
+    link,
     adminUserId: userId,
     requestId,
     prospectId: row.id,
   });
   if (!result.ok) return { status: 'rejected', detail: `${result.reason}: ${result.detail}` };
 
-  const sender = await senderIdentityFor(svc, row.campaign_id);
+  // Fixed template + (grounded opener | neutral role/firm opener). The lint
+  // already passed inside the agent for a personal opener; re-run it on the
+  // final copy so the neutral path is held to the same rules.
+  const copy = composeFirstTouch(result.data, { audience, link, contactRole: row.contact_role, companyName: row.company_name });
+  const lint = lintFirstTouch(copy.body, link);
+  if (lint.length) return { status: 'rejected', detail: `first-touch lint: ${lint.join('; ')}` };
+
   const { data, error } = await svc
     .from('commercial_followups')
     .insert({
       prospect_id: row.id,
       kind: 'first_touch',
       sequence_step: 1,
-      subject: result.data.subject,
-      stage_context: `first_touch | angle: ${result.data.segment_angle} | confidence: ${result.data.confidence}` +
+      subject: copy.subject,
+      stage_context: `first_touch | template: ${OUTREACH_TEMPLATE} | opener: ${copy.personalized ? 'personal' : 'neutral'} | angle: ${result.data.segment_angle} | confidence: ${result.data.confidence}` +
         (result.data.missing_evidence.length ? ` | missing: ${result.data.missing_evidence.join('; ')}` : ''),
-      draft: composeOutboundEmail(result.data.body, row.contact_name, sender),
+      draft: composeOutboundEmail(copy.body, row.contact_name, campaign.sender_identity),
       campaign_id: row.campaign_id,
       batch_id: row.batch_id,
       agent_run_id: result.runId,
@@ -394,7 +411,7 @@ Deno.serve(async (req) => {
         const sequenceStep = body.sequence_step !== undefined ? Number(body.sequence_step) : null;
         const step = sequenceStep !== null ? SEQUENCE_STEPS[sequenceStep] : undefined;
         if (sequenceStep !== null && !step) return j({ error: `sequence_step must be one of ${Object.keys(SEQUENCE_STEPS).join(', ')}` }, 400);
-        let stageContext = String(body.stage_context ?? '').trim();
+        const stageContext = String(body.stage_context ?? '').trim();
         if (!prospectId || (!stageContext && !step)) return j({ error: 'prospect_id and stage_context (or sequence_step) are required' }, 400);
 
         const { data: prospectRow, error: prospectErr } = await svc
@@ -414,25 +431,34 @@ Deno.serve(async (req) => {
         const suppression = await suppressionGate(svc, row, { ignoreRecentContact: !!step });
         if (suppression.suppressed) return j({ success: true, suppressed: true, reason_code: suppression.reasonCode });
 
-        let previous = body.previous_interaction_summary ?? null;
+        // The one cold follow-up (step 2) is fixed, founder-approved copy: no
+        // LLM call. It is stored as kind 'followup', so the sender threads it
+        // under the first touch (In-Reply-To/References) when that was sent
+        // from our mailbox. No subject is stored, same as before.
         if (step) {
-          const { data: prior } = await svc
+          const stepBody = renderFollowupBody();
+          const lint = lintFollowup(stepBody);
+          if (lint.length) return j({ success: false, error: 'lint', detail: lint.join('; ') }, 500);
+          const sender = await senderIdentityFor(svc, row.campaign_id);
+          const { data, error } = await svc
             .from('commercial_followups')
-            .select('draft, sequence_step')
-            .eq('prospect_id', prospectId)
-            .eq('status', 'sent')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          previous = previous ?? ((prior as { draft?: string } | null)?.draft ? `Last message sent:\n${(prior as { draft: string }).draft}` : null);
-          stageContext = [
-            `Cold sequence step ${sequenceStep} (day ${step.day} after first touch). No reply yet.`,
-            step.brief,
-            `Prospect: ${row.company_name}${row.segment ? ` (${row.segment})` : ''}. Recorded signals: ${signalsOf(row).join(' | ') || 'none'}.`,
-            stageContext,
-          ].filter(Boolean).join('\n');
+            .insert({
+              prospect_id: prospectId,
+              kind: 'followup',
+              sequence_step: sequenceStep,
+              stage_context: [`Cold sequence step ${sequenceStep} of 2 (day ${step.day} after first touch). No reply yet. template: ${OUTREACH_TEMPLATE}.`, stageContext].filter(Boolean).join('\n'),
+              draft: composeOutboundEmail(stepBody, row.contact_name, sender),
+              campaign_id: row.campaign_id,
+              batch_id: row.batch_id,
+              agent_run_id: null,
+            })
+            .select()
+            .single();
+          if (error) return j({ error: error.message }, 500);
+          return j({ success: true, followup: data, reasoning: 'fixed step-2 template (sample memo offer, one-word reply)', next_action: 'review and approve; this is the last cold touch' });
         }
 
+        const previous = body.previous_interaction_summary ?? null;
         const foundation = await loadCurrentFoundation(svc);
         const result = await draftFollowup({
           foundation,
@@ -442,15 +468,14 @@ Deno.serve(async (req) => {
           requestId: req.headers.get('x-request-id'),
         });
         if (!result.ok) return j({ success: false, error: result.reason, detail: result.detail }, 502);
-        const sender = await senderIdentityFor(svc, row.campaign_id);
         const { data, error } = await svc
           .from('commercial_followups')
           .insert({
             prospect_id: prospectId,
             kind: 'followup',
-            sequence_step: sequenceStep,
+            sequence_step: null,
             stage_context: stageContext,
-            draft: step ? composeOutboundEmail(result.data.draft, row.contact_name, sender) : result.data.draft,
+            draft: result.data.draft,
             campaign_id: row.campaign_id,
             batch_id: row.batch_id,
             agent_run_id: result.runId,

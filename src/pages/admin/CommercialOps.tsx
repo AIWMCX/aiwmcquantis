@@ -315,8 +315,8 @@ export default function CommercialOps() {
               <Stat label="Replied or further" value={prospects.filter((p) => !['discovered', 'contacted'].includes(p.stage)).length} />
             </div>
             <Card className="p-4 text-sm text-muted-foreground space-y-1">
-              <p><strong className="text-foreground">Rules the system enforces:</strong> suppression (unsubscribed, bounced, do-not-contact, duplicate, contacted in the last 30 days, open opportunity) runs before any draft. No recorded signal means no draft. Every draft is checked against the prohibited-claims registry, fake-urgency and invented-proof patterns, and the real price list. No links in a first touch. The opt-out line and your signature are added by code.</p>
-              <p>Cadence: first touch day 0, then step 2 on day {SEQUENCE_DAYS[2]}, step 3 on day {SEQUENCE_DAYS[3]}, step 4 on day {SEQUENCE_DAYS[4]}. A reply stops the sequence.</p>
+              <p><strong className="text-foreground">Rules the system enforces:</strong> suppression (unsubscribed, bounced, do-not-contact, duplicate, contacted in the last 30 days, open opportunity) runs before any draft. No recorded signal means no draft. Every draft is checked against the prohibited-claims registry, fake-urgency and invented-proof patterns, and the real price list. A first touch uses the fixed low-ask template: one link (the free hiring demo), no jargon, no em dashes, 50-90 words. The opt-out line and your signature are added by code.</p>
+              <p>Cadence: two touches in total. First touch on day 0, then one follow-up (step 2) on day {SEQUENCE_DAYS[2]} offering the sample memo. Step 3 or later is never drafted or sent. A reply stops the sequence.</p>
             </Card>
           </TabsContent>
 

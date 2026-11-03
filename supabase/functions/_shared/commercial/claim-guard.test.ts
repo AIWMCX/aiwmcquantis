@@ -8,7 +8,8 @@
 import { assert, assertEquals, assertFalse } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { CommercialFoundation, foundationGroundingBlock } from "./contracts.ts";
 import { scanOutbound } from "./claim-guard.ts";
-import { composeOutboundEmail, isSignalGrounded, reconcileFirstTouch } from "./stages/first-touch.ts";
+import { composeFirstTouch, composeOutboundEmail, isSignalGrounded, reconcileFirstTouch } from "./stages/first-touch.ts";
+import { demoLink, lintFirstTouch } from "./outreach-copy.ts";
 import { reconcileFollowup } from "./stages/follow-up.ts";
 
 // Shape copied from the live v2 foundation (2026-09-27): capabilities and
@@ -85,10 +86,10 @@ Deno.test("first touch: signals must come from recorded evidence", () => {
   assert(isSignalGrounded("Fractional CFO for 6 dental groups", recorded));
   assertFalse(isSignalGrounded("Recently raised a Series A", recorded));
 
-  const reconcile = reconcileFirstTouch(V2, recorded);
+  const copy = { audience: "advisor" as const, link: demoLink("Fractional CFOs"), contactRole: "Fractional CFO", companyName: "Northline Advisory" };
+  const reconcile = reconcileFirstTouch(V2, recorded, copy);
   const good = {
-    subject: "dental group models",
-    body: "You mentioned rebuilding client models every quarter. Quantis keeps the assumptions explicit and runs cash and payback math before any AI narration. Worth me running one anonymized client case with you?",
+    opener: "You posted about rebuilding client models every quarter.",
     signals_used: ["Posted on LinkedIn about rebuilding client models every quarter"],
     segment_angle: "consultant reuse",
     confidence: "high" as const,
@@ -96,8 +97,25 @@ Deno.test("first touch: signals must come from recorded evidence", () => {
   };
   assertEquals(reconcile(good), null);
   assert(reconcile({ ...good, signals_used: ["Recently raised a Series A"] })?.includes("signal not in recorded evidence"));
-  assert(reconcile({ ...good, body: good.body + " See https://example.com" })?.includes("links"));
-  assert(reconcile({ ...good, body: good.body + " It is audit-grade." })?.includes("claim guard"));
+  assert(reconcile({ ...good, signals_used: [] })?.includes("signals_used"));
+  assert(reconcile({ ...good, opener: good.opener + " See https://example.com" })?.includes("link in opener"));
+  assert(reconcile({ ...good, opener: "Your models are deterministic." })?.includes("deterministic"));
+  assert(reconcile({ ...good, opener: "Your work is audit-grade, a rare thing." })?.includes("claim guard"));
+  // Low confidence: the model's opener is ignored, code uses the neutral one.
+  assertEquals(reconcile({ ...good, opener: "", signals_used: [], confidence: "low" as const }), null);
+});
+
+Deno.test("first touch: low confidence uses the neutral role/firm opener (F8), never the model's", () => {
+  const copy = { audience: "advisor" as const, link: demoLink(null), contactRole: "Fractional CFO", companyName: "Northline Advisory" };
+  const low = composeFirstTouch({ opener: "Loved your keynote at the CFO summit.", confidence: "low" }, copy);
+  assertFalse(low.personalized);
+  assert(low.body.startsWith("A question for you as Fractional CFO at Northline Advisory. When a client asks"), low.body);
+  assertFalse(low.body.includes("keynote"));
+  assertEquals(low.subject, "downside case for a client hire");
+  assertEquals(lintFirstTouch(low.body, copy.link), []);
+  const high = composeFirstTouch({ opener: "You posted about rebuilding client models every quarter.", confidence: "medium" }, copy);
+  assert(high.personalized);
+  assert(high.body.startsWith("You posted about rebuilding client models every quarter. When a client asks"), high.body);
 });
 
 Deno.test("follow-up: claim guard applies", () => {

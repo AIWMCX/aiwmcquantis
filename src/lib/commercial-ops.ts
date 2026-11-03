@@ -5,9 +5,10 @@
  * SEQUENCE_DAYS must match SEQUENCE_STEPS in
  * supabase/functions/_shared/commercial/stages/follow-up.ts.
  */
-import { followupOrderCheck } from '../../supabase/functions/_shared/mail/followup-order';
+import { FOLLOWUP_DAY, followupOrderCheck, MAX_SEQUENCE_STEP } from '../../supabase/functions/_shared/mail/followup-order';
 
-export const SEQUENCE_DAYS: Record<number, number> = { 2: 3, 3: 7, 4: 14 };
+/** Two touches in total since 2026-11-03: the first touch, then step 2. */
+export const SEQUENCE_DAYS: Record<number, number> = { 2: FOLLOWUP_DAY };
 
 export interface ImportRow {
   company_name: string;
@@ -107,7 +108,7 @@ export function sequenceDue<P extends SeqProspect>(
     const first = mine.find((f) => f.kind === 'first_touch' && f.status === 'sent' && f.sent_at);
     if (!first) continue;
     const taken = new Set(mine.filter((f) => f.status !== 'rejected' && f.sequence_step).map((f) => f.sequence_step as number));
-    const next = [2, 3, 4].find((s) => !taken.has(s));
+    const next = Object.keys(SEQUENCE_DAYS).map(Number).find((s) => s <= MAX_SEQUENCE_STEP && !taken.has(s));
     if (!next) continue;
     const days = (now.getTime() - new Date(first.sent_at as string).getTime()) / 86_400_000;
     if (!followupOrderCheck(next, mine, now).ok) continue;
