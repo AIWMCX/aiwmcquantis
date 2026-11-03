@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   buildSignupConsentMetadata,
+  hasPendingConsent,
   needsConsentSync,
   PENDING_CONSENT_SLOT,
   savePendingConsent,
@@ -138,4 +139,34 @@ describe('legal routes are registered and linked', () => {
       expect(read('src/components/layout/Footer.tsx')).toContain(`to: '${route}'`);
     });
   }
+});
+
+// 2026-11-03: the invite magic link and Google from the login page created
+// accounts with no Terms / 18+ record.
+describe('every way into an account records Terms + 18+', () => {
+  it('keeps the invite magic-link source through the pending round-trip', () => {
+    const store = memoryStorage();
+    savePendingConsent(buildSignupConsentMetadata({ termsAccepted: true, marketingOptIn: false, source: 'invite_magic_link' }), store);
+    expect(hasPendingConsent(store)).toBe(true);
+    expect(takePendingConsent(store)?.consent_source).toBe('invite_magic_link');
+    expect(hasPendingConsent(store)).toBe(false);
+  });
+
+  it('the invite magic link requires the Terms box and sends the record with the link', () => {
+    const invite = read('src/pages/Invite.tsx');
+    expect(invite).toMatch(/if \(!termsAccepted\)/);
+    expect(invite).toMatch(/source: 'invite_magic_link'/);
+    expect(invite).toMatch(/signInWithMagicLink\(email, `\/invite\/\$\{token\}`, consent\)/);
+    expect(invite).toMatch(/I am 18 or older/);
+    expect(read('src/hooks/useAuth.ts')).toMatch(/data: \{ \.\.\.consent \}/);
+  });
+
+  it('a signed-in account with no record is asked once, app-wide, and cannot dismiss it', () => {
+    const gate = read('src/components/consent/AccountConsentGate.tsx');
+    expect(gate).toMatch(/needsConsentSync\(user\?\.user_metadata\)/);
+    expect(gate).toMatch(/source: 'account_gate'/);
+    expect(gate).toMatch(/onEscapeKeyDown=\{\(e\) => e\.preventDefault\(\)\}/);
+    expect(gate).toMatch(/I am 18 or older/);
+    expect(read('src/App.tsx')).toMatch(/<AccountConsentGate \/>/);
+  });
 });

@@ -15,7 +15,9 @@ export const TERMS_VERSION = '2026-11-03';
 
 export const PENDING_CONSENT_SLOT = 'aiwmc_pending_signup_consent_v1';
 
-export type ConsentSource = 'signup_form' | 'google_oauth';
+export type ConsentSource = 'signup_form' | 'google_oauth' | 'invite_magic_link' | 'account_gate';
+
+const CONSENT_SOURCES: readonly ConsentSource[] = ['signup_form', 'google_oauth', 'invite_magic_link', 'account_gate'];
 
 export interface SignupConsentMetadata {
   age_confirmed: true;
@@ -57,6 +59,15 @@ export function needsConsentSync(userMetadata: Record<string, unknown> | null | 
 
 type KV = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
+/** True while a record saved before a redirect is waiting to be written to the account. */
+export function hasPendingConsent(storage: KV = window.localStorage): boolean {
+  try {
+    return Boolean(storage.getItem(PENDING_CONSENT_SLOT));
+  } catch {
+    return false;
+  }
+}
+
 /** Saved before an OAuth redirect, because the provider round-trip cannot carry metadata. */
 export function savePendingConsent(consent: SignupConsentMetadata, storage: KV = window.localStorage): void {
   try {
@@ -78,7 +89,7 @@ export function takePendingConsent(storage: KV = window.localStorage): SignupCon
       terms_version: typeof parsed.terms_version === 'string' ? parsed.terms_version : TERMS_VERSION,
       marketing_opt_in: parsed.marketing_opt_in === true,
       marketing_opt_in_at: parsed.marketing_opt_in === true && typeof parsed.marketing_opt_in_at === 'string' ? parsed.marketing_opt_in_at : null,
-      consent_source: parsed.consent_source === 'google_oauth' ? 'google_oauth' : 'signup_form',
+      consent_source: CONSENT_SOURCES.includes(parsed.consent_source as ConsentSource) ? (parsed.consent_source as ConsentSource) : 'signup_form',
     };
   } catch {
     return null;

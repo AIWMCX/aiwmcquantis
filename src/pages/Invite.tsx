@@ -18,6 +18,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { recordFunnelEvent } from '@/lib/analytics';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { buildSignupConsentMetadata, savePendingConsent } from '@/lib/signupConsent';
 import {
   consumeMagicLinkEntry,
   forgetInvite,
@@ -59,6 +62,8 @@ export default function Invite() {
   const [magicSent, setMagicSent] = useState(false);
   const [magicBusy, setMagicBusy] = useState(false);
   const [magicError, setMagicError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   // Optional, after a magic-link account activates Pro: offer to set a
   // password so a return visit doesn't need another email round trip.
@@ -132,11 +137,17 @@ export default function Invite() {
       setMagicError('Enter a valid email address');
       return;
     }
+    if (!termsAccepted) {
+      setMagicError('Confirm you are 18 or older and agree to the Terms to continue');
+      return;
+    }
     setMagicBusy(true);
     setMagicError(null);
     try {
       markMagicLinkEntry();
-      const { error: e } = await signInWithMagicLink(email, `/invite/${token}`);
+      const consent = buildSignupConsentMetadata({ termsAccepted: true, marketingOptIn, source: 'invite_magic_link' });
+      savePendingConsent(consent);
+      const { error: e } = await signInWithMagicLink(email, `/invite/${token}`, consent);
       if (e) {
         setMagicError(e.message);
         recordFunnelEvent('invite_magic_link_sent', { ok: false, error: e.message.slice(0, 120) });
@@ -339,7 +350,37 @@ export default function Invite() {
                 {magicBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get my Pro access <ArrowRight className="w-4 h-4" /></>}
               </Button>
             </div>
-            {magicError && <p className="text-xs text-destructive mt-2">{magicError}</p>}
+            <div className="space-y-2 mt-3 text-left">
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="invite-accept-terms"
+                  checked={termsAccepted}
+                  onCheckedChange={(v) => setTermsAccepted(v === true)}
+                  disabled={magicBusy}
+                  aria-required="true"
+                  className="mt-0.5"
+                />
+                <Label htmlFor="invite-accept-terms" className="text-xs font-normal leading-snug text-muted-foreground">
+                  I am 18 or older and agree to the{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline text-foreground">Terms of Service</a>{' '}
+                  and{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-foreground">Privacy Policy</a>.
+                </Label>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="invite-marketing-opt-in"
+                  checked={marketingOptIn}
+                  onCheckedChange={(v) => setMarketingOptIn(v === true)}
+                  disabled={magicBusy}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="invite-marketing-opt-in" className="text-xs font-normal leading-snug text-muted-foreground">
+                  Optional: email me occasional product updates and tips from AIWMC LLC. Unsubscribe anytime.
+                </Label>
+              </div>
+            </div>
+            {magicError && <p role="alert" className="text-xs text-destructive mt-2">{magicError}</p>}
             {/* 2026-10-29: the first community post got 3 opens and 0 emails —
                 visitors were asked for an email before seeing any output.
                 Opens in a new tab so this invite page stays open. */}
