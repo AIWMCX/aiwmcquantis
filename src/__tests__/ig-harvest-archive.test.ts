@@ -1,14 +1,24 @@
-import { describe, it, expect } from 'vitest';
-import { BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from '@zip.js/zip.js';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { Blob as NodeBlob, File as NodeFile } from 'node:buffer';
+import { TextReader, Uint8ArrayReader, Uint8ArrayWriter, ZipWriter } from '@zip.js/zip.js';
 import { harvestArchives, type HarvestProgress } from '@/lib/ig-harvest/archive';
+
+// In a browser every Blob is native. Under jsdom, `Blob`/`File` may be jsdom's
+// own classes (depends on the Node version), which can't wrap the Blobs that
+// Node's Response returns inside zip.js. Use Node's classes for the whole file.
+beforeAll(() => {
+  vi.stubGlobal('Blob', NodeBlob);
+  vi.stubGlobal('File', NodeFile);
+});
+afterAll(() => vi.unstubAllGlobals());
 
 /** Build a small synthetic export ZIP in memory, shaped like Instagram's (JSON format). */
 async function exportZip(files: Record<string, string | Uint8Array>, name = 'instagram-export.zip'): Promise<File> {
-  const writer = new ZipWriter(new BlobWriter('application/zip'));
+  const writer = new ZipWriter(new Uint8ArrayWriter());
   for (const [path, body] of Object.entries(files)) {
     await writer.add(path, typeof body === 'string' ? new TextReader(body) : new Uint8ArrayReader(body));
   }
-  return new File([await writer.close()], name, { type: 'application/zip' });
+  return new NodeFile([await writer.close()], name, { type: 'application/zip' }) as unknown as File;
 }
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
