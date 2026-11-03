@@ -3,6 +3,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { SectionHeader } from '@/components/ui/glass-card';
+import { openConsentSettings } from '@/lib/consent';
 
 export default function Privacy() {
   const breadcrumbs = [
@@ -24,15 +25,16 @@ export default function Privacy() {
 
       <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8 pb-8">
         <p className="text-muted-foreground text-lg">
-          Last updated: October 30, 2026
+          Last updated: November 3, 2026
         </p>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">1. Introduction</h2>
           <p className="text-muted-foreground leading-relaxed">
-            AIWMC Quantis ("we", "our", or "us") respects your privacy and is committed to protecting your personal data.
-            This privacy policy explains how we collect, use, store, and protect your information when you use our
-            AI-powered business analysis platform.
+            AIWMC Quantis is operated by AIWMC LLC, a Colorado limited liability company ("we", "our", or "us"). We respect
+            your privacy and are committed to protecting your personal data. This privacy policy explains how we collect,
+            use, store, and protect your information when you use our business decision-modeling service, which calculates
+            figures with deterministic code and uses AI models to write narrative commentary.
           </p>
         </section>
 
@@ -59,7 +61,7 @@ export default function Privacy() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">3. How We Use Your Information</h2>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-            <li>To provide AI-powered business analysis services</li>
+            <li>To provide the business analysis services you request</li>
             <li>To process payments and manage subscriptions</li>
             <li>To prevent fraud and abuse of our services</li>
             <li>To improve our platform and develop new features</li>
@@ -73,8 +75,9 @@ export default function Privacy() {
             We implement industry-standard security measures to protect your data:
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-            <li>AES-256-GCM encryption for sensitive data stored locally</li>
-            <li>Secure HTTPS connections for all data transmission</li>
+            <li>Encryption in transit: the site and our APIs are served only over HTTPS (TLS), with HSTS</li>
+            <li>Encryption at rest: our database provider, Supabase, encrypts stored data with AES-256; lead email addresses are additionally encrypted at the column level</li>
+            <li>AES-256-GCM encryption for sensitive data stored in your browser</li>
             <li>Row-Level Security (RLS) on database tables</li>
             <li>Regular security audits and vulnerability assessments</li>
             <li>Hashing of sensitive identifiers (IP addresses, device IDs)</li>
@@ -91,8 +94,10 @@ export default function Privacy() {
             <li><strong>Supabase</strong> - Database, sign-in and server functions that store and process your account and analyses</li>
             <li><strong>Vercel</strong> - Website hosting</li>
             <li><strong>Resend</strong> - Delivery of account and service emails</li>
-            <li><strong>Google Analytics</strong> - Counting visits and which pages are used (see Cookies)</li>
-            <li><strong>Meta Pixel and TikTok Pixel</strong> - Measuring which of our ads lead to visits, tool runs and purchases (see Cookies)</li>
+            <li><strong>Google Analytics</strong> - Counting visits and which pages are used, only if you accept optional cookies (see Cookies)</li>
+            <li><strong>Apollo.io</strong> - Website visitor tracker that can identify the company behind a visit from its network address, only if you accept optional cookies (see Cookies)</li>
+            <li><strong>Vercel Web Analytics</strong> - Cookieless page-view counts, only if you accept optional cookies; Vercel Speed Insights measures page-load speed without cookies</li>
+            <li><strong>Meta Pixel and TikTok Pixel</strong> - Measuring which of our ads lead to visits, tool runs and purchases, only if you accept optional cookies and only while those ads run (see Cookies)</li>
             <li><strong>Google Fonts and Fontshare</strong> - Web fonts; your browser requests them directly, which shares your IP address with those services</li>
           </ul>
           <p className="text-muted-foreground leading-relaxed mt-4">
@@ -143,28 +148,44 @@ export default function Privacy() {
           </ul>
         </section>
 
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-foreground">8. Cookies</h2>
+        <section id="cookies" className="space-y-4 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-foreground">8. Cookies and Tracking</h2>
           <p className="text-muted-foreground leading-relaxed">
-            We use essential cookies and local storage for:
+            We use essential cookies and local storage, which the site needs to work, for:
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
             <li>Authentication and session management</li>
             <li>Theme preferences (dark/light mode)</li>
             <li>Form draft recovery</li>
             <li>Anonymous device identification (for rate limiting)</li>
+            <li>Remembering your cookie choice</li>
           </ul>
           <p className="text-muted-foreground leading-relaxed">
-            We also use Google Analytics, which sets analytics cookies (<code>_ga</code>, <code>_ga_*</code>) to count
-            visits and see which pages are used. You can block these cookies in your browser or with Google's
-            opt-out browser add-on. Separately, we record which steps of the site a visit reaches (for example, an
-            analysis started or a pricing page viewed) under a random session ID, to measure what works.
+            <strong>Optional cookies and trackers load only if you accept them</strong> in the banner shown on your first
+            visit. Rejecting is as easy as accepting, and the site works the same either way. If your browser sends a
+            Global Privacy Control (GPC) signal, we treat it as a rejection. The optional trackers are:
+          </p>
+          <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <li>Google Analytics, which sets analytics cookies (<code>_ga</code>, <code>_ga_*</code>) to count visits and see which pages are used</li>
+            <li>The Apollo.io visitor tracker, which stores an anonymous ID and can identify the company behind a visit from its network address</li>
+            <li>Vercel Web Analytics (cookieless page-view counts)</li>
+            <li>
+              The Meta Pixel and TikTok Pixel, only while our ads run, which may set cookies (for example <code>_fbp</code>,{' '}
+              <code>_ttp</code>) so Meta and TikTok can tell us which ads led to a page view, a tool run, a sign-up or a purchase.
+              We send them the event name only, never your inputs, analyses or contact details.
+            </li>
+          </ul>
+          <p className="text-muted-foreground leading-relaxed">
+            Separately, without cookies or third parties, we record which steps of the site a visit reaches (for example, an
+            analysis started or a pricing page viewed) and how the visit arrived (referrer and campaign tags) under a random
+            session ID, to measure what works. Vercel Speed Insights measures page-load speed without cookies.
           </p>
           <p className="text-muted-foreground leading-relaxed">
-            When you arrive from one of our ads, the Meta Pixel and the TikTok Pixel may set cookies (for example <code>_fbp</code>,
-            <code>_ttp</code>) so Meta and TikTok can tell us which ads led to a page view, a tool run, a sign-up or a purchase. We send
-            them the event name only, never your inputs, analyses or contact details. You can limit this in your Meta and TikTok ad
-            settings or block these cookies in your browser.
+            You can change your choice at any time:{' '}
+            <button type="button" onClick={openConsentSettings} className="underline underline-offset-2 text-foreground">
+              Cookie settings
+            </button>
+            . Withdrawing consent clears the analytics cookies we can reach and reloads the page without the trackers.
           </p>
         </section>
 
@@ -190,6 +211,7 @@ export default function Privacy() {
             If you have any questions about this Privacy Policy, please contact us:
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <li>AIWMC LLC</li>
             <li>Email: privacy@aiwmcquantis.com</li>
             <li>Address: Denver, Colorado, USA</li>
           </ul>

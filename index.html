@@ -27,69 +27,24 @@
     <!-- DNS Prefetch for less critical origins -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    <link rel="dns-prefetch" href="//www.google-analytics.com">
-    <link rel="dns-prefetch" href="//www.googletagmanager.com">
     
-    <!-- Google Analytics 4 — deferred until after page is interactive to reduce unused JS -->
+    <!-- Google Analytics 4: inert stub only. Consent Mode defaults every storage
+         type to 'denied', and gtag.js itself is NOT loaded here: it loads from
+         src/lib/third-party-trackers.ts only after the visitor accepts in the
+         consent banner (src/lib/consent.ts). The Apollo.io visitor tracker that
+         used to load here unconditionally moved behind the same consent gate. -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+      try {
+        var c = JSON.parse(localStorage.getItem('aiwmc_tracking_consent_v1') || 'null');
+        if (c && c.choice === 'granted') {
+          gtag('consent', 'update', { analytics_storage: 'granted', ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted' });
+        }
+      } catch (e) { /* storage blocked: stay denied */ }
       gtag('js', new Date());
       gtag('config', 'G-NZE7RGVNEN', { send_page_view: true });
-      // Load gtag.js only AFTER window 'load' fires, then on idle.
-      // Prevents GA from inflating the longest-task / Max FID window during initial paint.
-      (function(){
-        function loadGtag() {
-          var s = document.createElement('script');
-          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-NZE7RGVNEN';
-          s.async = true;
-          document.head.appendChild(s);
-        }
-        function schedule() {
-          if ('requestIdleCallback' in window) {
-            requestIdleCallback(loadGtag, { timeout: 5000 });
-          } else {
-            setTimeout(loadGtag, 3000);
-          }
-        }
-        if (document.readyState === 'complete') {
-          schedule();
-        } else {
-          window.addEventListener('load', schedule, { once: true });
-        }
-      })();
-    </script>
-
-    <!-- Apollo.io Website Visitor Tracking — wrapped in try/catch + idle defer
-         so transient `Failed to fetch` errors don't pollute Sentry / runtime errors. -->
-    <script>
-      (function () {
-        var host = window.location.hostname || '';
-        if (host.includes('id-preview--') || host.includes('lovableproject.com') || host.includes('localhost')) return;
-        function initApollo() {
-          try {
-            var n = Math.random().toString(36).substring(7);
-            var o = document.createElement("script");
-            o.src = "https://assets.apollo.io/micro/website-tracker/tracker.iife.js?nocache=" + n;
-            o.async = true;
-            o.defer = true;
-            o.onerror = function () { /* swallow — Apollo is non-critical */ };
-            o.onload = function () {
-              try {
-                if (window.trackingFunctions && typeof window.trackingFunctions.onLoad === "function") {
-                  window.trackingFunctions.onLoad({ appId: "69cf1847c8d38900119597e4" });
-                }
-              } catch (_) { /* non-fatal */ }
-            };
-            document.head.appendChild(o);
-          } catch (_) { /* non-fatal */ }
-        }
-        if ("requestIdleCallback" in window) {
-          requestIdleCallback(initApollo, { timeout: 4000 });
-        } else {
-          setTimeout(initApollo, 2500);
-        }
-      })();
     </script>
 
     <!-- Microsoft Clarity disabled: placeholder project ID was issuing blocking 404 requests
