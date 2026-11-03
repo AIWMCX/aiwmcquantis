@@ -95,6 +95,13 @@ export interface ClassifyAssumptionOriginsInput {
   };
   locationMultipliers: { confidence?: number };
   subIndustry: { confidence?: number } | null;
+  /**
+   * Who wrote `fa`'s numbers. 'narrator' (default): the AI estimated them
+   * from the description. 'industry_default': the deterministic fallback
+   * built them from the benchmark, so they are a benchmark prior, not an AI
+   * extraction (2026-11-03; they were labelled AI-extracted before).
+   */
+  estimateSource?: 'narrator' | 'industry_default';
 }
 
 /**
@@ -108,18 +115,24 @@ export function classifyAssumptionOrigins(input: ClassifyAssumptionOriginsInput)
   const { userInputs, fa, mp, benchmarks, locationMultipliers, subIndustry } = input;
   const benchmarkConfidence = locationMultipliers.confidence ?? subIndustry?.confidence ?? 50;
   const extractionConfidence = subIndustry?.confidence ?? 60;
+  const fromBenchmark = input.estimateSource === 'industry_default';
+  // An `fa` value is an AI extraction, unless the benchmark fallback wrote it.
+  const estimated = (range: [number, number] | null = null) =>
+    fromBenchmark
+      ? entry('MODELED_BENCHMARK_PRIOR', benchmarkConfidence, range)
+      : entry('DERIVED', extractionConfidence, range);
 
   return {
     monthly_revenue: userInputs?.monthly_revenue
       ? entry('USER_ACTUAL', 100)
       : fa.mrr
-        ? entry('DERIVED', extractionConfidence)
+        ? estimated()
         : entry('PLACEHOLDER', 15),
 
     startup_investment: userInputs?.startup_investment
       ? entry('USER_ACTUAL', 100)
       : fa.startup_investment
-        ? entry('DERIVED', extractionConfidence)
+        ? estimated()
         : entry('PLACEHOLDER', 15),
 
     cac: typeof userInputs?.cac === 'number'
@@ -129,7 +142,7 @@ export function classifyAssumptionOrigins(input: ClassifyAssumptionOriginsInput)
     average_price: userInputs?.average_price
       ? entry('USER_ACTUAL', 100)
       : fa.average_check
-        ? entry('DERIVED', extractionConfidence, [benchmarks.average_check_min, benchmarks.average_check_max])
+        ? estimated([benchmarks.average_check_min, benchmarks.average_check_max])
         : entry('MODELED_BENCHMARK_PRIOR', benchmarkConfidence, [benchmarks.average_check_min, benchmarks.average_check_max]),
 
     monthly_costs: typeof userInputs?.monthly_costs === 'number'

@@ -3,6 +3,7 @@
 // ============================================
 
 import type { ArchetypeId } from '@/config/business-archetypes';
+import type { InputUsedRow } from '../../supabase/functions/analyze-business/engine-inputs';
 
 // Validation Result Interface
 export interface ValidationCorrection {
@@ -370,6 +371,12 @@ export interface BusinessAnalysisResult {
     matched_phrase: string;
     explanation: string;
   };
+  // The key inputs the engine used and where each came from (2026-11-03).
+  // Absent on analyses saved before then.
+  inputs_used?: InputUsedRow[];
+  // reused = this run took the inputs stored by an earlier run of the same
+  // idea (see supabase/functions/analyze-business/engine-inputs.ts).
+  engine_inputs?: { reused: boolean; source: 'narrator' | 'industry_default' };
   financial_analysis: FinancialAnalysis;
   business_plan: BusinessPlan;
   marketing_plan: MarketingPlan;

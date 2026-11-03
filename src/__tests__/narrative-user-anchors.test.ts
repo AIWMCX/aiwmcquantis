@@ -43,6 +43,6 @@ describe('narrative integrity: the visitor\'s own figures are anchors', () => {
 
   it('the analysis passes the idea text through', () => {
     const src = readFileSync('supabase/functions/analyze-business/index.ts', 'utf8');
-    expect(src).toContain('mergedFinancialInputs, idea_clean);');
+    expect(src).toMatch(/transformResponse\(rawResult,[^\n]*mergedFinancialInputs, idea_clean[,)]/);
   });
 });
