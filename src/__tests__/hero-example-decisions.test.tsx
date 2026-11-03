@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { EXAMPLE_DECISIONS, SdwHero } from '@/components/landing/sadewa/SdwHero';
-import { extractLocationFromText, isHiringDecision } from '@/lib/location-input';
+import { HERO_IDEA_EVENT, takePendingHeroIdea } from '@/lib/hero-idea';
+import { extractLocationFromText, isHiringDecision, isPriceDecision } from '@/lib/location-input';
 
 describe('hero example decisions', () => {
   it('each example is long enough to run', () => {
@@ -10,18 +11,26 @@ describe('hero example decisions', () => {
     for (const ex of EXAMPLE_DECISIONS) expect(ex.trim().length).toBeGreaterThanOrEqual(10);
   });
 
-  it('one tap fills the input and enables "Test it free" without submitting', () => {
+  it('one tap runs the example and keeps its text in the input', () => {
+    const sent = vi.fn();
+    const onIdea = (e: Event) => sent((e as CustomEvent<string>).detail);
+    window.addEventListener(HERO_IDEA_EVENT, onIdea);
     render(
       <MemoryRouter>
         <SdwHero onWatchFilm={() => {}} />
       </MemoryRouter>,
     );
     const input = screen.getByLabelText('What are you deciding?') as HTMLInputElement;
-    const submit = screen.getByRole('button', { name: /Test it free/ }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: EXAMPLE_DECISIONS[1] }));
+    window.removeEventListener(HERO_IDEA_EVENT, onIdea);
     expect(input.value).toBe(EXAMPLE_DECISIONS[1]);
-    expect(submit.disabled).toBe(false);
+    expect(sent).toHaveBeenCalledWith(EXAMPLE_DECISIONS[1]);
+    expect(screen.getByRole('button', { name: /Running your numbers/ })).toBeTruthy();
+    takePendingHeroIdea();
+  });
+
+  it('no example is a price change either (each one runs here, not in another model)', () => {
+    for (const ex of EXAMPLE_DECISIONS) expect(isPriceDecision(ex)).toBe(false);
   });
 
   it('every example names a business and a City, ST, and none is a hire', () => {
