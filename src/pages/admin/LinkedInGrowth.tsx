@@ -669,6 +669,7 @@ function formToRow(f: TargetForm): TargetImportRow | string {
     employees: f.employees.trim() ? Math.max(0, Math.round(Number(f.employees))) : null,
     connection_degree: f.connection_degree ? Number(f.connection_degree) : null, warmth: f.warmth, post_url: postUrl,
     post_excerpt: f.post_excerpt.trim() ? f.post_excerpt.trim().slice(0, 1200) : null, signal_type: f.post_excerpt.trim() || postUrl ? f.signal_type : null,
+    post_days_ago: Math.max(0, Math.round(Number(f.post_days_ago) || 0)), posts_weekly: f.posts_weekly,
   };
 }
 
@@ -678,8 +679,10 @@ function formToRow(f: TargetForm): TargetImportRow | string {
  * row, then the pasted post. Scored before insert so the row is never unscored.
  */
 async function addTarget(row: TargetImportRow, opts: { settings: LiSettings; userId: string | null; prospectId?: string; postDaysAgo?: number; postsWeekly?: boolean }) {
-  const { data: existing } = await db.from('li_engagement_targets').select('prospect_id').eq('linkedin_url', row.linkedin_url).maybeSingle();
-  if (existing) throw new Error(`${row.name} is already a target`);
+  // Case-insensitive: rows imported before 2026-11-03 have lowercased member-id URLs.
+  const pattern = row.linkedin_url.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data: existing } = await db.from('li_engagement_targets').select('prospect_id').ilike('linkedin_url', pattern).limit(1);
+  if (existing?.length) throw new Error(`${row.name} is already a target`);
 
   const channel = `linkedin:${row.linkedin_url}`;
   let prospectId = opts.prospectId ?? null;
@@ -830,14 +833,15 @@ function ProspectsTab({ targets, signals, settings, fits, touches, refresh }: Sh
     if (p) set({ name: p.contact_name ?? '', company: p.company_name, headline: p.contact_role ?? '', source: 'crm', linkedin_url: p.contact_channel?.startsWith('linkedin:') ? p.contact_channel.slice(9) : form.linkedin_url });
   }
 
-  const parsed = useMemo(() => (csv.trim() ? parseTargetCsv(csv) : null), [csv]);
+  const [csvCountry, setCsvCountry] = useState('US');
+  const parsed = useMemo(() => (csv.trim() ? parseTargetCsv(csv, { defaultCountry: csvCountry }) : null), [csv, csvCountry]);
   async function importCsv() {
     if (!parsed) return;
     setBusy(true);
     let ok = 0;
     const errs: string[] = [...parsed.errors];
     for (const r of parsed.rows) {
-      try { await addTarget(r, { settings, userId: user?.id ?? null }); ok++; } catch (e) { errs.push(`${r.name}: ${(e as Error).message}`); }
+      try { await addTarget(r, { settings, userId: user?.id ?? null, postDaysAgo: r.post_days_ago, postsWeekly: r.posts_weekly }); ok++; } catch (e) { errs.push(`${r.name}: ${(e as Error).message}`); }
     }
     setBusy(false);
     toast.success(`Imported ${ok} of ${parsed.rows.length}`);
@@ -879,7 +883,13 @@ function ProspectsTab({ targets, signals, settings, fits, touches, refresh }: Sh
 
       <Card className="p-4 space-y-2">
         <h2 className="font-semibold flex items-center gap-2"><Upload className="w-4 h-4" /> CSV import</h2>
-        <p className="text-xs text-muted-foreground">Header row with: name, linkedin_url, company (required); title, country, source, notes, business_type, employees, degree, warmth, post_url, post_excerpt, signal_type (optional).</p>
+        <p className="text-xs text-muted-foreground">Header row with: name, linkedin_url, company (required); title, country, source, notes, business_type, employees, degree, warmth, posts_weekly, post_url, post_excerpt, post_days_ago, signal_type (optional).</p>
+        <div className="max-w-xs">
+          <Label htmlFor="li-csv-country">Country for rows without one</Label>
+          <select id="li-csv-country" className={SELECT_CLS} value={csvCountry} onChange={(e) => setCsvCountry(e.target.value)}>
+            <option value="US">United States</option><option value="CA">Canada</option><option value="">Leave unknown (scores 0)</option>
+          </select>
+        </div>
         <Label htmlFor="li-csv" className="sr-only">CSV</Label>
         <Textarea id="li-csv" rows={4} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder="name,linkedin_url,title,company,country" />
         <Input type="file" accept=".csv,.tsv,text/csv" aria-label="CSV file" onChange={async (e) => { const file = e.target.files?.[0]; if (file) setCsv(await file.text()); }} />

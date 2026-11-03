@@ -41,7 +41,7 @@ describe('li-growth fit score rubric v1', () => {
     expect(r.breakdown.trigger.evidence).toMatch(/13-week|forecast|second location/i);
     expect(r.breakdown.warmth.points).toBe(15);
     expect(r.breakdown.reachability.points).toBe(10);
-    expect(r.version).toBe('li-fit-v1');
+    expect(r.version).toBe('li-fit-v2');
   });
 
   it('owner of a service business with a hiring event, 2nd degree, active weekly', () => {
@@ -128,5 +128,31 @@ describe('li-growth fit score rubric v1', () => {
     expect(normalizeCountry('United States')).toBe('US');
     expect(normalizeCountry(' canada ')).toBe('CA');
     expect(normalizeCountry('Mexico')).toBeNull();
+  });
+});
+
+// 2026-11-03: a fractional CFO's fresh post on another topic ("whiskey aging
+// carrying costs") scored 40, so no comment card was ever offered.
+describe('li-growth fit score v2: a fresh post is something to comment on', () => {
+  const lisa = (age: number) => input({
+    business_type: 'cfo_practice', employees: null, connection_degree: 3,
+    signals: [{ signal_type: 'their_post', excerpt: 'Whiskey aging carrying costs: frozen inventory, financing, the angel share.', observed_at: daysAgo(age) }],
+  });
+
+  it('a strong-role 3rd-degree prospect with a 1-day-old post gets a comment card, not a DM', () => {
+    const r = scoreFit(lisa(1), NOW);
+    expect(r.breakdown.trigger.points).toBe(15);
+    expect(r.breakdown.trigger.evidence).toMatch(/fresh post/);
+    expect(r.score).toBe(55);
+    expect(r.tier).toBe('comment');
+  });
+
+  it('the same post 4 days later no longer counts', () => {
+    expect(scoreFit(lisa(4), NOW).breakdown.trigger.points).toBe(0);
+  });
+
+  it('a decision word still earns the full 25', () => {
+    const r = scoreFit(input({ signals: [{ signal_type: 'their_post', excerpt: 'Our client is hiring two techs next month.', observed_at: daysAgo(1) }] }), NOW);
+    expect(r.breakdown.trigger.points).toBe(25);
   });
 });
