@@ -199,21 +199,25 @@ export class QuantisMath {
 
   /**
    * CAC payback (months) — how long to recover the cost of acquiring ONE customer.
-   * Formula: CAC / (avgTicket × grossMarginFraction).
+   * Formula: CAC / (avgTicket × grossMarginFraction × ordersPerMonth), i.e. CAC
+   * divided by MONTHLY gross profit per customer. Without the orders-per-month
+   * term the result counts orders, not months.
    * Clamped to [1, 120] months. Returns 120 (capped) when unrecoverable.
    * grossMarginFraction is 0–1 (e.g. 0.65), NOT a percent.
    */
   static cacPaybackMonths(
     cac: DecimalInput,
     avgTicket: DecimalInput,
-    grossMarginFraction: DecimalInput
+    grossMarginFraction: DecimalInput,
+    ordersPerMonth: DecimalInput
   ): Decimal {
     const cacD = sanitize(cac);
     const ticketD = sanitize(avgTicket);
     const gmD = sanitize(grossMarginFraction);
-    const grossProfitPerCustomer = ticketD.times(gmD);
-    if (grossProfitPerCustomer.lte(0) || cacD.lte(0)) return new Decimal(120);
-    const raw = cacD.dividedBy(grossProfitPerCustomer);
+    const ordersD = sanitize(ordersPerMonth);
+    const monthlyGrossProfitPerCustomer = ticketD.times(gmD).times(ordersD);
+    if (monthlyGrossProfitPerCustomer.lte(0) || cacD.lte(0)) return new Decimal(120);
+    const raw = cacD.dividedBy(monthlyGrossProfitPerCustomer);
     return QuantisMath.clamp(raw, 1, 120);
   }
 

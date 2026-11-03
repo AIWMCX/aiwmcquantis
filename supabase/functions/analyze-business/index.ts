@@ -3191,7 +3191,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       // sentinel as N/A; the transport payload stays numeric.
       if (result.financial_analysis?.unit_economics) {
         result.financial_analysis.unit_economics.cac_payback_months =
-          !calc.isProfitable ? 999 : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - detectedIndustry.cogs_percent) / 100), 1);
+          !calc.isProfitable ? 999 : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - detectedIndustry.cogs_percent) / 100, detectedIndustry.orders_per_client), 1);
       }
       // Contract widening, additive only (2026-09-11): payback_period_months
       // stays exactly as-is -- 20+ downstream call sites depend on its
@@ -3864,16 +3864,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // ========== RECONCILIATION CHECK ==========
     let reconciliationResult: ReconciliationResult | null = null;
     try {
-      // Same CAC-payback formula as the metadata builder below (contribution
-      // per order × gross margin fraction) -- null when unprofitable or
-      // contribution is non-positive, per that block's own coherence note.
+      // Same CAC payback as unit_economics.cac_payback_months: QMath with the
+      // benchmark margin and orders per month -- null when unprofitable or
+      // contribution is non-positive, per the metadata block's coherence note.
       const gmFracForPayback = calc.grossMarginPercent / 100;
       const nmFracForPayback = calc.netMarginPercent / 100;
       const contribPerOrderForPayback = calc.averageCheck * gmFracForPayback;
       const cacPaybackForReconciliation =
         nmFracForPayback < 0 || contribPerOrderForPayback <= 0
           ? null
-          : Math.round((calc.cac / contribPerOrderForPayback) * 10) / 10;
+          : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - detectedIndustry.cogs_percent) / 100, detectedIndustry.orders_per_client), 1);
 
       reconciliationResult = runReconciliationCheck({
         mrr: calc.mrr,
@@ -4263,7 +4263,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           (nmFrac !== null && nmFrac < 0) || (contribPerOrder !== null && contribPerOrder <= 0)
             ? null
             : (typeof calc.cac === 'number' && contribPerOrder && contribPerOrder > 0
-                ? Math.round((calc.cac / contribPerOrder) * 10) / 10
+                ? QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - detectedIndustry.cogs_percent) / 100, detectedIndustry.orders_per_client), 1)
                 : null);
         const benchmarkRecords: BenchmarkRecord[] = buildBenchmarkRecords(
           v2BenchmarkSummary,

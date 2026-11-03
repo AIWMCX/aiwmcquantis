@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
 
     const cacPaybackMonths = !calc.isProfitable
       ? 999
-      : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - baseInput.benchmarks.cogs_percent) / 100), 1);
+      : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - baseInput.benchmarks.cogs_percent) / 100, baseInput.benchmarks.orders_per_client), 1);
 
     // Cross-scenario coherence: only meaningful once siblings with runs exist.
     let scenarioCoherent = true;

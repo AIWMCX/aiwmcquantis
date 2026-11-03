@@ -252,7 +252,7 @@ FormulaRegistry.register({
   criticality: 'standard',
   units: 'months',
   validRange: { min: 0, max: 999 },
-  formulaExpression: 'CAC_Payback = CAC / (Avg_Check × (1 - COGS%))',
+  formulaExpression: 'CAC_Payback = CAC / (Avg_Check × (1 - COGS%) × Orders_per_Month)',
   inputs: [
     { name: 'cac', description: 'Customer Acquisition Cost', unit: 'USD', min: 0, required: true },
     { name: 'contributionPerCustomer', description: 'Monthly contribution per customer', unit: 'USD', min: 0, required: true },

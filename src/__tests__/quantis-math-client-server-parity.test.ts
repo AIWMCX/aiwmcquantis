@@ -37,16 +37,19 @@ function n(d: { toNumber: () => number } | number): number {
 
 describe('QuantisMath (client) vs QMath (server) parity', () => {
   it('cacPaybackMonths agrees on a representative range of inputs', () => {
-    const cases: Array<[number, number, number]> = [
-      [150, 75, 0.65],
-      [500, 200, 0.4],
-      [0, 100, 0.5],
-      [100, 0, 0.5],
-      [1000000, 50, 0.9],
+    const cases: Array<[number, number, number, number]> = [
+      [150, 75, 0.65, 1],
+      [500, 200, 0.4, 1],
+      [300, 7, 0.7, 6],
+      [2000, 120, 0.55, 0.5],
+      [0, 100, 0.5, 1],
+      [100, 0, 0.5, 1],
+      [100, 50, 0.5, 0],
+      [1000000, 50, 0.9, 2],
     ];
-    for (const [cac, avgTicket, gm] of cases) {
-      const client = n(QuantisMath.cacPaybackMonths(cac, avgTicket, gm));
-      const server = n(QMath.cacPaybackMonths(cac, avgTicket, gm));
+    for (const [cac, avgTicket, gm, ordersPerMonth] of cases) {
+      const client = n(QuantisMath.cacPaybackMonths(cac, avgTicket, gm, ordersPerMonth));
+      const server = n(QMath.cacPaybackMonths(cac, avgTicket, gm, ordersPerMonth));
       expect(client).toBeCloseTo(server, 6);
     }
   });

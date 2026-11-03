@@ -426,17 +426,18 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 10: Calculate CAC payback months =====
   
-  const contributionPerCustomer = QMath.round(QMath.multiply(avgCheck, 1 - benchmarks.cogs_percent / 100));
+  // Monthly contribution per customer: per-order contribution × orders per month.
+  const contributionPerCustomer = QMath.round(QMath.multiply(QMath.multiply(avgCheck, 1 - benchmarks.cogs_percent / 100), benchmarks.orders_per_client));
   const cacPaybackMonths = contributionPerCustomer > 0 
     ? Math.ceil(QMath.divide(cac, contributionPerCustomer).toNumber())
     : 999;
   
   audit.push({
-    formula: 'CAC_Payback = CAC / (Avg_Check × Contribution_Margin)',
-    inputs: { CAC: cac, 'Contribution/Customer': contributionPerCustomer },
+    formula: 'CAC_Payback = CAC / (Avg_Check × Contribution_Margin × Orders_per_Month)',
+    inputs: { CAC: cac, 'Contribution/Customer/Month': contributionPerCustomer, 'Orders/Month': benchmarks.orders_per_client },
     result: cacPaybackMonths,
     isValid: cacPaybackMonths <= benchmarks.client_lifetime_months,
-    notes: `$${cac} / $${contributionPerCustomer} = ${cacPaybackMonths} months`,
+    notes: `$${cac} / $${contributionPerCustomer} per month = ${cacPaybackMonths} months`,
   });
   
   if (cacPaybackMonths > benchmarks.client_lifetime_months) {
