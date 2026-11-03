@@ -249,7 +249,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       contribution_margin: Math.round(calc.averageCheck - calc.averageCheck * (benchmarks.cogs_percent / 100)),
       contribution_margin_ratio: (100 - benchmarks.cogs_percent) / 100,
       cac: calc.cac,
-      cac_payback_months: QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - benchmarks.cogs_percent) / 100), 1),
+      cac_payback_months: QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - benchmarks.cogs_percent) / 100, benchmarks.orders_per_client), 1),
       ltv: calc.ltv,
       ltv_cac_ratio: calc.ltvCacRatio
     },

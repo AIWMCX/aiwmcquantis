@@ -172,16 +172,20 @@ export class QMath {
   // ========================================================================
 
   /**
-   * CAC payback (months): CAC / (avgTicket × grossMarginFraction).
+   * CAC payback (months): CAC / (avgTicket × grossMarginFraction × ordersPerMonth),
+   * i.e. CAC divided by MONTHLY gross profit per customer. Without the
+   * orders-per-month term the result is a number of orders, not months, and
+   * overstates payback by the purchase frequency.
    * Clamped to [1, 120]. grossMarginFraction is 0–1, not percent.
    */
-  static cacPaybackMonths(cac: unknown, avgTicket: unknown, grossMarginFraction: unknown): Decimal {
+  static cacPaybackMonths(cac: unknown, avgTicket: unknown, grossMarginFraction: unknown, ordersPerMonth: unknown): Decimal {
     const cacD = QMath.sanitize(cac);
     const ticketD = QMath.sanitize(avgTicket);
     const gmD = QMath.sanitize(grossMarginFraction);
-    const grossProfitPerCustomer = ticketD.times(gmD);
-    if (grossProfitPerCustomer.lte(0) || cacD.lte(0)) return new Decimal(120);
-    return QMath.clamp(cacD.dividedBy(grossProfitPerCustomer), 1, 120);
+    const ordersD = QMath.sanitize(ordersPerMonth);
+    const monthlyGrossProfitPerCustomer = ticketD.times(gmD).times(ordersD);
+    if (monthlyGrossProfitPerCustomer.lte(0) || cacD.lte(0)) return new Decimal(120);
+    return QMath.clamp(cacD.dividedBy(monthlyGrossProfitPerCustomer), 1, 120);
   }
 
   /**
