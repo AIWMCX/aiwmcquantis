@@ -28,7 +28,11 @@ export function normalizeProfileUrl(input: string | null | undefined): string | 
   } catch {
     slug = m[1];
   }
-  slug = slug.trim().toLowerCase();
+  // Vanity slugs are case-insensitive, so they are lowercased for dedupe.
+  // Member-id URLs (/in/ACoAA...) are case-sensitive: lowercasing them gave
+  // links that do not open the person (2026-11-03), so they keep their case.
+  slug = slug.trim();
+  if (!/^ACo[A-Za-z0-9_-]{10,}$/.test(slug)) slug = slug.toLowerCase();
   if (!slug || /[\s/?#]/.test(slug)) return null;
   return `https://www.linkedin.com/in/${encodeURIComponent(slug)}`;
 }
@@ -86,6 +90,9 @@ export interface TargetImportRow {
   post_url: string | null;
   post_excerpt: string | null;
   signal_type: SignalType | null;
+  /** Days since the pasted post was published (0 when not given). */
+  post_days_ago: number;
+  posts_weekly: boolean;
 }
 
 const HEADERS: Record<string, keyof TargetImportRow> = {
@@ -103,6 +110,8 @@ const HEADERS: Record<string, keyof TargetImportRow> = {
   post_url: 'post_url',
   post_excerpt: 'post_excerpt', post_text: 'post_excerpt', excerpt: 'post_excerpt',
   signal_type: 'signal_type',
+  post_days_ago: 'post_days_ago', posted_days_ago: 'post_days_ago', days_ago: 'post_days_ago',
+  posts_weekly: 'posts_weekly', active_weekly: 'posts_weekly',
 };
 
 const WARMTHS: Warmth[] = ['engaged_my_post', 'replied_my_comment', 'watchlist_comment', 'mutual_connection', 'cold'];
@@ -130,7 +139,7 @@ function splitCsvLine(line: string, sep: string): string[] {
  * name, a LinkedIn profile URL and a company. Bad rows are reported, not
  * guessed at.
  */
-export function parseTargetCsv(text: string): { rows: TargetImportRow[]; errors: string[] } {
+export function parseTargetCsv(text: string, opts: { defaultCountry?: string | null } = {}): { rows: TargetImportRow[]; errors: string[] } {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (!lines.length) return { rows: [], errors: ['empty file'] };
   const sep = lines[0].includes('\t') ? '\t' : ',';
@@ -143,7 +152,7 @@ export function parseTargetCsv(text: string): { rows: TargetImportRow[]; errors:
   const seen = new Set<string>();
   for (let i = 1; i < lines.length; i++) {
     const cells = splitCsvLine(lines[i], sep);
-    const get = (k: keyof TargetImportRow) => {
+    const get = (k: keyof TargetImportRow): string | null => {
       const idx = header.indexOf(k);
       const v = idx >= 0 ? cells[idx]?.trim() : '';
       return v ? v : null;
@@ -163,12 +172,14 @@ export function parseTargetCsv(text: string): { rows: TargetImportRow[]; errors:
     const emp = Number(get('employees'));
     const deg = Number(get('connection_degree'));
     const excerpt = get('post_excerpt');
+    const daysAgo = Number(get('post_days_ago'));
+    const weekly = (get('posts_weekly') ?? '').toLowerCase();
     rows.push({
       name,
       linkedin_url: url,
       headline: get('headline'),
       company,
-      country: get('country'),
+      country: get('country') ?? (opts.defaultCountry || null),
       source: (TARGET_SOURCES as readonly string[]).includes(source) ? source : 'csv',
       notes: get('notes'),
       business_type: BUSINESS_TYPES.includes(bt) ? bt : null,
@@ -178,6 +189,8 @@ export function parseTargetCsv(text: string): { rows: TargetImportRow[]; errors:
       post_url: normalizePostUrl(get('post_url')),
       post_excerpt: excerpt ? excerpt.slice(0, 1200) : null,
       signal_type: SIGNAL_TYPES.includes(st) ? st : excerpt ? 'their_post' : null,
+      post_days_ago: Number.isFinite(daysAgo) && daysAgo >= 0 && daysAgo <= 365 ? Math.round(daysAgo) : 0,
+      posts_weekly: ['1', 'true', 'yes', 'y'].includes(weekly),
     });
   }
   return { rows, errors };

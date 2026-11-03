@@ -52,3 +52,24 @@ describe('li-growth prospect input', () => {
     expect(firstName('  Jane  Doe ')).toBe('Jane');
   });
 });
+
+describe('li-growth import fills what the queue needs (2026-11-03)', () => {
+  it('keeps the case of member-id profile URLs, lowercases vanity slugs', () => {
+    expect(normalizeProfileUrl('https://www.linkedin.com/in/ACoAABqvocB3jXyZ12')).toBe('https://www.linkedin.com/in/ACoAABqvocB3jXyZ12');
+    expect(normalizeProfileUrl('https://www.linkedin.com/in/Lisa-Gering-CPA')).toBe('https://www.linkedin.com/in/lisa-gering-cpa');
+  });
+
+  it('applies the default country, post age and weekly flag', () => {
+    const { rows } = parseTargetCsv(
+      'name,linkedin_url,company,post_excerpt,post_days_ago,posts_weekly\nJane,https://www.linkedin.com/in/jane,Doe CFO,Cash post,2,yes\nAnn,https://www.linkedin.com/in/ann,Lee CFO,,,',
+      { defaultCountry: 'US' },
+    );
+    expect(rows[0]).toMatchObject({ country: 'US', post_days_ago: 2, posts_weekly: true, signal_type: 'their_post' });
+    expect(rows[1]).toMatchObject({ country: 'US', post_days_ago: 0, posts_weekly: false, signal_type: null });
+  });
+
+  it('a country in the row wins over the default', () => {
+    const { rows } = parseTargetCsv('name,linkedin_url,company,country\nJane,https://www.linkedin.com/in/jane,Doe,Canada', { defaultCountry: 'US' });
+    expect(rows[0].country).toBe('Canada');
+  });
+});

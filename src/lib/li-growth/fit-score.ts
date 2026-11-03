@@ -9,7 +9,7 @@
  * No LLM is involved: persona comes from keyword rules on the title/headline.
  */
 
-export const FIT_VERSION = 'li-fit-v1';
+export const FIT_VERSION = 'li-fit-v2';
 
 export type Persona = 'fractional_cfo' | 'fpa_consultant' | 'advisory_cpa' | 'owner_operator' | 'other';
 export type BusinessType = 'service' | 'cfo_practice' | 'saas' | 'enterprise' | 'ecommerce' | 'other';
@@ -123,6 +123,13 @@ const ROLE = {
   finance: /\b(finance|financial|controller|treasurer|accounts (payable|receivable)|cfo)\b/i,
 };
 
+/** A post this recent is still worth a comment (LinkedIn comment reach drops after ~3 days). */
+export const FRESH_POST_DAYS = 3;
+export const FRESH_POST_POINTS = 15;
+/** A fresh post only counts when it is about money or running a business ("Happy Friday" does not). */
+export const BUSINESS_TOPIC =
+  /\b(cash|costs?|costing|margins?|financ(e|es|ing|ial)|inventory|revenue|profits?|profitability|pric(e|es|ing)|clients?|customers?|tax(es)?|fund(s|ing|raising)?|debt|loans?|capital|valuation|working capital|expenses?|cfo|forecast|budget|payables|receivables|growth|owners?|deals?|acquisitions?|p&l|balance sheet|ebitda|business(es)?|money|bookkeeping|books|labor|sales)\b/i;
+
 /** Post text about a decision Quantis models (PRD 3.4, decision trigger 25). */
 export const TRIGGER_WORDS =
   /\b(hir(e|es|ed|ing)|new hire|headcount|first employee|raise (our |my )?prices|price (increase|change|hike|rise)|pricing|new location|second location|expan(d|ding|sion)|new (office|shop|clinic|branch)|contract|lease|cash (crunch|flow|squeeze|position|low)|runway|payroll|forecast(s|ing)?|scenario(s)?|13[- ]week|afford|break[- ]?even|budget(s|ing)?)\b/i;
@@ -201,7 +208,14 @@ function triggerDim(signals: FitSignal[], now: Date): FitDimension {
     let cand: FitDimension | null = null;
     if (s.signal_type === 'their_post' || s.signal_type === 'their_comment' || s.signal_type === 'engaged_my_post') {
       const m = (s.excerpt ?? '').match(TRIGGER_WORDS);
-      if (m) cand = dim(25, 25, `"${m[0]}" in their ${s.signal_type === 'their_post' ? 'post' : 'comment'} (${ageLabel})`, 'observed');
+      const what = s.signal_type === 'their_post' ? 'post' : 'comment';
+      if (m) cand = dim(25, 25, `"${m[0]}" in their ${what} (${ageLabel})`, 'observed');
+      // v2 (2026-11-03): a fresh post on another topic is still something to
+      // comment on. It earns enough for a comment card with a strong role, not
+      // for a DM: "Whiskey aging carrying costs" from a fractional CFO scored 40.
+      else if (age <= FRESH_POST_DAYS && s.signal_type !== 'engaged_my_post' && BUSINESS_TOPIC.test(s.excerpt ?? '')) {
+        cand = dim(FRESH_POST_POINTS, 25, `fresh ${what} to comment on (${ageLabel})`, 'observed');
+      }
     } else if (s.signal_type === 'job_posting' || s.signal_type === 'hiring_event' || s.signal_type === 'new_location' || s.signal_type === 'funding') {
       cand = dim(20, 25, `${s.signal_type.replace('_', ' ')} (${ageLabel})`, 'observed');
     } else if (s.signal_type === 'role_change') {
@@ -260,6 +274,10 @@ export function scoreFit(input: FitInput, now: Date = new Date(), thresholds: Fi
   };
   const dq = disqualifier(input);
   const raw = Object.values(breakdown).reduce((s, d) => s + d.points, 0);
-  const score = dq ? 0 : Math.max(0, Math.min(100, raw));
+  // A fresh post with no decision in it is a reason to comment, never to DM:
+  // without this cap a 1st-degree fractional CFO reached 75 on one post.
+  const freshOnly = breakdown.trigger.points === FRESH_POST_POINTS && breakdown.trigger.evidence.startsWith('fresh ');
+  const capped = freshOnly ? Math.min(raw, thresholds.dm - 1) : raw;
+  const score = dq ? 0 : Math.max(0, Math.min(100, capped));
   return { score, tier: dq ? 'none' : tierFor(score, thresholds), persona: role.persona, disqualified: dq, breakdown, version: FIT_VERSION };
 }
