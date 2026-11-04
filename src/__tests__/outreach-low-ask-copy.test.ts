@@ -120,12 +120,25 @@ describe('first-touch template (low_ask_v1)', () => {
 });
 
 describe('opener (F8: personalize from evidence or not at all)', () => {
-  it('neutral opener uses role and firm only, and degrades on odd CRM values', () => {
-    expect(neutralOpener('Fractional CFO', 'Northline Advisory')).toBe('A question for you as Fractional CFO at Northline Advisory.');
+  it('neutral opener names the firm only, never the CRM title, and degrades on odd CRM values', () => {
+    expect(neutralOpener('Fractional CFO', 'Northline Advisory')).toBe('A question for you at Northline Advisory.');
     expect(neutralOpener('Founder | Fractional CFO | Speaker', 'Northline')).toBe('A question for you at Northline.');
     expect(neutralOpener('CFO', 'www.northline.co')).toBe('Quick one.');
-    expect(neutralOpener('Partner', 'Smith — Jones')).toBe('A question for you as Partner at Smith - Jones.');
+    expect(neutralOpener('Partner', 'Smith — Jones')).toBe('A question for you at Smith - Jones.');
     expect(neutralOpener(null, null)).toBe('Quick one.');
+  });
+  // 2026-11-03: queued drafts read "A question for you as Chief financial
+  // officer at Cu Books." and "... at Cfo Forward."
+  it.each([
+    ['Chief financial officer', 'Cu Books', 'A question for you at Cu Books.'],
+    ['Fractional chief financial officer', 'Cfo Forward', 'A question for you at CFO Forward.'],
+    ['Fractional chief financial officer & founder', 'The Cpg Cfo®', 'A question for you at The CPG CFO®.'],
+    ['Owner', 'M.Gregory Tax & Accounting Llc', 'A question for you at M.Gregory Tax & Accounting LLC.'],
+    ['Partner', 'Cfo Services Group', 'A question for you at CFO Services Group.'],
+    ['CFO', 'Itasca Partners', 'A question for you at Itasca Partners.'],
+    ['Owner', 'Talk To Us Bookkeeping', 'A question for you at Talk To Us Bookkeeping.'],
+  ])('%s at %s → %s', (role, company, want) => {
+    expect(neutralOpener(role, company)).toBe(want);
   });
   it('a model opener is one short plain sentence with no link and no question', () => {
     expect(lintOpener('You wrote about rebuilding client models every quarter.')).toEqual([]);

@@ -109,7 +109,7 @@ Deno.test("first touch: low confidence uses the neutral role/firm opener (F8), n
   const copy = { audience: "advisor" as const, link: demoLink(null), contactRole: "Fractional CFO", companyName: "Northline Advisory" };
   const low = composeFirstTouch({ opener: "Loved your keynote at the CFO summit.", confidence: "low" }, copy);
   assertFalse(low.personalized);
-  assert(low.body.startsWith("A question for you as Fractional CFO at Northline Advisory. When a client asks"), low.body);
+  assert(low.body.startsWith("A question for you at Northline Advisory. When a client asks"), low.body);
   assertFalse(low.body.includes("keynote"));
   assertEquals(low.subject, "downside case for a client hire");
   assertEquals(lintFirstTouch(low.body, copy.link), []);

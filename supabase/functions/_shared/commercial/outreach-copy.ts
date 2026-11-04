@@ -60,16 +60,28 @@ export function demoLink(campaignName: string | null | undefined): string {
 const clean = (s: string | null | undefined) => (s ?? '').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
 const URLISH = /https?:\/\/|www\.|\.(com|io|co|net|org)\b/i;
 
+/** Acronyms that lead-data title-casing breaks ("Cfo Forward", "The Cpg Cfo"). */
+const FIRM_ACRONYMS = ['CFO', 'CPA', 'CPAs', 'LLC', 'LLP', 'PLLC', 'PC', 'CPG', 'FP&A', 'M&A', 'USA'];
+
+/** Firm name as a person would write it: known acronyms restored, otherwise unchanged. */
+export function firmName(company: string | null | undefined): string {
+  let c = clean(company);
+  for (const a of FIRM_ACRONYMS) {
+    const esc = a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    c = c.replace(new RegExp(`(^|[\\s(])${esc}(?=$|[\\s,.)®™])`, 'gi'), (_m, pre: string) => `${pre}${a}`);
+  }
+  return c;
+}
+
 /**
- * F8: when the model found nothing specific to say, the opener names only
- * what the CRM recorded (role, firm). Odd CRM values fall back to less.
+ * F8: when the model found nothing specific to say, the opener names only the
+ * firm the CRM recorded. The job title is never used: CRM titles read as data
+ * ("A question for you as Chief financial officer at Cu Books", 2026-11-03).
+ * Odd firm values fall back to less.
  */
-export function neutralOpener(role: string | null | undefined, company: string | null | undefined): string {
-  const r = clean(role);
-  const c = clean(company);
-  const roleOk = r.length > 0 && r.length <= 40 && r.split(' ').length <= 5 && !/[|/;,•@]/.test(r) && !URLISH.test(r);
+export function neutralOpener(_role: string | null | undefined, company: string | null | undefined): string {
+  const c = firmName(company);
   const companyOk = c.length > 0 && c.length <= 60 && !/[|;•@]/.test(c) && !URLISH.test(c);
-  if (roleOk && companyOk) return `A question for you as ${r} at ${c}.`;
   if (companyOk) return `A question for you at ${c}.`;
   return 'Quick one.';
 }
