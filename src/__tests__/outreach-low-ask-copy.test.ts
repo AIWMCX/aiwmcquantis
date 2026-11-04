@@ -136,6 +136,7 @@ describe('opener (F8: personalize from evidence or not at all)', () => {
     ['Owner', 'M.Gregory Tax & Accounting Llc', 'A question for you at M.Gregory Tax & Accounting LLC.'],
     ['Partner', 'Cfo Services Group', 'A question for you at CFO Services Group.'],
     ['CFO', 'Itasca Partners', 'A question for you at Itasca Partners.'],
+    ['Owner', 'Talk To Us Bookkeeping', 'A question for you at Talk To Us Bookkeeping.'],
   ])('%s at %s → %s', (role, company, want) => {
     expect(neutralOpener(role, company)).toBe(want);
   });

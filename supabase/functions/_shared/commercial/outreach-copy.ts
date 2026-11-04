@@ -61,7 +61,7 @@ const clean = (s: string | null | undefined) => (s ?? '').replace(/[–—]/g, '
 const URLISH = /https?:\/\/|www\.|\.(com|io|co|net|org)\b/i;
 
 /** Acronyms that lead-data title-casing breaks ("Cfo Forward", "The Cpg Cfo"). */
-const FIRM_ACRONYMS = ['CFO', 'CPA', 'CPAs', 'LLC', 'LLP', 'PLLC', 'PC', 'CPG', 'FP&A', 'M&A', 'HR', 'IT', 'USA', 'US'];
+const FIRM_ACRONYMS = ['CFO', 'CPA', 'CPAs', 'LLC', 'LLP', 'PLLC', 'PC', 'CPG', 'FP&A', 'M&A', 'USA'];
 
 /** Firm name as a person would write it: known acronyms restored, otherwise unchanged. */
 export function firmName(company: string | null | undefined): string {
