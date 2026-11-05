@@ -565,6 +565,7 @@ jobs:
             # Business mailboxes: support@/legal@ tickets, hello@/marketing@
             # pipeline, paced outreach sender (pg_cron every 5 min).
             business-mail
+            lead-intake
             # ── Observability harnesses (admin dashboard reads their output) ─
             # Missing from the list meant source changes to these functions
             # never actually shipped. Confirmed 2026-07-02: after PR #4

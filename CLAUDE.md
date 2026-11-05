@@ -70,6 +70,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 - **Outreach:** the sender only claims `commercial_followups.status='approved'` with `send_requested_at` set. Never change caps, warm-up dates or `mail_settings.outreach_enabled` without founder approval.
   - Copy is fixed in `_shared/commercial/outreach-copy.ts` (`low_ask_v1`: one hiring-demo link with UTM, 50–90 words, lint-enforced). The model writes only a grounded opener.
   - The cadence is 2 touches (`MAX_SEQUENCE_STEP` in `_shared/mail/followup-order.ts`). Never add a step 3+.
+- **Free lead intake:** the `lead-intake` function (pg_cron `lead-intake-form-d`, 11:30 UTC daily) turns new SEC Form D filings into `discovered` prospects in the "Form D funded owners" campaign, one batch per day. It inserts them with no email (`contact_channel` null), never guesses an address, and never drafts or sends. Filters live in `_shared/commercial/form-d.ts`. The Slack digest posts only if `LEADS_SLACK_WEBHOOK_URL` is set. EDGAR needs the identifying User-Agent and fewer than 10 requests a second.
 
 ## Windows / shell gotchas
 - Python file edits: open with `newline=''` or line endings get rewritten, which shows as whole-file diffs. Prefer the Edit tool.
