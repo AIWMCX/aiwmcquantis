@@ -47,11 +47,11 @@ describe('enforceNarrativeIntegrity', () => {
     expect(result.executiveSummary).not.toContain('$100');
     expect(result.executiveSummary).not.toContain('$3,278');
     // The replacement must itself reconcile with calc (net profit and revenue
-    // actually present). Computed with the same bare toLocaleString() the
-    // production code uses, so this test is correct under any runtime locale
-    // rather than assuming en-US comma grouping.
-    expect(result.executiveSummary).toContain(Math.round(baseCalc.netProfit).toLocaleString());
-    expect(result.executiveSummary).toContain(Math.round(baseCalc.mrr).toLocaleString());
+    // actually present). The summary pins en-US grouping (the only grouping
+    // the money check parses), so the expectation pins it too instead of
+    // following the host locale (ru-RU would give "-31 916").
+    expect(result.executiveSummary).toContain(Math.round(baseCalc.netProfit).toLocaleString('en-US'));
+    expect(result.executiveSummary).toContain(Math.round(baseCalc.mrr).toLocaleString('en-US'));
   });
 
   // Q6 (2026-11-03): small figures are now checked too. Before, every amount

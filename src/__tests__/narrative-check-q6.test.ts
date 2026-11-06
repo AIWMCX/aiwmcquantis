@@ -130,6 +130,19 @@ describe('the deterministic summary passes its own check', () => {
     const losing = { ...calc, netProfit: -3100, isProfitable: false, paybackMonths: 999, breakEvenMonths: Infinity };
     expect(narrativeMismatch(buildSafeExecutiveSummary(losing, 'Cafe', 'Denver, CO'), losing)).toBeNull();
   });
+  it('on a host whose default locale is not en-US (ru-RU groups digits with U+00A0)', () => {
+    const original = Number.prototype.toLocaleString;
+    Number.prototype.toLocaleString = function (this: number, locales?: string | string[], options?: Intl.NumberFormatOptions) {
+      return original.call(this, locales ?? 'ru-RU', options);
+    };
+    try {
+      const summary = buildSafeExecutiveSummary(calc, 'Cafe', 'Denver, CO');
+      expect(summary).toContain('$4,000 against $20,000');
+      expect(narrativeMismatch(summary, calc)).toBeNull();
+    } finally {
+      Number.prototype.toLocaleString = original;
+    }
+  });
 });
 
 describe('fail closed', () => {

@@ -791,7 +791,7 @@ export function buildSafeExecutiveSummary(calc: NarrativeIntegrityCalc, industry
   const paybackText = calc.paybackMonths >= 999
     ? 'indeterminate until profitability is achieved'
     : `${calc.paybackMonths} months`;
-  return `This analysis evaluates ${industryLabel} in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}, with a monthly net profit of $${Math.round(calc.netProfit).toLocaleString()} against $${Math.round(calc.mrr).toLocaleString()} in monthly revenue. The LTV:CAC ratio of ${calc.ltvCacRatio}x ${ltvCacPhrase(calc.ltvCacRatio)}. With an initial investment of $${Math.round(calc.startupInvestment).toLocaleString()}, the projected payback period is ${paybackText}.\n\nNote: this summary was regenerated from verified computed figures after an automated integrity check found the AI-authored narrative did not reconcile with them.`;
+  return `This analysis evaluates ${industryLabel} in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}, with a monthly net profit of $${Math.round(calc.netProfit).toLocaleString('en-US')} against $${Math.round(calc.mrr).toLocaleString('en-US')} in monthly revenue. The LTV:CAC ratio of ${calc.ltvCacRatio}x ${ltvCacPhrase(calc.ltvCacRatio)}. With an initial investment of $${Math.round(calc.startupInvestment).toLocaleString('en-US')}, the projected payback period is ${paybackText}.\n\nNote: this summary was regenerated from verified computed figures after an automated integrity check found the AI-authored narrative did not reconcile with them.`;
 }
 
 /** Shown when even the deterministic summary cannot be built safely. */
