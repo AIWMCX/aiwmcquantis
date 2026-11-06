@@ -146,12 +146,14 @@ describe('buildQualityDimensions', () => {
   });
 
   describe('source_coverage (new dimension, round-2 review item 4)', () => {
-    it('grades the fraction of assumptions with real provenance (USER_ACTUAL/DERIVED)', () => {
+    it('grades the fraction of assumptions that are the customer-typed figures (USER_ACTUAL only)', () => {
       const result = buildQualityDimensions({
         ...BASE,
         assumptionOriginClasses: ['USER_ACTUAL', 'DERIVED', 'MODELED_BENCHMARK_PRIOR', 'PLACEHOLDER'],
       });
-      expect(result.source_coverage).toBe(50);
+      // 2026-11-05: DERIVED is an AI estimate from the description, not provenance.
+      expect(result.source_coverage).toBe(25);
+      expect(result.evidence.source_coverage).toContain('1 is an AI estimate');
     });
 
     it('is 0, not fabricated, when no assumption-origin classification is available', () => {

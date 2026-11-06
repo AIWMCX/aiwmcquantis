@@ -1,0 +1,117 @@
+{
+  "schema_version": "analytica.evidence.v1",
+  "upstream_api_version": "predicta.search.v1",
+  "packet_id": "ep_9d9890ff9fc80cb8",
+  "case_id": "case_001",
+  "research_run_id": "qry_001",
+  "subject": {
+    "submitted_name": "Northstar Packaging",
+    "geography": "New York",
+    "industry": "Packaging manufacturing",
+    "resolution_status": "UNRESOLVED"
+  },
+  "query": {
+    "queryId": "qry_001",
+    "rawQuery": "packaging input cost New York 2022",
+    "normalizedQuery": "packaging input cost new york 2022"
+  },
+  "sources": [
+    {
+      "source_id": "src_001",
+      "provider_id": "census",
+      "canonical_url": "https://example.gov/series/packaging",
+      "title": "Packaging input-cost series",
+      "publisher": "Example Government Dataset",
+      "publication_date": "2023-01-15",
+      "source_type": "PRIMARY",
+      "snapshot": {
+        "retrieved_at": "2026-09-04T18:00:00Z",
+        "content_hash": "53b9684557a9a24d63740de6f6d4a1fae03fb29eff5b5f4971623051330c9cc7",
+        "text": "Packaging input costs rose materially during 2022."
+      }
+    },
+    {
+      "source_id": "src_002",
+      "provider_id": "industry_web",
+      "canonical_url": "https://example.org/industry-note",
+      "title": "Regional packaging note",
+      "publisher": "Industry Association",
+      "publication_date": "2023-02-01",
+      "source_type": "SECONDARY",
+      "snapshot": {
+        "retrieved_at": "2026-09-04T18:00:01Z",
+        "content_hash": "a892ad2958729dbba629ad4771a1aef71a8e17e4ae282e5d7e2265823fc96f95",
+        "text": "Some regional converters reported stable contracted prices."
+      }
+    }
+  ],
+  "passages": [
+    {
+      "passage_id": "passage_src_001",
+      "source_id": "src_001",
+      "text": "Packaging input costs rose materially during 2022.",
+      "content_hash": "3405035f722f25d2a6b75ed477fe7cfd497194c885d0b811695d6e89a79c33ac"
+    },
+    {
+      "passage_id": "passage_src_002",
+      "source_id": "src_002",
+      "text": "Some regional converters reported stable contracted prices.",
+      "content_hash": "7b92cf3e1c4cbbe55029e4cb93303ba5441da92821566672bdffe01ce73badef"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "claim_001",
+      "statement": "Input costs increased materially in 2022.",
+      "status": "CONTESTED",
+      "evidence": [
+        {
+          "source_id": "src_001",
+          "passage_id": "passage_src_001",
+          "relation": "SUPPORTS"
+        },
+        {
+          "source_id": "src_002",
+          "passage_id": "passage_src_002",
+          "relation": "CONTRADICTS"
+        }
+      ],
+      "independent_source_count": 2,
+      "limitations": [
+        "Regional and national measures differ."
+      ]
+    }
+  ],
+  "contradictions": [
+    {
+      "contradiction_id": "contra_claim_001",
+      "claim_id": "claim_001",
+      "supporting_passage_ids": [
+        "passage_src_001"
+      ],
+      "contradicting_passage_ids": [
+        "passage_src_002"
+      ],
+      "explanation": "Predicta returned evidence that contradicts or materially qualifies this claim."
+    }
+  ],
+  "quality": {
+    "coverage": 1.0,
+    "corroboration": 1.0,
+    "freshness": 1.0,
+    "source_diversity": 0.6666666666666666,
+    "overall_confidence": 0.95,
+    "limitations": [
+      "Regional and national measures differ."
+    ]
+  },
+  "lineage": {
+    "predicta_version": "1.0.0-session01",
+    "provider_versions": {
+      "census": "search.v1",
+      "industry_web": "search.v1"
+    },
+    "retrieved_at": "2026-09-04T18:00:01Z",
+    "content_hash": "9d9890ff9fc80cb88a1d6df629a202e8a8c00167f6113c2d8325c97ba10e689b"
+  }
+}

@@ -23,8 +23,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
-import { normalizeDelta, applyScenarioDelta, ASSUMPTION_KEYS, type AssumptionKey, type DeltaChange } from '../_shared/scenario-delta.ts';
-import { findBreakpoint, type TargetMetric } from '../_shared/scenario-sensitivity.ts';
+import { normalizeDelta, applyScenarioDelta, needsResolvedBase, ScenarioDeltaError, ASSUMPTION_KEYS, type AssumptionKey, type DeltaChange } from '../_shared/scenario-delta.ts';
+import { findBreakpoint, resolveScenarioBase, type TargetMetric } from '../_shared/scenario-sensitivity.ts';
 
 const FUNCTION_NAME = 'scenario-breakpoint';
 const FUNCTION_VERSION = '1.0.0';
@@ -153,19 +153,36 @@ Deno.serve(async (req) => {
     }
 
     const baseInput = analysis.scenario_base_input as ScenarioBaseInputBundle;
-    const effective = applyScenarioDelta(
-      {
-        rawMrr: baseInput.rawMrr,
-        rawInvestment: baseInput.rawInvestment,
-        rawCac: baseInput.rawCac,
-        rawAvgCheck: baseInput.rawAvgCheck,
-        userProvidedCosts: baseInput.userProvidedCosts,
-        userProvidedChurnRate: baseInput.userProvidedChurnRate,
-        userProvidedCustomers: baseInput.userProvidedCustomers,
-        locationMultipliers: baseInput.locationMultipliers,
-      },
-      normalizedChanges,
-    );
+    const deltaBase = {
+      rawMrr: baseInput.rawMrr,
+      rawInvestment: baseInput.rawInvestment,
+      rawCac: baseInput.rawCac,
+      rawAvgCheck: baseInput.rawAvgCheck,
+      userProvidedCosts: baseInput.userProvidedCosts,
+      userProvidedChurnRate: baseInput.userProvidedChurnRate,
+      userProvidedCustomers: baseInput.userProvidedCustomers,
+      locationMultipliers: baseInput.locationMultipliers,
+    };
+    // A % change to an input the user never typed starts from the value the
+    // engine used for it, not from 0 (see ResolvedScenarioBase).
+    let effective: typeof deltaBase;
+    try {
+      effective = applyScenarioDelta(
+        deltaBase,
+        normalizedChanges,
+        needsResolvedBase(deltaBase, normalizedChanges)
+          ? resolveScenarioBase({ ...deltaBase, rawLtv: baseInput.rawLtv }, baseInput.benchmarks, baseInput.subIndustry)
+          : undefined,
+      );
+    } catch (e) {
+      if (e instanceof ScenarioDeltaError) {
+        return new Response(
+          JSON.stringify({ error: e.message, code: e.code }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      throw e;
+    }
 
     const result = findBreakpoint(
       { ...effective, rawLtv: baseInput.rawLtv },

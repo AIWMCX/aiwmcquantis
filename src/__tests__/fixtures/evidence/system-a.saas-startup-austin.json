@@ -1,0 +1,190 @@
+{
+  "_fixtureMeta": {
+    "generatedAt": "2026-08-10T08:21:26.366Z",
+    "dataSource": "MOCKED_TAVILY_RESPONSE",
+    "scenario": "saas-startup-austin",
+    "note": "Generated with a mocked Tavily response (no TAVILY_API_KEY / EVIDENCE_PROVIDER_INTEGRATION_TESTS=true set in this environment) -- the pipeline logic itself is 100% real, only the provider HTTP call is stubbed. Re-run with those env vars set to regenerate against live data.",
+    "privacyFindings": [],
+    "providerResultSummaries": [
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 1
+      },
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 1
+      },
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 0
+      },
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 2
+      }
+    ]
+  },
+  "packet": {
+    "evidencePacketId": "0b8c4806-f8a5-4d84-be17-9d6a712e357d",
+    "createdAt": "2026-08-10T08:21:26.366Z",
+    "analysisRunId": "fixture-saas-startup-austin",
+    "queryPlanVersion": "0.1.0",
+    "providerSetVersion": "0.1.0",
+    "rankingVersion": "0.1.0",
+    "evidenceSchemaVersion": "0.1.0",
+    "sourceLenses": [
+      "OFFICIAL",
+      "GOVERNMENT",
+      "INDUSTRY"
+    ],
+    "sources": [
+      {
+        "sourceId": "c67408d9-6415-404e-ae93-56ca6caaa6e7",
+        "canonicalUrl": "https://austin-office-example.com/2026",
+        "publisher": "Austin Office Rent Trends 2026",
+        "publishedAt": "2026-01-20",
+        "retrievedAt": "2026-08-10T08:21:26.361Z",
+        "contentHash": "41ee74b2cebd1fd961452436ff0d4d7544bfaa60b5bf93fc87191f8d02cc7912",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "c67408d9-6415-404e-ae93-56ca6caaa6e7"
+      },
+      {
+        "sourceId": "08acea9c-9373-43fe-bf2d-71c5523ccc48",
+        "canonicalUrl": "https://bls.gov/oes/current/oes_12420.htm",
+        "publisher": "BLS Wage Data — Austin-Round Rock-Georgetown, TX",
+        "publishedAt": "2025-05-01",
+        "retrievedAt": "2026-08-10T08:21:26.363Z",
+        "contentHash": "0c777f96845a109682364f255e8e42d7fbd8ccdc49e5df2e58167e75cff7c2f3",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "08acea9c-9373-43fe-bf2d-71c5523ccc48"
+      },
+      {
+        "sourceId": "79102da9-2001-4936-9244-7510135e439c",
+        "canonicalUrl": "https://saas-benchmarks-example.com/2026",
+        "publisher": "SaaS Benchmarks Report 2026",
+        "publishedAt": "2026-03-01",
+        "retrievedAt": "2026-08-10T08:21:26.365Z",
+        "contentHash": "02bfcfb7c9c73a1be6569cc7be6f4da6b1f9632665a4449e002dc066c8e95e5a",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "CURRENT",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "79102da9-2001-4936-9244-7510135e439c"
+      },
+      {
+        "sourceId": "c23dd0e4-02bf-4c64-aef8-9e9352551edf",
+        "canonicalUrl": "https://another-saas-source.example.com/metrics",
+        "publisher": "B2B SaaS Metrics, alternate source",
+        "publishedAt": "2026-02-10",
+        "retrievedAt": "2026-08-10T08:21:26.365Z",
+        "contentHash": "57c410001fd31187d1cc28fc699d74036a511a0c250ca4475a41e52661f1dd4d",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "c23dd0e4-02bf-4c64-aef8-9e9352551edf"
+      }
+    ],
+    "passages": [
+      {
+        "passageId": "20fa2f16-a9fc-4d9f-9fa1-5ee34fac5a9b",
+        "sourceId": "c67408d9-6415-404e-ae93-56ca6caaa6e7",
+        "text": "Class B office space in Austin averages $34-38/sqft/year in early 2026.",
+        "extractedAt": "2026-08-10T08:21:26.361Z",
+        "contentHash": "41ee74b2cebd1fd961452436ff0d4d7544bfaa60b5bf93fc87191f8d02cc7912"
+      },
+      {
+        "passageId": "e9469bad-777b-4e39-8006-4662b0951c55",
+        "sourceId": "08acea9c-9373-43fe-bf2d-71c5523ccc48",
+        "text": "Median annual wage for software developers in Austin was $118,300 in May 2025.",
+        "extractedAt": "2026-08-10T08:21:26.363Z",
+        "contentHash": "0c777f96845a109682364f255e8e42d7fbd8ccdc49e5df2e58167e75cff7c2f3"
+      },
+      {
+        "passageId": "26b0b3b5-b35e-47bd-840e-10e3c110800b",
+        "sourceId": "79102da9-2001-4936-9244-7510135e439c",
+        "text": "Early-stage B2B SaaS companies see median CAC payback of 14-18 months and net revenue retention of 100-110%.",
+        "extractedAt": "2026-08-10T08:21:26.365Z",
+        "contentHash": "02bfcfb7c9c73a1be6569cc7be6f4da6b1f9632665a4449e002dc066c8e95e5a"
+      },
+      {
+        "passageId": "06ac0af6-42c9-49e1-be8e-32366b55904c",
+        "sourceId": "c23dd0e4-02bf-4c64-aef8-9e9352551edf",
+        "text": "Payback periods for early-stage B2B SaaS commonly range 12-20 months depending on segment.",
+        "extractedAt": "2026-08-10T08:21:26.365Z",
+        "contentHash": "57c410001fd31187d1cc28fc699d74036a511a0c250ca4475a41e52661f1dd4d"
+      }
+    ],
+    "claims": [
+      {
+        "claimId": "abb3aef4-54b6-402d-8d44-e2eab5b14604",
+        "statement": "Evidence gathered for: Austin, Texas commercial rent B2B SaaS analytics tool",
+        "support": [
+          {
+            "sourceId": "c67408d9-6415-404e-ae93-56ca6caaa6e7",
+            "passageId": "20fa2f16-a9fc-4d9f-9fa1-5ee34fac5a9b",
+            "relation": "SUPPORTS"
+          }
+        ],
+        "status": "SINGLE_SOURCE",
+        "freshness": "AGING",
+        "sourceIndependenceCount": 1
+      },
+      {
+        "claimId": "51809d3f-7bfa-4e87-bd7f-b19a81438596",
+        "statement": "Evidence gathered for: Austin, Texas wage data B2B SaaS analytics tool",
+        "support": [
+          {
+            "sourceId": "08acea9c-9373-43fe-bf2d-71c5523ccc48",
+            "passageId": "e9469bad-777b-4e39-8006-4662b0951c55",
+            "relation": "SUPPORTS"
+          }
+        ],
+        "status": "SINGLE_SOURCE",
+        "freshness": "AGING",
+        "sourceIndependenceCount": 1
+      },
+      {
+        "claimId": "f859e9aa-65f4-470f-9cc7-5a63247534eb",
+        "statement": "Evidence gathered for: B2B SaaS analytics tool industry benchmarks Austin, Texas",
+        "support": [
+          {
+            "sourceId": "79102da9-2001-4936-9244-7510135e439c",
+            "passageId": "26b0b3b5-b35e-47bd-840e-10e3c110800b",
+            "relation": "SUPPORTS"
+          },
+          {
+            "sourceId": "c23dd0e4-02bf-4c64-aef8-9e9352551edf",
+            "passageId": "06ac0af6-42c9-49e1-be8e-32366b55904c",
+            "relation": "SUPPORTS"
+          }
+        ],
+        "status": "SUPPORTED",
+        "freshness": "AGING",
+        "sourceIndependenceCount": 2
+      }
+    ],
+    "numericObservations": [],
+    "unresolvedQuestions": [
+      "regulation-b2b-saas-analytics-tool"
+    ],
+    "contradictions": [],
+    "degraded": false,
+    "retrievalLatencyMs": 5,
+    "contentHash": "419700e7c68e7894b0e561120b48cd8b4e3bc96093c418864a77ff1994383c31"
+  }
+}

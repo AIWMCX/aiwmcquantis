@@ -1,0 +1,68 @@
+{
+  "_fixtureMeta": "Authored 2026-11-05 to Predicta's SearchResponseSchema (Akbar Robotics/predicta src/contracts/schemas.ts). Predicta has no captured valid fixture; this one is shaped like a real response (no apiVersion field) with one contested claim added so claim mapping is exercised.",
+  "query": {
+    "queryId": "q_mh8k2c_1",
+    "queryVersion": 0,
+    "rawQuery": "packaging input cost New York 2022",
+    "normalizedQuery": "packaging input cost new york 2022",
+    "language": "en",
+    "country": "US",
+    "lens": "official",
+    "safeSearch": "moderate",
+    "createdAt": "2026-09-04T18:00:00.000Z",
+    "sensitiveInputDetected": false
+  },
+  "intent": { "task": "business_research", "entities": [], "proposedBranches": [], "missingQualifiers": [], "stabilityScore": 0.7 },
+  "origin": "LIVE_WEB_RESULT",
+  "candidates": [
+    {
+      "candidateId": "wikidata:Q123",
+      "providerId": "wikidata",
+      "providerRank": 0,
+      "url": "https://www.wikidata.org/wiki/Q123",
+      "canonicalUrl": "https://www.wikidata.org/wiki/Q123",
+      "title": "Packaging input-cost series",
+      "snippet": "Packaging input costs rose materially during 2022.",
+      "publisher": "Wikidata",
+      "publicationDate": "2023-01-15",
+      "retrievalDate": "2026-09-04T18:00:00.000Z",
+      "sourceType": "SECONDARY",
+      "score": 0.82
+    },
+    {
+      "candidateId": "wikipedia:en:Packaging",
+      "providerId": "wikipedia",
+      "providerRank": 1,
+      "url": "https://en.wikipedia.org/wiki/Packaging",
+      "canonicalUrl": "https://en.wikipedia.org/wiki/Packaging",
+      "title": "Packaging",
+      "snippet": "Some regional converters reported stable contracted prices.",
+      "language": "en",
+      "publisher": "Wikipedia",
+      "retrievalDate": "2026-09-04T18:00:01.000Z",
+      "sourceType": "AGGREGATOR"
+    }
+  ],
+  "claims": [
+    {
+      "claimId": "claim_001",
+      "statement": "Input costs increased materially in 2022.",
+      "status": "CONTESTED",
+      "evidence": [
+        { "sourceId": "wikidata:Q123", "passageId": "passage_wikidata:Q123", "relation": "SUPPORTS" },
+        { "sourceId": "wikipedia:en:Packaging", "passageId": "passage_wikipedia:en:Packaging", "relation": "CONTRADICTS" }
+      ],
+      "independentSourceCount": 2,
+      "limitations": ["Regional and national measures differ."]
+    }
+  ],
+  "diagnostics": {
+    "providersRequested": ["wikidata", "wikipedia"],
+    "providersSucceeded": ["wikidata", "wikipedia"],
+    "providersFailed": [],
+    "cacheHits": 0,
+    "latencyMs": 220,
+    "estimatedCostUsd": 0,
+    "degraded": false
+  }
+}

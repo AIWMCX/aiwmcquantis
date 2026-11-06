@@ -1,0 +1,21 @@
+{
+  "//": "Strict typecheck for the Phase 1 runtime-neutral modules in supabase/functions/_shared (financial kernel, aiwmc.evidence.v1 contracts, Tavily client). Maps Deno's npm: specifiers to the same packages vitest/vite alias them to. Run via `bun run typecheck:financial`.",
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "npm:decimal.js@10.4.3": ["./node_modules/decimal.js"],
+      "npm:zod@3.23.8": ["./node_modules/zod"]
+    }
+  },
+  "include": [],
+  "files": [
+    "supabase/functions/_shared/financial-kernel/index.ts",
+    "supabase/functions/_shared/contracts/index.ts",
+    "supabase/functions/_shared/tavily-client.ts"
+  ]
+}

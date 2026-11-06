@@ -20,13 +20,13 @@ import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
 import { sha256Hex, ENGINE_VERSION, FORMULA_REGISTRY_VERSION } from '../_shared/analysis-snapshot.ts';
-import { normalizeDelta, applyScenarioDelta, type DeltaChange } from '../_shared/scenario-delta.ts';
+import { normalizeDelta, applyScenarioDelta, needsResolvedBase, ScenarioDeltaError, type DeltaChange } from '../_shared/scenario-delta.ts';
 import { checkScenarioRunCoherence, type ScenarioRunSummary } from '../_shared/scenario-coherence.ts';
 import { calculateStrictFinancials } from '../analyze-business/financial-calculator.ts';
 import { shapeFinancialAnalysis } from '../analyze-business/financial-analysis-shape.ts';
 import { runReconciliationCheck } from '../analyze-business/reconciliation-check.ts';
 import { QMath } from '../analyze-business/quantis-math-server.ts';
-import { computeSensitivityRanking } from '../_shared/scenario-sensitivity.ts';
+import { computeSensitivityRanking, resolveScenarioBase } from '../_shared/scenario-sensitivity.ts';
 import { withScenarioOverrideFlags, type AssumptionOriginMap } from '../_shared/assumption-origin.ts';
 
 const FUNCTION_NAME = 'run-scenario';
@@ -186,19 +186,36 @@ Deno.serve(async (req) => {
     }
 
     const baseInput = analysis.scenario_base_input as ScenarioBaseInputBundle;
-    const effective = applyScenarioDelta(
-      {
-        rawMrr: baseInput.rawMrr,
-        rawInvestment: baseInput.rawInvestment,
-        rawCac: baseInput.rawCac,
-        rawAvgCheck: baseInput.rawAvgCheck,
-        userProvidedCosts: baseInput.userProvidedCosts,
-        userProvidedChurnRate: baseInput.userProvidedChurnRate,
-        userProvidedCustomers: baseInput.userProvidedCustomers,
-        locationMultipliers: baseInput.locationMultipliers,
-      },
-      normalizedChanges,
-    );
+    const deltaBase = {
+      rawMrr: baseInput.rawMrr,
+      rawInvestment: baseInput.rawInvestment,
+      rawCac: baseInput.rawCac,
+      rawAvgCheck: baseInput.rawAvgCheck,
+      userProvidedCosts: baseInput.userProvidedCosts,
+      userProvidedChurnRate: baseInput.userProvidedChurnRate,
+      userProvidedCustomers: baseInput.userProvidedCustomers,
+      locationMultipliers: baseInput.locationMultipliers,
+    };
+    // A % change to an input the user never typed starts from the value the
+    // engine used for it, not from 0 (see ResolvedScenarioBase).
+    let effective: typeof deltaBase;
+    try {
+      effective = applyScenarioDelta(
+        deltaBase,
+        normalizedChanges,
+        needsResolvedBase(deltaBase, normalizedChanges)
+          ? resolveScenarioBase({ ...deltaBase, rawLtv: baseInput.rawLtv }, baseInput.benchmarks, baseInput.subIndustry)
+          : undefined,
+      );
+    } catch (e) {
+      if (e instanceof ScenarioDeltaError) {
+        return new Response(
+          JSON.stringify({ error: e.message, code: e.code }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      throw e;
+    }
 
     const calc = calculateStrictFinancials(
       effective.rawMrr,

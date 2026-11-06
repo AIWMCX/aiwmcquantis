@@ -22,7 +22,7 @@
  * finds *a* sign-crossing root, which is disclosed as a limitation, not
  * hidden.
  */
-import { applyScenarioDelta, type AssumptionKey, ASSUMPTION_KEYS, type ScenarioDeltaTarget } from './scenario-delta.ts';
+import { applyScenarioDelta, resolvedBaseFromCalc, type AssumptionKey, ASSUMPTION_KEYS, type ResolvedScenarioBase, type ScenarioDeltaTarget } from './scenario-delta.ts';
 import { calculateStrictFinancials, type StrictFinancialResult } from '../analyze-business/financial-calculator.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -51,13 +51,23 @@ function runCalc(
   subIndustry: AnySubIndustry,
   pctChange: number,
   assumptionKey: AssumptionKey,
+  resolved: ResolvedScenarioBase,
 ): StrictFinancialResult {
-  const effective = applyScenarioDelta(base, [{ assumption_key: assumptionKey, operation: 'increase_pct', value: pctChange }]);
+  const effective = applyScenarioDelta(base, [{ assumption_key: assumptionKey, operation: 'increase_pct', value: pctChange }], resolved);
   return calculateStrictFinancials(
     effective.rawMrr, effective.rawInvestment, effective.rawCac, base.rawLtv, effective.rawAvgCheck,
     benchmarks, effective.locationMultipliers as AnyBenchmarks, subIndustry,
     effective.userProvidedCosts, effective.userProvidedChurnRate, effective.userProvidedCustomers,
   );
+}
+
+/** Runs the frozen base once and returns the values a % delta on an untyped input starts from. */
+export function resolveScenarioBase(base: ScenarioComputeInput, benchmarks: AnyBenchmarks, subIndustry: AnySubIndustry): ResolvedScenarioBase {
+  return resolvedBaseFromCalc(calculateStrictFinancials(
+    base.rawMrr, base.rawInvestment, base.rawCac, base.rawLtv, base.rawAvgCheck,
+    benchmarks, base.locationMultipliers as AnyBenchmarks, subIndustry,
+    base.userProvidedCosts, base.userProvidedChurnRate, base.userProvidedCustomers,
+  ));
 }
 
 export interface SensitivityResult {
@@ -94,10 +104,11 @@ export function computeSensitivityRanking(
     base.userProvidedCosts, base.userProvidedChurnRate, base.userProvidedCustomers,
   );
   const baseMetric = readMetric(baseCalc, targetMetric);
+  const resolved = resolvedBaseFromCalc(baseCalc);
 
   const results: SensitivityResult[] = ASSUMPTION_KEYS.map((key) => {
-    const upCalc = runCalc(base, benchmarks, subIndustry, SENSITIVITY_PERTURBATION_PCT, key);
-    const downCalc = runCalc(base, benchmarks, subIndustry, -SENSITIVITY_PERTURBATION_PCT, key);
+    const upCalc = runCalc(base, benchmarks, subIndustry, SENSITIVITY_PERTURBATION_PCT, key, resolved);
+    const downCalc = runCalc(base, benchmarks, subIndustry, -SENSITIVITY_PERTURBATION_PCT, key, resolved);
     const metricUp = readMetric(upCalc, targetMetric);
     const metricDown = readMetric(downCalc, targetMetric);
 
@@ -165,7 +176,8 @@ export function findBreakpoint(
   targetMetric: TargetMetric = 'netProfit',
   targetValue = 0,
 ): BreakpointResult {
-  const evalAt = (pct: number) => readMetric(runCalc(base, benchmarks, subIndustry, pct, assumptionKey), targetMetric) - targetValue;
+  const resolved = resolveScenarioBase(base, benchmarks, subIndustry);
+  const evalAt = (pct: number) => readMetric(runCalc(base, benchmarks, subIndustry, pct, assumptionKey, resolved), targetMetric) - targetValue;
 
   const baseMetric = evalAt(0) + targetValue;
   if (Math.abs(baseMetric - targetValue) < 1e-9) {

@@ -31,6 +31,9 @@ export default defineConfig({
       // Since 2026-10-30 they use an npm: specifier instead (esm.sh kept
       // returning 520 to Supabase's bundler and blocked deploys).
       "npm:decimal.js@10.4.3": "decimal.js",
+      // aiwmc.evidence.v1 contracts (supabase/functions/_shared/contracts) import
+      // zod the Deno way; same version as package.json.
+      "npm:zod@3.23.8": "zod",
     },
   },
 });
