@@ -48,7 +48,7 @@ const QUANTIS_DIFFERENTIATORS: VsRow[] = [
   },
   {
     feature: 'Reality Validation & Calibration Engine (RVCE)',
-    quantis: 'Yes — every projection cross-checked against live web evidence (Tavily) and a 97,500-row benchmark corpus. <5 observations → honest NO_DATA badge, never fabricated.',
+    quantis: 'Yes — every projection cross-checked against live web evidence (Tavily) and Quantis reference ranges (modeled, not observed data). <5 observations → honest NO_DATA badge, never fabricated.',
     competitor: 'No equivalent live-web validator described.',
   },
   {

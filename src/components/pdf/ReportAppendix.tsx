@@ -2,6 +2,7 @@ import React from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { pdfStyles } from './pdfStyles';
 import { ReportHeader, ReportFooter } from './ReportPageElements';
+import { MODELED_REFERENCE_LABEL } from '@/lib/benchmark-citations';
 
 interface ReportAppendixProps {
   result: BusinessAnalysisResult;
@@ -24,9 +25,9 @@ export function ReportAppendix({ result }: ReportAppendixProps) {
             <span style={pdfStyles.listText}>
               {/* Sanitize internal developer references for user-facing display */}
               {String(source)
-                .replace(/Kerry dataset/gi, 'enhanced industry benchmarks')
-                .replace(/upload Kerry dataset for enhanced accuracy/gi, 'proprietary industry benchmark database')
-                .replace(/\(Kerry dataset\)/gi, '(proprietary benchmarks)')
+                .replace(/upload Kerry dataset for enhanced accuracy/gi, 'modeled reference ranges')
+                .replace(/\(Kerry dataset\)/gi, '(modeled reference ranges)')
+                .replace(/Kerry dataset/gi, MODELED_REFERENCE_LABEL)
               }
             </span>
           </div>
@@ -99,7 +100,7 @@ export function ReportAppendix({ result }: ReportAppendixProps) {
             .replace(/Using default benchmarks \(upload Kerry dataset for enhanced accuracy\)/gi, 'Analysis uses general industry benchmarks. Selecting your specific industry will improve accuracy.')
             .replace(/No industry-specific benchmarks applied/gi, 'General industry benchmarks applied. For higher precision, specify your exact business sector.')
             .replace(/upload Kerry dataset/gi, 'providing additional financial details')
-            .replace(/Kerry dataset/gi, 'proprietary industry database');
+            .replace(/Kerry dataset/gi, 'modeled reference ranges');
           return (
             <div key={i} style={pdfStyles.listItem}>
               <span style={pdfStyles.listBullet}>{i + 1}</span>

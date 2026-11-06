@@ -71,13 +71,13 @@ describe('BeatMissEngine — server benchmark reconciliation', () => {
   it('uses the real server record (not the static array) for a covered metric', () => {
     const cacRecord: ServerBenchmarkRecord = {
       metric: 'cac', value: 500, p25: 400, median: 550, p75: 700,
-      sample_size: 3000, source: 'AIWMC Quantis Benchmark Master (real match)', match_type: 'direct',
+      sample_size: 3000, source: 'Server XBRL record (real match)', match_type: 'direct',
     };
     render(<BeatMissEngine result={makeResult([cacRecord])} />);
     // Assert on the source substring only -- sample-size thousands
     // separators vary by environment locale (comma vs space) and aren't
     // what this test is verifying.
-    expect(screen.getByText(/AIWMC Quantis Benchmark Master \(real match\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Server XBRL record \(real match\)/)).toBeInTheDocument();
     // The CAC row specifically must not be marked "(est.)" since a real
     // match was found for it (other rows with no server record still
     // legitimately fall back and DO show "(est.)").

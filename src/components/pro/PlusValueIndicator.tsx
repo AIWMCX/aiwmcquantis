@@ -39,8 +39,8 @@ interface PerformanceMetric {
 
 const plusAdvantages = [
   {
-    title: 'Proprietary Industry Benchmarks',
-    description: 'Access to 47+ industry datasets with real business metrics, margins, and market data updated monthly.',
+    title: 'Industry Reference Ranges',
+    description: 'Margins, costs and unit economics compared with Quantis reference ranges (modeled, not observed data) for similar businesses.',
     icon: <Database className="w-5 h-5" />
   },
   {

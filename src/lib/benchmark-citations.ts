@@ -33,6 +33,23 @@ export interface SourcedMetric<T> {
 const MODELED_SOURCE = 'Quantis modeled benchmark';
 
 /**
+ * Label for every Benchmark Master range (a rule-generated grid, migration
+ * 20260608000003). Mirrors MODELED_REFERENCE_SOURCE in
+ * supabase/functions/analyze-business/benchmark-records.ts.
+ */
+export const MODELED_REFERENCE_LABEL = 'Quantis reference ranges (modeled, not observed data)';
+
+/**
+ * Display label for a benchmark source. Saved reports still carry older labels
+ * ("AIWMC Quantis Benchmark Master (97,500 rows)", "Kerry dataset"); show what
+ * the number is instead. Other named sources pass through unchanged.
+ */
+export function displayBenchmarkSource(source?: string | null): string {
+  if (!source || /benchmark master|kerry/i.test(source)) return MODELED_REFERENCE_LABEL;
+  return source;
+}
+
+/**
  * Build a BenchmarkCitation from an IndustryBenchmark record
  */
 export function buildCitation(benchmark: IndustryBenchmark): BenchmarkCitation {

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
-import { buildCitation, formatCitationCompact } from '@/lib/benchmark-citations';
+import { buildCitation, formatCitationCompact, displayBenchmarkSource } from '@/lib/benchmark-citations';
 import { checkFreshness, getFreshnessIcon, getFreshnessLabel } from '@/lib/benchmark-freshness';
 import type { BusinessAnalysisResult, ServerBenchmarkRecord } from '@/types/analysis';
 import { cn } from '@/lib/utils';
@@ -25,8 +25,8 @@ interface BeatMissRow {
  * investigation agent that this component's benchmark citations were never
  * reconciled with the rest of the report. Every other surface (PDF export,
  * BenchmarkCitations.tsx, RVCE's internal fallback) reads from
- * `result.metadata.benchmarks[]` -- the server's real ~97,500-row Benchmark
- * Master match, computed once at analysis time. This component instead used
+ * `result.metadata.benchmarks[]` -- the server's Benchmark Master match
+ * (modeled reference ranges), computed once at analysis time. This component instead used
  * `BENCHMARK_DATABASE`, a 120-row hand-typed static array where every single
  * row is stamped `source: 'kerry_dataset'` / a fixed placeholder sample size
  * of 1000, regardless of actual industry or metric. The same report could
@@ -71,7 +71,7 @@ export function resolveServerBand(
     p25: rec.p25 * scale,
     p50: rec.median * scale,
     p75: rec.p75 * scale,
-    source: rec.source ?? 'AIWMC Quantis Benchmark Master',
+    source: displayBenchmarkSource(rec.source),
     sampleSize: rec.sample_size,
   };
 }
@@ -87,8 +87,8 @@ export function resolveServerBand(
  * industry heuristic (David Skok / Bessemer "SaaS Metrics 2.0": 3:1 is the
  * minimum healthy ratio, 5:1+ is considered excellent) when no real
  * server-side ltv_cac_ratio record exists -- see resolveServerBand() above,
- * which DOES carry a real (non-derived) p25/p50/p75 for this exact metric
- * from the 97,500-row dataset when a direct/similar match was found.
+ * which carries a grid p25/p50/p75 for this exact metric from the modeled
+ * Benchmark Master grid when a direct/similar match was found.
  */
 const LTV_CAC_HEURISTIC = { healthyMin: 3, excellent: 5 } as const;
 

@@ -16,17 +16,18 @@
  * data points," which it never was. This function states the library
  * size and this report's actual matched count as two separate, clearly
  * labeled facts.
+ *
+ * 2026-11-06: the library is a modeled grid (migration 20260608000003: each
+ * dimension combination appears once), and the per-metric "n" values were
+ * invented. The summary now states no row count and promises no sample size.
  */
 
 interface BenchmarkRowLike {
   bench: { matched: boolean };
 }
 
-export function buildBenchmarkCitationsSummary(
-  benchmarkRows: BenchmarkRowLike[],
-  benchmarkCountDisplay: string,
-): string {
+export function buildBenchmarkCitationsSummary(benchmarkRows: BenchmarkRowLike[]): string {
   const matchedCount = benchmarkRows.filter((r) => r.bench.matched).length;
   const totalCount = benchmarkRows.length;
-  return `This report matched ${matchedCount} of ${totalCount} metrics against a direct benchmark row, drawn from the AIWMC Quantis Benchmark Master library (${benchmarkCountDisplay} rows across sector, geography, invoice, risk, and unit-economics tables). When a direct row matches your sector, geography, and stage we cite P25–P75 ranges, source, sample size, and dataset date below. When no direct match exists the value is marked "Estimated · No direct benchmark" and carries a wider uncertainty band.`;
+  return `This report matched ${matchedCount} of ${totalCount} metrics to a Quantis reference range for similar businesses (modeled, not observed data). For matched metrics we show the P25–P75 range, source and date below. When no match exists the value is marked "Estimated · No direct benchmark" and carries a wider uncertainty band.`;
 }

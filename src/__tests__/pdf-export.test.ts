@@ -125,9 +125,12 @@ describe('usePdfExport — canonical PDF pipeline', () => {
   // single-source-of-truth rule for this exact number. See
   // pdf-benchmark-summary.test.ts for the real runtime assertions on the
   // extracted summary-text function's actual output.
-  it('imports the benchmark count from canonical-facts.ts rather than hardcoding it', () => {
-    expect(HOOK).toMatch(/from ['"]@\/config\/canonical-facts['"]/);
-    expect(HOOK).toMatch(/BENCHMARK_COUNT_DISPLAY/);
+  // 2026-11-06: the summary no longer states the library size at all (the
+  // grid is modeled), so the hook needs no count; it must still never
+  // hard-code one.
+  it('hard-codes no benchmark count and uses the extracted summary', () => {
+    const code = HOOK.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+    expect(code).not.toMatch(/97,500/);
     expect(HOOK).not.toMatch(/'97,500 benchmarks'/);
     expect(HOOK).toMatch(/from ['"]\.\/pdf-benchmark-summary['"]/);
   });

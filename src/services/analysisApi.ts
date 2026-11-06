@@ -386,8 +386,8 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         /* analytics must never break the analysis path */
       }
 
-      // Always inject the canonical 97,500-datapoint provenance so the UI
-      // and PDF show real ingested datasets — even if the backend omitted them.
+      // Always inject the canonical provenance list (public datasets + the
+      // modeled grid) so the UI and PDF show it even if the backend omitted it.
       const enriched: BusinessAnalysisResult = {
         ...data.data,
         data_sources: mergeCanonicalDataSources(data.data.data_sources as string[] | undefined),
@@ -416,8 +416,8 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
   }
 
   // Step 4 of the benchmark-first plan: never fabricate an analysis on the
-  // client. A client-side fallback has no access to the 97,500-row benchmark
-  // dataset and was the root cause of the "0.1 vs 999 month CAC payback"
+  // client. A client-side fallback has no access to the server's benchmark
+  // grid and was the root cause of the "0.1 vs 999 month CAC payback"
   // contradictions the reviewer flagged. Surface a clean error instead so
   // the UI can show a retry CTA.
   const allowClientFallback = import.meta.env.VITE_ALLOW_CLIENT_FALLBACK === 'true';

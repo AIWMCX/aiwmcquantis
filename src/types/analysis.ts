@@ -434,7 +434,7 @@ export interface BusinessAnalysisResult {
       remaining_after_run?: number | null;
     };
     /**
-     * The server's real Benchmark Master match (~97,500-row dataset),
+     * The server's Benchmark Master match (modeled reference ranges),
      * computed once at analysis time. CodeRabbit catch (PR #100): this
      * field existed and was already read via an `any` cast in several
      * places (usePdfExport.ts, BeatMissEngine.tsx) -- declaring it here

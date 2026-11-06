@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
-import { buildCitation, formatCitationCompact } from '@/lib/benchmark-citations';
+import { buildCitation, formatCitationCompact, MODELED_REFERENCE_LABEL } from '@/lib/benchmark-citations';
 import { checkFreshness, getFreshnessIcon } from '@/lib/benchmark-freshness';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { cn } from '@/lib/utils';
@@ -75,7 +75,7 @@ export function CompetitiveMatrix({ result }: CompetitiveMatrixProps) {
     const freshness = anyBm ? checkFreshness(anyBm.lastUpdated) : null;
     const sourceLabel = citation
       ? `${formatCitationCompact(citation)} ${freshness ? getFreshnessIcon(freshness.warningLevel) : ''}`
-      : 'Proprietary Industry Benchmark Database';
+      : MODELED_REFERENCE_LABEL;
 
     return { cols, userRow, medianRow, p75Row, formatCell, sourceLabel };
   }, [result]);
