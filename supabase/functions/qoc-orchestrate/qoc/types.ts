@@ -155,6 +155,9 @@ export interface StageDeps {
   ) => Promise<{
     claims: Array<{ text: string; verdict: Verdict; sources: number }>;
     overall: Verdict;
+    /** "missing" / "malformed": the verifier gave no usable verdict, so `overall` is unknown (PARTIAL). */
+    overall_source?: "reported" | "missing" | "malformed";
+    notes?: string[];
     cost_usd: number;
   }>;
 }
