@@ -128,8 +128,9 @@ export async function verify(
           claim_count: out.claims.length,
           single_model: !!singleModel,
           force_model: forceModel ?? null,
+          overall_source: out.overall_source ?? "reported",
         },
-        notes: [],
+        notes: out.notes ?? [],
       },
     };
   } catch (e) {

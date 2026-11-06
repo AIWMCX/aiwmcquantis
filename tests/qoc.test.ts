@@ -13,6 +13,8 @@ import { orchestrate } from "../supabase/functions/qoc-orchestrate/qoc/orchestra
 import { preflight } from "../supabase/functions/qoc-orchestrate/qoc/preflight.ts";
 import { fingerprint, normalize } from "../supabase/functions/qoc-orchestrate/qoc/dedupe.ts";
 import { tierForPlan, tierForRequest } from "../supabase/functions/qoc-orchestrate/qoc/types.ts";
+import { httpStatusFor } from "../supabase/functions/qoc-orchestrate/qoc/policies.ts";
+import { parseVerifyResponse } from "../supabase/functions/qoc-orchestrate/adapters.ts";
 import type {
   AnalysisRequest,
   AuditEnvelope,
@@ -437,4 +439,62 @@ Deno.test("composed report includes unverified_count from verify claims", async 
   const report = env.report as any;
   assertEquals(report.verification.unverified_count, 2);
   assertEquals(report.verification.claims.length, 3);
+});
+
+// ---- AT-26: a verdict the verifier never reported is never PASS (F2) --------
+// ai-consensus answers 200 with { finalOutput, overallConfidence, ... } and no
+// `overall` / `verdict` field, so a `?? "PASS"` default would mark every
+// verification passed. Missing or malformed => PARTIAL (unknown), with the
+// reason recorded, the same state used when the verifier is unreachable.
+Deno.test("verify response with no overall verdict is unknown (PARTIAL), never PASS", () => {
+  const consensusShape = { finalOutput: {}, overallConfidence: 88, consensusScore: 95 };
+  for (const body of [consensusShape, {}, null, undefined, "PASS", { overall: null }]) {
+    const out = parseVerifyResponse(body);
+    assertEquals(out.overall, "PARTIAL", `body ${JSON.stringify(body)}`);
+    assertEquals(out.overall_source, "missing", `body ${JSON.stringify(body)}`);
+    assert(out.notes.length > 0, "a missing verdict must leave an audit note");
+  }
+});
+
+Deno.test("verify response with a malformed overall verdict is unknown (PARTIAL), never PASS", () => {
+  for (const overall of [42, true, {}, [], "", "   ", "LOOKS_GOOD"]) {
+    const out = parseVerifyResponse({ overall });
+    assertEquals(out.overall, "PARTIAL", `overall ${JSON.stringify(overall)}`);
+    assertEquals(out.overall_source, "malformed", `overall ${JSON.stringify(overall)}`);
+    assert(out.notes.length > 0, "a malformed verdict must leave an audit note");
+  }
+});
+
+Deno.test("verify response keeps a verdict the verifier actually reported", () => {
+  assertEquals(parseVerifyResponse({ overall: "PASS" }).overall, "PASS");
+  assertEquals(parseVerifyResponse({ overall: "fail" }).overall, "FAIL");
+  assertEquals(parseVerifyResponse({ verdict: "ok" }).overall, "PASS");
+  assertEquals(parseVerifyResponse({ overall: "HARD_BLOCK" }).overall, "HARD_BLOCK");
+  const reported = parseVerifyResponse({ overall: "PARTIAL" });
+  assertEquals(reported.overall_source, "reported");
+  assertEquals(reported.notes.length, 0);
+});
+
+Deno.test("claims with a missing or malformed verdict are never PASS", () => {
+  const out = parseVerifyResponse({
+    overall: "PASS",
+    claims: [{ text: "no verdict" }, { text: "boolean verdict", verdict: true }, { text: "ok", verdict: "PASS" }],
+  });
+  assertEquals(out.claims.map((c) => c.verdict), ["PARTIAL", "PARTIAL", "PASS"]);
+});
+
+Deno.test("a verify answer without a verdict keeps the report but never composes PASS", async () => {
+  const store = makeFakeStore();
+  const deps = makeDeps(store, {
+    verify: async () => parseVerifyResponse({ finalOutput: {}, overallConfidence: 88 }),
+  });
+  const env = await orchestrate(baseReq(), deps, { now: clock });
+  assertEquals(env.overall_verdict, "PARTIAL");
+  assertEquals(httpStatusFor(env), 200);
+  assert(env.report, "the deterministic report is still delivered");
+  const verifyTrace = env.traces.find((t) => t.stage === "verify");
+  assert(verifyTrace);
+  assertEquals(verifyTrace.verdict, "PARTIAL");
+  assertEquals(verifyTrace.detail.overall_source, "missing");
+  assert(verifyTrace.notes.some((n) => /no verdict/i.test(n)), "trace explains why the verdict is unknown");
 });
