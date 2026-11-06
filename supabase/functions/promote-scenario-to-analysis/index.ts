@@ -19,7 +19,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
-import { applyScenarioDelta, type DeltaChange } from '../_shared/scenario-delta.ts';
+import { applyScenarioDelta, needsResolvedBase, ScenarioDeltaError, type DeltaChange } from '../_shared/scenario-delta.ts';
+import { resolveScenarioBase } from '../_shared/scenario-sensitivity.ts';
 import {
   mergeScenarioIntoAnalysisResult,
   getMonthlyProfitMirror,
@@ -173,10 +174,27 @@ Deno.serve(async (req) => {
     // Recompute this scenario's exact effective base input from the ORIGINAL
     // frozen bundle + the same normalized_delta run-scenario applied — so the
     // new analysis stays scenario-modelable without re-deriving detection.
-    const newBaseInput = applyScenarioDelta(
-      originalAnalysis.scenario_base_input as Record<string, unknown> & { locationMultipliers: { rent: number } },
-      run.normalized_delta as DeltaChange[],
-    );
+    // deno-lint-ignore no-explicit-any
+    const originalBase = originalAnalysis.scenario_base_input as any;
+    const promotedChanges = run.normalized_delta as DeltaChange[];
+    let newBaseInput: Record<string, unknown>;
+    try {
+      newBaseInput = applyScenarioDelta(
+        originalBase,
+        promotedChanges,
+        needsResolvedBase(originalBase, promotedChanges)
+          ? resolveScenarioBase(originalBase, originalBase.benchmarks, originalBase.subIndustry)
+          : undefined,
+      );
+    } catch (e) {
+      if (e instanceof ScenarioDeltaError) {
+        return new Response(
+          JSON.stringify({ error: e.message, code: e.code }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      throw e;
+    }
 
     const newCorrelationId = crypto.randomUUID();
 

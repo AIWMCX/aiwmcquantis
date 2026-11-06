@@ -70,6 +70,54 @@ export function normalizeDelta(changes: DeltaChange[]): DeltaChange[] {
   return [...changes].sort((a, b) => a.assumption_key.localeCompare(b.assumption_key));
 }
 
+/**
+ * The values the engine actually used for inputs the user may not have typed.
+ * A percentage change to an untyped input starts from these; before 2026-11-05 it
+ * started from 0, so "+10% costs" on an analysis without typed costs ran with
+ * total costs of $0, and the sensitivity ranking scored costs and churn as having
+ * no impact.
+ */
+export interface ResolvedScenarioBase {
+  monthlyCosts: number;
+  churnRatePercent: number;
+  customers: number;
+}
+
+export type ScenarioDeltaErrorCode = 'BASE_VALUE_UNKNOWN' | 'RENT_REPLACE_UNSUPPORTED';
+
+export class ScenarioDeltaError extends Error {
+  constructor(readonly code: ScenarioDeltaErrorCode, message: string) {
+    super(message);
+    this.name = 'ScenarioDeltaError';
+  }
+}
+
+/** Picks the resolved values out of a calculateStrictFinancials result. */
+export function resolvedBaseFromCalc(calc: { totalExpenses: number; churnRatePercentUsed: number; clientsActive: number }): ResolvedScenarioBase {
+  return { monthlyCosts: calc.totalExpenses, churnRatePercent: calc.churnRatePercentUsed, customers: calc.clientsActive };
+}
+
+/** True when some change needs ResolvedScenarioBase (a % change to an input the user never typed). */
+export function needsResolvedBase(base: ScenarioDeltaTarget, changes: DeltaChange[]): boolean {
+  return changes.some((c) => c.operation !== 'replace' && (
+    (c.assumption_key === 'monthly_costs' && base.userProvidedCosts === undefined)
+    || (c.assumption_key === 'churn_rate' && base.userProvidedChurnRate === undefined)
+    || (c.assumption_key === 'expected_customers' && base.userProvidedCustomers === undefined)
+  ));
+}
+
+function resolveOptional(typed: number | undefined, resolved: number | undefined, change: DeltaChange): number {
+  if (change.operation === 'replace') return change.value;
+  const start = typed ?? resolved;
+  if (start === undefined) {
+    throw new ScenarioDeltaError(
+      'BASE_VALUE_UNKNOWN',
+      `Cannot apply ${change.operation} to ${change.assumption_key}: the base value the engine used is unknown`,
+    );
+  }
+  return resolveValue(start, change.operation, change.value);
+}
+
 function resolveValue(base: number, operation: DeltaOperation, value: number): number {
   switch (operation) {
     case 'replace':
@@ -100,7 +148,7 @@ export interface ScenarioDeltaTarget {
  * intentionally never adjusted — it isn't in the AssumptionKey catalog, so
  * it always carries through unchanged from the frozen base.
  */
-export function applyScenarioDelta<T extends ScenarioDeltaTarget>(base: T, changes: DeltaChange[]): T {
+export function applyScenarioDelta<T extends ScenarioDeltaTarget>(base: T, changes: DeltaChange[], resolved?: ResolvedScenarioBase): T {
   const effective: T = { ...base, locationMultipliers: { ...base.locationMultipliers } };
 
   for (const change of changes) {
@@ -118,15 +166,20 @@ export function applyScenarioDelta<T extends ScenarioDeltaTarget>(base: T, chang
         effective.rawAvgCheck = resolveValue(effective.rawAvgCheck, change.operation, change.value);
         break;
       case 'monthly_costs':
-        effective.userProvidedCosts = resolveValue(effective.userProvidedCosts ?? 0, change.operation, change.value);
+        effective.userProvidedCosts = resolveOptional(effective.userProvidedCosts, resolved?.monthlyCosts, change);
         break;
       case 'churn_rate':
-        effective.userProvidedChurnRate = resolveValue(effective.userProvidedChurnRate ?? 0, change.operation, change.value);
+        effective.userProvidedChurnRate = resolveOptional(effective.userProvidedChurnRate, resolved?.churnRatePercent, change);
         break;
       case 'expected_customers':
-        effective.userProvidedCustomers = resolveValue(effective.userProvidedCustomers ?? 0, change.operation, change.value);
+        effective.userProvidedCustomers = resolveOptional(effective.userProvidedCustomers, resolved?.customers, change);
         break;
       case 'rent':
+        // `rent` is a location multiplier on the benchmark rent, not dollars, so
+        // "replace rent = 3000" would mean x3000. Only % changes are meaningful.
+        if (change.operation === 'replace') {
+          throw new ScenarioDeltaError('RENT_REPLACE_UNSUPPORTED', 'rent can only be changed by a percentage (it scales the benchmark rent)');
+        }
         effective.locationMultipliers.rent = resolveValue(effective.locationMultipliers.rent, change.operation, change.value);
         break;
     }

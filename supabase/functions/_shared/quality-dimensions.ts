@@ -129,11 +129,15 @@ function gradeSourceCoverage(classes: AssumptionOriginClass[] | undefined): {
   if (!classes || classes.length === 0) {
     return { score: 0, evidence: 'No assumption-origin classification was available for this analysis.' };
   }
-  const evidenced = classes.filter((c) => c === 'USER_ACTUAL' || c === 'DERIVED').length;
+  // Only the customer's own numbers count. DERIVED means "AI-extracted from your
+  // description" (assumption-origin.ts LABELS): an AI estimate, not provenance
+  // (aiwmc.vocab.v1 maps it to analyst_assumption). Counted as provenance before 2026-11-05.
+  const evidenced = classes.filter((c) => c === 'USER_ACTUAL').length;
+  const aiEstimated = classes.filter((c) => c === 'DERIVED').length;
   const score = Math.round((evidenced / classes.length) * 100);
   return {
     score,
-    evidence: `${evidenced} of ${classes.length} material assumptions (${score}%) have real provenance (user-provided or directly derived from it); the rest are modeled-benchmark or default placeholder values.`,
+    evidence: `${evidenced} of ${classes.length} material assumptions (${score}%) are your own figures; ${aiEstimated} ${aiEstimated === 1 ? 'is an AI estimate' : 'are AI estimates'} from your description, and the rest are modeled-benchmark or default placeholder values.`,
   };
 }
 

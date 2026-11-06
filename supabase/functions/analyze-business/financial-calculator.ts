@@ -51,6 +51,10 @@ export interface StrictFinancialResult {
   cac: number;
   ltv: number;
   ltvCacRatio: number;
+  /** Monthly churn the engine actually used, in percent (user value, sub-industry
+   *  rate or 1/benchmark lifetime). Scenario deltas start from this when the user
+   *  never typed a churn rate. */
+  churnRatePercentUsed: number;
   averageCheck: number;
   ordersMonthly: number;
   clientsActive: number;
@@ -878,6 +882,7 @@ export function calculateStrictFinancials(
     },
     cac,
     ltv,
+    churnRatePercentUsed: monthlyChurnPercent,
     ltvCacRatio,
     averageCheck: avgCheck,
     ordersMonthly: Math.round(mrr / Math.max(avgCheck, 1)),
