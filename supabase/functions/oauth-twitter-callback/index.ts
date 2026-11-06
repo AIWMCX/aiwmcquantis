@@ -1,12 +1,21 @@
 // AIWMC Quantis — Twitter/X OAuth 2.0 callback with PKCE
 // ------------------------------------------------------------------
-// Step 1 (init): GET ?init=1 — generates state + PKCE verifier,
-//   stores them, returns redirect to X authorize URL.
-// Step 2 (callback): exchanges code with code_verifier, stores
+// Step 1 (start): the Autoposter "Connections" panel POSTs
+//   { action: 'start' } with an admin JWT. We store state + PKCE
+//   verifier and return the X authorize URL.
+// Step 2 (callback): X redirects back with ?code=...&state=...
+//   We exchange the code with the code_verifier and store
 //   access_token + refresh_token in Vault.
 // ------------------------------------------------------------------
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { encodeBase64Url } from 'https://deno.land/std@0.224.0/encoding/base64url.ts';
+import { corsHeadersFor } from '../_shared/cors.ts';
+import {
+  connectionStatus,
+  parseOAuthAction,
+  pkceS256Challenge,
+  randomCodeVerifier,
+  twitterAuthUrl,
+} from '../_shared/autoposter-oauth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -23,47 +32,61 @@ function html(body: string, status = 200) {
   ${body}</body>`, { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
-async function sha256base64url(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return encodeBase64Url(new Uint8Array(buf));
+/** Signed-in admin only. Returns the user id or null. */
+async function adminUserId(req: Request): Promise<string | null> {
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  const { data, error } = await supa.auth.getUser(token);
+  if (error || !data?.user) return null;
+  const { data: roles } = await supa.from('user_roles').select('role').eq('user_id', data.user.id).eq('role', 'admin');
+  return roles && roles.length > 0 ? data.user.id : null;
 }
 
-function randomVerifier(): string {
-  const bytes = new Uint8Array(64);
-  crypto.getRandomValues(bytes);
-  return encodeBase64Url(bytes).replace(/=+$/, '').slice(0, 96);
+/**
+ * Admin API used by the Autoposter "Connections" panel (POST, JSON):
+ *   { action: 'status' } -> connection summary (never tokens)
+ *   { action: 'start' }  -> { url } to send the browser to X
+ * This function is deployed without platform JWT verification because
+ * X's redirect carries no Supabase token; every path authenticates
+ * itself (admin JWT here, single-use state on the callback).
+ */
+async function handleApi(req: Request): Promise<Response> {
+  const cors = corsHeadersFor(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!(await adminUserId(req))) return json({ error: 'Admin sign-in required' }, 401);
+  const action = parseOAuthAction(await req.json().catch(() => ({})));
+  const configured = !!(CLIENT_ID && CLIENT_SECRET);
+
+  if (action === 'status') {
+    const { data: cred } = await supa.from('autoposter_credentials')
+      .select('account_id, token_expires, is_active, last_tested, updated_at, refresh_token_secret_id')
+      .eq('platform', 'twitter').maybeSingle();
+    return json(connectionStatus(cred, configured, REDIRECT_URI));
+  }
+  if (action === 'start') {
+    if (!configured) return json({ error: 'TWITTER_CLIENT_ID / TWITTER_CLIENT_SECRET are not set in Supabase secrets.' }, 409);
+    const state = crypto.randomUUID();
+    const verifier = randomCodeVerifier();
+    const { error } = await supa.from('autoposter_oauth_state').insert({
+      state, platform: 'twitter', code_verifier: verifier, redirect_uri: REDIRECT_URI,
+    });
+    if (error) return json({ error: `Could not start: ${error.message}` }, 500);
+    const codeChallenge = await pkceS256Challenge(verifier);
+    return json({ url: twitterAuthUrl({ clientId: CLIENT_ID, redirectUri: REDIRECT_URI, scope: SCOPES, state, codeChallenge }) });
+  }
+  return json({ error: 'Unknown action' }, 400);
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeadersFor(req) });
+  if (req.method === 'POST') return handleApi(req);
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return html('<h2>Missing config</h2><p>TWITTER_CLIENT_ID / TWITTER_CLIENT_SECRET not set.</p>', 500);
   }
   const url = new URL(req.url);
 
-  if (url.searchParams.get('init') === '1') {
-    // Admin-only. Requires CRON_SECRET via header or ?secret= query param.
-    // Prevents anonymous attackers from hijacking the shared autoposter account.
-    const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
-    const provided = req.headers.get('x-cron-secret') ?? url.searchParams.get('secret') ?? '';
-    if (!CRON_SECRET || provided !== CRON_SECRET) {
-      return html('<h2>Unauthorized</h2><p>Admin secret required to initiate X/Twitter OAuth.</p>', 401);
-    }
-    const state = crypto.randomUUID();
-    const verifier = randomVerifier();
-    const challenge = await sha256base64url(verifier);
-    await supa.from('autoposter_oauth_state').insert({
-      state, platform: 'twitter', code_verifier: verifier, redirect_uri: REDIRECT_URI,
-    });
-    const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code` +
-      `&client_id=${encodeURIComponent(CLIENT_ID)}` +
-      `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-      `&scope=${encodeURIComponent(SCOPES)}` +
-      `&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
-    return Response.redirect(authUrl, 302);
-  }
-
-
+  // CALLBACK
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const err = url.searchParams.get('error');

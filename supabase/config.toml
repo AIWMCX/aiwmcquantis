@@ -23,6 +23,11 @@ verify_jwt = false
 [functions.oauth-linkedin-callback]
 verify_jwt = false
 
+# Same for X: its redirect carries no Supabase JWT (admin JWT for the POST
+# API, single-use state on the callback).
+[functions.oauth-twitter-callback]
+verify_jwt = false
+
 [functions.engagement-checkout]
 verify_jwt = false
 

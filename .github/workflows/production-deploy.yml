@@ -580,7 +580,7 @@ jobs:
           )
           # Functions that must be callable without a JWT (email confirm/unsubscribe links,
           # OAuth callbacks that the provider redirects to). Each authenticates itself.
-          NO_VERIFY_JWT_FNS="confirm-email-subscription oauth-linkedin-callback"
+          NO_VERIFY_JWT_FNS="confirm-email-subscription oauth-linkedin-callback oauth-twitter-callback"
 
           FAILED=()
           for fn in "${FUNCTIONS[@]}"; do

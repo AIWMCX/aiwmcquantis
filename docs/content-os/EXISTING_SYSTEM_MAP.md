@@ -40,7 +40,7 @@
 
 - The **admin authorization pattern** (JWT → `has_role()`/`user_roles` check, server-side, in every function) — correct, matches the spec's own requirement that "hiding a button is not authorization."
 - The **publishing engine's architecture** in `publish-due-posts` — idempotent status transitions, `needs_credentials` vs `failed` distinction, audit logging per attempt, cron-driven. This is genuinely well-built; it just needs its tables to exist.
-- The **LinkedIn OAuth flow's security model** — admin-secret-gated initiation, CSRF state token, Vault-intended token storage.
+- The **LinkedIn OAuth flow's security model** — admin-secret-gated initiation, CSRF state token, Vault-intended token storage. *(2026-11-06: the shared-secret `?init=1` initiation was removed from both OAuth functions; connecting starts only from the Connections panel's admin-JWT `{ action: 'start' }`.)*
 - The **React Query hook layer** (`useAutoposter.ts`) — clean, would work immediately once tables exist.
 - Content Studio's **safer generation prompt discipline** (explicit "no fabricated stats" instruction) — better starting point than Autoposter's generator, which needs its claim violation fixed.
 
@@ -69,5 +69,5 @@ Only after that foundation is real should Phase 1-proper (content memory, cluste
 - Admin opens `/admin/content` (or current route) and the page renders without a Supabase "relation does not exist" error in console/network tab.
 - `useSeedContentPlan()` mutation succeeds and inserts rows visibly in the queue.
 - Generating one platform variant for one post succeeds, and the stored `autoposter_post_platforms.content` contains no unregistered numeric claim (i.e., the "95,500" fix is verified by absence, not by trust).
-- LinkedIn OAuth `init=1` flow completes and a row appears in `autoposter_credentials` with a Vault secret ID, never a raw token column.
+- LinkedIn OAuth connect flow (Connections panel → admin-JWT `start`; the `init=1` path was removed 2026-11-06) completes and a row appears in `autoposter_credentials` with a Vault secret ID, never a raw token column.
 - One scheduled test post reaches `publish-due-posts` and returns either `published` (if credentials are live) or `needs_credentials` (if not) — never an unhandled exception.
