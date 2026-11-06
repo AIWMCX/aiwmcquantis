@@ -36,9 +36,9 @@ const SOCIALS = [
   {
     id: 'telegram',
     name: 'Telegram',
-    handle: '@AIWMC',
-    description: 'Exclusive founder community, early access drops, and Q&A.',
-    url: 'https://t.me/AIWMC',
+    handle: '@aiwmcx',
+    description: 'Short posts from the founder: what we are building, money lessons and demos.',
+    url: 'https://t.me/aiwmcx',
     color: '#26A5E4',
     bg: 'bg-[#26A5E4]/10 hover:bg-[#26A5E4]/20 border-[#26A5E4]/30 hover:border-[#26A5E4]/60',
     iconColor: '#26A5E4',

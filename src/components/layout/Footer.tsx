@@ -32,7 +32,7 @@ const SOCIAL_LINKS = [
   {
     id: 'telegram',
     label: 'Telegram',
-    url: 'https://t.me/AIWMC',
+    url: 'https://t.me/aiwmcx',
     color: '#26A5E4',
     icon: (
       <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
