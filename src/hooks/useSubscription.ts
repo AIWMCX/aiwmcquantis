@@ -332,8 +332,14 @@ export function useSubscription(): SubscriptionData {
 
       logger.info('[Checkout] Response:', { data, error });
 
-      if (error) throw error;
-      
+      if (error) {
+        // supabase-js reports every non-2xx as "Edge Function returned a
+        // non-2xx status code"; the function's own message is in the body.
+        const context = (error as { context?: Response }).context;
+        const body = context ? await context.json().catch(() => null) : null;
+        throw new Error(typeof body?.error === 'string' ? body.error : error.message);
+      }
+
       if (data?.url) {
         logger.info('[Checkout] Redirecting immediately to:', data.url);
         // Use replace for immediate, non-interruptible redirect
@@ -349,6 +355,10 @@ export function useSubscription(): SubscriptionData {
         description: err instanceof Error ? err.message : 'Failed to start checkout. Please try again.',
         variant: 'destructive',
       });
+      // Re-throw so callers can reset their button: every pricing and upgrade
+      // CTA does `.catch(() => setLoading(false))`, and swallowing the error
+      // here left /pricing stuck on "Processing..." after a failed checkout.
+      throw err;
     }
   };
 
@@ -367,7 +377,8 @@ export function useSubscription(): SubscriptionData {
     // A free plan month has no Stripe customer to manage: send them to the
     // Pro checkout instead of a portal that would answer "no customer".
     if (subscription?.grant_source && subscription.plan_id !== 'free') {
-      await createCheckout(subscription.plan_id === 'plus' ? 'plus' : 'pro');
+      // createCheckout already toasts its own failure.
+      await createCheckout(subscription.plan_id === 'plus' ? 'plus' : 'pro').catch(() => undefined);
       return;
     }
     if (!subscription || subscription.plan_id === 'free') {
