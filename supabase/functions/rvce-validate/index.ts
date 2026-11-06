@@ -3,7 +3,8 @@
  * v0.3.0-deepseek
  *
  * Architecture:
- *   1. Search  → DuckDuckGo Lite HTML scrape (no API key) + Tavily fallback if TAVILY_API_KEY set
+ *   1. Search  → Tavily (shared client), DuckDuckGo HTML fallback. Every call records its
+ *               outcome (search-outcome.ts); a failed provider is never reported as "no data".
  *   2. Extract → DeepSeek deepseek-v4-flash (JSON mode, temp=0.1) to pull numeric observations
  *      (legacy deepseek model deprecated 2026-07-24 — migrated to V4 model name directly)
  *   3. Gate    → Tier-aware budgets: free=20 obs, plus=40 obs, pro=100 obs.
@@ -18,9 +19,23 @@ import { maybeHealthResponse } from '../_shared/health.ts';
 import { computeRvceStatus, fmtMetricValue } from './status.ts';
 import { logAiCall } from '../_shared/ai-logger.ts';
 import { deepseekCostUsd } from './cost.ts';
+import { createTavilyClient } from '../_shared/tavily-client.ts';
+import {
+  describeFailures,
+  duckDuckGoSearch,
+  noDataNote,
+  noEvidenceRejectionReason,
+  providerOutcomeCounts,
+  searchWithFallback,
+  summarizeAttempts,
+  type ProviderAttempt,
+  type ProviderOutcome,
+  type SearchProviderId,
+  type SearchResult,
+} from './search-outcome.ts';
 
 const FUNCTION_NAME = 'rvce-validate';
-const FUNCTION_VERSION = '0.5.0';
+const FUNCTION_VERSION = '0.5.1';
 
 
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
@@ -29,7 +44,7 @@ const SUPABASE_URL      = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const DEEPSEEK_URL      = 'https://api.deepseek.com/v1/chat/completions';
-const RVCE_VERSION      = 'rvce-0.5.0-deepseek';
+const RVCE_VERSION      = 'rvce-0.5.1-deepseek';
 
 // Tier → max total observations collected across all metrics.
 // Canonical spec (2026-06-20, locked): Free 20 / Plus 40 / Pro 100.
@@ -153,12 +168,8 @@ interface Observation {
   source: string;
   url: string;
   confidence: number;
-}
-
-interface SearchResult {
-  title: string;
-  snippet: string;
-  url: string;
+  /** The search provider whose result this value was extracted from. */
+  provider?: SearchProviderId;
 }
 
 interface SearchDiagnostics {
@@ -176,113 +187,20 @@ interface SearchDiagnostics {
   error: string | null;
   /** Counts by normalization_status across all extracted observations for this metric — no raw text, counts only. */
   normalization_counts: Record<string, number>;
+  /** success / degraded / failed across every provider call for this metric (search-outcome.ts). */
+  search_outcome: ProviderOutcome;
+  /** One entry per provider call, in order, with the failure reason when it failed. */
+  provider_attempts: ProviderAttempt[];
 }
 
 // ── Web Search ──────────────────────────────────────────────────────────────
+// Tavily first, DuckDuckGo when Tavily failed or returned nothing. Errors are
+// recorded per call, never turned into an empty list (F1, search-outcome.ts).
 
-async function tavilySearch(query: string): Promise<SearchResult[]> {
-  try {
-    const resp = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: TAVILY_API_KEY,
-        query,
-        search_depth: 'basic',
-        max_results: 5,
-        include_answer: false,
-      }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!resp.ok) return [];
-    const data = await resp.json();
-    return (data.results || []).slice(0, 5).map((r: any) => ({
-      title: r.title || '',
-      snippet: r.content || r.snippet || '',
-      url: r.url || '',
-    }));
-  } catch {
-    return [];
-  }
-}
+const tavily = createTavilyClient({ apiKey: TAVILY_API_KEY });
 
-async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
-  try {
-    // Use the POST form on html.duckduckgo.com — more permissive for non-browser clients
-    // than lite.duckduckgo.com (which 200s but returns an empty results page when it
-    // detects a non-standard User-Agent like ours).
-    const form = new URLSearchParams({ q: query, kl: 'us-en' });
-    const resp = await fetch('https://html.duckduckgo.com/html/', {
-      method: 'POST',
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: form.toString(),
-      signal: AbortSignal.timeout(9000),
-    });
-    if (!resp.ok) return [];
-    const html = await resp.text();
-
-    const results: SearchResult[] = [];
-
-    // Accept both layouts:
-    //   • html.duckduckgo.com → class="result__a" / class="result__snippet"
-    //   • lite.duckduckgo.com → class='result-link' / class='result-snippet'
-    const linkRegex =
-      /<a[^>]+class=['"](?:result__a|result-link)['"][^>]+href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/gi;
-    const snippetRegex =
-      /<(?:a|td)[^>]+class=['"](?:result__snippet|result-snippet)['"][^>]*>([\s\S]*?)<\/(?:a|td)>/gi;
-
-    const links    = [...html.matchAll(linkRegex)];
-    const snippets = [...html.matchAll(snippetRegex)];
-
-    const unwrap = (href: string): string => {
-      try {
-        const abs = href.startsWith('//') ? `https:${href}` : href;
-        const u = new URL(abs);
-        const uddg = u.searchParams.get('uddg');
-        return uddg ? decodeURIComponent(uddg) : abs;
-      } catch {
-        return href;
-      }
-    };
-
-    for (let i = 0; i < links.length && results.length < 5; i++) {
-      const url   = unwrap(links[i][1]);
-      const title = links[i][2].replace(/<[^>]+>/g, '').trim();
-      const snippet = snippets[i]
-        ? snippets[i][1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-        : '';
-      if (url && title && /^https?:\/\//.test(url) && !/duckduckgo\.com/.test(url)) {
-        results.push({ title, snippet, url });
-      }
-    }
-
-    // Last-ditch fallback: any external link with visible anchor text
-    if (results.length === 0) {
-      const fallbackLinks = [...html.matchAll(/href=['"](https?:\/\/[^'"]+)['"][^>]*>([^<]{5,80})<\/a>/g)];
-      for (const m of fallbackLinks.slice(0, 5)) {
-        if (/duckduckgo\.com/.test(m[1])) continue;
-        results.push({ url: m[1], title: m[2].trim(), snippet: '' });
-      }
-    }
-
-    return results;
-  } catch {
-    return [];
-  }
-}
-
-async function webSearch(query: string): Promise<SearchResult[]> {
-  if (TAVILY_API_KEY) {
-    const results = await tavilySearch(query);
-    if (results.length > 0) return results;
-  }
-  return duckDuckGoSearch(query);
+function webSearch(query: string) {
+  return searchWithFallback(query, { tavily, duckDuckGo: (q) => duckDuckGoSearch(q) });
 }
 
 // ── Unit-safety layer ───────────────────────────────────────────────────────
@@ -545,6 +463,8 @@ async function validateMetric(
     source_urls: [],
     error: null,
     normalization_counts: {},
+    search_outcome: 'failed',
+    provider_attempts: [],
   };
 
   const addNormalizationCounts = (normalized: NormalizedObservation[]) => {
@@ -559,7 +479,8 @@ async function validateMetric(
   for (const q of templates.primary.map(fill)) {
     diag.queries_sent.push(q);
     try {
-      const results = await webSearch(q);
+      const { results, provider, attempts } = await webSearch(q);
+      diag.provider_attempts.push(...attempts);
       if (results.length > 0) {
         diag.web_search_fired = true;
         (diag as any).web_search_tool_fired = true;
@@ -569,7 +490,7 @@ async function validateMetric(
         diag.results_found += results.length;
         diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
         const extracted = await extractObservations(metric, results, profile, logCtx);
-        observations.push(...extracted.accepted);
+        observations.push(...extracted.accepted.map(o => ({ ...o, provider: provider ?? undefined })));
         addNormalizationCounts(extracted.normalized);
       }
     } catch (e) {
@@ -584,7 +505,8 @@ async function validateMetric(
     for (const q of templates.fallback.map(fill)) {
       diag.queries_sent.push(q);
       try {
-        const results = await webSearch(q);
+        const { results, provider, attempts } = await webSearch(q);
+        diag.provider_attempts.push(...attempts);
         if (results.length > 0) {
           diag.web_search_fired = true;
           (diag as any).web_search_tool_fired = true;
@@ -594,7 +516,7 @@ async function validateMetric(
           diag.results_found += results.length;
           diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
           const extracted = await extractObservations(metric, results, profile, logCtx);
-          observations.push(...extracted.accepted);
+          observations.push(...extracted.accepted.map(o => ({ ...o, provider: provider ?? undefined })));
           addNormalizationCounts(extracted.normalized);
         }
       } catch { /* best-effort */ }
@@ -607,11 +529,21 @@ async function validateMetric(
   diag.source_urls = [...new Set(diag.source_urls)];
   diag.parsed_observations = observations.length;
 
+  // A metric whose providers all failed shows the failure, never "no data".
+  diag.search_outcome = summarizeAttempts(diag.provider_attempts);
+  if (diag.search_outcome === 'failed' && !diag.error) {
+    diag.error = `Search failed (${describeFailures(diag.provider_attempts) || 'no search call completed'})`;
+  }
+
   if (observations.length < 2) {
     const benchmarkFallback = await internalBenchmarkFallback(metric, originalValue, profile, adminClient);
     if (benchmarkFallback) {
       diag.parsed_observations = benchmarkFallback.validation.observation_count;
-      return { ...benchmarkFallback, diagnostics: diag };
+      return {
+        ...benchmarkFallback,
+        validation: { ...benchmarkFallback.validation, search_outcome: diag.search_outcome },
+        diagnostics: diag,
+      };
     }
 
     return {
@@ -621,12 +553,11 @@ async function validateMetric(
         p25: null, p75: null,
         status: 'NO_DATA',
         discrepancy_score: 0,
-        notes: diag.web_search_fired
-          ? 'Web search ran but found insufficient numeric data for this metric.'
-          : 'No web results found. External validation unavailable.',
+        notes: noDataNote({ webSearchFired: diag.web_search_fired, attempts: diag.provider_attempts }),
         observation_count: observations.length,
         web_search_fired: diag.web_search_fired,
         sources_used: diag.source_urls.length,
+        search_outcome: diag.search_outcome,
       },
       evidence: [],
       diagnostics: diag,
@@ -677,6 +608,7 @@ async function validateMetric(
     observation_count: observations.length,
     web_search_fired: diag.web_search_fired,
     sources_used: diag.source_urls.length,
+    search_outcome: diag.search_outcome,
   };
 
   if (status === 'OUTLIER') validation.recommended_value = parseFloat(med.toFixed(2));
@@ -687,6 +619,7 @@ async function validateMetric(
     url: o.url,
     summary: `$${o.value.toLocaleString()} — ${o.source}`,
     value: o.value,
+    provider: o.provider ?? null,
   }));
 
   return { validation, evidence, diagnostics: diag };
@@ -953,6 +886,7 @@ serve(async (req) => {
             web_search_tool_fired: false, tool_use_count: 0, tool_result_count: 0,
             raw_results_found: 0, results_found: 0, parsed_observations: 0, fallback_used: false,
             source_urls: [], error: String(res.reason),
+            normalization_counts: {}, search_outcome: 'failed', provider_attempts: [],
           });
         }
       });
@@ -992,6 +926,15 @@ serve(async (req) => {
     const totalObs = searchDiagnostics.reduce((s, d) => s + d.parsed_observations, 0);
     const validatedMetricCount = Object.values(metricsValidation).filter((v: any) => v.status !== 'NO_DATA').length;
 
+    // Run-level search outcome from the per-metric ones: the run is degraded if
+    // any metric's search was not a clean success, failed if none answered.
+    const metricOutcomes = searchDiagnostics.map(d => d.search_outcome);
+    const searchOutcome: ProviderOutcome | 'not_run' =
+      metricOutcomes.length === 0 ? 'not_run'
+      : metricOutcomes.every(o => o === 'success') ? 'success'
+      : metricOutcomes.every(o => o === 'failed') ? 'failed'
+      : 'degraded';
+
     const searchHealth = {
       total_metrics_searched:     metricsToProcess.length,
       web_search_fired_count:     searchFiredCount,
@@ -1003,6 +946,9 @@ serve(async (req) => {
       observation_limit:          obsLimit,
       tier_used:                  tier,
       search_provider:            TAVILY_API_KEY ? 'tavily+ddg' : 'duckduckgo',
+      search_outcome:             searchOutcome,
+      degraded:                   searchOutcome === 'degraded' || searchOutcome === 'failed',
+      provider_outcomes:          providerOutcomeCounts(searchDiagnostics.flatMap(d => d.provider_attempts)),
     };
 
     const payload_out = {
@@ -1075,12 +1021,14 @@ interface RvceEvidenceSample {
   url?: string;
   summary: string;
   value: number;
+  provider?: SearchProviderId | null;
 }
 
 interface RvcePersistPayload {
   analysis_id: string;
   metrics_validation: Record<string, { status: string; discrepancy_score: number }>;
   evidence_samples: RvceEvidenceSample[];
+  search_diagnostics?: Array<{ metric: string; provider_attempts: ProviderAttempt[] }>;
 }
 
 async function persistObservations(
@@ -1099,6 +1047,9 @@ async function persistObservations(
     list.push(sample);
     evidenceByMetric.set(sample.metric, list);
   }
+  const attemptsByMetric = new Map(
+    (payload.search_diagnostics ?? []).map(d => [d.metric, d.provider_attempts ?? []] as const),
+  );
 
   for (const [metric, validation] of Object.entries(payload.metrics_validation ?? {})) {
     const samples = evidenceByMetric.get(metric) ?? [];
@@ -1122,7 +1073,8 @@ async function persistObservations(
         source_quality: qualityScore,
         comparability_score: qualityScore,
         accepted: false,
-        rejection_reason: 'no_external_evidence_found',
+        // A provider failure is recorded as one, never as "no evidence found".
+        rejection_reason: noEvidenceRejectionReason(attemptsByMetric.get(metric) ?? []),
       });
       continue;
     }
@@ -1139,7 +1091,8 @@ async function persistObservations(
         source_url: hasRealUrl ? sample.url : null,
         source_title: sample.summary ?? null,
         publisher: sample.source ?? null,
-        extraction_method: hasRealUrl ? 'rvce_web_search' : 'internal_benchmark_master',
+        extraction_method: !hasRealUrl ? 'internal_benchmark_master'
+          : sample.provider ? `rvce_web_search:${sample.provider}` : 'rvce_web_search',
         source_quality: qualityScore,
         comparability_score: qualityScore,
         accepted: v.status !== 'OUTLIER',
