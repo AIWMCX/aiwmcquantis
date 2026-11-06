@@ -60,7 +60,7 @@ export function StructuredData({
       sameAs: [
         'https://www.linkedin.com/company/aiwmc/',
         'https://x.com/aiwmcx1',
-        'https://t.me/AIWMC',
+        'https://t.me/aiwmcx',
         'https://www.instagram.com/wmc.ai',
         'https://www.threads.com/@wmc.ai',
         'https://www.youtube.com/@AIWMCX',
