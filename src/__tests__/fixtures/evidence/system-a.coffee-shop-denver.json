@@ -1,0 +1,223 @@
+{
+  "_fixtureMeta": {
+    "generatedAt": "2026-08-10T08:21:26.359Z",
+    "dataSource": "MOCKED_TAVILY_RESPONSE",
+    "scenario": "coffee-shop-denver",
+    "note": "Generated with a mocked Tavily response (no TAVILY_API_KEY / EVIDENCE_PROVIDER_INTEGRATION_TESTS=true set in this environment) -- the pipeline logic itself is 100% real, only the provider HTTP call is stubbed. Re-run with those env vars set to regenerate against live data.",
+    "privacyFindings": [],
+    "providerResultSummaries": [
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 2
+      },
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 1
+      },
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 1
+      },
+      {
+        "providerId": "tavily",
+        "status": "SUCCESS",
+        "resultCount": 1
+      }
+    ]
+  },
+  "packet": {
+    "evidencePacketId": "0c6ad200-575f-4413-86be-676767acc7e2",
+    "createdAt": "2026-08-10T08:21:26.359Z",
+    "analysisRunId": "fixture-coffee-shop-denver",
+    "queryPlanVersion": "0.1.0",
+    "providerSetVersion": "0.1.0",
+    "rankingVersion": "0.1.0",
+    "evidenceSchemaVersion": "0.1.0",
+    "sourceLenses": [
+      "OFFICIAL",
+      "GOVERNMENT",
+      "INDUSTRY"
+    ],
+    "sources": [
+      {
+        "sourceId": "90dee27d-fba1-4e36-8408-ba086675871e",
+        "canonicalUrl": "https://costar.com/denver-retail-2026",
+        "publisher": "Denver Retail Rent Report 2026",
+        "publishedAt": "2026-02-01",
+        "retrievedAt": "2026-08-10T08:21:26.346Z",
+        "contentHash": "341603f3f46593d6ca9d53f53708c2d801d2c5a950097cf6021ea740835909da",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "90dee27d-fba1-4e36-8408-ba086675871e"
+      },
+      {
+        "sourceId": "9cd03574-25b5-4def-b7fa-3c7e39b3c6d5",
+        "canonicalUrl": "https://denver.smallbizguide.example/rent",
+        "publisher": "Denver Small Business Space Guide",
+        "publishedAt": "2026-01-15",
+        "retrievedAt": "2026-08-10T08:21:26.351Z",
+        "contentHash": "7c3469823548a6c3eaa65c7754bd59dbaff3ced452e60e0431bb8064557fe302",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "9cd03574-25b5-4def-b7fa-3c7e39b3c6d5"
+      },
+      {
+        "sourceId": "a6a1013b-2a65-4ba1-aec6-fac07aaa46e3",
+        "canonicalUrl": "https://bls.gov/oes/current/oes_19740.htm",
+        "publisher": "BLS Occupational Employment and Wage Statistics — Colorado",
+        "publishedAt": "2025-05-01",
+        "retrievedAt": "2026-08-10T08:21:26.355Z",
+        "contentHash": "2ea16ca35cc26ab45e70444d946514df8e54376c0ea666b60992f6e257c27c3a",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "a6a1013b-2a65-4ba1-aec6-fac07aaa46e3"
+      },
+      {
+        "sourceId": "0976e84b-04f8-433e-a8e7-005231d6ce22",
+        "canonicalUrl": "https://denvergov.org/food-establishment-license",
+        "publisher": "City and County of Denver — Retail Food Establishment License",
+        "publishedAt": "2026-01-01",
+        "retrievedAt": "2026-08-10T08:21:26.356Z",
+        "contentHash": "34f582e0a6c7f6896e42e6678ecd33792f97a9d80a115e35a533b486350dbf4e",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "0976e84b-04f8-433e-a8e7-005231d6ce22"
+      },
+      {
+        "sourceId": "7e3587fd-8b6f-4f63-8f81-534f935a449e",
+        "canonicalUrl": "https://industry-example.com/coffee-benchmarks",
+        "publisher": "Coffee Shop Industry Benchmark Report",
+        "publishedAt": "2025-11-01",
+        "retrievedAt": "2026-08-10T08:21:26.358Z",
+        "contentHash": "5f1b3a8f3aa68b94f5ec8d284f35f23587480fd591d4df228f9b525a4fb58de7",
+        "sourceType": "OTHER",
+        "primaryStatus": "UNKNOWN",
+        "freshness": "AGING",
+        "storagePolicy": "METADATA_ONLY",
+        "providerId": "tavily",
+        "independenceCluster": "7e3587fd-8b6f-4f63-8f81-534f935a449e"
+      }
+    ],
+    "passages": [
+      {
+        "passageId": "a3201048-c172-4234-9039-fdcb7489bf29",
+        "sourceId": "90dee27d-fba1-4e36-8408-ba086675871e",
+        "text": "Average Denver retail commercial rent is $28-32/sqft/year as of early 2026, per CoStar market data.",
+        "extractedAt": "2026-08-10T08:21:26.348Z",
+        "contentHash": "341603f3f46593d6ca9d53f53708c2d801d2c5a950097cf6021ea740835909da"
+      },
+      {
+        "passageId": "0b8eaf9a-0a9a-418c-834c-412256b5f920",
+        "sourceId": "9cd03574-25b5-4def-b7fa-3c7e39b3c6d5",
+        "text": "Small retail/cafe spaces in Denver typically lease for $27-30/sqft annually, varying by neighborhood.",
+        "extractedAt": "2026-08-10T08:21:26.351Z",
+        "contentHash": "7c3469823548a6c3eaa65c7754bd59dbaff3ced452e60e0431bb8064557fe302"
+      },
+      {
+        "passageId": "9992e74e-4aaa-4f53-aba6-1fd42f5ed8f8",
+        "sourceId": "a6a1013b-2a65-4ba1-aec6-fac07aaa46e3",
+        "text": "Median hourly wage for food service workers in the Denver-Aurora-Lakewood metro area was $16.85 in May 2025.",
+        "extractedAt": "2026-08-10T08:21:26.355Z",
+        "contentHash": "2ea16ca35cc26ab45e70444d946514df8e54376c0ea666b60992f6e257c27c3a"
+      },
+      {
+        "passageId": "653a4ad0-b3e7-42e7-91c3-b75327d5a80a",
+        "sourceId": "0976e84b-04f8-433e-a8e7-005231d6ce22",
+        "text": "Coffee shops and cafes in Denver require a Retail Food Establishment License from Denver Department of Public Health & Environment, plus a standard business license.",
+        "extractedAt": "2026-08-10T08:21:26.356Z",
+        "contentHash": "34f582e0a6c7f6896e42e6678ecd33792f97a9d80a115e35a533b486350dbf4e"
+      },
+      {
+        "passageId": "e9d6529c-a3a0-424d-9ff0-45001c02939a",
+        "sourceId": "7e3587fd-8b6f-4f63-8f81-534f935a449e",
+        "text": "Independent coffee shops typically see gross margins of 65-75% and average customer spend of $6-9 per visit.",
+        "extractedAt": "2026-08-10T08:21:26.358Z",
+        "contentHash": "5f1b3a8f3aa68b94f5ec8d284f35f23587480fd591d4df228f9b525a4fb58de7"
+      }
+    ],
+    "claims": [
+      {
+        "claimId": "4acaa677-8c94-40e7-ba11-d26a83e156ca",
+        "statement": "Evidence gathered for: Denver, Colorado commercial rent Coffee shop",
+        "support": [
+          {
+            "sourceId": "90dee27d-fba1-4e36-8408-ba086675871e",
+            "passageId": "a3201048-c172-4234-9039-fdcb7489bf29",
+            "relation": "SUPPORTS"
+          },
+          {
+            "sourceId": "9cd03574-25b5-4def-b7fa-3c7e39b3c6d5",
+            "passageId": "0b8eaf9a-0a9a-418c-834c-412256b5f920",
+            "relation": "SUPPORTS"
+          }
+        ],
+        "status": "SUPPORTED",
+        "freshness": "AGING",
+        "sourceIndependenceCount": 2
+      },
+      {
+        "claimId": "83f3c048-4a75-44b0-9c90-36525bb0ee5c",
+        "statement": "Evidence gathered for: Denver, Colorado wage data Coffee shop",
+        "support": [
+          {
+            "sourceId": "a6a1013b-2a65-4ba1-aec6-fac07aaa46e3",
+            "passageId": "9992e74e-4aaa-4f53-aba6-1fd42f5ed8f8",
+            "relation": "SUPPORTS"
+          }
+        ],
+        "status": "SINGLE_SOURCE",
+        "freshness": "AGING",
+        "sourceIndependenceCount": 1
+      },
+      {
+        "claimId": "683fdc40-db72-4357-86d0-116365867548",
+        "statement": "Evidence gathered for: Denver, Colorado Coffee shop business licensing requirements",
+        "support": [
+          {
+            "sourceId": "0976e84b-04f8-433e-a8e7-005231d6ce22",
+            "passageId": "653a4ad0-b3e7-42e7-91c3-b75327d5a80a",
+            "relation": "SUPPORTS"
+          }
+        ],
+        "status": "SINGLE_SOURCE",
+        "freshness": "AGING",
+        "sourceIndependenceCount": 1
+      },
+      {
+        "claimId": "e177c012-c032-4efd-ae8d-95eea780be97",
+        "statement": "Evidence gathered for: Coffee shop industry benchmarks Denver, Colorado",
+        "support": [
+          {
+            "sourceId": "7e3587fd-8b6f-4f63-8f81-534f935a449e",
+            "passageId": "e9d6529c-a3a0-424d-9ff0-45001c02939a",
+            "relation": "SUPPORTS"
+          }
+        ],
+        "status": "SINGLE_SOURCE",
+        "freshness": "AGING",
+        "sourceIndependenceCount": 1
+      }
+    ],
+    "numericObservations": [],
+    "unresolvedQuestions": [],
+    "contradictions": [],
+    "degraded": false,
+    "retrievalLatencyMs": 62,
+    "contentHash": "8ee196e1bd40fc27b7b91adda829ad2ea5d012bd77b12254c8646776e4cd6a38"
+  }
+}

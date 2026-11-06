@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Runtime-neutral modules in supabase/functions/_shared (financial kernel,
+      // aiwmc.evidence.v1 contracts) use Deno's npm: specifiers; resolve them
+      // to the same packages from package.json, as vitest.config.ts does.
+      "npm:decimal.js@10.4.3": "decimal.js",
+      "npm:zod@3.23.8": "zod",
     },
   },
   esbuild: {
