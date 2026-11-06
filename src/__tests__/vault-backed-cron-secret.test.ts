@@ -11,12 +11,9 @@ describe("Vault-backed cron secret migration", () => {
   it("exists and never contains a literal x-cron-secret value", () => {
     expect(cronMigrationFile).toBeDefined();
     const source = readFileSync(resolve(migrationsDir, cronMigrationFile!), "utf8").replace(/\r\n/g, "\n");
-    // The two known literal secret values that have appeared in this repo's
-    // git history (one wrong, one correct) must never reappear in a new
-    // migration file -- this is the exact class of exposure the auto-mode
-    // classifier blocked earlier this session.
-    expect(source).not.toContain("fbfa43cf0894fa91c8f2e09fdd3508702e25584ad13634853404be3e4410c0e3");
-    expect(source).not.toContain("75ba27f02eba39bfa59cbbc5b2f4e63e19c3645e0d4a115b672105880a22cc65");
+    // No literal x-cron-secret value may appear in this migration. The values
+    // are not repeated here: cron-secret-hygiene.test.ts checks by SHA-256.
+    expect(source).not.toMatch(/["']x-cron-secret["']\s*[:,]\s*["'][^"'(]{8,}["']/i);
     expect(source).toContain("vault.decrypted_secrets");
     expect(source).toContain("quantis_shared_cron_secret");
   });

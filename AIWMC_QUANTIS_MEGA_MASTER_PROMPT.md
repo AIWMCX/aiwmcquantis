@@ -45,7 +45,7 @@ AIWMC™ Quantis (`aiwmcquantis.com`) is a SaaS business-idea validator and fina
 ```
 PRODUCTION SUPABASE PROJECT REF:  dmlxrvfyqsakyjomsvdj
 SUPABASE ANON KEY:                eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtbHhydmZ5cXNha3lqb21zdmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MjgyMzUsImV4cCI6MjA4ODAwNDIzNX0.gv-OzyqRMcptDxcVXHx83Ncsju9RZRcQTP8XiwBDhDY
-CRON SECRET:                      fbfa43cf0894fa91c8f2e09fdd3508702e25584ad13634853404be3e4410c0e3
+CRON SECRET:                      never in git. Vault quantis_shared_cron_secret + CRON_SECRET (edge secret, GitHub env secret); see docs/execution/2026-11-06-cron-secret-rotation-runbook.md
 CANONICAL URL:                    https://www.aiwmcquantis.com
 OWNER EMAIL:                      jeltovbogdan@gmail.com
 OLD DEAD PROJECT (DO NOT USE):    gafxacjhkqsdzwwzhbor  ← Lovable-owned, NEVER deploy here
