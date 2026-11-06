@@ -215,7 +215,9 @@ describe("rvce-validate wiring (F1)", () => {
     expect(src).toMatch(/searchWithFallback\(/);
     expect(src).toMatch(/provider_attempts/);
     expect(src).toMatch(/noDataNote\(/);
-    expect(src).toMatch(/noEvidenceRejectionReason\(/);
+    // Persisted rejection reasons are built in observation-rows.ts, which index.ts calls.
+    expect(src).toMatch(/buildObservationRows\(/);
+    expect(readFileSync("supabase/functions/rvce-validate/observation-rows.ts", "utf8")).toMatch(/noEvidenceRejectionReason\(/);
     expect(src).toMatch(/search_outcome/);
   });
 });
