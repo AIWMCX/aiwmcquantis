@@ -28,6 +28,8 @@ const fixtures: Record<string, unknown[]> = {
 
 // Minimal thenable query builder: every chained call returns itself, awaiting
 // it yields the table fixture (or its first row after maybeSingle/single).
+// update() payloads are recorded so tests can see what was written.
+const recordUpdate = vi.fn((_table: string, _patch: Record<string, unknown>) => undefined);
 function chain(table: string) {
   let single = false;
   const proxy: unknown = new Proxy({}, {
@@ -38,22 +40,40 @@ function chain(table: string) {
         return (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve(value).then(res, rej);
       }
       if (prop === 'maybeSingle' || prop === 'single') return () => { single = true; return proxy; };
+      if (prop === 'update') return (patch: Record<string, unknown>) => { recordUpdate(table, patch); return proxy; };
       return () => proxy;
     },
   });
   return proxy;
 }
 
-const invoke = vi.fn(async () => ({ data: { draft: { ...fixtures.li_engagement_drafts[0], status: 'approved', final_text: COMMENT }, lint: { ok: true } }, error: null }));
+const SITE = 'https://doeadvisory.com';
+const SCAN = {
+  success: true, website: SITE, protected_hidden: false,
+  candidates: [{ email: 'jane@doeadvisory.com', kind: 'personal', source_url: `${SITE}/contact` }],
+  pages: [{ path: '/', result: 'read' }, { path: '/contact', result: 'read' }, { path: '/team', result: 'robots.txt disallows' }],
+};
+const invoke = vi.fn(async (name: string, opts?: { body?: Record<string, unknown> }) => {
+  if (name === 'li-enrich') {
+    return opts?.body?.action === 'scan'
+      ? { data: SCAN, error: null }
+      : { data: { success: true, email: 'jane@doeadvisory.com', contact_channel: 'email:jane@doeadvisory.com linkedin:x' }, error: null };
+  }
+  return { data: { draft: { ...fixtures.li_engagement_drafts[0], status: 'approved', final_text: COMMENT }, lint: { ok: true } }, error: null };
+});
 const rpc = vi.fn(async () => ({ data: null, error: null }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: (t: string) => chain(t), rpc: (...a: unknown[]) => rpc(...(a as [])), functions: { invoke: (...a: unknown[]) => invoke(...(a as [])) } },
+  supabase: {
+    from: (t: string) => chain(t),
+    rpc: (...a: unknown[]) => rpc(...(a as [])),
+    functions: { invoke: (...a: unknown[]) => invoke(...(a as [string, { body?: Record<string, unknown> }])) },
+  },
 }));
 vi.mock('@/hooks/useAdmin', () => ({ useAdmin: () => ({ isAdmin: true, isContentAdmin: true, isLoading: false }) }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'u1', email: 'admin@example.com' } }) }));
 
-import LinkedInGrowth, { COMPLIANCE_LINE } from '@/pages/admin/LinkedInGrowth';
+import LinkedInGrowth, { COMPLIANCE_LINE, PUBLISHED_EMAIL_LINE } from '@/pages/admin/LinkedInGrowth';
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -107,5 +127,31 @@ describe('LinkedIn Growth page', () => {
     const btn = screen.getByRole('button', { name: /Copy & open LinkedIn/ }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     expect(screen.getByText(/✗ no dash/)).toBeTruthy();
+  });
+
+  it('Published email: scans the firm site, shows each address with its kind and source page, attaches the chosen one and re-scores', async () => {
+    renderPage();
+    fireEvent.mouseDown(await screen.findByRole('tab', { name: /Prospects/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
+    expect(await screen.findByText(PUBLISHED_EMAIL_LINE)).toBeTruthy();
+    expect(PUBLISHED_EMAIL_LINE).toBe('Only addresses the firm publishes on its own website. Quantis never guesses an address.');
+
+    fireEvent.change(screen.getByLabelText('Firm website'), { target: { value: 'doeadvisory.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /Scan/ }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('li-enrich', { body: { action: 'scan', prospect_id: 'p1', website: 'doeadvisory.com' } }));
+    expect(await screen.findByText('jane@doeadvisory.com')).toBeTruthy();
+    expect(screen.getByText('personal')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '/contact' }).getAttribute('href')).toBe(`${SITE}/contact`);
+    expect(screen.getByText(/\/team robots\.txt disallows/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /Use this address/ }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('li-enrich', {
+      body: { action: 'attach', prospect_id: 'p1', email: 'jane@doeadvisory.com', source_url: `${SITE}/contact`, website: SITE },
+    }));
+    // Re-scored through fitPatch, after the attach, like every other edit on the page.
+    const attachOrder = invoke.mock.invocationCallOrder[invoke.mock.calls.findIndex((c) => c[1]?.body?.action === 'attach')];
+    await waitFor(() => expect(recordUpdate.mock.calls.some(([table, patch], i) =>
+      table === 'li_engagement_targets' && 'fit_score' in patch && 'fit_scored_at' in patch && recordUpdate.mock.invocationCallOrder[i] > attachOrder)).toBe(true));
+    expect(invoke).not.toHaveBeenCalledWith('business-mail', expect.anything());
   });
 });

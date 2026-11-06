@@ -24,6 +24,7 @@ import {
 } from '@/lib/li-growth/caps';
 import { buildQueue, type QueueItem } from '@/lib/li-growth/queue';
 import { TARGET_SOURCES, firstName, isSafeLinkedInUrl, normalizePostUrl, normalizeProfileUrl, parseTargetCsv, type TargetImportRow } from '@/lib/li-growth/prospects';
+import { channelEmail, latestEmailEvidence, type EmailKind } from '@/lib/li-growth/published-email';
 
 // The li_* tables are not in the generated Supabase types (the 6.4k-line
 // types file is not regenerated per PR), so table access is cast through
@@ -33,6 +34,8 @@ const db = supabase as any;
 
 export const COMPLIANCE_LINE =
   'This tool never posts, comments, reacts, connects or messages on LinkedIn and never reads LinkedIn: it drafts, you paste and send by hand, then click Mark sent.';
+
+export const PUBLISHED_EMAIL_LINE = 'Only addresses the firm publishes on its own website. Quantis never guesses an address.';
 
 // ─── Row shapes ─────────────────────────────────────────────────────────────
 
@@ -146,6 +149,19 @@ async function invokeDraft(body: Record<string, unknown>) {
     throw error;
   }
   return data as { draft: DraftRow; lint: LiLintReport };
+}
+
+async function invokeEnrich<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('li-enrich', { body });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === 'function') {
+      const parsed = await ctx.json().catch(() => null);
+      if (parsed?.error) throw new Error(parsed.error);
+    }
+    throw error;
+  }
+  return data as T;
 }
 
 async function rpc(name: string, args: Record<string, unknown>) {
@@ -1011,6 +1027,7 @@ function TargetDetail({ target, signals, settings, fit, refresh }: { target: Tar
         <Button size="sm" onClick={save} disabled={busy}>Save and re-score</Button>
         <Button size="sm" variant="destructive" onClick={setDnc} disabled={!p || p.suppression_status !== 'active'}>Do not contact</Button>
       </div>
+      <PublishedEmail target={target} signals={signals} settings={settings} refresh={refresh} />
       <div className="space-y-2">
         <h3 className="font-semibold text-sm">Signals (their posts, comments, events)</h3>
         {signals.length === 0 && <p className="text-xs text-muted-foreground">None yet.</p>}
@@ -1023,6 +1040,103 @@ function TargetDetail({ target, signals, settings, fit, refresh }: { target: Tar
         <PostFields f={f} set={set} idPrefix="ed" />
         <Button size="sm" variant="outline" onClick={addSignal}>Add signal</Button>
       </div>
+    </div>
+  );
+}
+
+interface EmailCandidate { email: string; kind: EmailKind; source_url: string }
+interface ScanResult { website: string; candidates: EmailCandidate[]; pages: Array<{ path: string; result: string }>; protected_hidden: boolean }
+
+const httpLink = (url: string | null | undefined) => (url && /^https?:\/\//i.test(url) ? url : null);
+
+/**
+ * Published email (li-enrich): scans the firm's own website for the addresses
+ * it prints, the founder picks one, the server re-checks and stores it on the
+ * prospect, then the page re-scores fit so the reachability points update.
+ */
+function PublishedEmail({ target, signals, settings, refresh }: { target: TargetRow; signals: SignalRow[]; settings: LiSettings; refresh: () => void }) {
+  const p = target.commercial_prospects;
+  const savedQ = useQuery({
+    queryKey: ['li', 'published-email', target.prospect_id],
+    queryFn: async () => {
+      const { data, error } = await db.from('commercial_prospects').select('website, supporting_evidence').eq('id', target.prospect_id).maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as { website: string | null; supporting_evidence: unknown } | null;
+    },
+  });
+  const [website, setWebsite] = useState<string | null>(null);
+  const [scan, setScan] = useState<ScanResult | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const siteValue = website ?? savedQ.data?.website ?? '';
+  const attached = channelEmail(p?.contact_channel);
+  const evidence = latestEmailEvidence(savedQ.data?.supporting_evidence, attached);
+  const evidenceUrl = httpLink(evidence?.email_source_url);
+  const dnc = (p?.suppression_status ?? 'active') !== 'active';
+
+  async function runScan() {
+    setBusy('scan');
+    try {
+      setScan(await invokeEnrich<ScanResult>({ action: 'scan', prospect_id: target.prospect_id, website: siteValue.trim() }));
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+  }
+
+  async function use(c: EmailCandidate) {
+    if (!scan) return;
+    setBusy(c.email);
+    try {
+      const res = await invokeEnrich<{ email: string; contact_channel: string }>({ action: 'attach', prospect_id: target.prospect_id, email: c.email, source_url: c.source_url, website: scan.website });
+      const next: TargetRow = { ...target, has_verified_email: true, commercial_prospects: p ? { ...p, contact_channel: res.contact_channel } : p };
+      const nextFit = fitFor(next, signals, settings);
+      await db.from('li_engagement_targets').update(fitPatch(nextFit)).eq('prospect_id', target.prospect_id);
+      toast.success(`Email attached: ${res.email}. Fit ${nextFit.score}`);
+      setScan(null);
+      refresh();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+  }
+
+  return (
+    <div className="space-y-2" data-testid="li-published-email">
+      <h3 className="font-semibold text-sm">Published email</h3>
+      <p className="text-xs text-muted-foreground">{PUBLISHED_EMAIL_LINE}</p>
+      {attached ? (
+        <p className="text-sm">
+          Email: <b>{attached}</b>
+          {evidence && evidenceUrl && (
+            <> · <a href={evidenceUrl} target="_blank" rel="noopener noreferrer" className="underline">source page</a> ({evidence.email_kind})</>
+          )}
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">No email yet.</p>
+      )}
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <Label htmlFor="ed-website">Firm website</Label>
+          <Input id="ed-website" value={siteValue} placeholder="https://firm.com" onChange={(e) => setWebsite(e.target.value)} className="mt-1" />
+        </div>
+        <Button size="sm" variant="outline" onClick={runScan} disabled={!!busy || dnc || !siteValue.trim()}>
+          {busy === 'scan' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null} Scan
+        </Button>
+      </div>
+      {scan && (
+        <div className="space-y-1">
+          {scan.candidates.length === 0 && <p className="text-xs">No address on the firm&apos;s own domain in the pages Quantis may read.</p>}
+          {scan.candidates.map((c) => {
+            const href = httpLink(c.source_url);
+            return (
+              <div key={c.email} className="flex flex-wrap items-center gap-2 text-xs border rounded p-2">
+                <b>{c.email}</b>
+                <Badge variant="outline">{c.kind}</Badge>
+                {href && <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-muted-foreground">{new URL(href).pathname}</a>}
+                <Button size="sm" className="ml-auto" onClick={() => use(c)} disabled={!!busy || dnc || (!!attached && attached !== c.email)}>
+                  {busy === c.email ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null} Use this address
+                </Button>
+              </div>
+            );
+          })}
+          <p className="text-xs text-muted-foreground">{scan.pages.map((x) => `${x.path} ${x.result}`).join(' · ')}</p>
+          {scan.protected_hidden && <p className="text-xs text-muted-foreground">Some addresses on this site are hidden by Cloudflare email protection. Quantis does not decode them.</p>}
+        </div>
+      )}
     </div>
   );
 }

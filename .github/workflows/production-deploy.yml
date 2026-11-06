@@ -562,6 +562,9 @@ jobs:
             commercial-workflow
             # LinkedIn Growth Agent drafts (admin-only; never calls LinkedIn)
             li-growth-draft
+            # Published email finder for LinkedIn leads (admin-only; reads only
+            # the firm's own website, never LinkedIn, sends nothing)
+            li-enrich
             # Business mailboxes: support@/legal@ tickets, hello@/marketing@
             # pipeline, paced outreach sender (pg_cron every 5 min).
             business-mail

@@ -7,6 +7,7 @@ const FN = readFileSync('supabase/functions/li-growth-draft/index.ts', 'utf8');
 const LINT = readFileSync('supabase/functions/_shared/li-growth-lint.ts', 'utf8');
 const PAGE = readFileSync('src/pages/admin/LinkedInGrowth.tsx', 'utf8');
 const DEPLOY = readFileSync('.github/workflows/production-deploy.yml', 'utf8');
+const ENRICH = readFileSync('supabase/functions/li-enrich/index.ts', 'utf8');
 const TABLES = ['li_engagement_targets', 'li_engagement_signals', 'li_fact_bank', 'li_engagement_drafts', 'li_engagement_touches', 'li_engagement_settings'];
 
 describe('LinkedIn Growth Agent: compliance guards', () => {
@@ -106,5 +107,53 @@ describe('LinkedIn Growth Agent: edge function and release wiring', () => {
     expect(readFileSync('src/App.tsx', 'utf8')).toContain('<Route path="linkedin-growth" element={<LinkedInGrowth />} />');
     expect(readFileSync('src/components/admin/AdminLayout.tsx', 'utf8')).toContain("to: '/admin/linkedin-growth'");
     expect(readFileSync('src/pages/admin/ContentStudio.tsx', 'utf8')).toContain("navigate('/admin/linkedin-growth')");
+  });
+});
+
+describe('Published email finder (li-enrich): compliance and wiring', () => {
+  it('is admin-only, has a health endpoint and is in the production deploy list', () => {
+    expect(ENRICH).toContain('maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION)');
+    expect(ENRICH).toContain(".from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin')");
+    const list = DEPLOY.match(/FUNCTIONS=\(\r?\n([\s\S]*?)\r?\n\s*\)/)?.[1] ?? '';
+    expect(list).toMatch(/^\s*li-enrich\s*$/m);
+  });
+
+  it('reads only the firm\'s own site: no LinkedIn host, no finder API, manual redirects, identifying User-Agent, hard limits', () => {
+    expect(ENRICH).not.toMatch(/linkedin\.com|lnkd\.in/i);
+    expect(ENRICH).not.toMatch(/hunter\.io|apollo|snov|clearbit|rocketreach|voilanorbert|findthatlead|dropcontact|zerobounce|neverbounce/i);
+    expect(ENRICH).toContain("redirect: 'manual'");
+    expect(ENRICH).toContain("const USER_AGENT = 'AIWMC Quantis enrichment (hello@aiwmcquantis.com)'");
+    expect(ENRICH).toMatch(/FETCH_TIMEOUT_MS = 8_000;/);
+    expect(ENRICH).toMatch(/MAX_BODY_BYTES = 1\.5 \* 1024 \* 1024;/);
+    expect(ENRICH).toMatch(/MAX_REDIRECTS = 2;/);
+    expect(ENRICH).toContain('for (const path of candidatePaths)');
+    expect(ENRICH).toContain('robotsAllows(robots.text, path)');
+    // every hop is re-checked: same site, public host, public resolved address
+    const fetcher = ENRICH.split('async function fetchSameSite(')[1].split('async function loadRobots(')[0];
+    expect(fetcher).toContain('checkSameSiteUrl(url.href, ctx.site.host)');
+    expect(fetcher).toContain('checkSameSiteUrl(location, ctx.site.host, url.href)');
+    expect(fetcher).toContain('publicHostProblem(ctx, url.hostname)');
+  });
+
+  it('sends nothing and touches no outreach setting, cap or LinkedIn action', () => {
+    expect(ENRICH).not.toMatch(/commercial_followups|send_requested_at|mail_settings|outreach_enabled|li_engagement_settings|li_mark_draft_sent|li_record_outcome/);
+  });
+
+  it('attach refuses do-not-contact and suppressed addresses and re-verifies the page and MX before any write', () => {
+    const attach = ENRICH.split('async function attach(')[1].split('Deno.serve')[0];
+    const write = attach.indexOf(".from('commercial_prospects')");
+    expect(write).toBeGreaterThan(-1);
+    for (const gate of ["p.suppression_status !== 'active'", ".from('email_suppressions')", 'withEmailChannel(', 'robotsAllows(', 'extractEmails(page.body).includes(email)', 'resolveMx(domain)']) {
+      const at = attach.indexOf(gate);
+      expect(at, gate).toBeGreaterThan(-1);
+      expect(at, gate).toBeLessThan(write);
+    }
+    expect(attach).toContain("method: PUBLISHED_EMAIL_METHOD");
+    expect(attach).toContain('has_verified_email: true');
+  });
+
+  it('the page states the rule and calls li-enrich', () => {
+    expect(PAGE).toContain("PUBLISHED_EMAIL_LINE = 'Only addresses the firm publishes on its own website. Quantis never guesses an address.'");
+    expect(PAGE).toContain("supabase.functions.invoke('li-enrich'");
   });
 });
