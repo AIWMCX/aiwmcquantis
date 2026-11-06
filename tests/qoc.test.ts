@@ -495,6 +495,6 @@ Deno.test("a verify answer without a verdict keeps the report but never composes
   const verifyTrace = env.traces.find((t) => t.stage === "verify");
   assert(verifyTrace);
   assertEquals(verifyTrace.verdict, "PARTIAL");
-  assertEquals((verifyTrace.detail as any).overall_source, "missing");
+  assertEquals(verifyTrace.detail.overall_source, "missing");
   assert(verifyTrace.notes.some((n) => /no verdict/i.test(n)), "trace explains why the verdict is unknown");
 });
