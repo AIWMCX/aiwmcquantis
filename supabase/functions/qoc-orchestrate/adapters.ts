@@ -160,37 +160,68 @@ export async function verifyAdapter(
   report: unknown,
   req: AnalysisRequest,
   forceModel?: string,
-): Promise<{
-  claims: Array<{ text: string; verdict: Verdict; sources: number }>;
-  overall: Verdict;
-  cost_usd: number;
-}> {
-  // deno-lint-ignore no-explicit-any
-  const out: any = await invokeFn("ai-consensus", {
+): Promise<VerifyResult> {
+  const out = await invokeFn("ai-consensus", {
     report,
     request: { idea: req.idea, location: req.location, industry: req.industry },
     // Conditional verification depth: "gpt" = single-model (cheaper for easy cases)
     options: forceModel ? { forceModel } : undefined,
   });
-  // deno-lint-ignore no-explicit-any
-  const rawClaims: any[] = Array.isArray(out?.claims) ? out.claims : [];
-  const claims = rawClaims.map((c) => ({
-    text: String(c?.text ?? c?.claim ?? ""),
-    verdict: mapVerdict(c?.verdict ?? c?.status ?? "PARTIAL"),
-    sources: Number(c?.sources ?? c?.source_count ?? 0) || 0,
-  }));
-  const overall: Verdict = mapVerdict(out?.overall ?? out?.verdict ?? "PASS");
-  return { claims, overall, cost_usd: Number(out?.cost_usd ?? 0) || 0 };
+  return parseVerifyResponse(out);
 }
 
-function mapVerdict(v: unknown): Verdict {
-  const s = String(v ?? "").toUpperCase();
-  if (s === "PASS" || s === "PARTIAL" || s === "FAIL" || s === "HARD_BLOCK" || s === "SKIPPED") {
-    return s as Verdict;
-  }
-  if (s === "OK" || s === "VERIFIED" || s === "TRUE") return "PASS";
-  if (s === "REJECTED" || s === "FALSE") return "FAIL";
-  return "PARTIAL";
+export type VerdictSource = "reported" | "missing" | "malformed";
+
+export interface VerifyResult {
+  claims: Array<{ text: string; verdict: Verdict; sources: number }>;
+  overall: Verdict;
+  /** Whether `overall` came from the verifier, or was set here because it gave none. */
+  overall_source: VerdictSource;
+  notes: string[];
+  cost_usd: number;
+}
+
+// A verdict the verifier did not report is unknown, never PASS (F2 in
+// docs/predicta/2026-11-06-phase2-governed-evidence-plan.md §1.4). ai-consensus
+// answers 200 with { finalOutput, overallConfidence, ... } and no `overall` or
+// `verdict` field, so the old `?? "PASS"` default marked every verification
+// passed. Unknown is PARTIAL, the state stages.verify already uses when the
+// verifier is unreachable; FAIL would turn the envelope into a 502 and drop a
+// valid deterministic report.
+export function parseVerifyResponse(out: unknown): VerifyResult {
+  // deno-lint-ignore no-explicit-any
+  const body: any = out !== null && typeof out === "object" ? out : {};
+  // deno-lint-ignore no-explicit-any
+  const rawClaims: any[] = Array.isArray(body.claims) ? body.claims : [];
+  const claims = rawClaims.map((c) => ({
+    text: String(c?.text ?? c?.claim ?? ""),
+    verdict: readVerdict(c?.verdict ?? c?.status).verdict,
+    sources: Number(c?.sources ?? c?.source_count ?? 0) || 0,
+  }));
+  const overall = readVerdict(body.overall ?? body.verdict);
+  const notes =
+    overall.source === "missing" ? ["Verifier returned no verdict; claims left unverified."] :
+    overall.source === "malformed" ? ["Verifier returned an unrecognised verdict; claims left unverified."] :
+    [];
+  return {
+    claims,
+    overall: overall.verdict,
+    overall_source: overall.source,
+    notes,
+    cost_usd: Number(body.cost_usd ?? 0) || 0,
+  };
+}
+
+const VERDICT_WORDS = new Map<string, Verdict>([
+  ["PASS", "PASS"], ["PARTIAL", "PARTIAL"], ["FAIL", "FAIL"], ["HARD_BLOCK", "HARD_BLOCK"], ["SKIPPED", "SKIPPED"],
+  ["OK", "PASS"], ["VERIFIED", "PASS"], ["TRUE", "PASS"],
+  ["REJECTED", "FAIL"], ["FALSE", "FAIL"],
+]);
+
+function readVerdict(v: unknown): { verdict: Verdict; source: VerdictSource } {
+  if (v === undefined || v === null) return { verdict: "PARTIAL", source: "missing" };
+  const mapped = typeof v === "string" ? VERDICT_WORDS.get(v.trim().toUpperCase()) : undefined;
+  return mapped ? { verdict: mapped, source: "reported" } : { verdict: "PARTIAL", source: "malformed" };
 }
 
 export function makeDeps(sb: SupabaseClient): StageDeps {

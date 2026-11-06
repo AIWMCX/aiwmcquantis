@@ -7,8 +7,9 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { stripeCustomerIdOrNull } from '../_shared/stripe-customer.ts';
 const FUNCTION_NAME = 'create-portal-session';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.0.1';
 
 // Security headers for all responses
 const securityHeaders = {
@@ -112,7 +113,9 @@ serve(async (req) => {
       throw new Error("Error fetching subscription");
     }
 
-    let customerId = subscription?.stripe_customer_id;
+    // Internal grants keep a placeholder ('founder_lifetime') here, which
+    // Stripe rejects; treat it as no customer and look one up by email.
+    let customerId = stripeCustomerIdOrNull(subscription?.stripe_customer_id);
 
     // If no customer ID in DB, try to find by email in Stripe
     if (!customerId) {
@@ -126,8 +129,9 @@ serve(async (req) => {
         customerId = customers.data[0].id;
         log.info(`Found Stripe customer: ${customerId}`);
         
-        // Update the subscription record with the found customer ID
-        if (subscription) {
+        // Update the subscription record with the found customer ID. Never
+        // overwrite a grant placeholder: internal-account detection reads it.
+        if (subscription && !subscription.stripe_customer_id) {
           await supabase
             .from("subscriptions")
             .update({ stripe_customer_id: customerId })

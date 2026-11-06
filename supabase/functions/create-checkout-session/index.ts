@@ -7,8 +7,9 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { stripeCustomerIdOrNull } from '../_shared/stripe-customer.ts';
 const FUNCTION_NAME = 'create-checkout-session';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.0.1';
 
 // Security headers for all responses
 const securityHeaders = {
@@ -184,7 +185,9 @@ serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
 
-    let customerId = existingSubscription?.stripe_customer_id;
+    // Internal grants keep a placeholder ('founder_lifetime') here; sending
+    // it to Stripe fails the whole checkout with "No such customer".
+    let customerId = stripeCustomerIdOrNull(existingSubscription?.stripe_customer_id);
 
     // Create or retrieve customer
     if (!customerId) {
