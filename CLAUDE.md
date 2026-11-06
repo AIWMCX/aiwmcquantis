@@ -47,6 +47,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
      - New workflows must use the same `runs-on` expression.
      - **Exception: `run-migrations` stays on `ubuntu-latest`.** From WSL the session pooler (port 5432) hangs on the Postgres TLS request, so `supabase link` always times out there. A link or `db push` failure now turns that job red on purpose; edge functions still deploy.
 6. **Migrations.** Applying one by hand in production means you must add its ledger row, or the ledger check blocks every deploy. Intentionally unapplied files go in `supabase/migrations/.ledger-ignore`.
+7. **Cron → edge auth.** A cron job sends `x-cron-secret` read from Vault: `(select decrypted_secret from vault.decrypted_secrets where name = 'quantis_shared_cron_secret')`. Never put the value in a migration, test, doc or `cron.alter_job` call. `cron-secret-hygiene.test.ts` enforces this. Rotation: `docs/execution/2026-11-06-cron-secret-rotation-runbook.md` (GitHub `production` secret `CRON_SECRET`, Supabase edge secret, Vault, all together).
 
 ## Proving what's live (don't trust job status alone)
 - **Edge function:** `GET https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/<fn>?health=1` returns a `commit_sha` to compare against main.
