@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
@@ -7,8 +8,13 @@ import { aiCall } from '../_shared/llm-call.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { authorizeCaller } from './caller.ts';
 const FUNCTION_NAME = 'ai-consensus';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const MODEL_GPT = "openai/gpt-5-mini";
 const MODEL_GEMINI = "google/gemini-3-flash-preview";
@@ -193,6 +199,24 @@ serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // Each request runs two paid models: only the service role or a signed-in
+  // user may call it, never the public anon key (caller.ts).
+  const caller = await authorizeCaller(req, {
+    serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
+    getUser: async (jwt) => {
+      const { data, error } = await createClient(SUPABASE_URL, SUPABASE_ANON_KEY).auth.getUser(jwt);
+      if (error && (error.status ?? 0) >= 500) throw error;
+      return error || !data.user ? null : { id: data.user.id };
+    },
+  });
+  if (!caller.ok) {
+    log.warn(`caller rejected: ${caller.code}`);
+    return new Response(
+      JSON.stringify({ error: caller.status === 401 ? "Authentication required" : "Could not verify the caller", code: caller.code }),
+      { status: caller.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
