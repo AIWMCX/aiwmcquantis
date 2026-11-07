@@ -24,7 +24,6 @@ import {
   describeFailures,
   duckDuckGoSearch,
   noDataNote,
-  noEvidenceRejectionReason,
   providerOutcomeCounts,
   searchWithFallback,
   summarizeAttempts,
@@ -33,6 +32,7 @@ import {
   type SearchProviderId,
   type SearchResult,
 } from './search-outcome.ts';
+import { buildObservationRows, type RvcePersistPayload } from './observation-rows.ts';
 
 const FUNCTION_NAME = 'rvce-validate';
 const FUNCTION_VERSION = '0.5.1';
@@ -965,7 +965,8 @@ serve(async (req) => {
       search_diagnostics: searchDiagnostics,
     };
 
-    persistObservations(adminClient, payload_out).catch((e) =>
+    // Persist every sample the validation used; only the response is cut to the tier limit.
+    persistObservations(adminClient, { ...payload_out, evidence_samples: evidenceSamples }).catch((e) =>
       console.error(`[rvce] persistObservations failed (non-fatal): ${(e as Error).message}`),
     );
     return jsonResp(payload_out);
@@ -1015,91 +1016,16 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * fail an analysis over a logging problem — but errors are now logged,
  * not swallowed.
  */
-interface RvceEvidenceSample {
-  metric: string;
-  source: string;
-  url?: string;
-  summary: string;
-  value: number;
-  provider?: SearchProviderId | null;
-}
-
-interface RvcePersistPayload {
-  analysis_id: string;
-  metrics_validation: Record<string, { status: string; discrepancy_score: number }>;
-  evidence_samples: RvceEvidenceSample[];
-  search_diagnostics?: Array<{ metric: string; provider_attempts: ProviderAttempt[] }>;
-}
-
 async function persistObservations(
   adminClient: ReturnType<typeof createClient> | null,
   payload: RvcePersistPayload,
 ): Promise<void> {
   if (!adminClient) return;
 
-  const correlationId = crypto.randomUUID();
-  const analysisId = UUID_RE.test(payload.analysis_id) ? payload.analysis_id : null;
-  const rows: Record<string, unknown>[] = [];
-
-  const evidenceByMetric = new Map<string, RvceEvidenceSample[]>();
-  for (const sample of payload.evidence_samples ?? []) {
-    const list = evidenceByMetric.get(sample.metric) ?? [];
-    list.push(sample);
-    evidenceByMetric.set(sample.metric, list);
-  }
-  const attemptsByMetric = new Map(
-    (payload.search_diagnostics ?? []).map(d => [d.metric, d.provider_attempts ?? []] as const),
-  );
-
-  for (const [metric, validation] of Object.entries(payload.metrics_validation ?? {})) {
-    const samples = evidenceByMetric.get(metric) ?? [];
-    const v = validation as { status: string; discrepancy_score: number };
-    // Same OK/WARN/OUTLIER -> score mapping used for comparability elsewhere
-    // in this system; NO_DATA gets the lowest score since no evidence backs it.
-    const qualityScore = v.status === 'OK' ? 0.9 : v.status === 'WARN' ? 0.6 : v.status === 'OUTLIER' ? 0.3 : 0.1;
-
-    if (samples.length === 0) {
-      rows.push({
-        analysis_id: analysisId,
-        correlation_id: correlationId,
-        metric_code: metric,
-        raw_value: null,
-        normalized_value: null,
-        unit: 'unknown',
-        source_url: null,
-        source_title: null,
-        publisher: null,
-        extraction_method: 'rvce_web_search',
-        source_quality: qualityScore,
-        comparability_score: qualityScore,
-        accepted: false,
-        // A provider failure is recorded as one, never as "no evidence found".
-        rejection_reason: noEvidenceRejectionReason(attemptsByMetric.get(metric) ?? []),
-      });
-      continue;
-    }
-
-    for (const sample of samples) {
-      const hasRealUrl = typeof sample.url === 'string' && sample.url.length > 0;
-      rows.push({
-        analysis_id: analysisId,
-        correlation_id: correlationId,
-        metric_code: metric,
-        raw_value: sample.value,
-        normalized_value: sample.value,
-        unit: 'unknown',
-        source_url: hasRealUrl ? sample.url : null,
-        source_title: sample.summary ?? null,
-        publisher: sample.source ?? null,
-        extraction_method: !hasRealUrl ? 'internal_benchmark_master'
-          : sample.provider ? `rvce_web_search:${sample.provider}` : 'rvce_web_search',
-        source_quality: qualityScore,
-        comparability_score: qualityScore,
-        accepted: v.status !== 'OUTLIER',
-        rejection_reason: v.status === 'OUTLIER' ? 'outlier_vs_reference' : null,
-      });
-    }
-  }
+  const rows = buildObservationRows(payload, {
+    correlationId: crypto.randomUUID(),
+    analysisId: UUID_RE.test(payload.analysis_id) ? payload.analysis_id : null,
+  });
 
   if (rows.length === 0) return;
 
