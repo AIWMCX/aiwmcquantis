@@ -3,7 +3,10 @@
  * shares (pure; imported by vitest).
  */
 
-export type GrowthSource = 'ga4' | 'gsc' | 'clarity';
+export type GrowthSource = 'ga4' | 'gsc' | 'clarity' | 'psi' | 'indexing' | 'indexnow' | 'bing';
+
+/** Every source, in the order /admin/growth shows its tool-status chip. */
+export const GROWTH_SOURCES: readonly GrowthSource[] = ['ga4', 'gsc', 'clarity', 'psi', 'indexing', 'indexnow', 'bing'];
 
 export type GrowthReport =
   | 'ga4_overview'
@@ -17,20 +20,37 @@ export type GrowthReport =
   | 'gsc_page'
   | 'gsc_country'
   | 'gsc_device'
-  | 'clarity_overview';
+  | 'clarity_overview'
+  | 'psi_url'
+  | 'indexing_url'
+  | 'indexing_sitemap'
+  | 'indexnow_ping'
+  | 'bing_traffic'
+  | 'bing_crawl';
 
 export const GROWTH_REPORTS: readonly GrowthReport[] = [
   'ga4_overview', 'ga4_channel', 'ga4_landing_page', 'ga4_source_medium', 'ga4_country', 'ga4_device',
   'gsc_overview', 'gsc_query', 'gsc_page', 'gsc_country', 'gsc_device',
   'clarity_overview',
+  'psi_url',
+  'indexing_url', 'indexing_sitemap',
+  'indexnow_ping',
+  'bing_traffic', 'bing_crawl',
 ];
+
+/**
+ * A stored metric. GA4 / GSC / Clarity store numbers only. The phase-2
+ * sources also store short strings (a Lighthouse version, a GSC verdict, a
+ * CrUX category) and null for "the API returned no value", never a guess.
+ */
+export type MetricValue = number | string | null;
 
 export interface MetricRow {
   source: GrowthSource;
   day: string; // YYYY-MM-DD
   report: GrowthReport;
   dims: Record<string, string>;
-  metrics: Record<string, number>;
+  metrics: Record<string, MetricValue>;
   dims_key: string;
 }
 
@@ -52,6 +72,18 @@ export function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Like num(), but missing / empty / non-numeric stays null (never invented as 0). */
+export function numOrNull(v: unknown): number | null {
+  if (v === null || v === undefined || v === '') return null;
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** A non-empty string, else null. */
+export function strOrNull(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() !== '' ? v : null;
+}
+
 /**
  * Keep the top `n` rows per day by `metric` (ties broken by dims_key so the
  * cut is deterministic). Dimensionless or small reports pass n = Infinity.
@@ -68,8 +100,8 @@ export function topNPerDay(rows: MetricRow[], n: number, metric: string, tiebrea
   for (const day of [...byDay.keys()].sort()) {
     const list = byDay.get(day)!;
     list.sort((a, b) =>
-      (b.metrics[metric] ?? 0) - (a.metrics[metric] ?? 0)
-      || (tiebreak ? (b.metrics[tiebreak] ?? 0) - (a.metrics[tiebreak] ?? 0) : 0)
+      num(b.metrics[metric]) - num(a.metrics[metric])
+      || (tiebreak ? num(b.metrics[tiebreak]) - num(a.metrics[tiebreak]) : 0)
       || (a.dims_key < b.dims_key ? -1 : a.dims_key > b.dims_key ? 1 : 0));
     out.push(...list.slice(0, n));
   }

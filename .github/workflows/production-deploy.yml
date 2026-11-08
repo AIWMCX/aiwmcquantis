@@ -138,9 +138,15 @@ jobs:
       # only after the smoke test passed (default success() condition) and can
       # never fail or roll back a deploy. A few seconds inside this job, no
       # extra job or minutes. Key file: public/<key>.txt.
+      # The script then records the result (HTTP status, URL count, time) in
+      # /admin/growth through growth-sync, authenticated with the existing
+      # production secret CRON_SECRET (no new secret).
       - name: IndexNow ping (non-blocking)
         continue-on-error: true
         timeout-minutes: 2
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: node scripts/indexnow-ping.mjs
 
   run-migrations:

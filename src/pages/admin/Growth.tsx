@@ -15,6 +15,8 @@ import {
   type GrowthSourceKey,
   type GrowthSummary,
 } from '@/lib/growth-summary';
+import { toolStatuses, type ExtRow, type SyncRunRow } from '@/lib/growth-seo';
+import { BingSection, IndexNowSection, IndexingSection, SpeedSection, ToolStatusStrip } from './GrowthSeoSections';
 
 /**
  * /admin/growth: GA4 (property 520326058), Search Console
@@ -22,7 +24,20 @@ import {
  * first-party funnel side by side. External data is copied daily by the
  * growth-sync edge function into ext_metrics_daily; this page only reads it
  * through admin-only RPCs.
+ *
+ * Phase 2 adds PageSpeed Insights, Search Console indexing, IndexNow pings and
+ * optional Bing (GrowthSeoSections.tsx). Those rows are read straight from
+ * ext_metrics_daily under its admin-only RLS policy, one small query each.
  */
+
+/** Phase-2 reads: source, days of history (null = newest rows only), row cap. */
+const SEO_QUERIES: Array<{ key: 'psi' | 'indexing' | 'indexnow' | 'bing'; days: number | null; limit: number }> = [
+  { key: 'psi', days: 31, limit: 500 },
+  { key: 'indexing', days: 14, limit: 300 },
+  { key: 'indexnow', days: null, limit: 20 },
+  { key: 'bing', days: 31, limit: 200 },
+];
+type SeoRows = Record<'psi' | 'indexing' | 'indexnow' | 'bing', ExtRow[]>;
 
 const MONTHLY_FROM = '2026-01-01';
 const GSC_HISTORY_MONTHS = 16;
@@ -219,6 +234,7 @@ export default function AdminGrowth() {
   const [breakdowns, setBreakdowns] = useState<Record<string, BreakdownRow[] | undefined>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [seo, setSeo] = useState<SeoRows | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,9 +242,10 @@ export default function AdminGrowth() {
       const [sumRes, runRes] = await Promise.all([
         supabase.rpc('admin_growth_summary' as never, { p_from: MONTHLY_FROM } as never),
         supabase.from('ext_sync_runs' as never)
-          .select('source,mode,status,started_at,finished_at,rows_upserted,error')
+          .select('source,mode,status,started_at,finished_at,rows_upserted,error,details')
           .order('started_at', { ascending: false })
-          .limit(60),
+          // 7 sources; a 17-month backfill alone writes ~50 rows.
+          .limit(200),
       ]);
       if (cancelled) return;
       if (sumRes.error) {
@@ -240,6 +257,28 @@ export default function AdminGrowth() {
       }
       if (runRes.error) logger.error('ext_sync_runs read failed', runRes.error);
       setRuns(((runRes.data ?? []) as unknown) as SyncRun[]);
+    })();
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(SEO_QUERIES.map(async (q) => {
+        try {
+          let query = supabase.from('ext_metrics_daily' as never)
+            .select('source,day,report,dims,metrics,fetched_at')
+            .eq('source', q.key);
+          if (q.days !== null) query = query.gte('day', addDaysIso(new Date().toISOString().slice(0, 10), -q.days));
+          const { data, error } = await query.order('day', { ascending: false }).limit(q.limit);
+          if (error) throw error;
+          return [q.key, ((data ?? []) as unknown) as ExtRow[]] as const;
+        } catch (e) {
+          logger.error(`ext_metrics_daily ${q.key} read failed`, e);
+          return [q.key, [] as ExtRow[]] as const;
+        }
+      }));
+      if (!cancelled) setSeo(Object.fromEntries(results) as SeoRows);
     })();
     return () => { cancelled = true; };
   }, [reloadKey]);
@@ -271,6 +310,12 @@ export default function AdminGrowth() {
     for (const r of runs ?? []) if (r.status === 'ok' && !m.has(r.source)) m.set(r.source, r);
     return m;
   }, [runs]);
+
+  const statuses = useMemo(() => (runs === null ? null : toolStatuses((runs as unknown) as SyncRunRow[])), [runs]);
+  const lastIndexingRun = useMemo(
+    () => ((runs ?? []) as unknown as SyncRunRow[]).find((r) => r.source === 'indexing' && r.status !== 'skipped' && r.status !== 'running'),
+    [runs],
+  );
 
   const today = summary?.denver_today ?? null;
   const yesterday = today ? addDaysIso(today, -1) : null;
@@ -352,7 +397,8 @@ export default function AdminGrowth() {
           <h1 className="text-2xl font-bold">Growth: GA4, Search Console and first-party</h1>
           <p className="text-sm text-muted-foreground mt-1">
             GA4 property 520326058, Search Console <code>sc-domain:aiwmcquantis.com</code> and our own
-            Supabase funnel, side by side. Synced daily at 13:15 UTC by <code>growth-sync</code>.
+            Supabase funnel, side by side, plus PageSpeed / Core Web Vitals, indexing, IndexNow and Bing.
+            Synced daily at 13:15 UTC by <code>growth-sync</code>; IndexNow after each production deploy.
           </p>
         </div>
         <div className="flex gap-2">
@@ -367,6 +413,8 @@ export default function AdminGrowth() {
           <CardContent className="pt-6 text-sm text-destructive">{error}</CardContent>
         </Card>
       )}
+
+      <ToolStatusStrip statuses={statuses} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" data-testid="growth-sync-status">
         {SOURCES.map(({ key, label }) => {
@@ -461,6 +509,11 @@ export default function AdminGrowth() {
           <BreakdownTable key={b.report} title={b.title} dim={b.dim} report={b.report} rows={breakdowns[b.report]} />
         ))}
       </div>
+
+      <SpeedSection rows={seo?.psi ?? null} />
+      <IndexingSection rows={seo?.indexing ?? null} lastRun={lastIndexingRun} />
+      <IndexNowSection rows={seo?.indexnow ?? null} />
+      <BingSection rows={seo?.bing ?? null} status={statuses?.find((s) => s.source === 'bing')} />
 
       <Card>
         <CardHeader><CardTitle className="text-base">Data honesty</CardTitle></CardHeader>

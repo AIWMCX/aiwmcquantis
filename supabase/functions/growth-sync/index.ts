@@ -1,17 +1,24 @@
 /**
- * growth-sync: GA4 + Search Console (+ optional Microsoft Clarity) ->
+ * growth-sync: GA4 + Search Console (+ optional Microsoft Clarity), and since
+ * phase 2 PageSpeed Insights, Search Console sitemaps + URL Inspection
+ * ('indexing'), IndexNow ping results and optional Bing Webmaster ->
  * public.ext_metrics_daily, one public.ext_sync_runs row per source per run.
  * Read by /admin/growth next to the first-party Supabase funnel.
  *
  * Callers:
  *   * pg_cron 'growth-sync-daily' (13:15 UTC, x-cron-secret from Vault) -> mode 'daily'
  *   * an admin from /admin/growth (user JWT)  -> 'daily' or 'backfill' {from, to}
+ *   * scripts/indexnow-ping.mjs in production-deploy.yml (x-cron-secret from the
+ *     GitHub production secret CRON_SECRET) -> mode 'ping', source 'indexnow':
+ *     records that deploy's IndexNow result. Cron secret only, never a user JWT.
  *
  * Secrets (Supabase edge secrets, never in git):
  *   GOOGLE_SERVICE_ACCOUNT_JSON  service-account JSON key (GA4 Viewer + GSC Full user)
  *   GA4_PROPERTY_ID              default 520326058 (history property, G-NZE7RGVNEN)
  *   GSC_SITE_URL                 default sc-domain:aiwmcquantis.com
  *   CLARITY_API_TOKEN            optional; Clarity is skipped when unset
+ *   GOOGLE_API_KEY               optional; PageSpeed Insights key (keyless works at low volume)
+ *   BING_WEBMASTER_API_KEY       optional; Bing is "not configured" when unset
  *   CRON_SECRET                  shared pg_cron secret
  *
  * Read-only on Google/Microsoft. Idempotent: rows upsert on
@@ -30,17 +37,25 @@ import { GSC_DEFAULT_SITE_URL, GSC_REPORTS, fetchGscReport } from '../_shared/gr
 import { fetchClarity } from '../_shared/growth/clarity.ts';
 import { parseMode, planRun, type SourcePlan, type SyncMode } from '../_shared/growth/plan.ts';
 
+import { INSPECTION_PATHS, KEY_PATHS, PSI_DEVICES, dailyCallBudget } from '../_shared/growth/targets.ts';
+import { runPsi } from '../_shared/growth/psi.ts';
+import { combineIndexingStatus, runIndexing } from '../_shared/growth/indexing.ts';
+import { BING_SITE_URL, runBing } from '../_shared/growth/bing.ts';
+import { indexNowAccepted, indexNowRow, parseIndexNowPing } from '../_shared/growth/indexnow.ts';
+
 const FUNCTION_NAME = 'growth-sync';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 /** Stop starting new month chunks after this long; the caller resumes from next_from. */
 const TIME_BUDGET_MS = 110_000;
+/** PSI and URL Inspection start no new call after this; each PSI call times out at 50 s. */
+const SEO_BUDGET_MS = 60_000;
 const UPSERT_BATCH = 500;
 
-type Status = 'ok' | 'partial' | 'error' | 'skipped' | 'not_configured';
+type Status = 'ok' | 'partial' | 'error' | 'skipped' | 'not_configured' | 'permission_denied';
 
 interface SourceResult {
   status: Status;
@@ -170,7 +185,26 @@ Deno.serve(async (req) => {
     }
 
     const mode = parseMode(body.mode);
-    if (!mode) return j({ error: "mode must be 'daily' or 'backfill'" }, 400);
+    if (!mode) return j({ error: "mode must be 'daily', 'backfill' or 'ping'" }, 400);
+
+    if (mode === 'ping') {
+      // Only the deploy workflow (cron secret) records pings; an admin JWT cannot write them.
+      if (!isCron) return j({ error: 'ping mode needs the cron secret' }, 403);
+      if (body.source !== 'indexnow') return j({ error: "ping mode supports source 'indexnow' only" }, 400);
+      const parsed = parseIndexNowPing(body, new Date());
+      if (!parsed.ok) return j({ error: parsed.error }, 400);
+      const runId = await startRun(svc, 'ping', 'indexnow');
+      const accepted = indexNowAccepted(parsed.ping.http_status);
+      const n = await upsertRows(svc, [indexNowRow(parsed.ping)], new Date().toISOString());
+      const r: SourceResult = {
+        status: accepted ? 'ok' : 'error',
+        rows_upserted: n,
+        error: accepted ? undefined : `IndexNow answered HTTP ${parsed.ping.http_status}`,
+        details: { ...parsed.ping },
+      };
+      await finishRun(svc, runId, r);
+      return j({ success: accepted, mode, results: { indexnow: r } });
+    }
 
     const started = Date.now();
     const deadline = started + TIME_BUDGET_MS;
@@ -182,17 +216,24 @@ Deno.serve(async (req) => {
     const siteUrl = (Deno.env.get('GSC_SITE_URL') || GSC_DEFAULT_SITE_URL).trim();
     const saJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
     const clarityToken = Deno.env.get('CLARITY_API_TOKEN');
+    const psiKey = Deno.env.get('GOOGLE_API_KEY')?.trim() || null;
+    const bingKey = Deno.env.get('BING_WEBMASTER_API_KEY')?.trim() || null;
+    const seoDeadline = started + SEO_BUDGET_MS;
 
     const runIds = {
       ga4: await startRun(svc, mode, 'ga4'),
       gsc: await startRun(svc, mode, 'gsc'),
       clarity: await startRun(svc, mode, 'clarity'),
+      // Phase-2 sources only run (and only get a run row) in daily mode.
+      psi: plan.psi.call ? await startRun(svc, mode, 'psi') : null,
+      indexing: plan.indexing.call ? await startRun(svc, mode, 'indexing') : null,
+      bing: plan.bing.call ? await startRun(svc, mode, 'bing') : null,
     };
 
     // One Google token for both sources (valid 1 hour).
     let googleToken: string | null = null;
     let googleError: string | null = null;
-    const needGoogle = plan.ga4.chunks.length > 0 || plan.gsc.chunks.length > 0;
+    const needGoogle = plan.ga4.chunks.length > 0 || plan.gsc.chunks.length > 0 || plan.indexing.call;
     if (needGoogle && saJson) {
       try {
         googleToken = await getGoogleAccessToken(saJson);
@@ -224,6 +265,52 @@ Deno.serve(async (req) => {
       return { status: 'ok', rows_upserted: n, details: { window: 'last 24h ending at sync time', day: rows[0]?.day ?? null } };
     };
 
+    const psiSource = async (): Promise<SourceResult> => {
+      if (!plan.psi.call) return { status: 'skipped', rows_upserted: 0, error: plan.psi.skip, details: {} };
+      const targets = KEY_PATHS.flatMap((path) => PSI_DEVICES.map((device) => ({ path, device })));
+      const res = await runPsi(targets, today, psiKey, { concurrency: psiKey ? 10 : 5, deadline: seoDeadline });
+      const n = await upsertRows(svc, res.rows, fetchedAt);
+      const complete = res.errors.length === 0 && res.not_started.length === 0;
+      const problems = [...res.errors, ...res.not_started.map((t) => `not started (time budget): ${t}`)];
+      return {
+        status: complete ? 'ok' : res.rows.length > 0 ? 'partial' : 'error',
+        rows_upserted: n,
+        error: complete ? undefined : problems.slice(0, 5).join(' | ').slice(0, 2000),
+        details: { calls: res.calls, planned: dailyCallBudget().psi, api_key: psiKey ? 'GOOGLE_API_KEY' : 'none (keyless quota)' },
+      };
+    };
+
+    const indexingSource = async (): Promise<SourceResult> => {
+      if (!plan.indexing.call) return { status: 'skipped', rows_upserted: 0, error: plan.indexing.skip, details: {} };
+      if (!saJson) return { status: 'not_configured', rows_upserted: 0, error: 'GOOGLE_SERVICE_ACCOUNT_JSON is not set', details: {} };
+      if (!googleToken) return { status: 'error', rows_upserted: 0, error: googleError ?? 'no Google token', details: {} };
+      const res = await runIndexing(siteUrl, googleToken, INSPECTION_PATHS, today, { deadline: seoDeadline });
+      const n = await upsertRows(svc, res.rows, fetchedAt);
+      // A sitemap removed from Search Console since an earlier run today leaves no stale row.
+      if (res.endpoints.sitemaps.status === 'ok') await pruneStale(svc, 'indexing', 'indexing_sitemap', today, today, fetchedAt);
+      const problems = Object.entries(res.endpoints)
+        .filter(([, e]) => e.status !== 'ok')
+        .map(([name, e]) => `${name}: ${e.status}${e.google_message ? ` (${e.google_message})` : e.error ? ` (${e.error})` : ''}`);
+      return {
+        status: combineIndexingStatus(res.endpoints),
+        rows_upserted: n,
+        error: problems.length ? problems.join(' | ').slice(0, 2000) : undefined,
+        details: { target: siteUrl, endpoints: res.endpoints, planned: { sitemaps: 1, url_inspection: INSPECTION_PATHS.length } },
+      };
+    };
+
+    const bingSource = async (): Promise<SourceResult> => {
+      if (!plan.bing.call) return { status: 'skipped', rows_upserted: 0, error: plan.bing.skip, details: {} };
+      const res = await runBing(bingKey, BING_SITE_URL);
+      const n = await upsertRows(svc, res.rows, fetchedAt);
+      return {
+        status: res.status,
+        rows_upserted: n,
+        error: res.errors.length ? res.errors.join(' | ').slice(0, 2000) : undefined,
+        details: { site: BING_SITE_URL },
+      };
+    };
+
     const settle = async (p: Promise<SourceResult>): Promise<SourceResult> => {
       try {
         return await p;
@@ -232,19 +319,25 @@ Deno.serve(async (req) => {
       }
     };
 
-    const [ga4, gsc, clarity] = await Promise.all([
+    const [ga4, gsc, clarity, psi, indexing, bing] = await Promise.all([
       settle(googleSource('ga4', plan.ga4, propertyId)),
       settle(googleSource('gsc', plan.gsc, siteUrl)),
       settle(claritySource()),
+      settle(psiSource()),
+      settle(indexingSource()),
+      settle(bingSource()),
     ]);
 
     await Promise.all([
       finishRun(svc, runIds.ga4, ga4),
       finishRun(svc, runIds.gsc, gsc),
       finishRun(svc, runIds.clarity, clarity),
+      finishRun(svc, runIds.psi, psi),
+      finishRun(svc, runIds.indexing, indexing),
+      finishRun(svc, runIds.bing, bing),
     ]);
 
-    const results = { ga4, gsc, clarity };
+    const results = { ga4, gsc, clarity, psi, indexing, bing };
     const success = Object.values(results).every((r) => r.status !== 'error');
     return j({ success, mode, today, elapsed_ms: Date.now() - started, results });
   } catch (e) {

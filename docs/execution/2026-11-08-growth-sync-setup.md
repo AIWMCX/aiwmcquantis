@@ -12,8 +12,14 @@ Supabase → Edge Functions → Secrets.
 
 Use any Google login you control (jeltovbogdan@gmail.com is fine).
 
-1. Open https://console.cloud.google.com/ → project picker (top bar) → **New project**.
-   Name: `aiwmc-growth-sync`. No organization. **Create**, then select it.
+> **Production values (done 2026-11-08):** GCP project `ethereal-link-514104-u9`; service account
+> `quantis-analytics-reader@ethereal-link-514104-u9.iam.gserviceaccount.com` (GA4 520326058: Viewer,
+> added by aiwmcsrm@gmail.com; Search Console sc-domain:aiwmcquantis.com: Restricted). Do NOT use
+> project `ascendant-braid-460703-q1` (jeltovbogdan): it is suspended (billing account closed).
+> The steps below are for re-creating it from scratch.
+
+1. Open https://console.cloud.google.com/ → project picker (top bar) → **New project**
+   (or reuse `ethereal-link-514104-u9`). No organization, no billing needed. **Create**, then select it.
 2. **APIs & Services → Library**. Search and **Enable** each:
    - **Google Analytics Data API**
    - **Google Search Console API**
@@ -21,7 +27,7 @@ Use any Google login you control (jeltovbogdan@gmail.com is fine).
    - Name: `growth-sync`. **Create and continue**.
    - Roles: leave empty (access is granted inside GA4 and Search Console, not here). **Done**.
 4. Copy the service account email. It looks like
-   `growth-sync@aiwmc-growth-sync.iam.gserviceaccount.com`. You need it in steps 2 and 3.
+   `quantis-analytics-reader@ethereal-link-514104-u9.iam.gserviceaccount.com`. You need it in steps 2 and 3.
 5. Open the service account → **Keys → Add key → Create new key → JSON → Create**.
    A `.json` file downloads. Keep it only until step 4, then delete it.
    (If key creation is blocked by the policy `iam.disableServiceAccountKeyCreation`, the
@@ -73,6 +79,61 @@ Without `CLARITY_API_TOKEN` the page shows Clarity as "not configured"; that is 
 4. From then on the pg_cron job `growth-sync-daily` runs at 13:15 UTC every day and
    re-fetches the last 5 days.
 
+## 6. Phase 2: SEO / GEO / AEO sources (PageSpeed, indexing, IndexNow, Bing)
+
+Same function, same tables, same daily cron; `/admin/growth` gains a **Tool status** strip
+(GA4, Search Console, Clarity, PageSpeed, Indexing, IndexNow, Bing) and four sections.
+Nothing below is required for the page to work; each source that is not set up shows as
+"not configured" or explains what it needs.
+
+| Source | Calls a day | Needs |
+|---|---|---|
+| PageSpeed Insights (5 key pages × mobile/desktop) | 10 | nothing; optional `GOOGLE_API_KEY` |
+| Search Console sitemaps.list | 1 | the existing service account |
+| Search Console URL Inspection (8 pages) | 8 of the 2,000/day quota | the existing service account; may need **Full** permission |
+| IndexNow | one ping per production deploy | nothing new (uses the existing `CRON_SECRET` GitHub secret) |
+| Bing Webmaster | 2 | optional `BING_WEBMASTER_API_KEY` |
+
+### Optional `GOOGLE_API_KEY` (PageSpeed Insights)
+
+PSI answers without a key at low volume, but keyless calls from Supabase's shared servers
+can get HTTP 429. With a key the quota is your own.
+
+1. https://console.cloud.google.com/ → project **`ethereal-link-514104-u9`**.
+2. **APIs & Services → Library**: enable **PageSpeed Insights API** and **Chrome UX Report API**.
+3. **APIs & Services → Credentials → + Create credentials → API key**.
+4. Open the new key → **API restrictions → Restrict key** → tick only
+   **PageSpeed Insights API** and **Chrome UX Report API** → **Save**.
+   (Application restrictions: leave "None"; the call comes from Supabase, not a browser.)
+5. Supabase → Edge Functions → Secrets → add `GOOGLE_API_KEY` with the key value.
+
+### Search Console permission for URL Inspection
+
+The service account is a **Restricted** user on `sc-domain:aiwmcquantis.com`. Google does not
+document which permission level the URL Inspection API and `sitemaps.list` need. If either
+returns HTTP 403, `growth-sync` records the source as `permission_denied` with Google's exact
+message in `ext_sync_runs.details.endpoints`, and the page shows
+"needs Full permission in Search Console". The other sources keep running. To fix it:
+Search Console (as jeltovbogdan@gmail.com) → **Settings → Users and permissions** → the
+service account → **Full** → run **Run sync now**.
+
+### IndexNow results
+
+`scripts/indexnow-ping.mjs` (the non-blocking step after the production smoke test) now POSTs
+its result to `growth-sync` (`mode: 'ping'`) with the `x-cron-secret` header, using the
+`CRON_SECRET` GitHub `production` secret that already exists. No new secret. The
+`ping` mode only accepts the cron secret, never an admin login. The first row appears after
+the next production deploy.
+
+### Optional `BING_WEBMASTER_API_KEY`
+
+1. https://www.bing.com/webmasters → sign in → add and **verify**
+   `https://www.aiwmcquantis.com/` (the simplest route is **Import from Google Search Console**).
+2. **Settings (gear) → API access → API Key → Generate**.
+3. Supabase → Edge Functions → Secrets → add `BING_WEBMASTER_API_KEY` with the key value.
+4. **Run sync now**: the Bing chip turns **connected**. Each call returns Bing's recent
+   history, so there is nothing to backfill.
+
 ## Troubleshooting (the error text shows on the status card)
 
 | Error | Fix |
@@ -83,6 +144,10 @@ Without `CLARITY_API_TOKEN` the page shows Clarity as "not configured"; that is 
 | GA4 / GSC `... has not been used in project ... or it is disabled` | Step 1.2: enable the API, wait 5 minutes, run again |
 | GSC `User does not have sufficient permission for site` | Step 3 not done, or `GSC_SITE_URL` is not exactly `sc-domain:aiwmcquantis.com` |
 | Clarity `HTTP 429` | Clarity allows 10 calls a day; wait until tomorrow |
+| PageSpeed `HTTP 429 RESOURCE_EXHAUSTED` | Keyless quota used up; add `GOOGLE_API_KEY` (section 6) |
+| PageSpeed `API key not valid` / `API_KEY_SERVICE_BLOCKED` | The key's API restrictions must include PageSpeed Insights API |
+| Indexing `permission_denied` | Section 6: give the service account **Full** in Search Console |
+| Bing `ErrorCode ... InvalidApiKey` / `NotAuthorized` | Regenerate the key, or the site is not verified in Bing for that login |
 
 ## Key rotation
 
