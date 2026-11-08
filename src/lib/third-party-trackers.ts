@@ -6,10 +6,16 @@
  * whenTrackingAllowed() fires (src/lib/consent.ts, wired in main.tsx).
  */
 
-// GA4 property "www.aiwmcquantis.com" (559317308), web stream 16156394813.
-// index.html's gtag('config', ...) must use the same literal (guarded by
-// src/__tests__/ga4-measurement-id.test.ts).
-export const GA_MEASUREMENT_ID = 'G-08096HWB3B';
+// GA4 streams. index.html's gtag('config', ...) lines must use the same
+// literals in the same order (guarded by src/__tests__/ga4-measurement-id.test.ts).
+// Owners and IDs: CLAUDE.md "Analytics & search accounts".
+// Primary: the original Quantis history property "AIWMC Quantis™" (520326058,
+// stream 13318608133), owned by aiwmcsrm@gmail.com, collecting since Jan 2026.
+export const GA_MEASUREMENT_ID = 'G-NZE7RGVNEN';
+// Secondary: "www.aiwmcquantis.com" (559317308, stream 16156394813), owned by
+// jeltovbogdan@gmail.com and linked to Google Ads. Receives the same hits.
+export const GA_SECONDARY_MEASUREMENT_ID = 'G-08096HWB3B';
+export const GA_MEASUREMENT_IDS = [GA_MEASUREMENT_ID, GA_SECONDARY_MEASUREMENT_ID] as const;
 const APOLLO_APP_ID = '69cf1847c8d38900119597e4';
 
 let gaLoaded = false;

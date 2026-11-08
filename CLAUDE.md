@@ -57,6 +57,18 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 - **Redirects:** use `curl.exe -sI`. PowerShell 5.1's `Invoke-WebRequest` does not follow 308.
 - **New public routes** need: `App.tsx`; `scripts/generate-sitemap.ts` (its list regenerates `public/prerender-urls.txt` in `prebuild`; a page missing there ships with the homepage title and fails the visibility gate); `scripts/seo.routes.mjs`; a `RouteSEO.tsx` entry; and a body in `scripts/generate-static-bodies.mjs`. Add to `vercel.json` only for non-prerendered paths.
 
+## Analytics & search accounts (which login owns what; never lose these)
+| Tool | Owner login | IDs |
+|---|---|---|
+| GA4 **primary, history since Jan 2026** | `aiwmcsrm@gmail.com` | account "AIWMC™ v1 by Kerry" 380977247 → property "AIWMC Quantis™" 520326058 → stream 13318608133 → **`G-NZE7RGVNEN`** |
+| GA4 secondary (Google Ads link) | `jeltovbogdan@gmail.com` | account 412295962 → property 559317308 → stream 16156394813 → `G-08096HWB3B` |
+| Search Console | `jeltovbogdan@gmail.com` (sole Owner) | `sc-domain:aiwmcquantis.com` (DNS TXT); sitemap `https://www.aiwmcquantis.com/sitemap.xml` |
+| Microsoft Clarity | `jeltovbogdan@gmail.com` | Vercel env `VITE_CLARITY_PROJECT_ID` (loader: `src/lib/clarity.ts`, consent-gated) |
+
+- The site sends to **both** GA4 IDs (`GA_MEASUREMENT_IDS` in `src/lib/third-party-trackers.ts`, plus the matching `gtag('config')` lines in `index.html`). `ga4-measurement-id.test.ts` guards this.
+- Never remove `G-NZE7RGVNEN`: #435 did for a day and cut off the history property.
+- These are account names only; no credentials belong here.
+
 ## Data rules
 - **Internal accounts:** exclude emails matching `jeltov|beltov|aiwmc|jjbalaganvasya|glasswing|qatest|audit-test`, `quantis-e2e.test|quantis-test.com|mailnull`, `bel%@gmail.com` and `digitalhubshops@gmail.com` from every customer metric (beltovbogdan@ and digitalhubshops@ are the founder's; the rest are QA and fixture accounts). `funnel_events_clean` applies this since `20261102120000`. Always join to `auth.users` before trusting a count.
 - **Metrics** use complete America/Denver days; report today separately as partial.

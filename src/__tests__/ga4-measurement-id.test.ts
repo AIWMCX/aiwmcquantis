@@ -1,29 +1,35 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { GA_MEASUREMENT_ID } from '@/lib/third-party-trackers';
+import {
+  GA_MEASUREMENT_ID,
+  GA_MEASUREMENT_IDS,
+  GA_SECONDARY_MEASUREMENT_ID,
+} from '@/lib/third-party-trackers';
 
-// GA4 property "www.aiwmcquantis.com" (559317308), web stream 16156394813.
-// G-NZE7RGVNEN sent every hit to a property the founder's account cannot open.
-describe('GA4 measurement ID', () => {
+// Primary: "AIWMC Quantis™" (520326058), owner aiwmcsrm@gmail.com, history since Jan 2026.
+// Secondary: "www.aiwmcquantis.com" (559317308), owner jeltovbogdan@gmail.com.
+// #435 replaced the primary and cut the history property off for a day. This guards it.
+describe('GA4 measurement IDs', () => {
   const html = readFileSync('index.html', 'utf8');
   const analytics = readFileSync('src/lib/analytics.ts', 'utf8');
 
-  it('is the founder-owned Quantis web stream', () => {
-    expect(GA_MEASUREMENT_ID).toBe('G-08096HWB3B');
+  it('keeps the history property primary', () => {
+    expect(GA_MEASUREMENT_ID).toBe('G-NZE7RGVNEN');
+    expect(GA_SECONDARY_MEASUREMENT_ID).toBe('G-08096HWB3B');
+    expect([...GA_MEASUREMENT_IDS]).toEqual(['G-NZE7RGVNEN', 'G-08096HWB3B']);
   });
 
-  it('index.html gtag config uses the same ID as the TS constant', () => {
+  it('index.html configures exactly the same IDs, in order', () => {
     const ids = [...html.matchAll(/gtag\('config',\s*'(G-[A-Z0-9]+)'/g)].map((m) => m[1]);
-    expect(ids).toEqual([GA_MEASUREMENT_ID]);
+    expect(ids).toEqual([...GA_MEASUREMENT_IDS]);
   });
 
-  it('analytics.ts imports the ID instead of keeping its own literal', () => {
+  it('analytics.ts imports the IDs instead of keeping its own literal', () => {
     expect(analytics).not.toMatch(/['"]G-[A-Z0-9]{6,}['"]/);
-    expect(analytics).toContain("import { GA_MEASUREMENT_ID } from './third-party-trackers'");
+    expect(analytics).toContain('GA_MEASUREMENT_IDS');
   });
 
-  it('the old ID and the Clarity placeholder are gone from index.html', () => {
-    expect(html).not.toContain('G-NZE7RGVNEN');
+  it('keeps the Clarity placeholder out of index.html', () => {
     expect(html).not.toContain('CLARITY_ID');
   });
 });
