@@ -55,7 +55,9 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
   1. Fetch `/`, find `/assets/index-*.js`, then the lazy chunk (e.g. `assets/Autoposter-*.js`).
   2. Search it for a string your PR added. The index bundle does **not** contain the commit SHA.
 - **Redirects:** use `curl.exe -sI`. PowerShell 5.1's `Invoke-WebRequest` does not follow 308.
-- **New public routes** need: `App.tsx`; `scripts/generate-sitemap.ts` (its list regenerates `public/prerender-urls.txt` in `prebuild`; a page missing there ships with the homepage title and fails the visibility gate); `scripts/seo.routes.mjs`; a `RouteSEO.tsx` entry; and a body in `scripts/generate-static-bodies.mjs`. Add to `vercel.json` only for non-prerendered paths.
+- **New public routes** need: `App.tsx`; `scripts/generate-sitemap.ts` (its list regenerates `public/prerender-urls.txt` in `prebuild`; a page missing there ships with the homepage title and fails the visibility gate); `scripts/seo.routes.mjs`; a `RouteSEO.tsx` entry; and a body plus `<h1>` text in `scripts/generate-static-bodies.mjs`. Add to `vercel.json` only for non-prerendered paths.
+- **Static bodies are real markup inside `#root`, not `<noscript>`** (crawlers without JS read them; `createRoot` replaces them on mount). `verify-visibility.mjs` fails the build on the "renders after JavaScript loads" placeholder, `<h1>` count ≠ 1, or < 80 words outside noscript; `node scripts/verify-visibility.mjs --report` prints per-route counts. Demo bodies come from the engines via `scripts/static-bodies/demo-bodies.json`; after changing a demo fixture run `UPDATE_DEMO_BODIES=1 npx vitest run src/__tests__/demo-static-bodies.test.ts`.
+- **Site-wide JSON-LD** (Organization + SoftwareApplication + WebSite) is static in `index.html`, a copy of `siteGraph()` in `src/lib/seo/site-schema.ts`; `seo-schema-truth.test.ts` fails if they differ. Don't re-inject these entities from React.
 
 ## Analytics & search accounts (which login owns what; never lose these)
 | Tool | Owner login | IDs |
@@ -68,6 +70,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 - The site sends to **both** GA4 IDs (`GA_MEASUREMENT_IDS` in `src/lib/third-party-trackers.ts`, plus the matching `gtag('config')` lines in `index.html`). `ga4-measurement-id.test.ts` guards this.
 - Never remove `G-NZE7RGVNEN`: #435 did for a day and cut off the history property.
 - These are account names only; no credentials belong here.
+- **`/admin/growth`** shows GA4 (520326058), Search Console and Clarity next to the Supabase funnel. The `growth-sync` edge function (pg_cron `growth-sync-daily`, 13:15 UTC; admin "Run sync now" / "Backfill history") writes `ext_metrics_daily` + `ext_sync_runs` with a service account (secrets `GOOGLE_SERVICE_ACCOUNT_JSON`, `GA4_PROPERTY_ID`, `GSC_SITE_URL`, optional `CLARITY_API_TOKEN`). Setup: `docs/execution/2026-11-08-growth-sync-setup.md`. Pure logic: `_shared/growth/`.
 
 ## Data rules
 - **Internal accounts:** exclude emails matching `jeltov|beltov|aiwmc|jjbalaganvasya|glasswing|qatest|audit-test`, `quantis-e2e.test|quantis-test.com|mailnull`, `bel%@gmail.com` and `digitalhubshops@gmail.com` from every customer metric (beltovbogdan@ and digitalhubshops@ are the founder's; the rest are QA and fixture accounts). `funnel_events_clean` applies this since `20261102120000`. Always join to `auth.users` before trusting a count.

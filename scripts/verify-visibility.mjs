@@ -8,6 +8,9 @@
 //   3. Pricing + homepage contain the full tier set incl. Pro $49.
 //   4. Per-route <title> matches its expected unique title.
 //   5. sitemap.xml exists and lists every public URL.
+//   6. Raw HTML, without JavaScript: no "renders after JavaScript loads"
+//      placeholder, exactly one <h1> and >= 80 words outside <noscript>.
+//      `node scripts/verify-visibility.mjs --report` prints per-route counts.
 //
 // If ANY check fails → exit(1) → CI fails → nothing deploys.
 // =============================================================================
@@ -207,6 +210,49 @@ if (!fs.existsSync(sitemapPath)) {
     const url = `${ORIGIN}${r.path === "/" ? "/" : r.path}`;
     note(sitemap.includes(url), `SITEMAP: missing ${url}`);
   }
+}
+
+// --- 6: raw HTML is readable without JavaScript — HARD FAIL -----------------
+// Bing, OAI-SearchBot, PerplexityBot, ClaudeBot and Google's first pass read
+// the HTML as served. Text inside <noscript> does not count: many fetchers
+// drop it. Every sitemap route must carry its own content as plain markup:
+// no "renders after JavaScript loads" placeholder, exactly one <h1>, and at
+// least MIN_VISIBLE_WORDS words outside <noscript>/<script>/<style>.
+// (2026-11-08 GEO audit: `/`, `/pricing`, `/demo/hiring-decision` had 13
+// words and 0 <h1> outside <noscript>; 19 routes served the placeholder.)
+const MIN_VISIBLE_WORDS = 80;
+const PLACEHOLDER_RE = /renders? after JavaScript loads/i;
+function rawVisibility(html) {
+  // Strip comments first: a <head> comment in index.html mentions "<body>".
+  const body = bodyOf(html.replace(/<!--[\s\S]*?-->/g, " "))
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+  const h1 = (body.match(/<h1[\s>]/gi) || []).length;
+  const text = body.replace(/<[^>]+>/g, " ").replace(/&[a-z0-9#]+;/gi, " ");
+  const words = text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+  return { words, h1, placeholder: PLACEHOLDER_RE.test(html) };
+}
+const visibilityReport = [];
+for (const r of PUBLIC_ROUTES) {
+  const html = readRoute(r.path);
+  if (!html) continue;
+  const v = rawVisibility(html);
+  visibilityReport.push({ path: r.path, ...v });
+  note(!v.placeholder,
+    `RAW_PLACEHOLDER: ${r.path} raw HTML says content "renders after JavaScript loads" — write a real static body in generate-static-bodies.mjs`);
+  note(v.h1 === 1,
+    `RAW_H1: ${r.path} has ${v.h1} <h1> outside <noscript>; expected exactly 1`);
+  note(v.words >= MIN_VISIBLE_WORDS,
+    `RAW_THIN: ${r.path} has ${v.words} words outside <noscript>/<script>/<style>; minimum is ${MIN_VISIBLE_WORDS}`);
+}
+if (process.argv.includes("--report")) {
+  console.log("\nRaw-HTML visibility (outside noscript/script/style):");
+  for (const v of visibilityReport) {
+    console.log(`  ${v.path.padEnd(48)} words=${String(v.words).padStart(4)} h1=${v.h1}${v.placeholder ? " PLACEHOLDER" : ""}`);
+  }
+  const words = visibilityReport.map((v) => v.words).sort((a, b) => a - b);
+  console.log(`  routes=${words.length} min=${words[0]} median=${words[Math.floor(words.length / 2)]} max=${words[words.length - 1]}`);
 }
 
 // --- verdict -----------------------------------------------------------------

@@ -71,13 +71,12 @@
     <meta name="apple-mobile-web-app-title" content="Quantis" />
 
     <!-- Critical CSS inlined to eliminate render-blocking on initial paint.
-         Covers <html>/<body>/#root reset + LCP banner (already present below) +
+         Covers the html, body and #root reset +
          system-font fallback so first paint is immediate before web fonts load. -->
     <style>
       *,*::before,*::after{box-sizing:border-box}
       html,body{margin:0;padding:0;background:#fff;color:#0a0a0a;font-family:'DM Sans','Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
       #root{min-height:100vh;isolation:isolate}
-      #lcp-banner-placeholder{contain:layout style paint}
       @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
     </style>
 
@@ -91,8 +90,8 @@
 
     <!-- Twitter Card fallbacks -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@aiwmcquantis" />
-    <meta name="twitter:creator" content="@aiwmcquantis" />
+    <meta name="twitter:site" content="@aiwmcx1" />
+    <meta name="twitter:creator" content="@aiwmcx1" />
     <meta name="twitter:domain" content="aiwmcquantis.com" />
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/02jw8cYqavMYVgbcUyUgCIbUR6r2/social-images/social-1783401740987-photo_2026-07-06_23-22-10.webp">
     
@@ -102,8 +101,8 @@
     <!-- Google Fonts: IBM Plex Sans (finance body) + IBM Plex Mono (data) + Sora + DM Sans + JetBrains Mono -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap"></noscript>
-    <!-- JSON-LD: Organization, SoftwareApplication, WebSite, and per-route FAQPage are
-         injected by <StructuredData> / <PageSEO> after hydration to avoid duplication. -->
+    <!-- JSON-LD: the site-wide graph is static (below). Per-route FAQPage, BreadcrumbList and
+         Service blocks are added by <StructuredData> / <PageSEO> after hydration. -->
     
   
   
@@ -130,26 +129,197 @@
   
   
 
-  <!-- JSON-LD — SoftwareApplication. Prices must match src/config (guarded by
-       seo-schema-truth.test.ts). No site-wide FAQPage: FAQ markup is added per page
-       from that page's visible FAQ, never sitewide (SEO audit 2026-10-27). -->
-  <script type="application/ld+json">
+  <!-- JSON-LD: the one site-wide graph (Organization + SoftwareApplication + WebSite,
+       linked by @id). Copy of siteGraph() in src/lib/seo/site-schema.ts; prices come from
+       src/config. seo-schema-truth.test.ts fails if this block drifts. No site-wide FAQPage:
+       FAQ markup is added per page from that page's visible FAQ (SEO audit 2026-10-27). -->
+  <script type="application/ld+json" id="schema-site-graph">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "AIWMC Quantis",
-    "url": "https://www.aiwmcquantis.com",
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web",
-    "description": "Tests a business decision with deterministic cash, break-even and payback calculations, base/downside/upside scenarios, and benchmark defaults from a 97,500-cell modeled coverage grid (modeled cells, not observed companies).",
-    "offers": [
-      { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD", "description": "5 complete Decision Runs per month" },
-      { "@type": "Offer", "name": "Plus", "price": "17", "priceCurrency": "USD", "description": "Unlimited analyses, PDF export, scenarios and decision tools (per month)" },
-      { "@type": "Offer", "name": "Pro", "price": "49", "priceCurrency": "USD", "description": "Everything in Plus, with investor-ready outputs (per month)" },
-      { "@type": "Offer", "name": "Founder Decision Review", "price": "349", "priceCurrency": "USD", "url": "https://www.aiwmcquantis.com/decision-review", "description": "One-time, founder-assisted: 1 decision" },
-      { "@type": "Offer", "name": "Consultant Founding Pilot", "price": "499", "priceCurrency": "USD", "url": "https://www.aiwmcquantis.com/decision-review", "description": "One-time, founder-assisted: 2 client cases" }
-    ],
-    "publisher": { "@type": "Organization", "name": "AIWMC Quantis", "legalName": "AIWMC LLC", "url": "https://www.aiwmcquantis.com" }
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.aiwmcquantis.com/#organization",
+        "name": "AIWMC Quantis",
+        "legalName": "AIWMC LLC",
+        "url": "https://www.aiwmcquantis.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.aiwmcquantis.com/og-image.png",
+          "width": 1200,
+          "height": 630
+        },
+        "description": "Test a business decision before you fund it: explicit assumptions, deterministic cash, break-even and payback math, and downside scenarios.",
+        "email": "support@aiwmcquantis.com",
+        "founder": {
+          "@type": "Person",
+          "name": "Bogdan Jeltov"
+        },
+        "numberOfEmployees": {
+          "@type": "QuantitativeValue",
+          "minValue": 1,
+          "maxValue": 10
+        },
+        "sameAs": [
+          "https://www.linkedin.com/company/aiwmc/",
+          "https://x.com/aiwmcx1",
+          "https://t.me/aiwmcx",
+          "https://www.instagram.com/wmc.ai",
+          "https://www.threads.com/@wmc.ai",
+          "https://www.youtube.com/@AIWMCX",
+          "https://github.com/AIWMCX",
+          "https://whop.com/aiwmc"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "support@aiwmcquantis.com",
+          "contactType": "customer support",
+          "availableLanguage": [
+            "English"
+          ]
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Denver",
+          "addressRegion": "CO",
+          "addressCountry": "US"
+        },
+        "keywords": "Business Decision Analysis, Financial Modeling, Scenario Analysis, Break-Even, Payback, Hiring Decisions, Fractional CFO Tools"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://www.aiwmcquantis.com/#software",
+        "name": "AIWMC Quantis",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "Financial Analysis",
+        "operatingSystem": "Web",
+        "description": "Tests a business decision with deterministic cash, break-even and payback calculations, base/downside/upside scenarios, and benchmark defaults from a 97,500-cell modeled coverage grid (modeled cells, not observed companies).",
+        "url": "https://www.aiwmcquantis.com",
+        "screenshot": "https://www.aiwmcquantis.com/og-image.png",
+        "author": {
+          "@id": "https://www.aiwmcquantis.com/#organization"
+        },
+        "publisher": {
+          "@id": "https://www.aiwmcquantis.com/#organization"
+        },
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free",
+            "price": "0",
+            "priceCurrency": "USD",
+            "url": "https://www.aiwmcquantis.com/pricing",
+            "availability": "https://schema.org/InStock",
+            "description": "5 complete Decision Runs per month"
+          },
+          {
+            "@type": "Offer",
+            "name": "Plus",
+            "price": "17",
+            "priceCurrency": "USD",
+            "url": "https://www.aiwmcquantis.com/pricing",
+            "availability": "https://schema.org/InStock",
+            "description": "Unlimited analyses, PDF export, scenarios and decision tools (per month)",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "17",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M",
+              "unitCode": "MON"
+            }
+          },
+          {
+            "@type": "Offer",
+            "name": "Plus (yearly)",
+            "price": "168",
+            "priceCurrency": "USD",
+            "url": "https://www.aiwmcquantis.com/pricing",
+            "availability": "https://schema.org/InStock",
+            "description": "Unlimited analyses, PDF export, scenarios and decision tools (per year)",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "168",
+              "priceCurrency": "USD",
+              "billingDuration": "P1Y",
+              "unitCode": "ANN"
+            }
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "price": "49",
+            "priceCurrency": "USD",
+            "url": "https://www.aiwmcquantis.com/pricing",
+            "availability": "https://schema.org/InStock",
+            "description": "Everything in Plus, with investor-ready outputs (per month)",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "49",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M",
+              "unitCode": "MON"
+            }
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro (yearly)",
+            "price": "492",
+            "priceCurrency": "USD",
+            "url": "https://www.aiwmcquantis.com/pricing",
+            "availability": "https://schema.org/InStock",
+            "description": "Everything in Plus, with investor-ready outputs (per year)",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "492",
+              "priceCurrency": "USD",
+              "billingDuration": "P1Y",
+              "unitCode": "ANN"
+            }
+          },
+          {
+            "@type": "Offer",
+            "name": "Founder Decision Review",
+            "price": "349",
+            "priceCurrency": "USD",
+            "url": "https://www.aiwmcquantis.com/decision-review",
+            "availability": "https://schema.org/InStock",
+            "description": "One-time, founder-assisted: 1 decision"
+          },
+          {
+            "@type": "Offer",
+            "name": "Consultant Founding Pilot",
+            "price": "499",
+            "priceCurrency": "USD",
+            "url": "https://www.aiwmcquantis.com/decision-review",
+            "availability": "https://schema.org/InStock",
+            "description": "One-time, founder-assisted: 2 client cases"
+          }
+        ],
+        "featureList": [
+          "Financial pre-mortem",
+          "Base, downside and upside scenarios",
+          "Cash, break-even and payback reconciliation",
+          "Unit economics (CAC, LTV, payback)",
+          "1,000-iteration monthly profit range (P10/P50/P90)",
+          "Benchmark defaults from a 97,500-cell modeled coverage grid",
+          "Location-adjusted cost estimates (15 US metros plus a US-average baseline)",
+          "Risk flags",
+          "Document Studio",
+          "PDF export"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://www.aiwmcquantis.com/#website",
+        "name": "AIWMC Quantis",
+        "url": "https://www.aiwmcquantis.com",
+        "description": "Test a business decision before you fund it",
+        "publisher": {
+          "@id": "https://www.aiwmcquantis.com/#organization"
+        },
+        "inLanguage": "en-US"
+      }
+    ]
   }
   </script>
   
@@ -187,228 +357,7 @@
 </head>
 
   <body>
-    <div id="root"><!-- Pre-hydration LCP placeholder. React replaces this on mount. Matches UrgencyBanner styling 1:1 to avoid CLS. -->
-      <!-- Non-heading on purpose: shared across all routes, must not leak a homepage H1 to a11y tree on other pages. -->
-      <div aria-hidden="true" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
-        Loading your analysis…
-      </div>
-      <div id="lcp-banner-placeholder" style="background:#1F6FEB;color:#FFFFFF;padding:10px 16px;text-align:center;font-family:'DM Sans',system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px">
-        <span>Financial stress-test for founders — risk map, scenarios, and projections</span>
-      </div>
-    </div>
-
-    <!-- Static content for non-JS crawlers and SEO fallback -->
-    <noscript>
-      <div style="max-width:800px;margin:40px auto;padding:0 20px;font-family:system-ui,sans-serif;color:#1a1a1a">
-        <h1>AIWMC™ Quantis — AI Business Validation & Risk Stress-Testing</h1>
-        <p>Roughly half of new businesses don't reach year 5. Most had a plan — none had validation. A financial consultant charges $1,500-$25,000 (or $350/hr) to stress-test your model. Quantis makes every assumption explicit and shows which ones control cash, break-even and payback. Free to start.</p>
-
-        <!-- ===== /how-it-works ===== -->
-        <section id="how-it-works">
-          <h2>How Quantis Works — 3 Steps to Financial Clarity</h2>
-          <h3>Step 1: Describe Your Business Idea</h3>
-          <p>Enter your business concept and target location. No financial background required — just your idea in plain language. Example: "Coffee shop with remote work focus in Denver, Colorado."</p>
-          <h3>Step 2: The Engine Runs the Numbers</h3>
-          <p>A deterministic engine calculates cash, break-even, payback and unit economics from your inputs, filling gaps with labeled defaults from a 97,500-cell modeled coverage grid (modeled cells, not observed companies), location-adjusted where supported. It then builds a monthly profit range (P10/P50/P90) from 1,000 modeled months.</p>
-          <h3>Step 3: Get Your Risk Report &amp; Action Plan</h3>
-          <p>Receive 3-scenario projections (conservative, realistic, optimistic), risk flags with severity ratings, and a clear action plan. Each input is labeled as your input, a benchmark default, or an assumption.</p>
-          <p><strong>What you get:</strong> Revenue projections, cost breakdown, break-even timeline, LTV:CAC ratio, risk flags, competitive landscape, and a step-by-step launch checklist.</p>
-        </section>
-
-        <!-- ===== /pricing ===== -->
-        <section id="pricing">
-          <h2>Quantis Pricing — Free Plan &amp; Plus at $17/mo</h2>
-          <table style="border-collapse:collapse;width:100%;margin:16px 0">
-            <thead>
-              <tr style="border-bottom:2px solid #e5e7eb"><th style="text-align:left;padding:8px">Feature</th><th style="text-align:center;padding:8px">Free</th><th style="text-align:center;padding:8px">Plus — $17/mo</th></tr>
-            </thead>
-            <tbody>
-              <tr><td style="padding:8px">Analyses per month</td><td style="text-align:center;padding:8px">5</td><td style="text-align:center;padding:8px">Unlimited</td></tr>
-              <tr><td style="padding:8px">Full financial report</td><td style="text-align:center;padding:8px">✓</td><td style="text-align:center;padding:8px">✓</td></tr>
-              <tr><td style="padding:8px">Risk flags &amp; action plan</td><td style="text-align:center;padding:8px">✓</td><td style="text-align:center;padding:8px">✓</td></tr>
-              <tr><td style="padding:8px">PDF export</td><td style="text-align:center;padding:8px">—</td><td style="text-align:center;padding:8px">✓</td></tr>
-              <tr><td style="padding:8px">Document Studio</td><td style="text-align:center;padding:8px">—</td><td style="text-align:center;padding:8px">✓</td></tr>
-              <tr><td style="padding:8px">Location comparison</td><td style="text-align:center;padding:8px">—</td><td style="text-align:center;padding:8px">✓</td></tr>
-              <tr><td style="padding:8px">Custom branding</td><td style="text-align:center;padding:8px">—</td><td style="text-align:center;padding:8px">✓</td></tr>
-              <tr><td style="padding:8px">Priority support</td><td style="text-align:center;padding:8px">—</td><td style="text-align:center;padding:8px">✓</td></tr>
-            </tbody>
-          </table>
-          <p>Start free — no credit card required. Upgrade anytime.</p>
-        </section>
-
-        <!-- ===== /methodology ===== -->
-        <section id="methodology">
-          <h2>Quantis Methodology — 97,500 Benchmarks &amp; Monte Carlo Simulation</h2>
-          <h3>Data Sources</h3>
-          <p>Benchmark defaults come from a 97,500-cell modeled coverage grid informed by public datasets (SEC filings, World Bank enterprise surveys) and industry modeling. Cells are modeled combinations, not observed companies, and per-cell source lineage is not available.</p>
-          <h3>Deterministic Financial Engine</h3>
-          <p>Every projection uses a deterministic math engine — not AI hallucination. The engine calculates 12 financial variables: revenue, COGS, gross margin, operating expenses, net profit, break-even month, startup investment, payback period, LTV, CAC, LTV:CAC ratio, and monthly burn rate.</p>
-          <h3>Monte Carlo Simulation</h3>
-          <p>Each report builds a monthly profit range from 1,000 modeled months that vary the report's own revenue (80% to 120%) and costs (90% to 115%), and shows P10, P50 and P90. It is a range of modeled outcomes, not a prediction.</p>
-          <h3>8-Layer AI Safety Architecture</h3>
-          <ul>
-            <li>Layer 1: Input sanitization &amp; business type classification</li>
-            <li>Layer 2: Benchmark matching with confidence scoring</li>
-            <li>Layer 3: Location cost adjustment using city-specific multipliers</li>
-            <li>Layer 4: Dual-AI consensus validation (two independent models must agree)</li>
-            <li>Layer 5: Sanity checks — margin bounds, revenue-to-cost ratios, unit economics</li>
-            <li>Layer 6: Reconciliation against historical analysis data</li>
-            <li>Layer 7: Human-readable source attribution for every number</li>
-            <li>Layer 8: Reality Validation &amp; Calibration Engine (RVCE) — cross-checks projections against live market data</li>
-          </ul>
-        </section>
-
-        <!-- ===== /examples (top 10 with rich content) ===== -->
-        <section id="examples">
-          <h2>Business Analysis Examples — Real AI Reports by City &amp; Industry</h2>
-          <p>Browse 50+ complete financial reports produced by our deterministic engine. Each example includes revenue projections, cost breakdown, risk flags, break-even timeline, and an action plan — every assumption labeled by where it came from.</p>
-
-          <article id="example-coffee-shop-denver">
-            <h3><a href="/examples/coffee-shop-denver">Coffee Shop in Denver — $4,200/mo Projected Profit</a></h3>
-            <p>A specialty coffee shop with remote work focus in Denver, CO. Projected monthly revenue of $28,500 with 62% gross margin. Break-even in month 8. Key risks: high rent in downtown locations ($4,800/mo), seasonal foot traffic variance of ±18%, and saturated market with 2,400+ coffee shops in metro Denver. LTV:CAC ratio of 4.2x. Startup investment: $85,000–$120,000.</p>
-          </article>
-
-          <article id="example-saas-project-management">
-            <h3><a href="/examples/saas-project-management">SaaS Project Management Tool — $3,800/mo Projected Profit</a></h3>
-            <p>B2B project management SaaS targeting small teams (5–25 employees). Monthly recurring revenue projection of $12,400 at month 12. Gross margin 82%. Break-even in month 14. Key risks: high CAC ($340 per customer), 4.8% monthly churn in first year, and intense competition from established players. LTV:CAC ratio of 3.1x. Startup investment: $45,000–$75,000.</p>
-          </article>
-
-          <article id="example-restaurant-miami">
-            <h3><a href="/examples/restaurant-miami">Farm-to-Table Restaurant in Miami — $8,900/mo Projected Profit</a></h3>
-            <p>Upscale farm-to-table dining in Miami's Wynwood district. Projected monthly revenue of $95,000 with 68% gross margin. Break-even in month 6. Key risks: high labor costs (38% of revenue), food waste at 8–12% without inventory management, and seasonal tourist dependency. Average check $52. Startup investment: $180,000–$280,000.</p>
-          </article>
-
-          <article id="example-consulting-firm-new-york">
-            <h3><a href="/examples/consulting-firm-new-york">Consulting Firm in New York — $18,500/mo Projected Profit</a></h3>
-            <p>Management consulting firm in Manhattan targeting mid-market companies. Projected monthly revenue of $48,000 with 72% gross margin. Break-even in month 4. Key risks: client concentration (top 3 clients = 60%+ revenue), long sales cycles of 3–6 months, and high talent retention costs. LTV:CAC ratio of 6.8x. Startup investment: $35,000–$60,000.</p>
-          </article>
-
-          <article id="example-fitness-studio-los-angeles">
-            <h3><a href="/examples/fitness-studio-los-angeles">Fitness Studio in Los Angeles — $7,800/mo Projected Profit</a></h3>
-            <p>Boutique fitness studio offering HIIT and yoga in West Hollywood. Projected monthly revenue of $38,000 with 65% gross margin. Break-even in month 7. Key risks: high rent ($8,200/mo), seasonal membership churn of 22% annually, and competition from ClassPass and at-home fitness apps. Average membership $159/mo. Startup investment: $120,000–$200,000.</p>
-          </article>
-
-          <article id="example-dental-clinic-dubai">
-            <h3><a href="/examples/dental-clinic-dubai">Dental Clinic in Dubai — $12,500/mo Projected Profit</a></h3>
-            <p>General and cosmetic dental clinic in Dubai Marina. Projected monthly revenue of $62,000 with 58% gross margin. Break-even in month 9. Key risks: high equipment costs ($180,000+ initial), regulatory licensing requirements (DHA approval), and reliance on expat patient base. Average procedure value $420. Startup investment: $250,000–$400,000.</p>
-          </article>
-
-          <article id="example-food-truck-austin">
-            <h3><a href="/examples/food-truck-austin">Food Truck in Austin — $5,400/mo Projected Profit</a></h3>
-            <p>Gourmet taco truck operating in Austin's food truck parks. Projected monthly revenue of $22,000 with 64% gross margin. Break-even in month 5. Key risks: weather dependency, permit restrictions, and location competition. Average check $14. Low startup investment: $45,000–$80,000 makes this a high-ROI entry point.</p>
-          </article>
-
-          <article id="example-ecommerce-sustainable-fashion">
-            <h3><a href="/examples/ecommerce-sustainable-fashion">Sustainable Fashion E-commerce — $6,200/mo Projected Profit</a></h3>
-            <p>DTC sustainable fashion brand selling online. Projected monthly revenue of $34,000 with 55% gross margin. Break-even in month 11. Key risks: high customer acquisition cost ($85 via Instagram/TikTok), return rate of 18–25%, and inventory management complexity. LTV:CAC ratio of 2.8x. Startup investment: $30,000–$65,000.</p>
-          </article>
-
-          <article id="example-real-estate-agency-chicago">
-            <h3><a href="/examples/real-estate-agency-chicago">Real Estate Agency in Chicago — $11,200/mo Projected Profit</a></h3>
-            <p>Residential real estate brokerage in Chicago's North Side. Projected monthly revenue of $42,000 with 45% gross margin. Break-even in month 5. Key risks: market cycle dependency, 6-month average deal close time, and agent retention. Average commission $8,400 per transaction. Startup investment: $25,000–$50,000.</p>
-          </article>
-
-          <article id="example-barbershop-houston">
-            <h3><a href="/examples/barbershop-houston">Barbershop in Houston — $8,200/mo Projected Profit</a></h3>
-            <p>Modern barbershop in Houston's Midtown. Projected monthly revenue of $28,000 with 72% gross margin. Break-even in month 4. Key risks: stylist retention (industry turnover 40%+), location foot traffic dependency, and price sensitivity. Average service $35. Low-risk, high-margin model. Startup investment: $40,000–$75,000.</p>
-          </article>
-        </section>
-
-        <!-- ===== Remaining example links ===== -->
-        <section id="all-examples">
-          <h2>All 50+ Business Analysis Examples</h2>
-          <ul>
-            <li><a href="/examples/coffee-shop-denver">Coffee Shop in Denver — $4,200/mo profit</a></li>
-            <li><a href="/examples/saas-project-management">SaaS Project Management Tool — $3,800/mo profit</a></li>
-            <li><a href="/examples/restaurant-miami">Farm-to-Table Restaurant in Miami — $8,900/mo profit</a></li>
-            <li><a href="/examples/ecommerce-sustainable-fashion">Sustainable Fashion E-commerce — $6,200/mo profit</a></li>
-            <li><a href="/examples/consulting-firm-new-york">Consulting Firm in New York — $18,500/mo profit</a></li>
-            <li><a href="/examples/fitness-studio-los-angeles">Fitness Studio in Los Angeles — $7,800/mo profit</a></li>
-            <li><a href="/examples/food-truck-austin">Food Truck in Austin — $5,400/mo profit</a></li>
-            <li><a href="/examples/dropshipping-store-online">Dropshipping Store — $3,900/mo profit</a></li>
-            <li><a href="/examples/mobile-app-startup-san-francisco">Mobile App Startup in San Francisco — $4,600/mo profit</a></li>
-            <li><a href="/examples/real-estate-agency-chicago">Real Estate Agency in Chicago — $11,200/mo profit</a></li>
-            <li><a href="/examples/cleaning-service-atlanta">Cleaning Service in Atlanta — $6,800/mo profit</a></li>
-            <li><a href="/examples/tutoring-service-boston">Tutoring Service in Boston — $9,500/mo profit</a></li>
-            <li><a href="/examples/barbershop-houston">Barbershop in Houston — $8,200/mo profit</a></li>
-            <li><a href="/examples/coworking-space-portland">Coworking Space in Portland — $9,400/mo profit</a></li>
-            <li><a href="/examples/pet-grooming-seattle">Pet Grooming Salon in Seattle — $7,100/mo profit</a></li>
-            <li><a href="/examples/bakery-paris">Artisan Bakery in Paris — €5,800/mo profit</a></li>
-            <li><a href="/examples/gym-london">Gym in London — £6,200/mo profit</a></li>
-            <li><a href="/examples/dental-clinic-dubai">Dental Clinic in Dubai — $12,500/mo profit</a></li>
-            <li><a href="/examples/laundromat-tokyo">Laundromat in Tokyo — ¥890K/mo profit</a></li>
-            <li><a href="/examples/digital-agency-berlin">Digital Agency in Berlin — €7,400/mo profit</a></li>
-            <li><a href="/examples/pharmacy-toronto">Pharmacy in Toronto — C$8,900/mo profit</a></li>
-            <li><a href="/examples/auto-repair-dallas">Auto Repair Shop in Dallas — $9,100/mo profit</a></li>
-            <li><a href="/examples/yoga-studio-bali">Yoga Studio in Bali — $4,200/mo profit</a></li>
-            <li><a href="/examples/bookstore-lisbon">Bookstore in Lisbon — €3,100/mo profit</a></li>
-            <li><a href="/examples/nail-salon-sydney">Nail Salon in Sydney — A$5,800/mo profit</a></li>
-            <li><a href="/examples/pizzeria-naples">Pizzeria in Naples — €4,500/mo profit</a></li>
-            <li><a href="/examples/pet-store-vancouver">Pet Store in Vancouver — C$6,200/mo profit</a></li>
-            <li><a href="/examples/car-wash-riyadh">Car Wash in Riyadh — SAR 28K/mo profit</a></li>
-            <li><a href="/examples/daycare-singapore">Daycare in Singapore — S$8,400/mo profit</a></li>
-            <li><a href="/examples/ice-cream-barcelona">Ice Cream Shop in Barcelona — €3,800/mo profit</a></li>
-            <li><a href="/examples/tutoring-seoul">Tutoring Center in Seoul — ₩5.2M/mo profit</a></li>
-            <li><a href="/examples/brewery-melbourne">Craft Brewery in Melbourne — A$7,600/mo profit</a></li>
-            <li><a href="/examples/flower-shop-amsterdam">Flower Shop in Amsterdam — €4,100/mo profit</a></li>
-            <li><a href="/examples/saas-fintech-lagos">SaaS FinTech in Lagos — $5,200/mo profit</a></li>
-            <li><a href="/examples/juice-bar-miami">Juice Bar in Miami — $4,800/mo profit</a></li>
-            <li><a href="/examples/tattoo-studio-brooklyn">Tattoo Studio in Brooklyn — $8,300/mo profit</a></li>
-            <li><a href="/examples/moving-company-phoenix">Moving Company in Phoenix — $7,900/mo profit</a></li>
-            <li><a href="/examples/event-planning-mumbai">Event Planning in Mumbai — ₹4.5L/mo profit</a></li>
-            <li><a href="/examples/cleaning-service-dubai">Cleaning Service in Dubai — $6,100/mo profit</a></li>
-            <li><a href="/examples/photography-studio-prague">Photography Studio in Prague — €3,600/mo profit</a></li>
-            <li><a href="/examples/language-school-mexico-city">Language School in Mexico City — $4,200/mo profit</a></li>
-            <li><a href="/examples/accounting-firm-zurich">Accounting Firm in Zurich — CHF 14,200/mo profit</a></li>
-            <li><a href="/examples/cloud-kitchen-bangkok">Cloud Kitchen in Bangkok — ฿180K/mo profit</a></li>
-            <li><a href="/examples/airbnb-management-lisbon">Airbnb Management in Lisbon — €5,400/mo profit</a></li>
-            <li><a href="/examples/music-school-nashville">Music School in Nashville — $6,700/mo profit</a></li>
-            <li><a href="/examples/coworking-cape-town">Coworking Space in Cape Town — R85K/mo profit</a></li>
-            <li><a href="/examples/vet-clinic-madrid">Vet Clinic in Madrid — €6,800/mo profit</a></li>
-            <li><a href="/examples/wine-bar-buenos-aires">Wine Bar in Buenos Aires — $3,900/mo profit</a></li>
-            <li><a href="/examples/saas-hr-tech-bangalore">SaaS HR Tech in Bangalore — $4,500/mo profit</a></li>
-            <li><a href="/examples/print-shop-warsaw">Print Shop in Warsaw — PLN 18K/mo profit</a></li>
-            <li><a href="/examples/plumbing-business-toronto">Plumbing Business in Toronto — C$9,200/mo profit</a></li>
-          </ul>
-        </section>
-
-        <!-- ===== /blog ===== -->
-        <section id="blog">
-          <h2>Blog — Validation Insights for Founders</h2>
-          <ul>
-            <li><a href="/blog/how-to-stress-test-your-startup">How to Stress-Test Your Startup Before Launch (2026)</a> — Learn the 5-step framework for validating your business model before spending a dollar. Includes break-even analysis, unit economics checks, and risk flag identification.</li>
-            <li><a href="/blog/startup-validation-checklist">Startup Validation Checklist: 7 Questions Before You Build</a> — The 7 critical questions every founder must answer before writing code or signing a lease. Based on analysis of 10,000+ validated business ideas.</li>
-            <li><a href="/blog/ai-vs-spreadsheets-startup-planning">AI vs Spreadsheets for Startup Financial Planning</a> — Why AI-powered financial modeling catches 3x more risk factors than manual spreadsheets. Comparison of accuracy, speed, and blind spots.</li>
-            <li><a href="/blog/validate-startup-idea-using-ai">How to Validate a Startup Idea Using AI</a> — Step-by-step guide to using AI tools for market validation, financial stress-testing, and competitive analysis. Includes real examples.</li>
-            <li><a href="/blog/how-to-calculate-startup-costs">How to Calculate Startup Costs (2026 Guide)</a> — Complete guide to estimating startup costs by industry and location. Covers equipment, rent, licensing, marketing, and working capital with city-specific benchmarks.</li>
-            <li><a href="/blog/unit-economics-explained-for-founders">Unit Economics Explained for Founders</a> — LTV, CAC, LTV:CAC ratio, payback period, and churn rate demystified. Learn what healthy unit economics look like for your industry.</li>
-            <li><a href="/blog/coffee-shop-startup-costs-by-city">Coffee Shop Startup Costs in 2026: Denver vs Austin vs NYC</a> — What it actually costs to open a coffee shop in Denver, Austin, and New York City. Location-adjusted startup costs, monthly expenses, and profit projections with real numbers.</li>
-            <li><a href="/blog/food-truck-profit-calculator">Food Truck Profit Calculator: Revenue, Costs &amp; ROI by City</a> — How much does a food truck make? Real profit projections for Austin, LA, and Miami. Startup costs, permit fees, and monthly revenue breakdowns for 2026.</li>
-            <li><a href="/blog/how-to-validate-restaurant-idea">How to Validate a Restaurant Idea Before Signing a Lease</a> — A data-driven framework for validating restaurant concepts. Location analysis, financial stress-testing, and the 7 metrics that predict restaurant survival.</li>
-            <li><a href="/blog/5-financial-mistakes-early-founders-make">5 Financial Mistakes Early Founders Make</a> — The most common financial blind spots that kill startups before they launch, and how structured analysis prevents them.</li>
-            <li><a href="/blog/ai-vs-traditional-business-planning">AI vs Traditional Business Planning</a> — A practical comparison of AI-driven validation vs traditional consulting: speed, cost, accuracy, and when to use each.</li>
-            <li><a href="/blog/business-validation-for-financial-clients">Business Validation for Financial Clients Explained</a> — What KYB actually requires: beneficial ownership mapping, risk-tiered monitoring, and the documentation gaps that produce AML fines.</li>
-          </ul>
-        </section>
-
-        <!-- ===== Navigation ===== -->
-        <nav>
-          <h2>Pages</h2>
-          <ul>
-            <li><a href="/how-it-works">How It Works — 3 Steps to Financial Clarity</a></li>
-            <li><a href="/use-cases">Use Cases — Founders, Consultants, Operators</a></li>
-            <li><a href="/pricing">Pricing — Free &amp; Plus Plans</a></li>
-            <li><a href="/examples">Business Analysis Examples (50+)</a></li>
-            <li><a href="/blog">Blog — Validation Insights for Founders</a></li>
-            <li><a href="/methodology">Methodology — How Quantis Calculates</a></li>
-            <li><a href="/risk-gallery">Risk Gallery — Common Business Risks</a></li>
-            <li><a href="/leaderboard">Leaderboard — Top Validated Ideas</a></li>
-          </ul>
-        </nav>
-
-        <p>© 2026 AIWMC™ LLC. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
-      </div>
-    </noscript>
+    <div id="root"><!-- q-static-body: scripts/generate-static-bodies.mjs writes each route's own static body here at build time (real markup with one <h1>, readable without JavaScript). React's createRoot replaces it on mount. --></div>
 
     <script type="module" src="/src/main.tsx"></script>
   </body>

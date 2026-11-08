@@ -134,6 +134,15 @@ jobs:
           ROLLBACK_REASON: production sales-path smoke test failed
         run: bash scripts/vercel-rollback.sh
 
+      # Tell Bing/Yandex/Seznam (IndexNow) that the sitemap URLs changed. Runs
+      # only after the smoke test passed (default success() condition) and can
+      # never fail or roll back a deploy. A few seconds inside this job, no
+      # extra job or minutes. Key file: public/<key>.txt.
+      - name: IndexNow ping (non-blocking)
+        continue-on-error: true
+        timeout-minutes: 2
+        run: node scripts/indexnow-ping.mjs
+
   run-migrations:
     name: Apply Supabase DB Migrations
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
@@ -569,6 +578,9 @@ jobs:
             # pipeline, paced outreach sender (pg_cron every 5 min).
             business-mail
             lead-intake
+            # GA4 + Search Console (+ optional Clarity) -> ext_metrics_daily for
+            # /admin/growth (pg_cron daily 13:15 UTC + admin; read-only on Google)
+            growth-sync
             # ── Observability harnesses (admin dashboard reads their output) ─
             # Missing from the list meant source changes to these functions
             # never actually shipped. Confirmed 2026-07-02: after PR #4
