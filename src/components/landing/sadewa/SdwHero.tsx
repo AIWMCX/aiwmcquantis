@@ -11,7 +11,7 @@ import { FEATURED_DIRECTORY_NAMES } from '@/data/featuredDirectoryNames';
 import { CharReveal, Img3D, InView, Marquee, RollingNumber, SegmentRule, SplitButton, WordStagger, usePrefersReducedMotion } from '@/components/sadewa/primitives';
 
 const FILM = '/video/quantis-decision-film.mp4';
-const POSTER = '/video/quantis-decision-film-poster.jpg';
+const POSTER = '/video/quantis-decision-film-poster.webp';
 
 const LISTED = FEATURED_DIRECTORY_NAMES;
 
@@ -58,7 +58,7 @@ function ShowreelCard({ onOpen }: { onOpen: () => void }) {
           <Play className="h-5 w-5 translate-x-[1px]" fill="currentColor" />
         </span>
       </span>
-      <Img3D name="cursor" className="absolute -bottom-3 right-3 w-20 drop-shadow-xl transition-transform duration-500 group-hover:-translate-y-1 group-hover:-translate-x-1" />
+      <Img3D name="cursor" sizes="80px" className="absolute -bottom-3 right-3 w-20 drop-shadow-xl transition-transform duration-500 group-hover:-translate-y-1 group-hover:-translate-x-1" />
     </button>
   );
 }
@@ -168,6 +168,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
               text="Before you invest $50K, understand what it would take to earn it back."
               className="sdw-display"
               keepVisible
+              animate={false}
               style={{ fontSize: 'clamp(2.75rem, 6.4vw, 6.25rem)' }}
             />
             {/* The real input, on the first screen. 1 of 191 home visitors in
@@ -243,9 +244,12 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
               </p>
             </form>
           </div>
-          <InView delay={180} className="w-full max-w-[420px] lg:max-w-none lg:pt-3">
+          {/* No entrance motion on the first screen: the static first paint
+              (scripts/generate-static-bodies.mjs) already shows this card and
+              the headline in place, and React mounts the same layout over it. */}
+          <div className="w-full max-w-[420px] lg:max-w-none lg:pt-3">
             <ShowreelCard onOpen={() => openFilm('hero_showreel')} />
-          </InView>
+          </div>
         </div>
 
         <div className="mt-14 md:mt-20 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -254,7 +258,7 @@ export function SdwHero({ onWatchFilm }: { onWatchFilm: () => void }) {
               className="absolute left-1/2 top-1/2 h-[70%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
               style={{ background: 'radial-gradient(circle, rgba(42,98,255,0.22), transparent 70%)' }}
             />
-            <Img3D name="magnifier" priority bob className="relative w-[260px] sm:w-[340px] lg:w-[440px] drop-shadow-[0_40px_60px_rgba(10,30,90,0.25)]" />
+            <Img3D name="magnifier" priority bob sizes="(min-width: 1024px) 440px, (min-width: 640px) 340px, 260px" className="relative w-[260px] sm:w-[340px] lg:w-[440px] drop-shadow-[0_40px_60px_rgba(10,30,90,0.25)]" />
           </div>
 
           <div className="lg:pl-4">

@@ -43,12 +43,43 @@ currentTouches(); // Capture landing UTM/referrer before SPA navigation drops th
 
 const container = document.getElementById("root");
 if (container) {
-  const root = createRoot(container);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  const mount = () => {
+    const root = createRoot(container);
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+  };
+  // #root already holds the route's static first screen
+  // (scripts/generate-static-bodies.mjs; on "/" the same hero React renders).
+  // If the app code is ready before the browser has painted anything (a fast
+  // connection), let it paint that screen first instead of replacing it
+  // unseen. On a slow connection it is long painted by now: no wait at all.
+  if (container.querySelector('#q-static-content')) afterFirstPaint(mount);
+  else mount();
+}
+
+function afterFirstPaint(run: () => void) {
+  let done = false;
+  let observer: PerformanceObserver | null = null;
+  const go = () => {
+    if (done) return;
+    done = true;
+    window.clearTimeout(cap);
+    observer?.disconnect();
+    run();
+  };
+  // A hidden tab does not paint; never hold the app back more than 500 ms.
+  const cap = window.setTimeout(go, document.visibilityState === 'visible' ? 500 : 0);
+  try {
+    observer = new PerformanceObserver((list) => {
+      if (list.getEntriesByName('first-contentful-paint').length > 0) go();
+    });
+    observer.observe({ type: 'paint', buffered: true });
+  } catch {
+    go();
+  }
 }
 
 // Register service worker with aggressive update strategy.

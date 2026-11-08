@@ -13,7 +13,7 @@ import { markIntroFilmSeen as markSeen } from '@/lib/intro-film';
  */
 
 const SRC = '/video/quantis-decision-film.mp4';
-const POSTER = '/video/quantis-decision-film-poster.jpg';
+const POSTER = '/video/quantis-decision-film-poster.webp';
 const BLUE = '#478AFF';
 const FADE_MS = 650;
 

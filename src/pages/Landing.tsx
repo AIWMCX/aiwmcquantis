@@ -4,14 +4,11 @@ import { Link } from 'react-router-dom';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { recordFunnelEvent } from '@/lib/analytics';
-import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
-import { ReportFirstHero } from '@/components/landing/ReportFirstHero';
 import { ProductFilm } from '@/components/landing/ProductFilm';
-import { IntroFilm } from '@/components/landing/IntroFilm';
 import { shouldShowIntroFilm } from '@/lib/intro-film';
 import { WhoItsFor } from '@/components/landing/WhoItsFor';
 import { RmgHeader } from '@/components/landing/RmgHeader';
@@ -26,6 +23,12 @@ import { TrustStrip } from '@/components/landing/TrustStrip';
 const FounderStory = lazy(() => import('@/components/landing/FounderStory').then(m => ({ default: m.FounderStory })));
 const PricingSection = lazy(() => import('@/components/landing/PricingSection').then(m => ({ default: m.PricingSection })));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
+// Not needed for the first screen, so kept out of the entry bundle (mobile LCP/TBT, 2026-11-08).
+// ReportFirstHero still mounts right after the first render and runs an idea the hero sent
+// before it loaded (takePendingHeroIdea in src/lib/hero-idea.ts).
+const ReportFirstHero = lazy(() => import('@/components/landing/ReportFirstHero').then(m => ({ default: m.ReportFirstHero })));
+const PopupManager = lazy(() => import('@/components/marketing/PopupManager').then(m => ({ default: m.PopupManager })));
+const IntroFilm = lazy(() => import('@/components/landing/IntroFilm').then(m => ({ default: m.IntroFilm })));
 
 const SectionSkeleton = ({ height = 400 }: { height?: number }) => (
   <div className="sdw-container py-16">
@@ -82,7 +85,9 @@ export default function Landing() {
 
         {/* 4. Sample report + the real input form */}
         <div ref={heroRef} id="single-input-hero" data-hero-form>
-          <ReportFirstHero />
+          <Suspense fallback={<SectionSkeleton height={900} />}>
+            <ReportFirstHero />
+          </Suspense>
         </div>
 
         {/* #101 (2026-10-29): "What Quantis does", How it works, the comparison
@@ -143,8 +148,10 @@ export default function Landing() {
 
       <div className="h-24 md:hidden" />
       {/* Marketing popups wait until the intro film has been closed. */}
-      {!introOpen && <PopupManager />}
-      {introOpen && <IntroFilm onDone={() => setIntroOpen(false)} />}
+      <Suspense fallback={null}>
+        {!introOpen && <PopupManager />}
+        {introOpen && <IntroFilm onDone={() => setIntroOpen(false)} />}
+      </Suspense>
     </div>
   );
 }
