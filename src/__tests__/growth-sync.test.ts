@@ -40,7 +40,8 @@ async function generatedKeyPem(): Promise<{ pem: string; publicKey: CryptoKey }>
   );
   const der = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey));
   const b64 = Buffer.from(der).toString('base64').replace(/(.{64})/g, '$1\n');
-  return { pem: `-----BEGIN PRIVATE KEY-----\n${b64}\n-----END PRIVATE KEY-----\n`, publicKey: pair.publicKey };
+  // Throwaway key generated above at test runtime; no key material is stored in this file.
+  return { pem: `-----BEGIN PRIVATE KEY-----\n${b64}\n-----END PRIVATE KEY-----\n`, publicKey: pair.publicKey }; // gitleaks:allow
 }
 
 const spec = (report: string) => {
@@ -56,7 +57,7 @@ describe('google-auth: service account JWT (no network)', () => {
     expect(() => parseServiceAccount(JSON.stringify({ client_email: 'x@y' }))).toThrow(/lacks/);
     const sa = parseServiceAccount(JSON.stringify({
       client_email: 'growth@example-project.iam.gserviceaccount.com',
-      private_key: '-----BEGIN PRIVATE KEY-----\\nAAAA\\n-----END PRIVATE KEY-----\\n',
+      private_key: '-----BEGIN PRIVATE KEY-----\\nAAAA\\n-----END PRIVATE KEY-----\\n', // gitleaks:allow (placeholder "AAAA", not a key)
       private_key_id: 'kid-1',
     }));
     expect(sa.private_key).toContain('\n');

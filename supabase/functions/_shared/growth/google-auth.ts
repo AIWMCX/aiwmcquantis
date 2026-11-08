@@ -83,7 +83,7 @@ export function base64UrlDecode(s: string): Uint8Array {
   return out;
 }
 
-/** PEM "-----BEGIN PRIVATE KEY-----" (PKCS#8) -> DER bytes. */
+/** PKCS#8 PEM text (the service-account JSON "private_key" field) -> DER bytes. */
 export function pemToPkcs8(pem: string): ArrayBuffer {
   if (pem.includes('BEGIN RSA PRIVATE KEY')) {
     throw new Error('private_key is PKCS#1; Google JSON keys are PKCS#8 (BEGIN PRIVATE KEY)');
