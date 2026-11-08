@@ -130,5 +130,9 @@ verify_jwt = false
 [functions.notify-checkout-intent]
 verify_jwt = false
 
+# Growth sync (GA4 + Search Console): pg_cron (x-cron-secret) + admin Bearer, both checked in code.
+[functions.growth-sync]
+verify_jwt = false
+
 [functions.rvce-validate]
 verify_jwt = false

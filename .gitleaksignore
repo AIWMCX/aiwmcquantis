@@ -1,0 +1,5 @@
+# Specific, inspected gitleaks false positives (by exact fingerprint). Never add a path or rule wholesale.
+# 2026-11-08 PR #439: a doc comment naming the PEM header format (no key material).
+86037a6f916520ce91851697d78cde17000d4d92:supabase/functions/_shared/growth/google-auth.ts:private-key:86
+# 2026-11-08 PR #439: test builds a throwaway RSA key with crypto.subtle at runtime; the file holds only the PEM header template.
+86037a6f916520ce91851697d78cde17000d4d92:src/__tests__/growth-sync.test.ts:private-key:43

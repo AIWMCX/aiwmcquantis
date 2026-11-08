@@ -70,6 +70,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 - The site sends to **both** GA4 IDs (`GA_MEASUREMENT_IDS` in `src/lib/third-party-trackers.ts`, plus the matching `gtag('config')` lines in `index.html`). `ga4-measurement-id.test.ts` guards this.
 - Never remove `G-NZE7RGVNEN`: #435 did for a day and cut off the history property.
 - These are account names only; no credentials belong here.
+- **`/admin/growth`** shows GA4 (520326058), Search Console and Clarity next to the Supabase funnel. The `growth-sync` edge function (pg_cron `growth-sync-daily`, 13:15 UTC; admin "Run sync now" / "Backfill history") writes `ext_metrics_daily` + `ext_sync_runs` with a service account (secrets `GOOGLE_SERVICE_ACCOUNT_JSON`, `GA4_PROPERTY_ID`, `GSC_SITE_URL`, optional `CLARITY_API_TOKEN`). Setup: `docs/execution/2026-11-08-growth-sync-setup.md`. Pure logic: `_shared/growth/`.
 
 ## Data rules
 - **Internal accounts:** exclude emails matching `jeltov|beltov|aiwmc|jjbalaganvasya|glasswing|qatest|audit-test`, `quantis-e2e.test|quantis-test.com|mailnull`, `bel%@gmail.com` and `digitalhubshops@gmail.com` from every customer metric (beltovbogdan@ and digitalhubshops@ are the founder's; the rest are QA and fixture accounts). `funnel_events_clean` applies this since `20261102120000`. Always join to `auth.users` before trusting a count.
