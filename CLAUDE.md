@@ -63,7 +63,7 @@ Read this first. It replaces rediscovery: do not re-derive what is written here.
 | GA4 **primary, history since Jan 2026** | `aiwmcsrm@gmail.com` | account "AIWMC™ v1 by Kerry" 380977247 → property "AIWMC Quantis™" 520326058 → stream 13318608133 → **`G-NZE7RGVNEN`** |
 | GA4 secondary (Google Ads link) | `jeltovbogdan@gmail.com` | account 412295962 → property 559317308 → stream 16156394813 → `G-08096HWB3B` |
 | Search Console | `jeltovbogdan@gmail.com` (sole Owner) | `sc-domain:aiwmcquantis.com` (DNS TXT); sitemap `https://www.aiwmcquantis.com/sitemap.xml` |
-| Microsoft Clarity | `jeltovbogdan@gmail.com` | Vercel env `VITE_CLARITY_PROJECT_ID` (loader: `src/lib/clarity.ts`, consent-gated) |
+| Microsoft Clarity | `jeltovbogdan@gmail.com` | project "AIWMC Quantis" → ID **`za95ghijug`** (`CLARITY_PROJECT_ID` in `src/lib/clarity.ts`, consent-gated; env `VITE_CLARITY_PROJECT_ID` overrides). CSP must allow `www.clarity.ms` + `scripts.clarity.ms` (`clarity-config.test.ts`) |
 
 - The site sends to **both** GA4 IDs (`GA_MEASUREMENT_IDS` in `src/lib/third-party-trackers.ts`, plus the matching `gtag('config')` lines in `index.html`). `ga4-measurement-id.test.ts` guards this.
 - Never remove `G-NZE7RGVNEN`: #435 did for a day and cut off the history property.
