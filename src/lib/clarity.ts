@@ -1,14 +1,15 @@
 /**
  * Microsoft Clarity — session replay + heatmaps
  * ==============================================
- * Loads only when VITE_CLARITY_PROJECT_ID is set (build-time env var).
- * Deferred until idle so it never inflates LCP / FID.
+ * Project "AIWMC Quantis", owned by jeltovbogdan@gmail.com: ID CLARITY_PROJECT_ID below.
+ * The ID is public by design (it appears in every page's network requests).
+ * VITE_CLARITY_PROJECT_ID, if set, overrides it (e.g. for a staging project).
+ * Loads only after tracking consent (main.tsx → whenTrackingAllowed) and
+ * is deferred until idle so it never inflates LCP / INP.
  *
- * To enable:
- *   1. Sign up at https://clarity.microsoft.com (free, no card)
- *   2. Create a project for aiwmcquantis.com
- *   3. Add VITE_CLARITY_PROJECT_ID=<your-id> to your environment
- *   4. Redeploy — sessions start recording within minutes
+ * CSP (vercel.json) must allow script-src https://www.clarity.ms AND
+ * https://scripts.clarity.ms (the tag loads scripts.clarity.ms/<v>/clarity.js),
+ * plus connect-src *.clarity.ms. Guarded by clarity-config.test.ts.
  *
  * Bot/spam sessions are skipped via the same shouldTrack() check used by GA4.
  */
@@ -19,6 +20,8 @@ declare global {
     clarity?: ((...args: unknown[]) => void) & { q?: unknown[] };
   }
 }
+
+export const CLARITY_PROJECT_ID = 'za95ghijug';
 
 let initialized = false;
 
@@ -58,8 +61,9 @@ function loadClarityScript(projectId: string): void {
  * Loads after window 'load' event during idle time.
  */
 export function initClarity(): void {
-  const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID as string | undefined;
-  if (!projectId || projectId === 'CLARITY_ID' || projectId.length < 6) {
+  const envId = import.meta.env.VITE_CLARITY_PROJECT_ID as string | undefined;
+  const projectId = envId && envId.length >= 6 && envId !== 'CLARITY_ID' ? envId : CLARITY_PROJECT_ID;
+  if (!projectId || projectId.length < 6) {
     if (import.meta.env.DEV) {
       logger.info('Clarity disabled (VITE_CLARITY_PROJECT_ID not set)');
     }
