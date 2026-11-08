@@ -6,7 +6,10 @@
  * whenTrackingAllowed() fires (src/lib/consent.ts, wired in main.tsx).
  */
 
-export const GA_MEASUREMENT_ID = 'G-NZE7RGVNEN';
+// GA4 property "www.aiwmcquantis.com" (559317308), web stream 16156394813.
+// index.html's gtag('config', ...) must use the same literal (guarded by
+// src/__tests__/ga4-measurement-id.test.ts).
+export const GA_MEASUREMENT_ID = 'G-08096HWB3B';
 const APOLLO_APP_ID = '69cf1847c8d38900119597e4';
 
 let gaLoaded = false;

@@ -84,7 +84,7 @@ Server-side entitlement enforcement via `_shared/entitlements.ts:requireFeature(
 | **External validation** | Tavily web search (RVCE / Layer 8); DuckDuckGo as zero-cost fallback |
 | **Payments** | Stripe (subscriptions, webhooks, customer portal) |
 | **Email** | Resend (transactional, lifecycle, double opt-in) |
-| **Analytics** | GA4 (`G-NZE7RGVNEN`), Microsoft Clarity, Sentry, internal `funnel_events` table |
+| **Analytics** | GA4 (`G-08096HWB3B`), Microsoft Clarity, Sentry, internal `funnel_events` table |
 | **Rate limiting** | Upstash + Supabase RPC for anonymous device-id + IP + browser-fingerprint multi-layer |
 | **CI/CD** | GitHub Actions: CI gates → `production-deploy.yml` (migrations, ledger check, edge functions, Vercel deploy) |
 
@@ -296,8 +296,8 @@ Canonical constants source: `src/config/canonical-facts.ts` (the single SSOT for
 - **AI cost telemetry** — every paid LLM call recorded in `ai_calls` (task, model, tokens, cost, latency)
 - **RVCE telemetry** — `rvce_events` table tracks search firings, observation counts, validation outcomes
 - **Sentry** — front-end errors + edge-function errors; project URL in `src/lib/sentry.ts`
-- **Microsoft Clarity** — session recordings, rage-clicks, heat maps
-- **GA4** — `G-NZE7RGVNEN`, page views + custom funnel events
+- **Microsoft Clarity** — session recordings, rage-clicks, heat maps (consent-gated; off until `VITE_CLARITY_PROJECT_ID` is set)
+- **GA4** — `G-08096HWB3B`, page views + custom funnel events
 
 ---
 
