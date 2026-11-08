@@ -4,7 +4,7 @@ import { trackAdEvent } from './ad-pixels';
 import { supabase } from '@/integrations/supabase/client';
 // Single source of truth for the GA4 ID (index.html keeps a literal copy;
 // ga4-measurement-id.test.ts fails if the two drift apart).
-import { GA_MEASUREMENT_ID } from './third-party-trackers';
+import { GA_MEASUREMENT_ID, GA_MEASUREMENT_IDS } from './third-party-trackers';
 
 /**
  * Google Analytics 4 + Supabase Funnel Sink (Session 2 / SOW §6.1)
@@ -160,11 +160,13 @@ export function trackPageView(path: string, title?: string): void {
   if (!shouldTrack()) return;
   if (!window.gtag || !GA_MEASUREMENT_ID) return;
 
-  window.gtag('config', GA_MEASUREMENT_ID, {
-    page_path: path,
-    page_title: title || document.title,
-    session_quality: 'verified',
-  });
+  for (const id of GA_MEASUREMENT_IDS) {
+    window.gtag('config', id, {
+      page_path: path,
+      page_title: title || document.title,
+      session_quality: 'verified',
+    });
+  }
 }
 
 /**
