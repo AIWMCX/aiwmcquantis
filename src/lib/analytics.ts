@@ -2,6 +2,9 @@ import { logger } from '@/lib/logger';
 import { currentTouches } from './attribution';
 import { trackAdEvent } from './ad-pixels';
 import { supabase } from '@/integrations/supabase/client';
+// Single source of truth for the GA4 ID (index.html keeps a literal copy;
+// ga4-measurement-id.test.ts fails if the two drift apart).
+import { GA_MEASUREMENT_ID } from './third-party-trackers';
 
 /**
  * Google Analytics 4 + Supabase Funnel Sink (Session 2 / SOW §6.1)
@@ -25,8 +28,6 @@ declare global {
     gtag: (...args: unknown[]) => void;
   }
 }
-
-const GA_MEASUREMENT_ID = 'G-NZE7RGVNEN';
 
 // Known spam referrer patterns to filter out
 const SPAM_REFERRER_PATTERNS = [

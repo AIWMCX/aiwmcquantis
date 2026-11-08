@@ -44,32 +44,12 @@
         }
       } catch (e) { /* storage blocked: stay denied */ }
       gtag('js', new Date());
-      gtag('config', 'G-NZE7RGVNEN', { send_page_view: true });
+      gtag('config', 'G-08096HWB3B', { send_page_view: true });
     </script>
 
-    <!-- Microsoft Clarity disabled: placeholder project ID was issuing blocking 404 requests
-         to clarity.ms on every page load, inflating Max FID and main-thread time.
-         Restore by replacing CLARITY_ID below with a real project ID and uncommenting. -->
-    <!--
-    <script type="text/javascript">
-      (function(){
-        function loadClarity(){
-          (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-          })(window, document, "clarity", "script", "CLARITY_ID");
-        }
-        if (document.readyState === 'complete') {
-          ('requestIdleCallback' in window) ? requestIdleCallback(loadClarity, {timeout: 5000}) : setTimeout(loadClarity, 3000);
-        } else {
-          window.addEventListener('load', function(){
-            ('requestIdleCallback' in window) ? requestIdleCallback(loadClarity, {timeout: 5000}) : setTimeout(loadClarity, 3000);
-          }, { once: true });
-        }
-      })();
-    </script>
-    -->
+    <!-- Microsoft Clarity loads only from src/lib/clarity.ts (initClarity, called
+         inside whenTrackingAllowed in src/main.tsx) and only when the build env
+         var VITE_CLARITY_PROJECT_ID is set. Never add a loader here. -->
 
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
