@@ -163,6 +163,7 @@ export default function HiringDecisionDemo() {
           {own ? 'Your numbers · same engine as every Quantis Decision Run' : 'Interactive demo · illustrative example, not your business'}
         </p>
         <SectionHeader
+          titleAs="h1"
           title="Before the next hire, understand the cash commitment."
           subtitle="Can the business carry another employee before demand catches up? Payroll starts on day one; revenue only follows as new clients fill the new hours. Move a slider and every number below recomputes with the same deterministic engine behind every Quantis Decision Run."
         />

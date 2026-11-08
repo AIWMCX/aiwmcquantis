@@ -179,6 +179,7 @@ export default function SecondLocationDemo() {
           {isOwn ? 'Your numbers · same engine as every Quantis Decision Run' : 'Second location · prefilled with an illustrative example'}
         </p>
         <SectionHeader
+          titleAs="h1"
           title="Before you sign the lease, know the month a second location pays back."
           subtitle="It costs money up front, takes months to fill, and some of its clients would have come to you anyway. Put in your numbers: every result below recomputes with the same deterministic engine behind every Quantis Decision Run."
         />

@@ -94,6 +94,7 @@ export default function FounderDecisionDemo() {
       <section className="aiwmc-section-wash py-12 md:py-16">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">Interactive demo · fixed example, not your business</p>
         <SectionHeader
+          titleAs="h1"
           title="Should this company put another $120K into growth?"
           subtitle="This is the same deterministic engine behind every Quantis Decision Run — running on one fixed, fictional example. Move a slider below and watch every dependent number recompute."
         />

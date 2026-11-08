@@ -15,7 +15,7 @@ export const PRODUCT_IDENTITY = {
   shortName: "Quantis",
   legalEntity: "AIWMC™ LLC",
   domain: "aiwmcquantis.com",
-  twitter: "@aiwmcquantis",
+  twitter: "@aiwmcx1", // x.com/aiwmcquantis does not exist (GEO audit 2026-11-08)
   themeColor: "#070D1A",
   category: "financial pre-mortem",
 } as const;

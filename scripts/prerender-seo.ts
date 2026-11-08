@@ -226,12 +226,15 @@ function stampHtml(template: string, path: string, meta: RouteMeta): string {
     : `\n    <script type="application/ld+json">${JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'WebPage',
+        '@id': `${url}#webpage`,
         name: meta.title,
         description: meta.description,
         url,
         image: ogImageUrl,
-        isPartOf: { '@type': 'WebSite', name: 'AIWMC Quantis', url: BASE_URL },
-        publisher: { '@type': 'Organization', name: 'AIWMC LLC', url: BASE_URL },
+        // Point at the site-wide entities in index.html (src/lib/seo/site-schema.ts)
+        // instead of declaring a second, differently named Organization.
+        isPartOf: { '@id': 'https://www.aiwmcquantis.com/#website' },
+        publisher: { '@id': 'https://www.aiwmcquantis.com/#organization' },
       })}</script>`;
   const headInject = `\n    <link rel="canonical" href="${url}" />\n    <meta property="og:url" content="${url}" />${jsonLd}`;
   // Function replacement: titles/descriptions contain '$' (e.g. "$17/mo"), and a
