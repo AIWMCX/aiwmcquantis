@@ -12,8 +12,14 @@ Supabase → Edge Functions → Secrets.
 
 Use any Google login you control (jeltovbogdan@gmail.com is fine).
 
-1. Open https://console.cloud.google.com/ → project picker (top bar) → **New project**.
-   Name: `aiwmc-growth-sync`. No organization. **Create**, then select it.
+> **Production values (done 2026-11-08):** GCP project `ethereal-link-514104-u9`; service account
+> `quantis-analytics-reader@ethereal-link-514104-u9.iam.gserviceaccount.com` (GA4 520326058: Viewer,
+> added by aiwmcsrm@gmail.com; Search Console sc-domain:aiwmcquantis.com: Restricted). Do NOT use
+> project `ascendant-braid-460703-q1` (jeltovbogdan): it is suspended (billing account closed).
+> The steps below are for re-creating it from scratch.
+
+1. Open https://console.cloud.google.com/ → project picker (top bar) → **New project**
+   (or reuse `ethereal-link-514104-u9`). No organization, no billing needed. **Create**, then select it.
 2. **APIs & Services → Library**. Search and **Enable** each:
    - **Google Analytics Data API**
    - **Google Search Console API**
@@ -21,7 +27,7 @@ Use any Google login you control (jeltovbogdan@gmail.com is fine).
    - Name: `growth-sync`. **Create and continue**.
    - Roles: leave empty (access is granted inside GA4 and Search Console, not here). **Done**.
 4. Copy the service account email. It looks like
-   `growth-sync@aiwmc-growth-sync.iam.gserviceaccount.com`. You need it in steps 2 and 3.
+   `quantis-analytics-reader@ethereal-link-514104-u9.iam.gserviceaccount.com`. You need it in steps 2 and 3.
 5. Open the service account → **Keys → Add key → Create new key → JSON → Create**.
    A `.json` file downloads. Keep it only until step 4, then delete it.
    (If key creation is blocked by the policy `iam.disableServiceAccountKeyCreation`, the
