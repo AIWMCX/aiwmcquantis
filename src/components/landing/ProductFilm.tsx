@@ -16,7 +16,7 @@ import { trackCtaClick, trackEvent } from '@/lib/analytics';
  */
 
 const SRC = '/video/quantis-decision-film.mp4';
-const POSTER = '/video/quantis-decision-film-poster.jpg';
+const POSTER = '/video/quantis-decision-film-poster.webp';
 const DURATION = 25;
 const BLUE = '#478AFF';
 

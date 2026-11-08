@@ -230,10 +230,26 @@ export function CharReveal({ text, className, as: Tag = 'p' }: { text: string; c
   );
 }
 
-export function Img3D({ name, alt = '', className, bob, priority }: { name: 'magnifier' | 'notebook' | 'code-window' | 'cursor'; alt?: string; className?: string; bob?: boolean; priority?: boolean }) {
+// 3D renders that also ship 240px and 480px copies (public/brand/3d/<name>-240.webp, -480.webp).
+const IMG3D_SIZED = new Set(['magnifier', 'cursor']);
+
+export function Img3D({ name, alt = '', className, bob, priority, sizes }: {
+  name: 'magnifier' | 'notebook' | 'code-window' | 'cursor';
+  alt?: string;
+  className?: string;
+  bob?: boolean;
+  priority?: boolean;
+  /** The displayed CSS width(s), e.g. "80px". With it, the browser picks the smallest copy that is sharp at that size. */
+  sizes?: string;
+}) {
+  const srcSet = sizes && IMG3D_SIZED.has(name)
+    ? `/brand/3d/${name}-240.webp 240w, /brand/3d/${name}-480.webp 480w, /brand/3d/${name}.webp 720w`
+    : undefined;
   return (
     <img
       src={`/brand/3d/${name}.webp`}
+      srcSet={srcSet}
+      sizes={srcSet ? sizes : undefined}
       alt={alt}
       width={720}
       height={720}
@@ -258,6 +274,7 @@ export function WordStagger({
   delay = 0,
   stagger: staggerMs = 55,
   keepVisible = false,
+  animate: animateWords = true,
   ...rest
 }: {
   text: string;
@@ -273,6 +290,8 @@ export function WordStagger({
    * the IntersectionObserver and the animation library have all run.
    */
   keepVisible?: boolean;
+  /** false: render the words in place with no motion (a headline already on screen before the app loads). */
+  animate?: boolean;
 } & React.HTMLAttributes<HTMLElement>) {
   const { ref, inView } = useInView<HTMLElement>();
   const reduced = usePrefersReducedMotion();
@@ -281,7 +300,7 @@ export function WordStagger({
 
   useEffect(() => {
     const el = ref.current;
-    if (!inView || reduced || !el || played.current) return;
+    if (!animateWords || !inView || reduced || !el || played.current) return;
     played.current = true;
     animate(el.querySelectorAll('.sdw-word'), {
       ...(keepVisible ? {} : { opacity: [0, 1] }),
@@ -290,7 +309,7 @@ export function WordStagger({
       ease: 'outQuad',
       delay: stagger(staggerMs, { start: delay }),
     });
-  }, [inView, reduced, delay, staggerMs, keepVisible]);
+  }, [animateWords, inView, reduced, delay, staggerMs, keepVisible]);
 
   const words = text.split(' ');
   return (
@@ -300,7 +319,7 @@ export function WordStagger({
           key={i}
           aria-hidden="true"
           className="sdw-word inline-block"
-          style={reduced || played.current || keepVisible ? undefined : { opacity: 0 }}
+          style={reduced || played.current || keepVisible || !animateWords ? undefined : { opacity: 0 }}
         >
           {w}
           {i < words.length - 1 ? ' ' : ''}

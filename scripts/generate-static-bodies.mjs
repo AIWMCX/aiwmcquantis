@@ -319,7 +319,7 @@ function renderBlogBody(slug) {
 
 function renderCoreBody(routePath) {
   const H1 = {
-    "/": "Stress-test your business idea",
+    "/": HOME_HERO_H1,
     "/how-it-works": "How AIWMC Quantis works",
     "/use-cases": "Who uses AIWMC Quantis — founders, consultants, builders",
     "/pricing": "AIWMC Quantis pricing — Free, Plus $17/mo, Pro $49/mo",
@@ -426,7 +426,85 @@ function renderCoreBody(routePath) {
   if (!routeSpecific) throw new Error(`generate-static-bodies: no static body for ${routePath}. Write one from the page's own copy.`);
   const body = routeSpecific;
 
+  if (routePath === "/") return renderHomeBody(body);
   return `<article><h1>${escapeHtml(H1)}</h1>${body}</article>`;
+}
+
+// -----------------------------------------------------------------------------
+// Homepage first screen
+// -----------------------------------------------------------------------------
+// The "/" static body opens with a copy of the live hero's first screen: the
+// same <h1>, the decision box and the product-film card, built with SdwHero's
+// own classes (they are in the app CSS, which is render-blocking anyway). The
+// headline and the film poster are on screen at first paint, and the React
+// mount swaps in the same layout instead of different content. (Mobile LCP was
+// the consent banner, painted only after the whole bundle ran; 2026-11-08.)
+// The copy is read from SdwHero.tsx itself so it cannot drift, and the build
+// stops if it cannot be read. static-home-hero.test.ts checks the markup.
+
+function readHeroCopy() {
+  const src = readFileSync(path.join(ROOT, "src/components/landing/sadewa/SdwHero.tsx"), "utf8");
+  const h1 = src.match(/id="hero-heading"\s+text="([^"]+)"/);
+  const block = src.match(/export const EXAMPLE_DECISIONS = \[([\s\S]*?)\];/);
+  const examples = block ? [...block[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : [];
+  if (!h1 || examples.length === 0) {
+    throw new Error("generate-static-bodies: could not read the hero <h1> or EXAMPLE_DECISIONS from SdwHero.tsx");
+  }
+  return { h1: h1[1], examples };
+}
+const HERO_COPY = readHeroCopy();
+const HOME_HERO_H1 = HERO_COPY.h1;
+
+const ICON_ARROW = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+const ICON_PLAY = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 translate-x-[1px]" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+
+// The wrapper's article typography (STATIC_STYLE) must not reach the hero.
+const HOME_STYLE = "<style>"
+  + '#q-static-content[data-route="/"]{max-width:none;margin:0;padding:0;line-height:inherit;font-size:inherit}'
+  + "#q-static-content .q-home-bar{height:73px;background:#050a1a}"
+  + "#q-static-content .q-home-body{max-width:920px;margin:0 auto;padding:0 20px 64px;line-height:1.6;font-size:16px}"
+  + "</style>";
+
+function renderHomeHero() {
+  const chips = HERO_COPY.examples.map((ex) =>
+    `<button type="button" class="rounded-full border px-3 py-1 text-[12px]" style="border-color: var(--sdw-line); color: var(--sdw-ink);">${escapeHtml(ex)}</button>`).join("");
+  return `<section aria-labelledby="q-static-hero-heading" class="relative overflow-hidden">`
+    + `<div class="sdw-container pt-10 md:pt-14 pb-16 md:pb-24">`
+    + `<div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-10 lg:gap-16 items-start">`
+    + `<div>`
+    + `<h1 id="q-static-hero-heading" class="sdw-display" style="font-size: clamp(2.75rem, 6.4vw, 6.25rem); font-weight: 450;">${escapeHtml(HOME_HERO_H1)}</h1>`
+    // Looks like the live box. Until the app has loaded it is read-only and the
+    // button is a plain link to /app, so nothing typed or clicked is lost.
+    + `<form class="mt-8 max-w-[640px]" aria-label="Test a business decision" action="/app" method="get">`
+    + `<label for="q-static-hero-idea" class="sdw-label text-[12px]" style="color: var(--sdw-muted);">What are you deciding?</label>`
+    + `<div class="mt-2 flex flex-col gap-2 sm:flex-row">`
+    + `<input id="q-static-hero-idea" readonly placeholder="e.g. Second coffee shop in Denver, CO, $80K build-out" class="h-12 flex-1 rounded-md border bg-white px-4 text-[15px] outline-none" style="border-color: var(--sdw-line); color: var(--sdw-ink);">`
+    + `<a href="/app" class="inline-flex h-12 items-center justify-center gap-2 rounded-md px-5 text-[15px] font-semibold text-white" style="background: var(--sdw-blue); text-decoration: none;">Test it free ${ICON_ARROW}</a>`
+    + `</div>`
+    + `<div class="mt-3 flex flex-wrap items-center gap-2"><span class="text-[12px]" style="color: var(--sdw-muted);">Try:</span>${chips}</div>`
+    + `<p class="mt-2 text-[12px]" style="color: var(--sdw-muted);">No account or card needed for the first run · about a minute</p>`
+    + `</form>`
+    + `</div>`
+    + `<div class="w-full max-w-[420px] lg:max-w-none lg:pt-3">`
+    + `<div class="relative block w-full overflow-hidden" style="aspect-ratio: 16 / 9; background: var(--sdw-space);">`
+    // No poster here: a 47 KB image fetched with the CSS delays the first
+    // paint on a slow phone. The card's frame is in place; the film poster
+    // fills it when the app mounts.
+    + `<span class="absolute inset-0" style="background: linear-gradient(180deg, rgba(5,10,26,0.55), rgba(5,10,26,0.15) 45%, rgba(5,10,26,0.6));" aria-hidden="true"></span>`
+    + `<span class="sdw-label absolute left-3 top-3 text-[12px]" style="color: var(--sdw-blue-hi);">/Product film · 0:25</span>`
+    + `<span class="absolute inset-0 flex items-center justify-center" aria-hidden="true"><span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[var(--sdw-space)] shadow-lg">${ICON_PLAY}</span></span>`
+    + `<img src="/brand/3d/cursor.webp" srcset="/brand/3d/cursor-240.webp 240w, /brand/3d/cursor-480.webp 480w, /brand/3d/cursor.webp 720w" sizes="80px" alt="" width="720" height="720" decoding="async" draggable="false" class="select-none pointer-events-none absolute -bottom-3 right-3 w-20 drop-shadow-xl">`
+    + `</div>`
+    + `</div>`
+    + `</div></div></section>`;
+}
+
+function renderHomeBody(body) {
+  return `${HOME_STYLE}<div class="sdw min-h-screen">`
+    + `<div class="q-home-bar" aria-hidden="true"></div>`
+    + renderHomeHero()
+    + `<article class="q-home-body">${body}</article>`
+    + `</div>`;
 }
 
 function bodyForRoute(routePath) {
@@ -441,22 +519,23 @@ function bodyForRoute(routePath) {
 // Injection into dist/<route>/index.html
 // -----------------------------------------------------------------------------
 
-// Scoped typography: Tailwind's preflight (loaded before first paint) resets
+// Scoped typography (inside <article>; the homepage hero above it uses the
+// app's own classes): Tailwind's preflight (loaded before first paint) resets
 // h1/h2/ul to unstyled, so the static body styles itself. Colours inherit from
 // the app's body (bg-background / text-foreground).
 const STATIC_STYLE = "<style>"
   + "#q-static-content{max-width:920px;margin:0 auto;padding:48px 20px 64px;line-height:1.6;font-size:16px}"
-  + "#q-static-content h1{font-size:clamp(1.75rem,4vw,2.5rem);line-height:1.15;font-weight:700;letter-spacing:-0.01em;margin:0 0 1rem}"
-  + "#q-static-content h2{font-size:1.25rem;line-height:1.3;font-weight:600;margin:2rem 0 .5rem}"
-  + "#q-static-content p,#q-static-content ul,#q-static-content ol,#q-static-content table{margin:0 0 1rem}"
-  + "#q-static-content ul{list-style:disc;padding-left:1.25rem}"
-  + "#q-static-content ol{list-style:decimal;padding-left:1.25rem}"
-  + "#q-static-content li{margin:.25rem 0}"
-  + "#q-static-content a{color:inherit;text-decoration:underline}"
-  + "#q-static-content .q-lede{font-size:1.125rem}"
-  + "#q-static-content .q-note{font-size:.875rem;opacity:.8}"
-  + "#q-static-content table{border-collapse:collapse}"
-  + "#q-static-content td,#q-static-content th{padding:6px 10px;text-align:left;vertical-align:top;border-bottom:1px solid rgba(127,127,127,.25)}"
+  + "#q-static-content article h1{font-size:clamp(1.75rem,4vw,2.5rem);line-height:1.15;font-weight:700;letter-spacing:-0.01em;margin:0 0 1rem}"
+  + "#q-static-content article h2{font-size:1.25rem;line-height:1.3;font-weight:600;margin:2rem 0 .5rem}"
+  + "#q-static-content article :is(p,ul,ol,table){margin:0 0 1rem}"
+  + "#q-static-content article ul{list-style:disc;padding-left:1.25rem}"
+  + "#q-static-content article ol{list-style:decimal;padding-left:1.25rem}"
+  + "#q-static-content article li{margin:.25rem 0}"
+  + "#q-static-content article a{color:inherit;text-decoration:underline}"
+  + "#q-static-content article .q-lede{font-size:1.125rem}"
+  + "#q-static-content article .q-note{font-size:.875rem;opacity:.8}"
+  + "#q-static-content article table{border-collapse:collapse}"
+  + "#q-static-content article :is(td,th){padding:6px 10px;text-align:left;vertical-align:top;border-bottom:1px solid rgba(127,127,127,.25)}"
   + "</style>";
 
 // dist/index.html (the "/" body) is also what vercel.json rewrites serve for

@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '@/assets/brand/aiwmc-quantis-logo.png';
+import logo from '@/assets/brand/aiwmc-quantis-logo.webp';
 import { cn } from '@/lib/utils';
 
 /**

@@ -11,7 +11,9 @@ const PAINS = [
 
 export function PainPoints() {
   return (
-    <section aria-labelledby="pain-heading" className="sdw-white">
+    // overflow-hidden: the pills slide in from 48px outside the column; without it
+    // they widened a phone page to ~440px and the browser zoomed the page out.
+    <section aria-labelledby="pain-heading" className="sdw-white overflow-hidden">
       <div className="sdw-container">
         <div className="relative py-20 md:py-28 lg:min-h-[640px] lg:flex lg:items-center lg:justify-center">
           <InView className="relative z-10 text-center">
