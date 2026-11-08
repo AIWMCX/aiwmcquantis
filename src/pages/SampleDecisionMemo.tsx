@@ -73,6 +73,7 @@ export default function SampleDecisionMemo() {
       <section className="aiwmc-section-wash py-12 md:py-16">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">Sample Decision Memo · fictional business</p>
         <SectionHeader
+          titleAs="h1"
           title="Should the firm hire one more delivery person now?"
           subtitle={`This is the shape of what a $${REVIEW.price} Founder Decision Review delivers, worked through on a made-up services firm. The numbers are calculated by the same engine as the interactive hiring demo.`}
         />

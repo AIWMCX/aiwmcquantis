@@ -163,6 +163,7 @@ export default function PriceChangeDemo() {
           {isOwn ? 'Your numbers · same engine as every Quantis Decision Run' : 'Price change · prefilled with an illustrative example'}
         </p>
         <SectionHeader
+          titleAs="h1"
           title="Before you change your price, know how many clients you can afford to lose."
           subtitle="A price rise earns more per client and may cost some clients. Put in your numbers: every result below recomputes with the same deterministic engine behind every Quantis Decision Run."
         />

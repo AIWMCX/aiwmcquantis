@@ -90,6 +90,7 @@ export default function ConsultantCapacityDemo() {
       <section className="aiwmc-section-wash py-12 md:py-16">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4">Interactive demo · fixed example, not your business</p>
         <SectionHeader
+          titleAs="h1"
           title="Your client says 30 new customers a month. Can you actually serve that many?"
           subtitle="Same deterministic engine behind every Quantis Decision Run, applied to a services business with a fixed delivery capacity. Move a slider and watch the gap between claimed demand and real capacity recompute live."
         />
