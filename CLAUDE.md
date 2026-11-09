@@ -2,6 +2,12 @@
 
 Read this first. It replaces rediscovery: do not re-derive what is written here.
 
+## Core operating rule: the 8-month context (since 2026-11-08)
+- Every push, commit, merge, improvement, test, experiment and new document must carry the full 8 months of Quantis history: **`docs/QUANTIS-8-MONTH-CONTEXT.md`** (timeline, baselines, findings F1-F8, the context gate, the freeze list, the stop rule).
+- Before any change, answer the context gate: finding, stage (Ask / Answer / Collect / Measure), metric with its 8-month baseline, precedent, stop criterion, proof after shipping. Put the answers in the PR body under `## 8-month context` (`.github/pull_request_template.md`); the `context-gate` check fails a PR without it.
+- Commit messages name the finding, e.g. `fix(free-analysis): model a hire as a hire [F2]`.
+- The question every change serves: will Quantis get users, customers, paid users and revenue, or should it close? Work that doesn't help answer it waits.
+
 ## Token discipline (mandatory)
 - **Search, don't read.** Use Grep with a narrow pattern and `head_limit`. Read a file only at the lines you need (`offset`/`limit`). Never read whole large files:
   - `src/integrations/supabase/types.ts`: 6.4k lines. Grep the table name instead.
