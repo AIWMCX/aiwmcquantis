@@ -360,11 +360,15 @@ Deno.serve(async (req) => {
     });
   }
 
+  // No image, no publish (founder rule, 2026-11-09): a post whose parent has no
+  // rendered image (asset_path) is never picked up. It stays 'scheduled' and is
+  // held until the image exists, so it can never go out as text only.
   const { data: candidates, error: candidateErr } = await supa
     .from('autoposter_post_platforms')
-    .select('id')
+    .select('id, autoposter_posts!inner(asset_path)')
     .eq('status', 'scheduled')
     .lte('scheduled_at', nowIso)
+    .not('autoposter_posts.asset_path', 'is', null)
     .limit(20);
 
   if (candidateErr) {
