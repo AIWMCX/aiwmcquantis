@@ -1,0 +1,37 @@
+name: context-gate
+
+# Fails a PR whose body lacks the "## 8-month context" section with the first
+# three answers filled in (docs/QUANTIS-8-MONTH-CONTEXT.md, section 4).
+# No checkout, a few seconds on the self-hosted runner.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  context-gate:
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 2
+    steps:
+      - name: Check the 8-month context section
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n' "$BODY" > /tmp/pr_body.txt
+          if ! grep -q '^## 8-month context' /tmp/pr_body.txt; then
+            echo "::error::PR body needs a '## 8-month context' section (see docs/QUANTIS-8-MONTH-CONTEXT.md, section 4)."
+            exit 1
+          fi
+          missing=0
+          for label in 'Finding' 'Stage' 'Metric'; do
+            line=$(grep -m1 -E "^[0-9]\. \*\*${label}" /tmp/pr_body.txt || true)
+            answer=$(printf '%s' "$line" | sed -E 's/^[0-9]\. \*\*[^*]*\*\*[: ]*//')
+            if [ -z "$line" ] || [ -z "$(printf '%s' "$answer" | tr -d '[:space:]')" ]; then
+              echo "::error::Answer '${label}' in the 8-month context section."
+              missing=1
+            fi
+          done
+          exit $missing
