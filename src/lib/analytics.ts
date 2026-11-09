@@ -73,7 +73,22 @@ const BOT_USER_AGENT_PATTERNS = [
   /puppeteer/i,
   /slurp/i,
   /mediapartners/i,
+  // 2026-11-08: Google PageSpeed / Lighthouse (growth-sync runs it daily) and
+  // other audit renderers do not say "bot". They were ~70% of "external"
+  // funnel sessions on Nov 7-8 (50 funnel sessions vs 1 GA4 session).
+  /lighthouse/i,
+  /pagespeed/i,
+  /google-inspectiontool/i,
+  /googleother/i,
+  /gtmetrix/i,
+  /\bptst\b/i,
 ];
+
+/** True when a user-agent string belongs to a crawler, audit tool or headless browser. */
+export function isBotUserAgent(userAgent: string | null | undefined): boolean {
+  if (!userAgent) return false;
+  return BOT_USER_AGENT_PATTERNS.some((pattern) => pattern.test(userAgent));
+}
 
 // Cache the spam/bot check result
 let isSpamSession: boolean | null = null;
@@ -98,13 +113,11 @@ function isSpamOrBot(): boolean {
     
     // Check user agent against bot patterns
     const userAgent = navigator.userAgent;
-    for (const pattern of BOT_USER_AGENT_PATTERNS) {
-      if (pattern.test(userAgent)) {
-        if (import.meta.env.DEV) {
-          logger.info(`🤖 Filtered bot user agent: ${userAgent}`);
-        }
-        return true;
+    if (isBotUserAgent(userAgent)) {
+      if (import.meta.env.DEV) {
+        logger.info(`🤖 Filtered bot user agent: ${userAgent}`);
       }
+      return true;
     }
     
     // Check for suspicious behavior patterns
