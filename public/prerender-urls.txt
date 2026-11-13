@@ -14,6 +14,7 @@
 /state-of-quantis
 /security
 /refund-policy
+/can-i-afford-to-hire
 /decision-review
 /consultant-pilot
 /demo/founder-decision-review
