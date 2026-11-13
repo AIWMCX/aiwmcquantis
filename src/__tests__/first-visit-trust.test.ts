@@ -32,11 +32,24 @@ describe('benchmark_lookup: re-applied fix', () => {
   });
   it('binds the same 6 parameters at every level and uses FOUND, not the record', () => {
     expect(BENCH).toContain('$6 IS NULL OR size_bucket');
-    expect(BENCH).toContain('v_found := FOUND;');
     expect(BENCH).toContain('IF v_found AND v_row.p50 IS NOT NULL THEN');
     expect(BENCH.slice(BENCH.indexOf('AS $function$'))).not.toContain('v_row := NULL');
   });
   it('never invents a sample size', () => {
     expect(BENCH).toContain("'sample_size', NULL");
+  });
+});
+
+describe('benchmark_lookup: ROW_COUNT after EXECUTE (follow-up, 2026-11-13)', () => {
+  const FIX = readFileSync('supabase/migrations/20261113120000_benchmark_lookup_rowcount.sql', 'utf8');
+  const code = FIX.slice(FIX.indexOf('AS $function$'));
+  it('reads the row count, because a dynamic EXECUTE INTO does not set FOUND', () => {
+    expect(code).toContain('GET DIAGNOSTICS v_rows = ROW_COUNT;');
+    expect(code).toContain('v_found := v_rows > 0;');
+    expect(code).not.toContain('v_found := FOUND;');
+  });
+  it('keeps the existing-columns-only select', () => {
+    const query = code.slice(code.indexOf("'SELECT %I AS p25"), code.indexOf('LIMIT 1'));
+    expect(query).not.toMatch(/\b(source|sample_size|data_version|data_date)\b/);
   });
 });
