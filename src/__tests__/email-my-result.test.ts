@@ -76,3 +76,14 @@ describe('email-my-result: rendered email', () => {
     expect(readFileSync('supabase/migrations/20261113130000_funnel_event_result_emailed.sql', 'utf8')).toContain("'result_emailed'");
   });
 });
+
+describe('email-my-result: shown on every analysis result', () => {
+  it('is not gated on isReportLocked (every free run is complimentary, so locked never happens)', () => {
+    const src = readFileSync('src/components/analysis/AccuracyTransparentResults.tsx', 'utf8');
+    const at = src.indexOf('<EmailMyResult');
+    expect(at).toBeGreaterThan(-1);
+    const gate = src.slice(src.lastIndexOf('{currentStep === 1', at), at);
+    expect(gate).toContain('result.financial_analysis');
+    expect(gate).not.toContain('isReportLocked');
+  });
+});
