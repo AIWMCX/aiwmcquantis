@@ -12,7 +12,7 @@ import { InlineAssumptionEditor } from './InlineAssumptionEditor';
 import { RealismFeedbackWidget } from './RealismFeedbackWidget';
 import { LockedFeaturePreview } from './LockedFeaturePreview';
 import { LockedAnalysisPaywall } from './LockedAnalysisPaywall';
-import { PostAnalysisEmailCapture } from './PostAnalysisEmailCapture';
+import { EmailMyResult } from '@/components/results/EmailMyResult';
 import { ActionableInsights } from './ActionableInsights';
 import { ValidationSection } from './ValidationSection';
 import { ValidationSection as RvceValidationSection } from '@/components/rvce/ValidationSection';
@@ -55,6 +55,9 @@ const normalizePercent = (value?: number): number => {
   if (typeof value !== 'number' || Number.isNaN(value)) return 0;
   return value <= 1 ? value * 100 : value;
 };
+
+const usdWhole = (v: number): string =>
+  `${v < 0 ? '-' : ''}$${Math.round(Math.abs(v || 0)).toLocaleString('en-US')}`;
 
 export function AccuracyTransparentResults({ result, analysisId, onReset }: AccuracyTransparentResultsProps) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -788,10 +791,18 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               now invite email save + Plus upgrade before they leave. */}
           {currentStep === 1 && isReportLocked && (
             <div className="mt-6 space-y-5">
-              <PostAnalysisEmailCapture
-                ideaTitle={typeof businessType === 'string' ? businessType : undefined}
-                monthlyProfit={`$${(metrics.monthlyRevenue / 1000).toFixed(1)}k/mo`}
-                onDismiss={() => { /* dismissal stored in sessionStorage by component */ }}
+              {/* Was a newsletter box ("occasional emails"): 1 signup ever. Now the
+                  visitor gets their own numbers and an invitation to reply [F3, M5]. */}
+              <EmailMyResult
+                surface="analysis"
+                title={typeof businessType === 'string' ? businessType : undefined}
+                path="/app"
+                rows={[
+                  { label: 'Monthly revenue (modeled)', value: usdWhole(metrics.monthlyRevenue) },
+                  { label: 'Monthly profit (base case)', value: usdWhole(metrics.netProfit) },
+                  ...(metrics.grossMargin > 0 ? [{ label: 'Gross margin', value: `${Math.round(metrics.grossMargin)}%` }] : []),
+                  { label: 'Investment pays back', value: metrics.breakEven < 99 ? `Month ${Math.round(metrics.breakEven)}` : 'Not within the model horizon' },
+                ]}
               />
               <LockedAnalysisPaywall section="levers" />
             </div>

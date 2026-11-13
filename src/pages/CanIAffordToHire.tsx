@@ -10,6 +10,7 @@ import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { recordFunnelEvent, trackEvent } from '@/lib/analytics';
 import { ENGAGEMENT_OFFER } from '@/config/engagement-offers';
+import { EmailMyResult } from '@/components/results/EmailMyResult';
 import { encodeHiringOwn } from '@/lib/demo/hiring-own-numbers';
 import {
   HIRE_AFFORD_EXAMPLE,
@@ -215,6 +216,23 @@ export default function CanIAffordToHire() {
           </Button>
         </div>
       </GlassCard>
+
+      {!isExample && (
+        <EmailMyResult
+          className="mb-6"
+          surface="hire_afford"
+          title={`Hiring at ${usd(inputs.annualSalary)} a year, customers paying in ${inputs.daysToGetPaid} days`}
+          path={fullModel}
+          rows={[
+            { label: 'Answer', value: v.label },
+            { label: 'Lowest bank balance', value: `${usd(r.lowestCash)} in month ${r.lowestCashMonth}` },
+            { label: 'The hire pays for itself', value: r.paybackMonth ? `Month ${r.paybackMonth}` : 'Not within 18 months' },
+            { label: 'Real monthly cost of the hire', value: usd(r.monthlyCost) },
+            { label: 'Sales needed to cover it', value: `${usd(r.revenueToCoverHire)}/mo` },
+            ...(r.floorBreachMonth !== null ? [{ label: `Cash below ${usd(inputs.safetyFloor)}`, value: `Month ${r.floorBreachMonth}` }] : []),
+          ]}
+        />
+      )}
 
       <GlassCard className="p-5 md:p-6 mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-2">Need this for your bank, partner or board?</h2>

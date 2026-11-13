@@ -232,6 +232,7 @@ export type SowFunnelEvent =
   | 'price_change_run'
   // #106: second-location decision run on the visitor's own numbers (/demo/second-location).
   | 'second_location_run'
+  | 'result_emailed'
   | 'sample_cta_click'
   // Sample Decision Memo view (surface: 'decision_memo'), already allowed by the DB constraint.
   | 'sample_view'

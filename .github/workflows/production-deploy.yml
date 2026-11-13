@@ -510,6 +510,7 @@ jobs:
             team-invite
             # ── Lifecycle emails ──────────────────────────────────────────
             send-welcome-email
+            email-my-result
             send-lifecycle-email
             confirm-email-subscription
             # ── Platform / infra ──────────────────────────────────────────
