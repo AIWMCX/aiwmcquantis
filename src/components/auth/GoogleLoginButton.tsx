@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 
 // Google OAuth is enabled only when configured in the Supabase project.
 // Check at runtime so this component self-disables when not available.
-const GOOGLE_OAUTH_ENABLED = false; // set true once Google OAuth is configured in Supabase + Google Cloud Console
+export const GOOGLE_OAUTH_ENABLED = false; // set true once Google OAuth is configured in Supabase + Google Cloud Console
 
 interface GoogleLoginButtonProps {
   mode?: 'signup' | 'login';

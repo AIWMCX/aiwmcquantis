@@ -97,6 +97,12 @@ if ('serviceWorker' in navigator && (isInIframe || isPreviewHost)) {
 }
 
 if ('serviceWorker' in navigator && !isInIframe && !isPreviewHost) {
+  // A first-time visitor has no controlling worker yet. Their first install
+  // also fires the "new version active" broadcast; without this check every
+  // new visitor saw a permanent "App updated — reload" toast (Jun 26 - Nov 12),
+  // which on the report page covered the result. Only prompt visitors who
+  // were already running an older version.
+  const hadControllerAtLoad = !!navigator.serviceWorker.controller;
   window.addEventListener('load', async () => {
     try {
       // Clear stale caches from older deploys on startup.
@@ -162,7 +168,7 @@ if ('serviceWorker' in navigator && !isInIframe && !isPreviewHost) {
 
       // 5) New SW broadcast — fired from the activate handler in sw.js.
       navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'NEW_VERSION_ACTIVE') {
+        if (event.data && event.data.type === 'NEW_VERSION_ACTIVE' && hadControllerAtLoad) {
           logger.info('[SW] New version active:', event.data.version);
           promptReload('App updated — reload to get the latest version.');
         }
