@@ -21,6 +21,7 @@ import {
 } from '../_shared/mail/routing.ts';
 import { canSendNow, localDayStartUtc, type MailSettings, type PolicyDecision } from '../_shared/mail/send-policy.ts';
 import { checkDomainDns, type DnsHealth } from '../_shared/mail/dns-health.ts';
+import { deliverabilityGate, isRoleAddress, type ReputationCounts } from '../_shared/mail/deliverability-guard.ts';
 import { findSentFolder, imapDate } from '../_shared/mail/imap.ts';
 import {
   parseMail,
@@ -548,6 +549,27 @@ export async function outreachCounters(svc: Svc, settings: FullSettings, now = n
   };
 }
 
+/** Counts for the deliverability guard: cold sends, bounces, opt-outs, human replies. */
+async function reputationCounts(svc: Svc, now = new Date()): Promise<ReputationCounts> {
+  const d7 = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+  const d14 = new Date(now.getTime() - 14 * 86_400_000).toISOString();
+  const sent = (since: string) => svc.from('commercial_followups').select('id', { count: 'exact', head: true })
+    .eq('sent_via', 'mailbox_smtp').gte('sent_at', since);
+  const inbound = (cls: string, since: string) => svc.from('mail_messages').select('id', { count: 'exact', head: true })
+    .eq('direction', 'inbound').eq('classification', cls).gte('message_at', since);
+  // Human replies count only when matched to a prospect (support@/legal@ tickets don't count).
+  const replies = svc.from('mail_messages').select('id', { count: 'exact', head: true })
+    .eq('direction', 'inbound').eq('classification', 'human').not('prospect_id', 'is', null).gte('message_at', d14);
+  const [s7, s14, b7, u7, h14] = await Promise.all([sent(d7), sent(d14), inbound('bounce', d7), inbound('unsubscribe', d7), replies]);
+  return {
+    sent7d: s7.count ?? 0,
+    sent14d: s14.count ?? 0,
+    bounces7d: b7.count ?? 0,
+    unsubscribes7d: u7.count ?? 0,
+    humanReplies14d: h14.count ?? 0,
+  };
+}
+
 interface QueuedFollowup {
   id: string;
   prospect_id: string;
@@ -631,6 +653,15 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
     return result;
   }
 
+  // Deliverability guard (2026-11-13): no cold mail from the brand domain,
+  // auto-stop on bounces/opt-outs, and stop after 100 sends with no reply.
+  const reputation = await reputationCounts(svc);
+  const guard = deliverabilityGate(settings.outreach_from, reputation);
+  if (!guard.ok) {
+    result.held.push({ followup_id: '-', reason: guard.reason });
+    return result;
+  }
+
   const sender = sendingMailbox(ctx, mailboxes, settings.outreach_from);
   if (!sender) {
     result.held.push({ followup_id: '-', reason: `${settings.outreach_from} is not connected (password missing) or cannot send` });
@@ -655,6 +686,10 @@ export async function sendTick(ctx: MailContext, settings: FullSettings, mailbox
     const gate = await preSendGate(svc, f);
     if (!gate.ok) {
       await hold(svc, f, gate.reason, result.held);
+      continue;
+    }
+    if (isRoleAddress(gate.to)) {
+      await hold(svc, f, `held: ${gate.to} is a shared inbox, not a named owner`, result.held);
       continue;
     }
 
