@@ -13,8 +13,13 @@ function numbersIn(text) {
   return out;
 }
 function displayedStrings(spec) {
-  const s = [spec.kicker, spec.sub, spec.cta, spec.footnote, ...(spec.headline ?? []).map((l) => l.text)];
-  for (const b of spec.blocks ?? []) {
+  const head = typeof spec.headline === 'string' ? [spec.headline] : (spec.headline ?? []).map((l) => l.text);
+  const s = [spec.kicker, spec.sub, spec.cta, spec.footnote, spec.question, spec.prompt, ...head];
+  // feed layouts: versus (big), split, trend (top-level chart)
+  for (const t of spec.big ?? []) s.push(t.value, t.label, t.note);
+  for (const c of spec.split ?? []) { s.push(c.title, c.value, c.note); for (const r of c.items ?? []) s.push(r.label, r.value); }
+  const blocks = spec.chart ? [...(spec.blocks ?? []), { chart: spec.chart }] : (spec.blocks ?? []);
+  for (const b of blocks) {
     if (b.rowsTitle) s.push(b.rowsTitle);
     for (const r of b.rows ?? []) s.push(r.label, r.value);
     for (const c of b.cards ?? []) s.push(c.title, c.body);
@@ -24,7 +29,7 @@ function displayedStrings(spec) {
       for (const bar of ch.bars ?? []) s.push(bar.label, bar.valueLabel);
       if (ch.ref) s.push(ch.ref.label, ch.ref.valueLabel);
       if (ch.labels) s.push(...Object.values(ch.labels));
-      s.push(ch.costLabel, ch.revLabel, ch.gapLabel, ch.lowLabel, ...(ch.series ?? []).map((x) => x.label));
+      s.push(ch.costLabel, ch.revLabel, ch.gapLabel, ch.lowLabel, ch.startLabel, ch.endLabel, ch.flag?.label, ...(ch.series ?? []).map((x) => x.label));
     }
   }
   return s.filter(Boolean).map(String);

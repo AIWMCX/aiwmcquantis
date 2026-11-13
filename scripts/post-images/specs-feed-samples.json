@@ -1,0 +1,45 @@
+{
+  "sample-versus": {
+    "layout": "versus",
+    "kicker": "Cash vs profit",
+    "headline": "The P&L said profit. The bank said otherwise.",
+    "accent": "otherwise.",
+    "big": [
+      { "value": "+$58K", "label": "Profit on the P&L", "tone": "blue" },
+      { "value": "-$20K", "label": "Cash in the bank", "tone": "red" }
+    ],
+    "sub": "Same quarter, same firm. Receivables and a year-end bonus did the rest."
+  },
+  "sample-split": {
+    "layout": "split",
+    "kicker": "December cash",
+    "headline": "Your spreadsheet and your bank disagree in December.",
+    "accent": "disagree",
+    "split": [
+      { "title": "Spreadsheet says", "value": "+$25,000", "note": "Profit for the month", "tone": "blue" },
+      { "title": "Bank says", "value": "-$52,000", "note": "Cash for the month", "tone": "red", "items": [{ "label": "Bonuses", "value": "-$40,000" }, { "label": "Renewals", "value": "-$22,000" }, { "label": "Late payers", "value": "-$15,000" }] }
+    ]
+  },
+  "sample-trend": {
+    "layout": "trend",
+    "kicker": "Seasonal cash",
+    "headline": "A profitable year can still run dry in March.",
+    "accent": "March.",
+    "chart": {
+      "months": ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"],
+      "values": [240, 200, 160, 120, 80, 40, 0, 80],
+      "zero": true,
+      "flag": { "index": 6, "label": "MARCH: $0 LEFT" },
+      "startLabel": "$240,000"
+    },
+    "sub": "Six slow months in a row burn $40,000 each."
+  },
+  "sample-question": {
+    "layout": "question",
+    "kicker": "Question for owners",
+    "question": "What did your first hire change about your own week?",
+    "accent": "your own week?",
+    "sub": "One line is enough: team size then, and the part of the week that changed.",
+    "prompt": "Answer in the comments"
+  }
+}

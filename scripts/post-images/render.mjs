@@ -21,5 +21,5 @@ export async function renderPng(spec) {
 }
 
 export function altText(spec, fallback) {
-  return (spec.alt || fallback || spec.headline?.map((l) => l.text).join(' ') || 'AIWMC Quantis').slice(0, 300);
+  return (spec.alt || fallback || (typeof spec.headline === 'string' ? spec.headline : spec.headline?.map((l) => l.text).join(' ')) || spec.question || 'AIWMC Quantis').slice(0, 300);
 }

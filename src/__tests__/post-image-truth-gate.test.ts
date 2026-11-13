@@ -28,6 +28,21 @@ describe('post image truth gate', () => {
     const spec = { kicker: 'x', headline: [{ text: 'PAYBACK' }], blocks: [{ chart: { type: 'cumulative', labels: { payback: 'PAYBACK · M12' } } }] };
     expect(truthGate(spec, 'payback').ok).toBe(true);
   });
+  it('checks every number on the feed layouts (versus, split, trend, question)', () => {
+    const feed = JSON.parse(readFileSync('scripts/post-images/specs-feed-samples.json', 'utf8'));
+    const text: Record<string, string> = {
+      'sample-versus': 'The P&L showed +$58K profit and the bank ended -$20K.',
+      'sample-split': '$25,000 of profit. Bonuses $40,000, renewals $22,000, slower payments $15,000: cash ends $52,000 lower.',
+      'sample-trend': '$240,000 of profit; each slow month burns $40,000 until March, when $0 is left.',
+      'sample-question': 'What did your first hire change about your own week?',
+    };
+    for (const [key, spec] of Object.entries(feed)) expect(truthGate(spec, text[key])).toEqual({ ok: true, missing: [] });
+    // A number only on the big figure, a split column item, the red-month flag or the question is refused.
+    expect(truthGate(feed['sample-versus'], text['sample-versus'].replace('-$20K', 'less')).missing.join(' ')).toContain('20000');
+    expect(truthGate(feed['sample-split'], text['sample-split'].replace('renewals $22,000', 'renewals')).ok).toBe(false);
+    expect(truthGate(feed['sample-trend'], text['sample-trend'].replace('$0 is left', 'nothing is left')).ok).toBe(false);
+    expect(truthGate({ layout: 'question', question: 'Would 3 hires fix it?' }, 'Would hires fix it?').ok).toBe(false);
+  });
   it('matches 30K against $30,000', () => {
     const spec = { kicker: 'x', headline: [{ text: 'X' }], blocks: [{ chart: { type: 'cumulative', lowLabel: '−$30K', labels: {} } }] };
     expect(truthGate(spec, 'Equipment cost: $30,000').ok).toBe(true);

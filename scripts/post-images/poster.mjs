@@ -2,8 +2,8 @@
 // Every number and label on the image comes from the spec. Nothing is invented here.
 export const W = 1080, H = 1350;
 export const C = { bg0: '#050b16', bg1: '#0a1830', ink: '#f5f3ee', mute: '#9fb0c8', blue: '#2f9bff', blueHi: '#7cc4ff', amber: '#f5a524', red: '#ff6b6b', line: 'rgba(124,196,255,0.18)', card: 'rgba(12,28,56,0.55)', cardLine: 'rgba(47,155,255,0.35)' };
-const tone = (t) => (t === 'amber' ? C.amber : t === 'mute' ? C.mute : t === 'ink' ? C.ink : C.blueHi);
-const toneStroke = (t) => (t === 'amber' ? C.amber : t === 'mute' ? '#5d7290' : C.blue);
+const tone = (t) => (t === 'amber' ? C.amber : t === 'red' ? C.red : t === 'mute' ? C.mute : t === 'ink' ? C.ink : C.blueHi);
+const toneStroke = (t) => (t === 'amber' ? C.amber : t === 'red' ? C.red : t === 'mute' ? '#5d7290' : C.blue);
 
 const h = (type, style, ...children) => ({ type, props: { style: { display: 'flex', ...style }, children: children.flat().filter((c) => c !== null && c !== false && c !== undefined) } });
 const img = (src, style) => ({ type: 'img', props: { src, style } });
@@ -92,7 +92,7 @@ function fan({ months, series }) {
   return [svg(w, hh, `${defs()}${months.map((_, i) => `<line x1="${X(i)}" y1="${yTop}" x2="${X(i)}" y2="${yBot}" stroke="${C.line}" stroke-dasharray="3 9"/>`).join('')}<line x1="0" y1="${yBot}" x2="${x1 + 20}" y2="${yBot}" stroke="${C.ink}" stroke-opacity="0.7" stroke-width="2"/><circle cx="${X(0)}" cy="${Y(series[0].values[0])}" r="10" fill="${C.ink}"/>${body}`), hh];
 }
 
-const CHARTS = { gap, cumulative, bars, fan };
+const CHARTS = { gap, cumulative, bars, fan, line };
 const b64 = (s) => (typeof Buffer !== 'undefined' ? Buffer.from(s).toString('base64') : btoa(unescape(encodeURIComponent(s))));
 function chartBlock(spec) {
   LABELS = [];
@@ -132,6 +132,7 @@ export function fitHeadline(lines, max, measure) {
   return size;
 }
 export function poster(spec, assets) {
+  if (spec.layout && LAYOUTS[spec.layout]) return LAYOUTS[spec.layout](spec, assets);
   const size = fitHeadline(spec.headline, spec.headlineSize ?? 132, assets.measure);
   const kids = [
     h('div', { alignItems: 'center', justifyContent: 'space-between' },
@@ -159,3 +160,154 @@ export function poster(spec, assets) {
     h('div', { alignItems: 'center', gap: 18 }, 'www.aiwmcquantis.com', h('div', { width: 56, height: 2, backgroundColor: C.mute }))));
   return h('div', { width: W, height: H, flexDirection: 'column', padding: '56px 70px 46px', backgroundColor: C.bg0, backgroundImage: `radial-gradient(circle at 85% 8%, rgba(47,155,255,0.22), transparent 45%), radial-gradient(circle at 10% 95%, rgba(47,155,255,0.12), transparent 40%), linear-gradient(180deg, ${C.bg1}, ${C.bg0})` }, ...kids);
 }
+// ---------- feed layouts (2026-11): one idea per image, huge type, small brand mark ----------
+// Opt in with spec.layout. Specs without it render exactly as before.
+//   versus   : one giant number against a contrasting second number ("+$58K profit / -$20K cash")
+//   split    : two columns, e.g. "spreadsheet says" vs "bank says"
+//   trend    : a line chart with one month marked red
+//   question : one bold question, nothing else to read
+// Headline may be an array of {text, accent} lines (as before) or one string that is wrapped and
+// fitted automatically; `accent` names the words drawn in brand blue.
+
+// line: one series with an optional red month (flag) and labelled start/end points
+function line({ months, values, flag, startLabel, endLabel, zero }) {
+  const w = 1000, hh = 530, x0 = 40, x1 = 960, yTop = 130, yBot = 440;
+  const lo0 = Math.min(...values, zero ? 0 : Infinity), hi0 = Math.max(...values, zero ? 0 : -Infinity), pad = (hi0 - lo0 || 1) * 0.14;
+  const lo = lo0 - pad, hi = hi0 + pad;
+  const X = (i) => x0 + (i / (values.length - 1)) * (x1 - x0), Y = (v) => yBot - ((v - lo) / (hi - lo)) * (yBot - yTop);
+  const base = zero && lo0 < 0 ? Y(0) : yBot;
+  const col = Math.min(130, (x1 - x0) / (values.length - 1));
+  const pts = values.map((v, i) => [X(i), Y(v)]);
+  const fi = flag ? flag.index : -1;
+  const edge = (i) => (values.length > 5 ? 'middle' : i === 0 ? 'start' : i === values.length - 1 ? 'end' : 'middle');
+  months.forEach((m, i) => label(edge(i) === 'start' ? X(i) - 20 : edge(i) === 'end' ? X(i) + 20 : X(i), yBot + 30, String(m).toUpperCase(), { anchor: edge(i), size: 24, fill: i === fi ? C.red : C.ink, weight: i === fi ? 700 : 500 }));
+  if (startLabel) label(X(0), Y(values[0]) - 62, startLabel, { anchor: 'start', size: 30, fill: C.blueHi, weight: 700, family: 'Inter', ls: 0.5 });
+  if (endLabel) label(X(values.length - 1), Y(values[values.length - 1]) - 62, endLabel, { anchor: 'end', size: 30, fill: C.blueHi, weight: 700, family: 'Inter', ls: 0.5 });
+  if (fi >= 0 && flag.label) {
+    const fx = X(fi), anchor = fx > 760 ? 'end' : fx < 240 ? 'start' : 'middle';
+    label(anchor === 'end' ? Math.min(w, fx + col * 0.42) : anchor === 'start' ? Math.max(0, fx - col * 0.42) : fx, yTop - 104, flag.label, { anchor, size: 34, fill: C.red, weight: 700, family: 'Inter', ls: 0.5 });
+  }
+  return [svg(w, hh, `${defs(`${glow('gr', C.red, 8)}<linearGradient id="lf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.blue}" stop-opacity="0.38"/><stop offset="1" stop-color="${C.blue}" stop-opacity="0.02"/></linearGradient>`)}
+  ${fi >= 0 ? `<rect x="${Math.max(0, Math.min(X(fi) - col * 0.42, w - col * 0.84))}" y="${yTop - 50}" width="${col * 0.84}" height="${yBot - yTop + 50}" rx="10" fill="${C.red}" fill-opacity="0.16" stroke="${C.red}" stroke-opacity="0.55" stroke-width="2"/>` : ''}
+  ${months.map((_, i) => (i === fi ? '' : `<line x1="${X(i)}" y1="${yTop - 20}" x2="${X(i)}" y2="${yBot}" stroke="${C.line}" stroke-dasharray="3 9"/>`)).join('')}
+  <path d="${catmull(pts)} L${X(values.length - 1)},${base} L${X(0)},${base}Z" fill="url(#lf)"/>
+  <line x1="0" y1="${base}" x2="${w}" y2="${base}" stroke="${C.ink}" stroke-opacity="0.75" stroke-width="2"/>
+  <path d="${catmull(pts)}" fill="none" stroke="${C.blue}" stroke-width="7" stroke-linecap="round" filter="url(#gb)"/>
+  ${pts.map(([x, y], i) => (i === fi ? '' : `<circle cx="${x}" cy="${y}" r="7" fill="${C.bg0}" stroke="${C.blueHi}" stroke-width="4"/>`)).join('')}
+  ${fi >= 0 ? `<circle cx="${pts[fi][0]}" cy="${pts[fi][1]}" r="17" fill="${C.red}" stroke="${C.ink}" stroke-width="4" filter="url(#gr)"/>` : ''}`), hh];
+}
+
+const SPACE = 0.26; // Anton word gap, in em
+function wrapWords(words, size, width, measure) {
+  const wOf = (arr) => { const t = arr.join(' '); return measure(t, size) + t.length; };
+  const lines = []; let cur = [];
+  for (const word of words) { const next = [...cur, word]; if (cur.length && wOf(next) > width) { lines.push(cur); cur = [word]; } else cur = next; }
+  if (cur.length) lines.push(cur);
+  return { lines, fits: lines.every((l) => wOf(l) <= width) };
+}
+// Largest size (max..min) at which the text fits in maxLines lines of `width`.
+export function fitWrapped(text, { width, maxLines, max, min, measure }) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  for (let size = max; size >= min; size -= 2) {
+    const { lines, fits } = wrapWords(words, size, width, measure);
+    if (fits && lines.length <= maxLines) return { size, lines, ok: true };
+  }
+  const { lines } = wrapWords(words, min, width, measure);
+  return { size: min, lines, ok: false };
+}
+const norm = (w) => w.toUpperCase().replace(/[^A-Z0-9$%+\-.,]/g, '').replace(/[.,]+$/, '');
+function accentSet(words, accent) {
+  const set = new Set(); if (!accent) return set;
+  const a = String(accent).split(/\s+/).filter(Boolean).map(norm);
+  for (let i = 0; i + a.length <= words.length; i++) if (a.every((t, k) => norm(words[i + k]) === t)) { for (let k = 0; k < a.length; k++) set.add(i + k); break; }
+  return set;
+}
+// Big Anton text block. Lines are either given ({text, accent}) or wrapped from one string.
+function display(text, o, assets) {
+  const { width = 940, maxLines = 3, max = 120, min = 54, color = C.ink, accent, accentColor = C.blue, lineHeight = 1.0 } = o;
+  if (Array.isArray(text)) {
+    const size = Math.min(max, fitHeadline(text.map((l) => ({ text: l.text.toUpperCase() })), max, assets.measure));
+    return h('div', { flexDirection: 'column' }, ...text.map((l) => h('div', { fontFamily: 'Anton', fontSize: size, lineHeight, letterSpacing: 1, whiteSpace: 'nowrap', color: l.accent ? accentColor : color, textShadow: l.accent ? '0 0 28px rgba(47,155,255,0.45)' : 'none' }, l.text.toUpperCase())));
+  }
+  const up = String(text).toUpperCase();
+  const { size, lines } = fitWrapped(up, { width, maxLines, max, min, measure: assets.measure });
+  const words = up.split(/\s+/).filter(Boolean); const acc = accentSet(words, accent);
+  let i = 0;
+  return h('div', { flexDirection: 'column' }, ...lines.map((ln) => h('div', { fontFamily: 'Anton', fontSize: size, lineHeight, letterSpacing: 1, whiteSpace: 'nowrap', gap: Math.round(size * SPACE) },
+    ...ln.map((w) => { const on = acc.has(i++); return h('div', { color: on ? accentColor : color, textShadow: on ? '0 0 28px rgba(47,155,255,0.45)' : 'none' }, w); }))));
+}
+// One-line Anton number, sized to the width.
+function bigNumber(value, { width, max, color, glowColor }, assets) {
+  const size = Math.min(max, Math.floor((width - 8) * 100 / (assets.measure(value, 100) + value.length)));
+  return h('div', { fontFamily: 'Anton', fontSize: size, lineHeight: 1.0, letterSpacing: 1, whiteSpace: 'nowrap', color, textShadow: `0 0 36px ${glowColor}` }, value);
+}
+const glowOf = (t) => (t === 'red' ? 'rgba(255,107,107,0.45)' : t === 'amber' ? 'rgba(245,165,36,0.4)' : t === 'ink' ? 'rgba(245,243,238,0.2)' : 'rgba(47,155,255,0.5)');
+const subText = (s, o = {}) => (s ? h('div', { fontFamily: 'Inter', fontSize: o.size ?? 34, lineHeight: 1.3, color: o.color ?? C.ink, marginTop: o.mt ?? 30, maxWidth: 940 }, s) : null);
+
+function frame(spec, assets, body, { glowColor = 'rgba(47,155,255,0.22)', dot = C.blue, footnote = 'Illustrative example.' } = {}) {
+  const kids = [
+    h('div', { alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
+      h('div', { alignItems: 'center', gap: 16 }, h('div', { width: 14, height: 14, borderRadius: 7, backgroundColor: dot }), h('div', { fontFamily: 'Mono', fontSize: 24, letterSpacing: 6, color: C.ink }, String(spec.kicker ?? '').toUpperCase())),
+      img(assets.logo, { width: 142, height: 54 })),
+    h('div', { flexDirection: 'column', flexGrow: 1, justifyContent: 'center', paddingTop: 10, paddingBottom: 10 }, ...body.filter(Boolean)),
+    h('div', { alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, fontFamily: 'Mono', fontSize: 20, letterSpacing: 3, color: C.mute },
+      h('div', {}, spec.footnote ?? footnote ?? ''), h('div', {}, 'aiwmcquantis.com')),
+  ];
+  return h('div', { width: W, height: H, flexDirection: 'column', padding: '54px 70px 44px', backgroundColor: C.bg0, backgroundImage: `radial-gradient(circle at 88% 6%, ${glowColor}, transparent 46%), radial-gradient(circle at 8% 96%, rgba(47,155,255,0.10), transparent 40%), linear-gradient(180deg, ${C.bg1}, ${C.bg0})` }, ...kids);
+}
+
+function versusLayout(spec, a) {
+  const items = spec.big ?? [];
+  const max = items.length > 2 ? 190 : 290;
+  const rowsOf = items.map((it, i) => h('div', { alignItems: 'stretch', gap: 28, marginTop: i ? 26 : 0 },
+    h('div', { width: 10, borderRadius: 5, backgroundColor: tone(it.tone) }),
+    h('div', { flexDirection: 'column', flex: 1 },
+      bigNumber(it.value, { width: 900, max, color: tone(it.tone), glowColor: glowOf(it.tone) }, a),
+      h('div', { fontFamily: 'Inter', fontWeight: 700, fontSize: 36, letterSpacing: 3, color: it.tone === 'red' ? C.red : C.ink, marginTop: 2 }, String(it.label ?? '').toUpperCase()),
+      it.note ? h('div', { fontFamily: 'Inter', fontSize: 28, color: C.mute, marginTop: 4 }, it.note) : null)));
+  const red = items.some((it) => it.tone === 'red');
+  return frame(spec, a, [
+    spec.headline ? display(spec.headline, { maxLines: 3, max: spec.headlineSize ?? 92, min: 50, accent: spec.accent }, a) : null,
+    h('div', { flexDirection: 'column', marginTop: 40 }, ...rowsOf),
+    subText(spec.sub),
+  ], { glowColor: red ? 'rgba(255,107,107,0.20)' : undefined, dot: red ? C.red : C.blue });
+}
+
+function splitLayout(spec, a) {
+  const cols = (spec.split ?? []).slice(0, 2);
+  const colW = (940 - 24) / 2, inner = colW - 64;
+  const card = (c) => h('div', { flexDirection: 'column', justifyContent: 'center', flex: 1, padding: '30px 32px', borderRadius: 18, border: `2.5px solid ${tone(c.tone)}`, background: c.tone === 'red' ? 'rgba(255,107,107,0.10)' : c.tone === 'amber' ? 'rgba(245,165,36,0.08)' : 'rgba(47,155,255,0.10)' },
+    h('div', { fontFamily: 'Mono', fontSize: 24, letterSpacing: 4, color: tone(c.tone) }, String(c.title).toUpperCase()),
+    h('div', { marginTop: 18 }, bigNumber(c.value, { width: inner, max: 150, color: c.tone === 'red' ? C.red : C.ink, glowColor: glowOf(c.tone) }, a)),
+    c.note ? h('div', { fontFamily: 'Inter', fontWeight: 600, fontSize: 30, lineHeight: 1.25, color: C.ink, marginTop: 10 }, c.note) : null,
+    ...(c.items ?? []).map((r, i) => h('div', { justifyContent: 'space-between', alignItems: 'center', marginTop: i ? 0 : 18, padding: '12px 0', borderTop: `1px solid ${C.line}` },
+      h('div', { fontFamily: 'Inter', fontSize: 24, color: C.mute }, r.label), h('div', { fontFamily: 'Inter', fontWeight: 700, fontSize: 26, color: C.ink }, r.value))));
+  const red = cols.some((c) => c.tone === 'red');
+  return frame(spec, a, [
+    spec.headline ? display(spec.headline, { maxLines: 3, max: spec.headlineSize ?? 104, min: 50, accent: spec.accent }, a) : null,
+    h('div', { gap: 24, marginTop: 40, alignItems: 'stretch' }, ...cols.map(card)),
+    subText(spec.sub),
+  ], { glowColor: red ? 'rgba(255,107,107,0.18)' : undefined, dot: red ? C.red : C.blue });
+}
+
+function trendLayout(spec, a) {
+  return frame(spec, a, [
+    spec.headline ? display(spec.headline, { maxLines: 3, max: spec.headlineSize ?? 108, min: 50, accent: spec.accent }, a) : null,
+    h('div', { marginTop: 26 }, chartBlock({ type: 'line', ...spec.chart })),
+    subText(spec.sub, { mt: 10 }),
+  ], { glowColor: 'rgba(255,107,107,0.16)', dot: C.red });
+}
+
+function questionLayout(spec, a) {
+  const q = spec.question ?? spec.headline;
+  return h('div', { width: W, height: H, position: 'relative', overflow: 'hidden', backgroundColor: C.bg0 },
+    h('div', { position: 'absolute', left: 0, top: 0, width: W, height: H }, frame(spec, a, [
+      display(q, { maxLines: 5, max: spec.headlineSize ?? 150, min: 64, accent: spec.accent, lineHeight: 1.02 }, a),
+      subText(spec.sub, { color: C.mute, mt: 34 }),
+      spec.prompt ? h('div', { marginTop: 44 }, h('div', { padding: '16px 34px', borderRadius: 999, border: `2px solid ${C.blue}`, fontFamily: 'Inter', fontWeight: 600, fontSize: 30, color: C.blueHi }, spec.prompt)) : null,
+    ], { footnote: '' })),
+    h('div', { position: 'absolute', right: -40, bottom: -260, fontFamily: 'Anton', fontSize: 1100, lineHeight: 1, color: C.blue, opacity: 0.09 }, '?'));
+}
+
+const LAYOUTS = { versus: versusLayout, split: splitLayout, trend: trendLayout, question: questionLayout };
+export const LAYOUT_NAMES = Object.keys(LAYOUTS);
