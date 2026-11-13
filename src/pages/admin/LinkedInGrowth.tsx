@@ -151,6 +151,21 @@ async function invokeDraft(body: Record<string, unknown>) {
   return data as { draft: DraftRow; lint: LiLintReport };
 }
 
+/**
+ * Draft the comment as soon as a post is saved, so the founder's daily
+ * routine is: paste posts, then copy and send ready comments. No "Draft all"
+ * click in between (2026-11-13: comments stalled since Nov 5). Approval and
+ * sending stay manual (li-growth-draft lint, li_mark_draft_sent).
+ */
+async function autoDraftComment(prospectId: string, signalId: string) {
+  try {
+    await invokeDraft({ action: 'generate', prospect_id: prospectId, action_type: 'comment', signal_id: signalId });
+    toast.success('Comment drafted. It is in Today\'s queue.');
+  } catch (e) {
+    toast.info(`Post saved; no comment drafted yet: ${(e as Error).message}`);
+  }
+}
+
 async function invokeEnrich<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('li-enrich', { body });
   if (error) {
@@ -738,10 +753,11 @@ async function addTarget(row: TargetImportRow, opts: { settings: LiSettings; use
     throw new Error(tErr.message);
   }
   if (pendingSignal) {
-    const { error: sErr } = await db.from('li_engagement_signals').insert({
+    const { data: savedSignal, error: sErr } = await db.from('li_engagement_signals').insert({
       prospect_id: prospectId, signal_type: pendingSignal.signal_type, post_url: pendingSignal.post_url, excerpt: pendingSignal.excerpt, observed_at: observed,
-    });
+    }).select('id').single();
     if (sErr) toast.error(`Added, but the post was not saved: ${sErr.message}`);
+    else if (savedSignal?.id && pendingSignal.post_url && pendingSignal.excerpt?.trim()) await autoDraftComment(prospectId, savedSignal.id as string);
   }
   return fit;
 }
@@ -1001,12 +1017,13 @@ function TargetDetail({ target, signals, settings, fit, refresh }: { target: Tar
     if (f.post_url.trim() && !postUrl) { toast.error('Post URL must be a linkedin.com post link'); return; }
     if (!f.post_excerpt.trim() && !postUrl) { toast.error('Paste the post text or URL'); return; }
     const observed = new Date(Date.now() - Math.max(0, Number(f.post_days_ago) || 0) * 86_400_000).toISOString();
-    const { error } = await db.from('li_engagement_signals').insert({ prospect_id: target.prospect_id, signal_type: f.signal_type, post_url: postUrl, excerpt: f.post_excerpt.trim().slice(0, 1200) || null, observed_at: observed });
+    const { data: saved, error } = await db.from('li_engagement_signals').insert({ prospect_id: target.prospect_id, signal_type: f.signal_type, post_url: postUrl, excerpt: f.post_excerpt.trim().slice(0, 1200) || null, observed_at: observed }).select('id').single();
     if (error) { toast.error(error.message); return; }
     const nextFit = fitFor(target, [...signals, { id: 'new', prospect_id: target.prospect_id, signal_type: f.signal_type, post_url: postUrl, excerpt: f.post_excerpt, observed_at: observed }], settings);
     await db.from('li_engagement_targets').update(fitPatch(nextFit)).eq('prospect_id', target.prospect_id);
     set({ post_url: '', post_excerpt: '', post_days_ago: '0' });
     toast.success(`Signal added. Fit ${nextFit.score}`);
+    if (saved?.id && postUrl && f.post_excerpt.trim()) await autoDraftComment(target.prospect_id, saved.id as string);
     refresh();
   }
 
