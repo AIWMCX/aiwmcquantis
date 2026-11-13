@@ -17,6 +17,11 @@ describe('LinkedIn image publishing', () => {
     expect(src).toContain("if (!up.asset) return { ok: false, error: up.error ?? 'LinkedIn image upload failed' };");
     expect(src).toContain('? { ok: false, error: imageError }');
   });
+  it('never picks up a post that has no image (no image, no publish)', () => {
+    const block = src.slice(src.indexOf('const { data: candidates'), src.indexOf('if (candidateErr)'));
+    expect(block).toContain("select('id, autoposter_posts!inner(asset_path)')");
+    expect(block).toContain(".not('autoposter_posts.asset_path', 'is', null)");
+  });
   it('image upload calls carry the publish timeout', () => {
     const block = src.slice(src.indexOf('async function uploadLinkedInImage'), src.indexOf('async function publishLinkedIn'));
     expect(block.match(/AbortSignal\.timeout\(PUBLISH_TIMEOUT_MS\)/g)?.length).toBe(2);
