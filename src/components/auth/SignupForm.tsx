@@ -12,7 +12,7 @@ import { buildSignupConsentMetadata, savePendingConsent } from '@/lib/signupCons
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { trackSignup, trackEvent, trackMobileSignupStarted, trackMobileSignupCompleted, trackSimplifiedFormConversion, trackPasswordValidationPassed, recordFunnelEvent } from '@/lib/analytics';
-import { GoogleLoginButton } from './GoogleLoginButton';
+import { GoogleLoginButton, GOOGLE_OAUTH_ENABLED } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
 import { getSavedLead, clearLeadData, isLeadConversion, initLeadFromUrl } from '@/lib/leadMemory';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -288,14 +288,16 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         }}
       />
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+      {GOOGLE_OAUTH_ENABLED && (
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+          </div>
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
-        </div>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
