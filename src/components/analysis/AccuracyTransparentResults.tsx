@@ -786,24 +786,28 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
           {currentStep === 1 && result.financial_analysis && <ReviewOfferCard />}
 
-          {/* Inline upgrade wall — appears only for Free users at end of Step 1.
-              This is the high-intent moment: they've seen score + 3 risks + revenue,
-              now invite email save + Plus upgrade before they leave. */}
+          {/* "Email me this result" on EVERY result. It used to sit inside the
+              locked-report block, but every free run is 'complimentary' (never
+              locked), so real visitors never saw it (clarity audit 2026-11-13).
+              Was a newsletter box before #453: 1 signup ever [F3, M5]. */}
+          {currentStep === 1 && result.financial_analysis && (
+            <EmailMyResult
+              className="mt-6"
+              surface="analysis"
+              title={typeof businessType === 'string' ? businessType : undefined}
+              path="/app"
+              rows={[
+                { label: 'Monthly revenue (modeled)', value: usdWhole(metrics.monthlyRevenue) },
+                { label: 'Monthly profit (base case)', value: usdWhole(metrics.netProfit) },
+                ...(metrics.grossMargin > 0 ? [{ label: 'Gross margin', value: `${Math.round(metrics.grossMargin)}%` }] : []),
+                { label: 'Investment pays back', value: metrics.breakEven < 99 ? `Month ${Math.round(metrics.breakEven)}` : 'Not within the model horizon' },
+              ]}
+            />
+          )}
+
+          {/* Inline upgrade wall: only for locked (non-complimentary) free reports. */}
           {currentStep === 1 && isReportLocked && (
             <div className="mt-6 space-y-5">
-              {/* Was a newsletter box ("occasional emails"): 1 signup ever. Now the
-                  visitor gets their own numbers and an invitation to reply [F3, M5]. */}
-              <EmailMyResult
-                surface="analysis"
-                title={typeof businessType === 'string' ? businessType : undefined}
-                path="/app"
-                rows={[
-                  { label: 'Monthly revenue (modeled)', value: usdWhole(metrics.monthlyRevenue) },
-                  { label: 'Monthly profit (base case)', value: usdWhole(metrics.netProfit) },
-                  ...(metrics.grossMargin > 0 ? [{ label: 'Gross margin', value: `${Math.round(metrics.grossMargin)}%` }] : []),
-                  { label: 'Investment pays back', value: metrics.breakEven < 99 ? `Month ${Math.round(metrics.breakEven)}` : 'Not within the model horizon' },
-                ]}
-              />
               <LockedAnalysisPaywall section="levers" />
             </div>
           )}
