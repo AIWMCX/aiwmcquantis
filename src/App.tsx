@@ -84,6 +84,7 @@ const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const DecisionReview = lazy(() => import("./pages/DecisionReview"));
 const FounderDecisionDemo = lazy(() => import("./pages/FounderDecisionDemo"));
 const HiringDecisionDemo = lazy(() => import("./pages/HiringDecisionDemo"));
+const CanIAffordToHire = lazy(() => import("./pages/CanIAffordToHire"));
 const PriceChangeDemo = lazy(() => import("./pages/PriceChangeDemo"));
 const SecondLocationDemo = lazy(() => import("./pages/SecondLocationDemo"));
 const SampleDecisionMemo = lazy(() => import("./pages/SampleDecisionMemo"));
@@ -217,6 +218,7 @@ const App = () => {
                 <Route path="/consultant-pilot" element={<DecisionReview variant="pilot" />} />
                 <Route path="/demo/founder-decision-review" element={<FounderDecisionDemo />} />
                 <Route path="/demo/hiring-decision" element={<HiringDecisionDemo />} />
+                <Route path="/can-i-afford-to-hire" element={<CanIAffordToHire />} />
                 <Route path="/demo/price-change" element={<PriceChangeDemo />} />
                 <Route path="/demo/second-location" element={<SecondLocationDemo />} />
                 <Route path="/demo/sample-decision-memo" element={<SampleDecisionMemo />} />

@@ -156,6 +156,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Interactive Decision Demo — Founder Decision Review',
     description: 'See how Quantis tests a real spending decision: change one assumption and watch cash, payback, and the decision gate recompute live.',
   },
+  '/can-i-afford-to-hire': {
+    title: 'Can I Afford to Hire an Employee? Free Calculator',
+    description: 'Free calculator: see the month your bank balance hits bottom after a new hire, when the hire pays for itself, and what changes the answer. No account.',
+  },
   '/demo/hiring-decision': {
     title: 'Hiring Decision Demo — Can the business carry another employee?',
     description: 'Before the next hire, understand the cash commitment: payroll, revenue ramp-up and collection timing on an illustrative example.',
@@ -165,7 +169,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description: 'Test a price change on your own numbers: how many clients you can afford to lose, when it pays off, and cash with and without it.',
   },
   '/demo/second-location': {
-    title: 'Second Location Decision � should you open another location?',
+    title: 'Second Location Decision — should you open another location?',
     description: 'Test a second location on your own numbers: opening cost, ramp-up and overlap, when it pays back, and the lowest your cash gets.',
   },
   '/demo/sample-decision-memo': {
