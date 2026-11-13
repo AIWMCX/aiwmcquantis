@@ -54,5 +54,7 @@ describe('hire-afford calculator', () => {
     expect(readFileSync('scripts/seo.routes.mjs', 'utf8')).toContain('path: "/can-i-afford-to-hire"');
     expect(readFileSync('src/components/seo/RouteSEO.tsx', 'utf8')).toContain("'/can-i-afford-to-hire': {");
     expect(readFileSync('scripts/generate-static-bodies.mjs', 'utf8')).toContain('"/can-i-afford-to-hire": `');
+    // build:vercel does not run prebuild, so the committed list is what gets prerendered (#450 deploy was blocked without it).
+    expect(readFileSync('public/prerender-urls.txt', 'utf8').split(/\r?\n/)).toContain('/can-i-afford-to-hire');
   });
 });
