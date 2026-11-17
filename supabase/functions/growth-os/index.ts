@@ -6,22 +6,45 @@
  * repos, every working document, memory (rules and decisions), skills, scheduled tasks and the Growth
  * Studio page database, from the first entry to the snapshot time.
  *
- * The snapshot is internal business data, so it is bundled HERE (server side) and never in the public
- * frontend bundle. Only an authenticated admin (user_roles.role = 'admin') gets it; everyone else 401/403.
- * Rebuild: python -I -X utf8 <growth-studio vault>/tools/build_os_snapshot.py supabase/functions/growth-os/snapshot.json
- * (emails and secrets are scrubbed by the builder).
+ * Source of truth: the private Growth Studio vault repo (AIWMCX/aiwmc-growth-studio,
+ * snapshots/growth-os/snapshot.json, written by tools/build_os_snapshot.py with emails and secrets
+ * scrubbed). The snapshot is NOT bundled here: the Supabase CLI deploy reads quoted paths inside
+ * function assets as files to open, so raw history text failed the 2026-11-17 deploy.
+ *
+ * Secret GROWTH_OS_GITHUB_TOKEN: a fine-grained GitHub token with read-only Contents access to that one
+ * repo, set by the founder. Without it the function answers 503 'not_configured'.
+ * Only an authenticated admin (user_roles.role = 'admin') gets the data; everyone else 401/403.
  */
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { maybeHealthResponse } from '../_shared/health.ts';
-import snapshot from './snapshot.json' with { type: 'json' };
 
 const FUNCTION_NAME = 'growth-os';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const SNAPSHOT_URL =
+  'https://api.github.com/repos/AIWMCX/aiwmc-growth-studio/contents/snapshots/growth-os/snapshot.json?ref=main';
+const CACHE_MS = 10 * 60 * 1000;
 
-let body: string | null = null;
+let cache: { body: string; at: number } | null = null;
+
+async function loadSnapshot(token: string): Promise<string> {
+  if (cache && Date.now() - cache.at < CACHE_MS) return cache.body;
+  const res = await fetch(SNAPSHOT_URL, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github.raw+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'aiwmc-quantis-growth-os',
+    },
+  });
+  if (!res.ok) throw new Error(`snapshot fetch ${res.status}`);
+  const body = await res.text();
+  JSON.parse(body); // refuse to serve a broken snapshot
+  cache = { body, at: Date.now() };
+  return body;
+}
 
 Deno.serve(async (req) => {
   const health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
@@ -39,13 +62,16 @@ Deno.serve(async (req) => {
     const { data: roles } = await svc.from('user_roles').select('role').eq('user_id', userRes.user.id).eq('role', 'admin');
     if (!roles || roles.length === 0) return j({ error: 'Admin only' }, 403);
 
-    body ??= JSON.stringify(snapshot);
+    const ghToken = Deno.env.get('GROWTH_OS_GITHUB_TOKEN');
+    if (!ghToken) return j({ error: 'not_configured', detail: 'Set the GROWTH_OS_GITHUB_TOKEN edge secret.' }, 503);
+
+    const body = await loadSnapshot(ghToken);
     return new Response(body, {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' },
     });
   } catch (e) {
     console.error(`${FUNCTION_NAME} error`, e instanceof Error ? e.message : e);
-    return j({ error: 'Internal error' }, 500);
+    return j({ error: 'snapshot_unavailable' }, 502);
   }
 });
