@@ -137,6 +137,10 @@ verify_jwt = false
 [functions.growth-sync]
 verify_jwt = false
 
+# Growth Studio OS snapshot (/admin/growth-studio): signed-in user JWT, admin role checked in code.
+[functions.growth-os]
+verify_jwt = true
+
 # pg_cron callers (lead-intake-form-d 11:30 UTC, reconcile-stripe-subscriptions-daily
 # 06:00 UTC); both send only x-cron-secret. Without these entries the gateway
 # returned 401 to every scheduled run (seen 2026-11-07). Guarded by

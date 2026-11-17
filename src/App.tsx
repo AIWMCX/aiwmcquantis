@@ -109,6 +109,7 @@ const AiCosts = lazy(() => import("./pages/admin/AiCosts"));
 const EmailFunnel = lazy(() => import("./pages/admin/EmailFunnel"));
 const AdminFunnel = lazy(() => import("./pages/admin/Funnel"));
 const AdminGrowth = lazy(() => import("./pages/admin/Growth"));
+const GrowthStudioOS = lazy(() => import("./pages/admin/GrowthStudioOS"));
 const QocMonitor = lazy(() => import("./pages/admin/QocMonitor"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 const EmailConfirmed = lazy(() => import("./pages/EmailConfirmed"));
@@ -357,6 +358,7 @@ const App = () => {
                   <Route path="email-funnel" element={<EmailFunnel />} />
                   <Route path="funnel" element={<AdminFunnel />} />
                   <Route path="growth" element={<AdminGrowth />} />
+                  <Route path="growth-studio" element={<GrowthStudioOS />} />
                   <Route path="qoc" element={<QocMonitor />} />
                 </Route>
                 <Route path="/directory-tracker" element={<DirectoryTracker />} />
