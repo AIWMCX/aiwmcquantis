@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GrowthOsBlock } from './GrowthOsBlock';
 import {
   PRODUCT_LABELS,
   filterRows,
@@ -151,12 +152,14 @@ export default function GrowthStudioOS() {
       <Tabs defaultValue="overview">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="growth-os">Growth OS: channels, hooks, videos</TabsTrigger>
           <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
           <TabsTrigger value="docs">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="engines">Engines & registry</TabsTrigger>
           <TabsTrigger value="rules">Rules & decisions ({memory.length})</TabsTrigger>
           <TabsTrigger value="ops">Skills & tasks</TabsTrigger>
           <TabsTrigger value="page">Growth Studio page data</TabsTrigger>
+          <TabsTrigger value="v1">Growth Studio v1 (Nov 8)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -197,6 +200,15 @@ export default function GrowthStudioOS() {
               </table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="growth-os" className="mt-4">
+          {snap.growth_os ? <GrowthOsBlock os={snap.growth_os} filter={filter} /> : <p className="text-sm text-muted-foreground">No Growth OS block in this snapshot.</p>}
+        </TabsContent>
+
+        <TabsContent value="v1" className="space-y-4 mt-4">
+          <Card><CardHeader className="pb-2"><CardTitle className="text-base">v1 archive</CardTitle></CardHeader><CardContent><Pre text={snap.v1?.readme ?? ''} max="30vh" /></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardTitle className="text-base">v1 page, full text (Quantis, Store + Build reels, Playbook and hooks, Noir + Studio, funnel, lanes, Telegram engine)</CardTitle></CardHeader><CardContent><Pre text={snap.v1?.page_text ?? ''} max="70vh" /></CardContent></Card>
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-2 mt-4">

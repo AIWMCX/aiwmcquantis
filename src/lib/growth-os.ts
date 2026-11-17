@@ -61,6 +61,8 @@ export interface GrowthOsSnapshot {
   skills: SkillRow[];
   tasks: TaskRow[];
   page_db: Record<string, unknown>;
+  growth_os?: GrowthOsBlock;
+  v1?: { readme: string; page_text: string };
 }
 
 export const PRODUCT_LABELS: Record<ProductFilter, string> = {
@@ -117,4 +119,39 @@ export function productCounts(snap: Pick<GrowthOsSnapshot, 'timeline' | 'documen
   for (const r of snap.timeline) for (const p of r.products) bump(p, 'timeline');
   for (const d of snap.documents) for (const p of d.products) bump(p, 'documents');
   return out;
+}
+
+/** The shared Growth OS block (engines/admin-sync in the vault; the same block aiwmc.store/ops shows). */
+export interface GrowthOsChannel { id: string; platform: string; handle: string; language: 'en' | 'ru' | string; lanes?: string[]; mode?: string; note?: string }
+export interface GrowthOsHook { source?: string; date?: string; channel?: string; format?: string; hook: string; pattern?: string; grade?: string | null; score?: number | null; h48?: string | number | null; d7?: string | number | null; visits?: string; note?: string; product?: string }
+export interface GrowthOsQueueItem { week?: string; id?: string; product?: string; lane?: string; language?: string; idea?: string; campaign?: string; publishAt?: string; approval?: string; score?: number | null; forecast?: number | string | null; channels?: string[]; posted?: number }
+export interface GrowthOsVideo { id: string; lang?: string; niche?: string; status?: string; title?: string; file?: string; product?: string }
+export interface GrowthOsStage { stage: string; theirs?: string; ours?: string; tools?: string[]; status?: string }
+export interface GrowthOsRules { ship: number; fix: number; textGate: number; forecast: string }
+export interface GrowthOsBlock {
+  channels?: GrowthOsChannel[];
+  lanes?: Record<string, string>;
+  productLanes?: Record<string, string[]>;
+  framework?: GrowthOsStage[];
+  hooks?: GrowthOsHook[];
+  queue?: GrowthOsQueueItem[];
+  videos?: GrowthOsVideo[];
+  tools?: { skills?: string[]; plugins?: string[]; engines?: Array<{ n?: string; stage?: string; engine?: string }>; pluginPacks?: string };
+  products?: Record<string, { lanes?: string[]; channels?: { en?: string[]; ru?: string[] }; hooks?: number; queue?: number; videos?: number }>;
+  rules?: GrowthOsRules;
+}
+
+/** Item belongs to the selected product (items without a product only show under "all"). */
+export function inProduct(product: string | undefined, filter: ProductFilter): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'general') return !product || product === 'founder';
+  return product === filter;
+}
+
+/** SHIP / FIX / KILL from the Hook Machine thresholds; '' when the hook has no score yet. */
+export function hookVerdict(score: number | null | undefined, rules?: GrowthOsRules): string {
+  if (score == null || !rules) return '';
+  if (score >= rules.ship) return 'SHIP';
+  if (score >= rules.fix) return 'FIX';
+  return 'KILL';
 }
