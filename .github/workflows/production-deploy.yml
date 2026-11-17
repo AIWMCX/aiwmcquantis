@@ -588,6 +588,8 @@ jobs:
             # GA4 + Search Console (+ optional Clarity) -> ext_metrics_daily for
             # /admin/growth (pg_cron daily 13:15 UTC + admin; read-only on Google)
             growth-sync
+            # AIWMC Growth Studio OS snapshot for /admin/growth-studio (admin JWT only)
+            growth-os
             # ── Observability harnesses (admin dashboard reads their output) ─
             # Missing from the list meant source changes to these functions
             # never actually shipped. Confirmed 2026-07-02: after PR #4

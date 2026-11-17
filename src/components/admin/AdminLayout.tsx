@@ -4,7 +4,7 @@ import {
   LayoutDashboard, TrendingUp, Mail, Search, Radio, Megaphone, Handshake, Inbox,
   DollarSign, Cpu, ShieldCheck, Activity, Sigma, BarChart3, Database, Settings2,
   MessageSquare, Ban, HeartPulse, Server, ScanSearch, Siren, ArrowLeft, Menu, X, FlaskConical, Users, Linkedin, FileArchive,
-  LineChart as LineChartIcon,
+  LineChart as LineChartIcon, Orbit,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +26,7 @@ export const ADMIN_NAV: Group[] = [
   {
     label: 'Growth',
     items: [
+      { to: '/admin/growth-studio', label: 'Growth Studio OS', icon: Orbit },
       { to: '/admin/users', label: 'Users', icon: Users },
       { to: '/admin/funnel', label: 'Funnel & sources', icon: TrendingUp },
       { to: '/admin/growth', label: 'GA4 & Search', icon: LineChartIcon },
