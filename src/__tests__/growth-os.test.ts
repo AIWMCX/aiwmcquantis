@@ -46,7 +46,6 @@ describe('growth-os stays private', () => {
     const src = readFileSync(path.join(FN_DIR, 'index.ts'), 'utf8');
     expect(src).toMatch(/auth\.getUser\(token\)/);
     expect(src).toMatch(/\.eq\('role', 'admin'\)/);
-    expect(src.indexOf("eq('role', 'admin')")).toBeLessThan(src.indexOf('JSON.stringify(snapshot)'));
   });
 
   it('no frontend file imports the snapshot (it must never ship in the public bundle)', () => {
@@ -62,16 +61,12 @@ describe('growth-os stays private', () => {
     expect(offenders).toEqual([]);
   }, 30_000);
 
-  it('the snapshot carries no live keys, tokens or third-party emails', () => {
-    const file = path.join(FN_DIR, 'snapshot.json');
-    expect(existsSync(file)).toBe(true);
-    const raw = readFileSync(file, 'utf8');
-    expect(raw).not.toMatch(/\bsk_live_[A-Za-z0-9]{8,}/);
-    expect(raw).not.toMatch(/\bwhsec_[A-Za-z0-9]{16,}/);
-    expect(raw).not.toMatch(/\beyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
-    expect(raw).not.toMatch(/\b(ghp|github_pat)_[A-Za-z0-9_]{20,}/);
-    const emails = raw.match(/[\w.+-]+@[\w-]+(\.[\w-]+)*\.[a-z]{2,}/gi) ?? [];
-    const foreign = emails.filter((e) => !/aiwmc|noreply\.github\.com|anthropic\.com|example\.com/i.test(e));
-    expect(foreign).toEqual([]);
+  it('the snapshot is not bundled in the function; it is read from the private vault after the admin check', () => {
+    const src = readFileSync(path.join(FN_DIR, 'index.ts'), 'utf8');
+    expect(existsSync(path.join(FN_DIR, 'snapshot.json'))).toBe(false);
+    expect(src).not.toMatch(/import\s+\w+\s+from\s+['"]\.\/snapshot\.json['"]/);
+    expect(src).toMatch(/AIWMCX\/aiwmc-growth-studio/);
+    expect(src).toMatch(/GROWTH_OS_GITHUB_TOKEN/);
+    expect(src.indexOf("eq('role', 'admin')")).toBeLessThan(src.indexOf('loadSnapshot(ghToken)'));
   });
 });

@@ -208,10 +208,6 @@ describe('T4c: Doc Studio template count is 10 everywhere (never 12)', () => {
         if (/__tests__|node_modules|\.git/.test(entry.name)) continue;
         walk(rel, out);
       } else if (/\.(tsx?|json)$/.test(entry.name) && !/\.test\.|\.spec\./.test(entry.name)) {
-        // growth-os/snapshot.json is an admin-only archive of internal history (OPS-LOG, docs),
-        // never shown to customers; it quotes old text verbatim (e.g. "fabricate 12 documents").
-        // Product claims are checked in the code that ships them, not in that archive.
-        if (rel.replace(/\\/g, '/') === 'supabase/functions/growth-os/snapshot.json') continue;
         out.push(rel);
       }
     }

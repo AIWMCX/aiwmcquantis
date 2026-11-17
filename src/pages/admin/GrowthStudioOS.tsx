@@ -99,7 +99,13 @@ export default function GrowthStudioOS() {
 
   if (error) {
     return (
-      <Card><CardContent className="p-6 text-sm text-destructive">Could not load the Growth Studio OS: {error}</CardContent></Card>
+      <Card><CardContent className="p-6 text-sm space-y-2">
+        <p className="text-destructive">Could not load the Growth Studio OS: {error}</p>
+        <p className="text-muted-foreground">
+          The snapshot is read from the private AIWMCX/aiwmc-growth-studio repo. If the edge secret
+          GROWTH_OS_GITHUB_TOKEN (read-only Contents access to that repo) is not set yet, the function answers 503.
+        </p>
+      </CardContent></Card>
     );
   }
   if (!snap) {
