@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -58,7 +59,10 @@ function ShowMore({ shown, total, onMore }: { shown: number; total: number; onMo
 export default function GrowthStudioOS() {
   const [snap, setSnap] = useState<GrowthOsSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<ProductFilter>('all');
+  const [params] = useSearchParams();
+  // ?product=build|store|quantis|space opens on one product (the build.aiwmc.store/admin entry links here).
+  const initial = params.get('product');
+  const [filter, setFilter] = useState<ProductFilter>(FILTERS.includes(initial as ProductFilter) ? (initial as ProductFilter) : 'all');
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
   const [openDoc, setOpenDoc] = useState<DocRow | null>(null);

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
+import { MemoryRouter } from 'react-router-dom';
 import type { GrowthOsSnapshot } from '@/lib/growth-os';
 
 const SNAP: GrowthOsSnapshot = {
@@ -36,7 +37,7 @@ import GrowthStudioOS from '@/pages/admin/GrowthStudioOS';
 
 describe('/admin/growth-studio', () => {
   it('loads the snapshot from the admin-only growth-os function and shows all 4 products', async () => {
-    render(<HelmetProvider><GrowthStudioOS /></HelmetProvider>);
+    render(<MemoryRouter><HelmetProvider><GrowthStudioOS /></HelmetProvider></MemoryRouter>);
     expect(await screen.findByRole('heading', { name: 'AIWMC Growth Studio OS' })).toBeInTheDocument();
     expect(invoke).toHaveBeenCalledWith('growth-os');
     for (const name of ['AIWMC Store / AIWMC Studio', 'AIWMC Build', 'AIWMC Quantis', 'AIWMC Research Foundation']) {
@@ -47,10 +48,17 @@ describe('/admin/growth-studio', () => {
   });
 
   it('filters the overview to one product', async () => {
-    render(<HelmetProvider><GrowthStudioOS /></HelmetProvider>);
+    render(<MemoryRouter><HelmetProvider><GrowthStudioOS /></HelmetProvider></MemoryRouter>);
     await screen.findByRole('heading', { name: 'AIWMC Growth Studio OS' });
     fireEvent.click(screen.getByRole('button', { name: 'aiwmcquantis.com' }));
     expect(screen.queryByText('AIWMC Store / AIWMC Studio')).not.toBeInTheDocument();
     expect(screen.getByText('AIWMC Quantis')).toBeInTheDocument();
+  });
+
+  it('opens on the product named in ?product= (entry from build.aiwmc.store/admin)', async () => {
+    render(<MemoryRouter initialEntries={['/admin/growth-studio?product=build']}><HelmetProvider><GrowthStudioOS /></HelmetProvider></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'AIWMC Growth Studio OS' });
+    expect(screen.getByText('AIWMC Build')).toBeInTheDocument();
+    expect(screen.queryByText('AIWMC Quantis')).not.toBeInTheDocument();
   });
 });
