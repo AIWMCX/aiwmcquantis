@@ -50,4 +50,9 @@ jobs:
             echo "::error title=Missing PAT::SUPABASE_ACCESS_TOKEN is not set in GitHub -> Settings -> Environments -> production -> Environment secrets. The sweep cannot run without it."
             exit 1
           fi
-          deno run --allow-net --allow-env scripts/sweep-financial-invariants.ts | tee -a "$GITHUB_STEP_SUMMARY"
+          # --node-modules-dir=none: the script imports analyze-business code that
+          # pins npm:decimal.js@10.4.3. With package.json in the repo, Deno 2 looks
+          # for it in node_modules (absent here) and fails before the sweep starts;
+          # this has silently failed every run since 2026-10-29. "none" resolves npm
+          # specifiers from Deno's own cache instead.
+          deno run --node-modules-dir=none --allow-net --allow-env scripts/sweep-financial-invariants.ts | tee -a "$GITHUB_STEP_SUMMARY"
