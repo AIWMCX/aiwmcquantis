@@ -1,11 +1,15 @@
 // AIWMC Quantis — LinkedIn Growth Agent drafts (admin-only)
 // ---------------------------------------------------------------------------
-// Drafts ONE comment or DM for one prospect the founder added, from a post
-// the founder pasted, and lints it. It never contacts LinkedIn: there is no
-// LinkedIn host anywhere in this file, it does not post, comment, react,
-// connect or message, and it reads nothing but our own tables. The founder
-// copies the text, sends it himself in LinkedIn, then clicks "Mark sent"
-// (li_mark_draft_sent RPC).
+// Drafts ONE comment or DM for one prospect, from a post the founder pasted
+// or one TRAXY reported, and lints it. It never contacts LinkedIn: there is
+// no LinkedIn host anywhere in this file, it does not post, comment, react,
+// connect or message. The only outside read is TRAXY's API, in
+// _shared/traxy-feed.ts. The founder copies the text, sends it in LinkedIn
+// by hand, then clicks "Mark sent" (li_mark_draft_sent RPC).
+//
+//   { action: 'auto_daily', max? }   (pg_cron with x-cron-secret, or admin)
+//       -> pulls new posts from TRAXY's content feed when TRAXY_API_KEY is
+//          set, then drafts up to max comments (default the daily cap).
 //
 // Actions (POST JSON):
 //   { action: 'generate', prospect_id, action_type, signal_id? }
@@ -29,6 +33,8 @@ import { aiCall } from '../_shared/llm-call.ts';
 import { r3Validate } from '../_shared/r3-validator.ts';
 import { MARKETING_DOCTRINE, ENGAGEMENT_RULES, ENGAGEMENT_RULES_VERSION } from '../_shared/marketing-doctrine.ts';
 import { lintDraft, LI_DRAFT_ACTIONS, type LiDraftAction, type LiLintReport } from '../_shared/li-growth-lint.ts';
+import { pickCommentSignals, TRACKED_AUTHOR_FIT, type CommentCandidate, type TraxyPost } from '../_shared/li-auto-comments.ts';
+import { fetchTraxyPosts } from '../_shared/traxy-feed.ts';
 
 const FUNCTION_NAME = 'li-growth-draft';
 const FUNCTION_VERSION = '1.0.0';
@@ -195,7 +201,7 @@ async function loadTarget(svc: Svc, prospectId: string): Promise<Target | null> 
   return (data ?? null) as Target | null;
 }
 
-async function generate(req: Request, svc: Svc, userId: string, body: Record<string, unknown>): Promise<Response> {
+async function generate(req: Request, svc: Svc, userId: string | null, body: Record<string, unknown>): Promise<Response> {
   const prospectId = String(body.prospect_id ?? '');
   const action = String(body.action_type ?? '') as LiDraftAction;
   const signalId = body.signal_id ? String(body.signal_id) : null;
@@ -376,6 +382,148 @@ async function approve(req: Request, svc: Svc, body: Record<string, unknown>): P
   return json(req, { success: true, draft: saved, lint });
 }
 
+// ---------------------------------------------------------------------------
+// Daily automatic comment drafts (pg_cron, weekdays before the founder's day).
+// 1. If TRAXY_API_KEY is set, read TRAXY's content feed (posts from the
+//    profiles tracked in TRAXY, last 3 days) and store each post as a
+//    'their_post' signal on its author (created as a target if new).
+// 2. Draft comments for the best fresh signals, one per author, up to
+//    li_engagement_settings.max_comments_day, honouring the author cooldown.
+// Nothing is posted: drafts wait in /admin/linkedin-growth for the founder.
+// ---------------------------------------------------------------------------
+async function ingestTraxyPosts(svc: Svc, posts: TraxyPost[]): Promise<{ targets: number; signals: number }> {
+  let targets = 0;
+  let signals = 0;
+  const { data: admin } = await svc.from('user_roles').select('user_id').eq('role', 'admin').limit(1).maybeSingle();
+  for (const p of posts) {
+    let { data: t } = await svc.from('li_engagement_targets').select('prospect_id').eq('linkedin_url', p.authorUrl).maybeSingle();
+    if (!t) {
+      const { data: prospect, error: pe } = await svc
+        .from('commercial_prospects')
+        .insert({
+          owner_user_id: admin?.user_id ?? null,
+          company_name: p.authorHeadline?.split(/ at | @ /i)[1]?.slice(0, 120) || p.authorName || 'LinkedIn author',
+          contact_name: p.authorName,
+          contact_channel: `linkedin:${p.authorUrl}`,
+          segment: 'linkedin',
+          stage: 'discovered',
+          observed_signals: ['TRAXY tracked profile'],
+          supporting_evidence: [p.authorUrl],
+          unknowns: [],
+        })
+        .select('id')
+        .single();
+      if (pe || !prospect) continue;
+      const { error: te } = await svc.from('li_engagement_targets').insert({
+        prospect_id: prospect.id,
+        linkedin_url: p.authorUrl,
+        headline: p.authorHeadline,
+        source: 'traxy',
+        warmth: 'cold',
+        persona: 'other',
+        fit_score: TRACKED_AUTHOR_FIT,
+        fit_breakdown: { traxy: { points: TRACKED_AUTHOR_FIT, evidence: 'Profile tracked in TRAXY; owners engage with their posts' } },
+        notes: 'Added automatically from the TRAXY content feed.',
+      });
+      if (te) continue;
+      t = { prospect_id: prospect.id };
+      targets++;
+    }
+    const { data: dup } = await svc.from('li_engagement_signals').select('id').eq('prospect_id', t.prospect_id).eq('post_url', p.postUrl).maybeSingle();
+    if (dup) continue;
+    const { error: se } = await svc.from('li_engagement_signals').insert({
+      prospect_id: t.prospect_id,
+      signal_type: 'their_post',
+      capture_method: 'traxy',
+      post_url: p.postUrl,
+      excerpt: p.text,
+      observed_at: p.publishedAt ?? new Date().toISOString(),
+      evidence_state: 'observed',
+    });
+    if (!se) signals++;
+  }
+  return { targets, signals };
+}
+
+async function autoDaily(req: Request, svc: Svc, body: Record<string, unknown>): Promise<Response> {
+  const now = new Date();
+  const { data: settings } = await svc
+    .from('li_engagement_settings')
+    .select('max_comments_day, fit_threshold_comment, author_cooldown_days, paused_until')
+    .eq('id', true)
+    .maybeSingle();
+  if (settings?.paused_until && new Date(settings.paused_until) > now) {
+    return json(req, { success: true, skipped: 'paused', paused_until: settings.paused_until });
+  }
+
+  const report: Record<string, unknown> = {};
+  const apiKey = Deno.env.get('TRAXY_API_KEY');
+  if (apiKey) {
+    const feed = await fetchTraxyPosts(apiKey, new Date(now.getTime() - 3 * 24 * 3600 * 1000));
+    report.traxy = { raw_posts: feed.raw, usable_posts: feed.posts.length, error: feed.error ?? null };
+    if (feed.posts.length) report.ingested = await ingestTraxyPosts(svc, feed.posts);
+  } else {
+    report.traxy = 'TRAXY_API_KEY is not set; drafting only from signals already stored';
+  }
+
+  const maxAgeDays = 5;
+  const since = new Date(now.getTime() - maxAgeDays * 24 * 3600 * 1000).toISOString();
+  const { data: sigs } = await svc
+    .from('li_engagement_signals')
+    .select('id, prospect_id, observed_at, post_url, excerpt, li_engagement_targets(fit_score, commercial_prospects(suppression_status))')
+    .gte('observed_at', since)
+    .not('post_url', 'is', null)
+    .not('excerpt', 'is', null)
+    .limit(500);
+  const rows = (sigs ?? []) as unknown as Array<{
+    id: string; prospect_id: string; observed_at: string;
+    li_engagement_targets: { fit_score: number | null; commercial_prospects: { suppression_status: string } | null } | null;
+  }>;
+  const prospectIds = [...new Set(rows.map((r) => r.prospect_id))];
+  const { data: drafts } = prospectIds.length
+    ? await svc.from('li_engagement_drafts').select('prospect_id, signal_id, status, created_at').eq('action_type', 'comment').in('prospect_id', prospectIds)
+    : { data: [] };
+  const lastByAuthor = new Map<string, string>();
+  const signalHasDraft = new Set<string>();
+  for (const d of (drafts ?? []) as Array<{ prospect_id: string; signal_id: string | null; status: string; created_at: string }>) {
+    if (d.signal_id) signalHasDraft.add(d.signal_id);
+    if (d.status === 'skipped') continue;
+    const prev = lastByAuthor.get(d.prospect_id);
+    if (!prev || prev < d.created_at) lastByAuthor.set(d.prospect_id, d.created_at);
+  }
+  const cands: CommentCandidate[] = rows.map((r) => ({
+    signalId: r.id,
+    prospectId: r.prospect_id,
+    fit: r.li_engagement_targets?.fit_score ?? 0,
+    observedAt: r.observed_at,
+    lastCommentAt: lastByAuthor.get(r.prospect_id) ?? null,
+    hasDraftForSignal: signalHasDraft.has(r.id),
+    suppressed: r.li_engagement_targets?.commercial_prospects?.suppression_status !== 'active',
+  }));
+  const max = Math.min(Number(body.max ?? settings?.max_comments_day ?? 10), 10);
+  const picked = pickCommentSignals(cands, {
+    max,
+    fitThreshold: settings?.fit_threshold_comment ?? 50,
+    cooldownDays: settings?.author_cooldown_days ?? 7,
+    now,
+    maxAgeDays,
+  });
+
+  const results: Array<{ signal_id: string; ok: boolean; error?: string }> = [];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  for (const signalId of picked) {
+    const r = byId.get(signalId)!;
+    const res = await generate(req, svc, null, { prospect_id: r.prospect_id, action_type: 'comment', signal_id: signalId });
+    const out = (await res.json().catch(() => ({}))) as { error?: string };
+    results.push({ signal_id: signalId, ok: res.ok, ...(res.ok ? {} : { error: out.error ?? `HTTP ${res.status}` }) });
+  }
+  report.candidates = cands.length;
+  report.drafted = results.filter((r) => r.ok).length;
+  report.failed = results.filter((r) => !r.ok);
+  console.log(`[${FUNCTION_NAME}] auto_daily`, JSON.stringify(report));
+  return json(req, { success: true, ...report });
+}
+
 Deno.serve(async (req) => {
   const health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
   if (health) return health;
@@ -383,6 +531,14 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(req, { error: 'POST only' }, 405);
 
   try {
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    if (cronSecret && req.headers.get('x-cron-secret') === cronSecret) {
+      const svc: Svc = createClient(SUPABASE_URL, SERVICE_KEY);
+      const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+      if (String(body.action ?? '') !== 'auto_daily') return json(req, { error: 'cron may only run auto_daily' }, 400);
+      return await autoDaily(req, svc, body);
+    }
+
     const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
     if (!token) return json(req, { error: 'Unauthorized' }, 401);
     const svc: Svc = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -410,6 +566,7 @@ Deno.serve(async (req) => {
     const action = String(body.action ?? 'generate');
     if (action === 'generate') return await generate(req, svc, user.id, body);
     if (action === 'approve') return await approve(req, svc, body);
+    if (action === 'auto_daily') return await autoDaily(req, svc, body);
     return json(req, { error: `Unknown action ${action}` }, 400);
   } catch (e) {
     console.error(`[${FUNCTION_NAME}] failed:`, e);
