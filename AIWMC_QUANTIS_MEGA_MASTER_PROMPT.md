@@ -93,8 +93,8 @@ These rules are non-negotiable. Any AI session or engineer must treat these as h
 ### 2.1 Secret Management
 | Secret | Status | Action Required |
 |---|---|---|
-| `STRIPE_WEBHOOK_SECRET` previously `whsec_TICzgu3bt7j3rsQy28OYQg9q9035HSDM` | **COMPROMISED — ROTATE NOW** | Stripe Dashboard → Webhooks → Roll secret → update GitHub Secret `STRIPE_WEBHOOK_SECRET` |
-| `ADMIN_UPLOAD_KEY` previously `quantis_admin_7722_xPqQ23a544849283484d` | **COMPROMISED — ROTATE NOW** | Generate new UUID → update GitHub Secret → redeploy |
+| `STRIPE_WEBHOOK_SECRET` previously `whsec_[removed]` | **COMPROMISED — ROTATE NOW** | Stripe Dashboard → Webhooks → Roll secret → update GitHub Secret `STRIPE_WEBHOOK_SECRET` |
+| `ADMIN_UPLOAD_KEY` previously `[removed]` | **COMPROMISED — ROTATE NOW** | Generate new UUID → update GitHub Secret → redeploy |
 | `DEEPSEEK_API_KEY` | Active, in GitHub Secrets | Never put in `.env` or frontend |
 | `SUPABASE_ACCESS_TOKEN` | Active, in GitHub Secrets | Never put in `.env` |
 | `VITE_SUPABASE_URL` | Public-safe, in `.env` | Correct — anon URL is public |
@@ -388,7 +388,7 @@ These rules are non-negotiable. Any AI session or engineer must treat these as h
 #### Secret Rotation Status (carried from 2.1 — CEO action, partially done)
 - `STRIPE_WEBHOOK_SECRET` — ✅ rotated by CEO, added to GitHub (2026-06-12).
 - `TAVILY_API_KEY` (`tvly-dev-…`) — value held by CEO; must be added to GitHub → Production env → auto-syncs to Supabase on next deploy (`production-deploy.yml:190`).
-- `ADMIN_UPLOAD_KEY` (`quantis_admin_7722_…`) — ⚠️ still to rotate in Supabase Dashboard → Edge Functions → Secrets.
+- `ADMIN_UPLOAD_KEY` (`[removed]…`) — ⚠️ still to rotate in Supabase Dashboard → Edge Functions → Secrets.
 - `SUPABASE_ACCESS_TOKEN` PAT (`sbp_f2ae5…`) — ⚠️ still to rotate at supabase.com/dashboard/account/tokens, then update GitHub secret + revoke old.
 
 ---
