@@ -138,6 +138,10 @@ import { aiCall } from '../_shared/llm-call.ts';
 // inside `serve` to attach the proper x-request-id.
 const log = createLogger('analyze-business', 'module');
 
+// Fallback marketing channels used to promise "3-4x return", "5-7x ROI" etc.
+// No data stands behind those multiples; say so instead (display text only).
+const ROI_NOT_ESTIMATED = 'Not estimated. Track cost per new customer before scaling this channel.';
+
 // ========== SECURITY UTILITIES ==========
 
 /**
@@ -927,7 +931,7 @@ const analysisToolSchema = {
             positioning: "market positioning statement",
             pricing_strategy: "pricing approach and rationale",
             channels: [
-              {channel: "Channel Name", description: "Strategy for this channel", budget_monthly: 500, expected_roi: "3x return"},
+              {channel: "Channel Name", description: "Strategy for this channel", budget_monthly: 500, expected_roi: "Not estimated; name the metric to track"},
               ... (3-5 channels)
             ],
             cac: number,
@@ -1563,25 +1567,25 @@ function generateDeterministicFallbackResult(
       channel: "Digital Advertising (Google/Meta)",
       description: `Targeted paid advertising campaigns on Google Ads and Meta platforms. Focus on high-intent keywords and lookalike audiences in ${location}. Implement retargeting for website visitors.`,
       budget_monthly: Math.round(marketingBudget * 0.40),
-      expected_roi: "2.5-3.5x return on ad spend within 60-90 days"
+      expected_roi: ROI_NOT_ESTIMATED
     },
     {
       channel: "Content Marketing & SEO",
       description: `Create valuable content addressing customer pain points. Optimize for local SEO in ${location}. Build authority through blogs, videos, and educational resources to drive organic traffic.`,
       budget_monthly: Math.round(marketingBudget * 0.20),
-      expected_roi: "Long-term organic growth, 5-10x ROI over 12 months"
+      expected_roi: ROI_NOT_ESTIMATED
     },
     {
       channel: "Social Media Marketing",
       description: `Build engaged community on relevant social platforms. Share valuable content, customer stories, and behind-the-scenes content. Engage actively with followers and local ${location} community.`,
       budget_monthly: Math.round(marketingBudget * 0.15),
-      expected_roi: "Brand awareness and 3-4x engagement-to-conversion"
+      expected_roi: ROI_NOT_ESTIMATED
     },
     {
       channel: "Referral & Loyalty Program",
       description: `Incentivize existing customers to refer friends and family. Implement loyalty rewards for repeat purchases. Create advocacy program for top customers.`,
       budget_monthly: Math.round(marketingBudget * 0.15),
-      expected_roi: "5-7x ROI through word-of-mouth, lowest CAC channel"
+      expected_roi: ROI_NOT_ESTIMATED
     },
     {
       channel: "Local Partnerships & Events",
@@ -1953,21 +1957,21 @@ function transformResponse(
           // Return default channels if none provided
           const monthlyMarketingBudget = calc.expenses.marketing || 1000;
           return [
-            { channel: "Social Media Marketing", description: "Organic and paid social media presence", budget_monthly: Math.round(monthlyMarketingBudget * 0.30), expected_roi: "3-4x return" },
+            { channel: "Social Media Marketing", description: "Organic and paid social media presence", budget_monthly: Math.round(monthlyMarketingBudget * 0.30), expected_roi: ROI_NOT_ESTIMATED },
             { channel: "Content Marketing", description: "Blog, SEO, and educational content", budget_monthly: Math.round(monthlyMarketingBudget * 0.20), expected_roi: "Long-term organic growth" },
-            { channel: "Paid Advertising", description: "Google Ads and targeted campaigns", budget_monthly: Math.round(monthlyMarketingBudget * 0.35), expected_roi: "2-3x return" },
-            { channel: "Referral Program", description: "Customer referral incentives", budget_monthly: Math.round(monthlyMarketingBudget * 0.15), expected_roi: "5x return via word-of-mouth" },
+            { channel: "Paid Advertising", description: "Google Ads and targeted campaigns", budget_monthly: Math.round(monthlyMarketingBudget * 0.35), expected_roi: ROI_NOT_ESTIMATED },
+            { channel: "Referral Program", description: "Customer referral incentives", budget_monthly: Math.round(monthlyMarketingBudget * 0.15), expected_roi: ROI_NOT_ESTIMATED },
           ];
         }
         return mp.channels.map((ch: any) => {
           if (typeof ch === 'string') {
-            return { channel: ch, description: ch, budget_monthly: Math.round((calc.expenses.marketing || 1000) * 0.25), expected_roi: "Expected positive return" };
+            return { channel: ch, description: ch, budget_monthly: Math.round((calc.expenses.marketing || 1000) * 0.25), expected_roi: ROI_NOT_ESTIMATED };
           }
           return {
             channel: ch.channel || ch.name || "Marketing Channel",
             description: ch.description || ch.strategy || "",
             budget_monthly: typeof ch.budget_monthly === 'number' ? ch.budget_monthly : (typeof ch.budget === 'number' ? ch.budget : Math.round((calc.expenses.marketing || 1000) * 0.25)),
-            expected_roi: ch.expected_roi || ch.roi || "Expected positive return"
+            expected_roi: ch.expected_roi || ch.roi || ROI_NOT_ESTIMATED
           };
         });
       })(),
@@ -3119,10 +3123,10 @@ marketing_json:
   "positioning": "Clear positioning statement: For [target customer] who [needs/wants], [product name] is a [category] that [key benefit]. Unlike [competitors], we [unique differentiator].",
   "pricing_strategy": "Detailed pricing strategy including: price point rationale, comparison to competitors, margin analysis, and pricing tiers if applicable.",
   "channels": [
-    {"channel": "Social Media Marketing", "description": "Detailed strategy for platforms, content types, posting frequency", "budget_monthly": 800, "expected_roi": "3-4x return within 90 days"},
+    {"channel": "Social Media Marketing", "description": "Detailed strategy for platforms, content types, posting frequency", "budget_monthly": 800, "expected_roi": "Not estimated; name the metric to track"},
     {"channel": "Content Marketing/SEO", "description": "Blog, video, or educational content strategy", "budget_monthly": 500, "expected_roi": "Long-term organic traffic growth"},
-    {"channel": "Paid Advertising", "description": "Google Ads, Facebook Ads targeting strategy", "budget_monthly": 1200, "expected_roi": "2-3x return"},
-    {"channel": "Referral Program", "description": "Customer referral incentive structure", "budget_monthly": 300, "expected_roi": "5x return through word-of-mouth"},
+    {"channel": "Paid Advertising", "description": "Google Ads, Facebook Ads targeting strategy", "budget_monthly": 1200, "expected_roi": "Not estimated; name the metric to track"},
+    {"channel": "Referral Program", "description": "Customer referral incentive structure", "budget_monthly": 300, "expected_roi": "Not estimated; name the metric to track"},
     {"channel": "Local Partnerships", "description": "Strategic partnerships for ${location.trim()} market", "budget_monthly": 400, "expected_roi": "Network effect benefits"}
   ],
   "cac": number,
@@ -3778,10 +3782,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // BONUS for database-sourced benchmarks (+15%)
     if (benchmarkSource === 'database') {
       relevanceScore += 15;
-      confidenceBreakdown.details.push(`Using verified proprietary industry benchmarks (${benchmarkDataSource || 'industry database'})`);
+      confidenceBreakdown.details.push(`Using industry reference ranges from the Quantis database (${benchmarkDataSource || 'industry database'}); modeled, not observed data`);
       if (benchmarkSampleSize && benchmarkSampleSize > 50) {
         relevanceScore += 5; // Extra bonus for large sample size
-        confidenceBreakdown.details.push(`Based on ${benchmarkSampleSize} company sample`);
+        // No detail line: sample_size counts dataset scenarios, not observed companies.
       }
     } else if (benchmarkSource === 'hardcoded') {
       confidenceBreakdown.details.push('Using default industry benchmarks — select your specific industry for improved accuracy');

@@ -48,7 +48,7 @@ const CHANGELOG: ChangeEntry[] = [
     title: 'Benchmark reconciliation + export safeguards',
     type: 'fix',
     changes: [
-      'Fixed a case where the "Beat/Miss" industry comparison card could cite a different benchmark number than the same report\'s PDF and validation panels for the same metric. All three now always agree, sourced from the same real benchmark dataset — no more silently disagreeing "facts" in one report.',
+      'Fixed a case where the "Beat/Miss" industry comparison card could cite a different benchmark number than the same report\'s PDF and validation panels for the same metric. All three now always agree, sourced from the same benchmark dataset — no more silently disagreeing "facts" in one report.',
       'Fixed a case where external validation could show a confident "Validated" badge with zero real outside data behind it. It now clearly shows "Estimated" instead whenever there was nothing real to validate against.',
       'Exporting a report that failed an internal consistency check now requires an explicit confirmation before download, instead of silently allowing a normal-looking export.',
       'Published a formal security-disclosure policy (security.txt) so security researchers have a documented, direct way to report issues.',

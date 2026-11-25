@@ -30,6 +30,10 @@ import { maybeHealthResponse } from '../_shared/health.ts';
 const FUNCTION_NAME = 'ai-narrator';
 const FUNCTION_VERSION = '1.0.0';
 
+// Fallback channels used to promise "3-4x engagement-to-conversion", "5-7x ROI"
+// etc. with no data behind them; say so instead (display text only).
+const ROI_NOT_ESTIMATED = 'Not estimated. Track cost per new customer before scaling this channel.';
+
 // ========== SHARED MASTER PROMPT DIRECTIVES ==========
 // Kept in sync with narrator-prompt.ts MASTER_PROMPT_DIRECTIVES
 
@@ -272,10 +276,10 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
       positioning: `For customers in ${location} who need reliable ${industry.name.toLowerCase()} solutions, we offer a customer-focused approach that prioritizes quality and convenience.`,
       pricing_strategy: `Pricing targets the $${industry.average_check_min}-$${industry.average_check_max} range (industry reference range), positioning in the quality-value segment with ${industry.net_margin_min}-${industry.net_margin_max}% net margins.`,
       channels: [
-        { channel: "Digital Advertising", description: "Google Ads and Meta platforms targeting high-intent keywords", budget_monthly: Math.round(mrr * 0.08), expected_roi: "2.5-3.5x return" },
-        { channel: "Content Marketing", description: "SEO-optimized content addressing customer pain points", budget_monthly: Math.round(mrr * 0.04), expected_roi: "5-10x over 12 months" },
-        { channel: "Social Media", description: "Community building and engagement on relevant platforms", budget_monthly: Math.round(mrr * 0.03), expected_roi: "3-4x engagement-to-conversion" },
-        { channel: "Referral Program", description: "Customer referral incentives for word-of-mouth growth", budget_monthly: Math.round(mrr * 0.03), expected_roi: "5-7x ROI" }
+        { channel: "Digital Advertising", description: "Google Ads and Meta platforms targeting high-intent keywords", budget_monthly: Math.round(mrr * 0.08), expected_roi: ROI_NOT_ESTIMATED },
+        { channel: "Content Marketing", description: "SEO-optimized content addressing customer pain points", budget_monthly: Math.round(mrr * 0.04), expected_roi: ROI_NOT_ESTIMATED },
+        { channel: "Social Media", description: "Community building and engagement on relevant platforms", budget_monthly: Math.round(mrr * 0.03), expected_roi: ROI_NOT_ESTIMATED },
+        { channel: "Referral Program", description: "Customer referral incentives for word-of-mouth growth", budget_monthly: Math.round(mrr * 0.03), expected_roi: ROI_NOT_ESTIMATED }
       ],
       cac,
       ltv,

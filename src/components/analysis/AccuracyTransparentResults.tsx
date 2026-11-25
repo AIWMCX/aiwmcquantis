@@ -112,7 +112,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const businessType = result.metadata?.idea || (result.metadata as any)?.business_type || undefined;
   const location = result.metadata?.location || undefined;
 
-  // Benchmark context — feeds the 97,500-row Benchmark Master library
+  // Benchmark context — feeds the Benchmark Master lookup (modeled reference ranges)
   const benchmarkContext = useMemo(() => {
     const meta: any = result.metadata || {};
     const sector = meta.industry_detected || meta.selected_industry || meta.sector || undefined;
@@ -1184,7 +1184,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 5 && (
             <div className="space-y-5">
-              {/* Benchmark Citations — every numeric metric tied to the 97,500-row library */}
+              {/* Benchmark Citations — metrics compared with Quantis modeled reference ranges */}
               <section className="q-card p-5">
                 <BenchmarkCitations
                   context={benchmarkContext}

@@ -13,6 +13,7 @@
 import React from 'react';
 import { ShieldCheck, AlertTriangle, MinusCircle, Download } from 'lucide-react';
 import { downloadBenchmarksCsv } from '@/lib/benchmarksCsv';
+import { displayBenchmarkSource } from '@/lib/benchmark-citations';
 
 export type MatchType = 'direct' | 'similar' | 'none';
 
@@ -160,7 +161,6 @@ export function BenchmarkRecordsBlock({ records, mode, summary, className }: Pro
               <th className="py-2 pr-3 font-medium text-right">Median</th>
               <th className="py-2 pr-3 font-medium text-right">P75</th>
               <th className="py-2 pr-3 font-medium">Match</th>
-              <th className="py-2 pr-3 font-medium text-right">n</th>
             </tr>
           </thead>
           <tbody>
@@ -184,9 +184,6 @@ export function BenchmarkRecordsBlock({ records, mode, summary, className }: Pro
                 <td className="py-1.5 pr-3">
                   <MatchBadge type={r.match_type} />
                 </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">
-                  {r.sample_size > 0 ? r.sample_size : '—'}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -194,7 +191,7 @@ export function BenchmarkRecordsBlock({ records, mode, summary, className }: Pro
       </div>
       {records[0]?.source && (
         <p className="mt-3 text-[10px] text-muted-foreground">
-          Source: {records[0].source}
+          Source: {displayBenchmarkSource(records[0].source)}
           {records[0].dataset_date ? ` · ${records[0].dataset_date}` : ''}
         </p>
       )}

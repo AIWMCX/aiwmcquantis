@@ -2,14 +2,18 @@
  * benchmarksCsv — convert `metadata.benchmarks[]` into a downloadable CSV.
  *
  * Spec:
- *   metric, your_value, p25, median, p75, sample_size, match_type, match_level,
+ *   metric, your_value, p25, median, p75, match_type, match_level,
  *   source, dataset_date, unit
+ *
+ * No sample_size column: the ranges are modeled (no observation count), and
+ * saved reports still carry invented counts (230 / 180) in that field.
  *
  * Numeric values are written in their *engine-native* unit (percentages stay as
  * fractions, USD as raw numbers, etc.) so spreadsheets can chart them without
  * extra parsing. A human-readable "unit" column tells the reader how to read it.
  */
 import type { BenchmarkRecord } from '@/components/analysis/BenchmarkRecordsBlock';
+import { displayBenchmarkSource } from '@/lib/benchmark-citations';
 
 const HEADER = [
   'metric',
@@ -17,7 +21,6 @@ const HEADER = [
   'p25',
   'median',
   'p75',
-  'sample_size',
   'match_type',
   'match_level',
   'source',
@@ -43,10 +46,9 @@ export function benchmarksToCsv(records: BenchmarkRecord[] | null | undefined): 
         escape(r.p25),
         escape(r.median),
         escape(r.p75),
-        escape(r.sample_size),
         escape(r.match_type),
         escape(r.match_level),
-        escape(r.source),
+        escape(displayBenchmarkSource(r.source)),
         escape(r.dataset_date),
         escape(r.unit),
       ].join(',')

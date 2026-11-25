@@ -1,7 +1,8 @@
 /**
  * BenchmarkCitations — single panel that lists every benchmark cited
- * in the analysis with P25/P50/P75 range, source, sample size, and date.
- * Backed by the AIWMC Quantis Benchmark Master library.
+ * in the analysis with P25/P50/P75 range, source and date. The ranges are
+ * Quantis modeled reference ranges (a rule-generated grid), so no sample
+ * size ("n") is shown: there is no observation count behind them.
  *
  * Prefers the server-computed match from result.metadata.benchmarks
  * (`serverRecords` prop) when available for a metric, falling back to the
@@ -20,6 +21,7 @@ import {
   type BenchmarkResult,
 } from '@/services/benchmark-lookup';
 import type { ServerBenchmarkRecord } from '@/types/analysis';
+import { MODELED_REFERENCE_LABEL, displayBenchmarkSource } from '@/lib/benchmark-citations';
 
 // CodeRabbit catch (PR #100): this type now lives in @/types/analysis so
 // `BusinessAnalysisResult.metadata.benchmarks` can be declared with it
@@ -136,7 +138,7 @@ export function BenchmarkCitations({ metrics, context, className, serverRecords 
           <h3 id="bench-citations-h" className="font-semibold text-sm">Benchmark Citations</h3>
         </div>
         <span className="text-[10px] font-mono text-muted-foreground">
-          AIWMC Quantis Benchmark Master
+          {MODELED_REFERENCE_LABEL}
         </span>
       </header>
 
@@ -154,7 +156,7 @@ export function BenchmarkCitations({ metrics, context, className, serverRecords 
                 <th className="text-right py-1.5 pr-3">P25 – P75</th>
                 <th className="text-right py-1.5 pr-3">Median</th>
                 <th className="text-left py-1.5 pr-3">Source</th>
-                <th className="text-right py-1.5">n · date</th>
+                <th className="text-right py-1.5">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -180,9 +182,9 @@ export function BenchmarkCitations({ metrics, context, className, serverRecords 
                     <td className="py-1.5 pr-3 text-right font-mono">{r.userValue != null ? fmt(r.userValue) : '—'}</td>
                     <td className="py-1.5 pr-3 text-right font-mono">{fmt(r.b.p25)} – {fmt(r.b.p75)}</td>
                     <td className="py-1.5 pr-3 text-right font-mono">{fmt(r.b.p50)}</td>
-                    <td className="py-1.5 pr-3">{r.b.source ?? 'AIWMC'}</td>
+                    <td className="py-1.5 pr-3">{displayBenchmarkSource(r.b.source)}</td>
                     <td className="py-1.5 text-right font-mono text-muted-foreground">
-                      n={r.b.sampleSize?.toLocaleString('en-US') ?? '—'} · {(r.b.dataDate ?? '').slice(0, 7)}
+                      {(r.b.dataDate ?? '').slice(0, 7) || '—'}
                     </td>
                   </tr>
                 );
@@ -192,9 +194,9 @@ export function BenchmarkCitations({ metrics, context, className, serverRecords 
         </div>
       )}
       <p className="mt-2 text-[10px] text-muted-foreground">
-        Every numeric metric in this report is matched against the AIWMC Quantis Benchmark
-        Master library — the same match computed once for this analysis. When no direct match
-        exists, we mark the value as "Estimated" and flag the wider uncertainty band.
+        Ranges are compared with Quantis modeled reference ranges for similar businesses (modeled,
+        not observed data), computed once for this analysis. When no match exists, we mark the
+        value as "Estimated" and flag the wider uncertainty band.
       </p>
     </section>
   );

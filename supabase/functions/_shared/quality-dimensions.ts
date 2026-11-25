@@ -200,7 +200,7 @@ export function buildQualityDimensions(input: QualityDimensionsInput): QualityDi
       source_coverage: sourceCoverageEvidence,
       benchmark_match_quality:
         input.benchmarkSource === 'database'
-          ? `Matched against the proprietary benchmark database (industry relevance score ${input.industryRelevance}/100).`
+          ? `Matched against Quantis reference ranges, modeled, not observed data (industry relevance score ${input.industryRelevance}/100).`
           : `Using ${input.benchmarkSource ?? 'default'} benchmarks -- no direct database match (industry relevance score ${input.industryRelevance}/100).`,
       scenario_reconciliation: scenarioEvidence,
       narrative_reconciliation: input.narrativeWasModified

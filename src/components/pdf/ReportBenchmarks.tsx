@@ -2,6 +2,7 @@ import React from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { pdfStyles } from './pdfStyles';
 import { ReportHeader, ReportFooter } from './ReportPageElements';
+import { displayBenchmarkSource } from '@/lib/benchmark-citations';
 
 /**
  * ReportBenchmarks — PDF page that renders ONLY `metadata.benchmarks[]`.
@@ -74,7 +75,7 @@ export function ReportBenchmarks({ result }: Props) {
   const summary = meta.benchmark_match_summary as
     | { direct: number; similar: number; none: number; total: number }
     | undefined;
-  const source = records[0]?.source ?? 'AIWMC Quantis Benchmark Master';
+  const source = displayBenchmarkSource(records[0]?.source);
 
   return (
     <div style={pdfStyles.page}>
@@ -106,7 +107,6 @@ export function ReportBenchmarks({ result }: Props) {
               <th style={{ ...pdfStyles.tableHeader, textAlign: 'right' }}>Median</th>
               <th style={{ ...pdfStyles.tableHeader, textAlign: 'right' }}>P75</th>
               <th style={{ ...pdfStyles.tableHeader, textAlign: 'center' }}>Match</th>
-              <th style={{ ...pdfStyles.tableHeader, textAlign: 'right' }}>n</th>
             </tr>
           </thead>
           <tbody>
@@ -132,9 +132,6 @@ export function ReportBenchmarks({ result }: Props) {
                   }}
                 >
                   {r.match_type}
-                </td>
-                <td style={{ ...pdfStyles.tableCell, textAlign: 'right' }}>
-                  {r.sample_size > 0 ? r.sample_size : '—'}
                 </td>
               </tr>
             ))}

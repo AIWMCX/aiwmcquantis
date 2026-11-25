@@ -28,7 +28,7 @@ import {
   type ServerBenchmarkRecord,
 } from '@/components/analysis/BenchmarkCitations';
 import { deriveReportVerdict, deriveDegradedFlags } from './pdf-verdict';
-import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { MODELED_REFERENCE_LABEL, displayBenchmarkSource } from '@/lib/benchmark-citations';
 import { buildBenchmarkCitationsSummary } from './pdf-benchmark-summary';
 import { computeVerdict } from '@/lib/verdict';
 import { whatHasToBeTrue } from '@/lib/what-has-to-be-true';
@@ -1743,12 +1743,13 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
       // was validated against 97,500 data points," which it never was.
       // Also hardcoded '97,500' directly, bypassing canonical-facts.ts's own
       // single-source-of-truth rule ("Never hardcode... import from here") --
-      // exactly the drift class that file exists to prevent. Now imports
-      // BENCHMARK_COUNT_DISPLAY and states the library size and this
-      // report's actual matched count as two separate, clearly labeled facts.
-      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Verified Benchmarks'),
+      // exactly the drift class that file exists to prevent.
+      // 2026-11-06: the grid is modeled (migration 20260608000003), so the
+      // header no longer says "Verified", the summary states no row count and
+      // the table shows no "n" (the n=230 / n=180 values were invented).
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Benchmark Reference Ranges'),
       React.createElement(Text, { style: styles.paragraph },
-        buildBenchmarkCitationsSummary(benchmarkRows, BENCHMARK_COUNT_DISPLAY)
+        buildBenchmarkCitationsSummary(benchmarkRows)
       ),
       React.createElement(
         View,
@@ -1760,7 +1761,7 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Your value'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'P25 – P75'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Median'),
-          React.createElement(Text, { style: styles.tableHeaderCell }, 'Source · n · date')
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Source · date')
         ),
         (benchmarkRows.length > 0 ? benchmarkRows : []).map((r, i) => {
           const fmt = (v?: number) => formatBenchmarkValue(r.metric, v);
@@ -1768,7 +1769,7 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
           const range = matched ? `${fmt(r.bench.p25)} – ${fmt(r.bench.p75)}` : 'Estimated';
           const median = matched ? fmt(r.bench.p50) : '—';
           const src = matched
-            ? `${r.bench.source ?? 'AIWMC'} · n=${(r.bench.sampleSize ?? 0).toLocaleString('en-US')} · ${(r.bench.dataDate ?? '').slice(0, 7)}`
+            ? [displayBenchmarkSource(r.bench.source), (r.bench.dataDate ?? '').slice(0, 7)].filter(Boolean).join(' · ')
             : 'Engine fallback (no direct row)';
           return React.createElement(
             View,
@@ -1821,10 +1822,10 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
           ? dataSources.map((source, i) => {
               // Sanitize internal developer references for user-facing display
               const cleanSource = String(source)
-                .replace(/Kerry Industry Dataset/gi, 'Proprietary Industry Benchmark Database')
-                .replace(/Kerry dataset/gi, 'proprietary industry benchmarks')
-                .replace(/\(Kerry\)/gi, '(proprietary)')
-                .replace(/upload Kerry dataset for enhanced accuracy/gi, 'proprietary industry benchmark database');
+                .replace(/upload Kerry dataset for enhanced accuracy/gi, 'modeled reference ranges')
+                .replace(/Kerry Industry Dataset/gi, MODELED_REFERENCE_LABEL)
+                .replace(/Kerry dataset/gi, MODELED_REFERENCE_LABEL)
+                .replace(/\(Kerry\)/gi, '(modeled reference ranges)');
               return React.createElement(
                 View,
                 { key: i, style: styles.listItem },
@@ -1849,7 +1850,7 @@ export const createExecutiveReport = (rawResult: BusinessAnalysisResult, brandin
                 .replace(/Using default benchmarks \(upload Kerry dataset for enhanced accuracy\)/gi, 'Analysis uses general industry benchmarks. Selecting your specific industry will improve accuracy.')
                 .replace(/No industry-specific benchmarks applied/gi, 'General industry benchmarks applied. Specify your exact business sector for higher precision.')
                 .replace(/upload Kerry dataset/gi, 'providing additional financial details')
-                .replace(/Kerry dataset/gi, 'proprietary industry database');
+                .replace(/Kerry dataset/gi, 'modeled reference ranges');
               return React.createElement(
                 View,
                 { key: i, style: styles.listItem },
@@ -2232,7 +2233,7 @@ export const createDecisionMemoReport = (
 
       sectionHeading('Evidence & Methodology'),
       React.createElement(Text, { style: styles.paragraph },
-        buildBenchmarkCitationsSummary(benchmarkRows, BENCHMARK_COUNT_DISPLAY)
+        buildBenchmarkCitationsSummary(benchmarkRows)
       ),
       React.createElement(Text, { style: { fontSize: 8, color: brandedColors.textMuted, fontStyle: 'italic', marginTop: 4 } },
         `Analysis date: ${generatedDate}. This memo summarizes the same deterministic engine output as the Full Report — see the Full Report for benchmark-by-benchmark detail, scenario tables, market analysis, and full risk register.`

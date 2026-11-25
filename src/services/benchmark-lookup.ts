@@ -1,10 +1,12 @@
 /**
  * Benchmark Lookup Service
- * Fetches P25/P50/P75 from the 97,500-row Benchmark Master library
+ * Fetches P25/P50/P75 from the Benchmark Master grid (modeled reference
+ * ranges, not observed data)
  * via the `benchmark_lookup` RPC. Falls back to "Estimated · No direct
  * benchmark" when no row matches.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { displayBenchmarkSource } from '@/lib/benchmark-citations';
 
 export type BenchmarkMetric =
   | 'gross_margin'
@@ -193,9 +195,9 @@ export function formatBenchmarkValue(metric: BenchmarkMetric, v: number | undefi
   return v.toFixed(2);
 }
 
-/** Compact citation: "AIWMC Master v2.0 · n=19,500 · 2025-04" */
+/** Compact citation: "Quantis reference ranges (modeled, not observed data) · 2025-04". No "n": the grid has no observation count. */
 export function compactCitation(b: BenchmarkResult): string {
   if (!b.matched) return 'Estimated · No direct benchmark';
   const date = (b.dataDate ?? '').slice(0, 7);
-  return `${b.source ?? 'AIWMC'} · n=${(b.sampleSize ?? 0).toLocaleString('en-US')} · ${date}`;
+  return [displayBenchmarkSource(b.source), date].filter(Boolean).join(' · ');
 }

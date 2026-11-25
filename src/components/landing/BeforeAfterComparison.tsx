@@ -14,7 +14,7 @@ const WITHOUT_ITEMS = [
 
 const WITH_ITEMS = [
 'Know your 3 fatal assumptions before spending $1',
-`Stress-test against ${BENCHMARK_COUNT_DISPLAY} industry benchmarks`,
+`Stress-test against ${BENCHMARK_COUNT_DISPLAY} modeled benchmark cells`,
 'Get a profitability verdict and reliability score',
 'See exactly which number will break your model'];
 

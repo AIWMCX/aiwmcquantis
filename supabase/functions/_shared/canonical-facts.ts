@@ -128,4 +128,4 @@ export const PROCESSING_TIME_CLAIM = 'under 90 seconds';
  * This is a STATED DEFINITION, not a verified one — the DB audit query needed
  * to actually prove this against production data has not been run.
  */
-export const BENCHMARK_DEFINITION = 'industry and location benchmark observations from public, licensed, and proprietary datasets';
+export const BENCHMARK_DEFINITION = 'modeled cells in a rule-generated grid informed by public datasets and proprietary modeling, not observed companies';

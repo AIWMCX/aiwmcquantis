@@ -2,13 +2,18 @@
  * BENCHMARK RECORDS — canonical per-metric output block.
  *
  * Single source of truth for what the PDF / UI render under "Benchmarks".
- * Maps the V2 BenchmarkSummaryForCase (97,500-row dataset) + the engine-
- * computed canonical metrics into one record per metric, with an explicit
- * `match_type` (direct | similar | none). No invented percentiles.
+ * Maps the V2 BenchmarkSummaryForCase (the Benchmark Master grid) + the
+ * engine-computed canonical metrics into one record per metric, with an
+ * explicit `match_type` (direct | similar | none).
+ *
+ * The Benchmark Master tables (migration 20260608000003) were generated from
+ * an XLSX grid: every dimension combination appears once, so a range is a
+ * modeled reference, not a sample of observed businesses. `sample_size` is
+ * therefore always 0 ("not a sample"); it used to carry invented counts
+ * (230 / 180 / 95) that the UI printed as "n".
  */
 
 import type { BenchmarkSummaryForCase, MatchQuality } from './benchmark-engine-v2.ts';
-import { BENCHMARK_COUNT_DISPLAY } from '../_shared/canonical-facts.ts';
 
 export type MatchType = 'direct' | 'similar' | 'none';
 
@@ -19,12 +24,16 @@ export interface BenchmarkRecord {
   p25: number | null;
   median: number | null;
   p75: number | null;
+  /** Always 0: modeled reference ranges are not a count of observations. */
   sample_size: number;
   source: string | null;
   dataset_date: string | null;
   match_type: MatchType;
   match_level: MatchQuality | null;
 }
+
+/** Source label for every Benchmark Master range. Mirrored in src/lib/benchmark-citations.ts. */
+export const MODELED_REFERENCE_SOURCE = 'Quantis reference ranges (modeled, not observed data)';
 
 export interface BenchmarkMatchSummary {
   direct: number;
@@ -69,7 +78,6 @@ function makeRecord(
   median: number | null | undefined,
   p75: number | null | undefined,
   source: string | null,
-  sample_size: number,
   match_level: MatchQuality | null
 ): BenchmarkRecord {
   const has =
@@ -86,7 +94,7 @@ function makeRecord(
     p25: has ? Number(p25) : null,
     median: has ? Number(median) : null,
     p75: has ? Number(p75) : null,
-    sample_size: has ? sample_size : 0,
+    sample_size: 0,
     source: has ? source : null,
     dataset_date: null,
     match_type: has ? matchQualityToType(match_level) : 'none',
@@ -97,7 +105,7 @@ function makeRecord(
 /**
  * Build the canonical benchmarks[] block.
  * `computed` carries engine-computed canonical values; `summary` carries
- * the percentile data from the 97,500-row dataset.
+ * the percentile data from the modeled Benchmark Master grid.
  */
 export function buildBenchmarkRecords(
   summary: BenchmarkSummaryForCase | null,
@@ -106,7 +114,7 @@ export function buildBenchmarkRecords(
   const core = summary?.core ?? null;
   const ue = summary?.unit_econ ?? null;
   const risk = summary?.risk ?? null;
-  const SRC = `AIWMC Quantis Benchmark Master (${BENCHMARK_COUNT_DISPLAY} rows)`;
+  const SRC = MODELED_REFERENCE_SOURCE;
 
   const records: BenchmarkRecord[] = [
     // ── Profitability ──
@@ -118,7 +126,6 @@ export function buildBenchmarkRecords(
       core?.gm_margin_p50,
       core?.gm_margin_p75,
       SRC,
-      230,
       core?.match_quality ?? null
     ),
     makeRecord(
@@ -129,7 +136,6 @@ export function buildBenchmarkRecords(
       core?.op_margin_p50,
       core?.op_margin_p50,
       SRC,
-      230,
       core?.match_quality ?? null
     ),
     makeRecord(
@@ -140,7 +146,6 @@ export function buildBenchmarkRecords(
       core?.op_margin_p50,
       core?.op_margin_p50 != null ? Number(core.op_margin_p50) * 1.4 : null,
       SRC,
-      230,
       core?.match_quality ?? null
     ),
     makeRecord(
@@ -151,7 +156,6 @@ export function buildBenchmarkRecords(
       core?.revenue_growth_yoy_p50,
       core?.revenue_growth_yoy_p50,
       SRC,
-      230,
       core?.match_quality ?? null
     ),
 
@@ -164,7 +168,6 @@ export function buildBenchmarkRecords(
       ue?.cac_p50,
       ue?.cac_p75,
       SRC,
-      180,
       ue?.match_quality ?? null
     ),
     makeRecord(
@@ -175,7 +178,6 @@ export function buildBenchmarkRecords(
       ue?.ltv_p50,
       ue?.ltv_p75,
       SRC,
-      180,
       ue?.match_quality ?? null
     ),
     makeRecord(
@@ -186,7 +188,6 @@ export function buildBenchmarkRecords(
       ue?.ltv_cac_ratio_p50,
       ue?.ltv_cac_ratio_p75,
       SRC,
-      180,
       ue?.match_quality ?? null
     ),
     makeRecord(
@@ -197,7 +198,6 @@ export function buildBenchmarkRecords(
       ue?.cac_payback_p50,
       ue?.cac_payback_p75,
       SRC,
-      180,
       ue?.match_quality ?? null
     ),
     makeRecord(
@@ -208,7 +208,6 @@ export function buildBenchmarkRecords(
       ue?.churn_monthly_p50,
       ue?.churn_monthly_p75,
       SRC,
-      180,
       ue?.match_quality ?? null
     ),
     makeRecord(
@@ -219,7 +218,6 @@ export function buildBenchmarkRecords(
       ue?.retention_12m,
       ue?.retention_12m,
       SRC,
-      180,
       ue?.match_quality ?? null
     ),
     makeRecord(
@@ -230,7 +228,6 @@ export function buildBenchmarkRecords(
       ue?.arpu_median,
       ue?.arpu_median,
       SRC,
-      180,
       ue?.match_quality ?? null
     ),
 
@@ -243,7 +240,6 @@ export function buildBenchmarkRecords(
       core?.rent_pct_rev_p50,
       core?.rent_pct_rev_p50,
       SRC,
-      230,
       core?.match_quality ?? null
     ),
     makeRecord(
@@ -254,7 +250,6 @@ export function buildBenchmarkRecords(
       core?.payroll_pct_rev_p50,
       core?.payroll_pct_rev_p50,
       SRC,
-      230,
       core?.match_quality ?? null
     ),
     makeRecord(
@@ -265,7 +260,6 @@ export function buildBenchmarkRecords(
       core?.marketing_pct_rev_p50,
       core?.marketing_pct_rev_p50,
       SRC,
-      230,
       core?.match_quality ?? null
     ),
 
@@ -278,7 +272,6 @@ export function buildBenchmarkRecords(
       risk?.median_survival_years,
       risk?.median_survival_years,
       SRC,
-      95,
       risk?.match_quality ?? null
     ),
   ];
