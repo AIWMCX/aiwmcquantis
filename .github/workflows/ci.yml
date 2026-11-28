@@ -194,6 +194,10 @@ jobs:
         run: |
           echo "::error title=Outreach tests failed::A guard on outbound email copy failed. Run the same deno test command locally."
 
+      # Same job as above, so no extra billed minute.
+      - name: Autoposter OAuth tests (Deno)
+        run: deno test --no-check --allow-read --allow-env supabase/functions/_shared/autoposter-oauth.test.ts
+
       - name: Coverage (best-effort)
         if: ${{ always() && github.event_name != 'push' }}
         run: bun run test:coverage || true

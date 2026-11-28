@@ -1,6 +1,8 @@
 // AIWMC Quantis — LinkedIn OAuth callback
 // ------------------------------------------------------------------
-// Step 1 (initiate): GET ?init=1 — generates state, returns redirect URL.
+// Step 1 (start): the Autoposter "Connections" panel POSTs
+//   { action: 'start' } with an admin JWT; we store state and return
+//   the LinkedIn authorize URL. Nothing else can start a connection.
 // Step 2 (callback): LinkedIn redirects back with ?code=...&state=...
 //   We exchange the code for an access_token, fetch the member URN
 //   (openid /userinfo → `sub`), store the token in Vault, and upsert
@@ -94,22 +96,6 @@ Deno.serve(async (req) => {
     return html('<h2>Missing config</h2><p>LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET not set.</p>', 500);
   }
   const url = new URL(req.url);
-
-  // INITIATE — admin-only. Requires CRON_SECRET via header or ?secret= query param.
-  // Prevents anonymous attackers from hijacking the shared autoposter account.
-  if (url.searchParams.get('init') === '1') {
-    const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
-    const provided = req.headers.get('x-cron-secret') ?? url.searchParams.get('secret') ?? '';
-    if (!CRON_SECRET || provided !== CRON_SECRET) {
-      return html('<h2>Unauthorized</h2><p>Admin secret required to initiate LinkedIn OAuth.</p>', 401);
-    }
-    const state = crypto.randomUUID();
-    await supa.from('autoposter_oauth_state').insert({
-      state, platform: 'linkedin', redirect_uri: REDIRECT_URI,
-    });
-    return Response.redirect(authUrlFor(state), 302);
-  }
-
 
   // CALLBACK
   const code = url.searchParams.get('code');
